@@ -1,0 +1,32 @@
+# 统一以 LF 为换行符，阻止 Git 在 Windows 上做 CRLF 自动转换
+# 统一以 UTF-8 读写工作区文件，防止 GBK 等本地编码把中文写坏
+* text=auto eol=lf working-tree-encoding=UTF-8
+
+# 二进制文件不做任何转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.mp3   binary
+*.mp4   binary
+
+# 源码文件显式声明为文本 + UTF-8，防止某些工具误判为二进制
+*.js    text eol=lf working-tree-encoding=UTF-8
+*.jsx   text eol=lf working-tree-encoding=UTF-8
+*.ts    text eol=lf working-tree-encoding=UTF-8
+*.tsx   text eol=lf working-tree-encoding=UTF-8
+*.json  text eol=lf working-tree-encoding=UTF-8
+*.md    text eol=lf working-tree-encoding=UTF-8
+*.html  text eol=lf working-tree-encoding=UTF-8
+*.css   text eol=lf working-tree-encoding=UTF-8
+*.svg   text eol=lf working-tree-encoding=UTF-8
+*.yml   text eol=lf working-tree-encoding=UTF-8
+*.yaml  text eol=lf working-tree-encoding=UTF-8

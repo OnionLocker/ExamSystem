@@ -18,7 +18,7 @@ import { CATEGORIES, generate, getSub, judge } from './generators.js';
 const HISTORY_KEY = 'numeric_practice_history_v1';
 const RACE_SIZE = 10;
 
-// 缂佹稒妫冮。浠嬪矗瀹ュ娲柛瀣矌閺嗏偓闁哄啫鐖煎Λ鍧楁晬閸噥鍤戠紒澶嬪釜缁憋拷
+// 作答反馈展示时长（毫秒）
 const FEEDBACK_CORRECT_MS = 120;
 const FEEDBACK_WRONG_MS = 600;
 const FEEDBACK_SKIP_MS = 300;
@@ -31,8 +31,8 @@ const categoryIcons = {
 };
 
 const fmtMs = (ms) => {
-  if (ms < 1000) return `${ms} 婵綆鍋嗛～姊�;
-  return `${(ms / 1000).toFixed(1)} 缂佸濡�;
+  if (ms < 1000) return `${ms} 毫秒`;
+  return `${(ms / 1000).toFixed(1)} 秒`;
 };
 const loadHistory = () => {
   try {
@@ -45,7 +45,7 @@ const saveHistory = (list) => {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
 };
 
-// ---------------- 濞戞捁宕电划宥嗙閿燂拷 ----------------
+// ---------------- 主组件 ----------------
 const NumericPractice = () => {
   const [view, setView] = useState('home');
   const [currentCat, setCurrentCat] = useState(null);
@@ -161,9 +161,9 @@ const HomeView = ({ onPick }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-10">
       <div>
-        <h2 className="text-4xl font-black tracking-tighter italic uppercase">闁轰焦濯界粊顐ょ磼閸愌呯槑</h2>
+        <h2 className="text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
         <p className="text-sm font-medium text-slate-400 mt-2">
-          濞寸姴楠搁悢鈧痪顓涘亾閻犱緤绱曢悾濠氬礆閹峰瞼銈柡鍌涚懃閸ㄥ酣寮搁幇鍓佺闁圭ǹ顦粭鎾淬亜閻熸澘鐎婚柛褎顨夐鍕磼閸愶腹鍋撻敓锟�
+          选择一个练习分类，进入题库开始训练，或挑战限时冲刺模式。
         </p>
       </div>
 
@@ -198,7 +198,7 @@ const HomeView = ({ onPick }) => {
                 )}
                 {disabled && (
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    鐎点倝缂氶鏇熺▔閿燂拷
+                    敬请期待
                   </span>
                 )}
               </div>
@@ -212,7 +212,7 @@ const HomeView = ({ onPick }) => {
               </p>
               {!disabled && (
                 <p className="text-[10px] font-black uppercase tracking-widest mt-6 opacity-50">
-                  {cat.subs.length} 濞戞搩浜滈悺娆戠尵閿燂拷
+                  {cat.subs.length} 个子项
                 </p>
               )}
             </button>
@@ -234,16 +234,16 @@ const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, on
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
         >
           <ChevronLeft size={18} />
-          <span className="text-xs font-black uppercase tracking-widest">閺夆晜鏌ㄥú锟�</span>
+          <span className="text-xs font-black uppercase tracking-widest">返回</span>
         </button>
         <h2 className="text-2xl font-black italic">{cat.name}</h2>
         <button
           onClick={onOpenHistory}
-          title="闁告ê妫楄ぐ鍓佹媼閺夎法绉�"
+          title="历史记录"
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
         >
           <HistoryIcon size={16} />
-          <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">闁告ê妫楄ぐ锟�</span>
+          <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">历史</span>
         </button>
       </div>
 
@@ -267,17 +267,17 @@ const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, on
       </div>
 
       <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9] space-y-3">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">缂備礁鍟╃弧鍕熼垾宕囩</p>
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">选择模式</p>
         <ModeOption
-          label="閻犱緡鍘剧划灞轿熼垾宕囩"
-          desc="婵絽绻樻禍鐐紣濡偐鎽曢悗鐟拌嫰瀹撳棝寮伴崜褋浠涢悗闈涚秺閺佸﹪鏁嶅畝鍐ㄦ闁告柣鍔忕换姗€宕楅妷銈囩憮濞戞挴鍋撳Λ甯嫹"
+          label="训练模式"
+          desc="不限题数，专注练习，按 Esc 可跳过当前题目，随时可退出。"
           checked={mode === 'train'}
           onClick={() => onPickMode('train')}
           color="#22c55e"
         />
         <ModeOption
-          label="缂佹梻鍋ら埀顒傚枑鑶╃€殿噯鎷�"
-          desc={`${RACE_SIZE} 濡増眉缁斿绱掗崟鍓佺缂備焦鎸诲ḿ顐﹀触鎼淬垻婀介柟顒冨吹閺併倝寮捄鐑樺婵繐绲块垾姗€鎮抽崲绔�
+          label="冲刺模式"
+          desc={`${RACE_SIZE} 题限时挑战，结束后统计用时与正确率。`}
           checked={mode === 'race'}
           onClick={() => onPickMode('race')}
           color="#fbc02d"
@@ -290,14 +290,14 @@ const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, on
           className="flex-1 bg-[#1a1a1a] text-white font-black py-5 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <Play size={16} />
-          <span>鐎殿喒鍋撳┑顔碱儑缁本绋婇敓锟�</span>
+          <span>开始练习</span>
         </button>
         <button
           onClick={onOpenHistory}
           className="px-8 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
         >
           <HistoryIcon size={14} />
-          <span>闁告ê妫楄ぐ鍓佹媼閺夎法绉�</span>
+          <span>历史记录</span>
         </button>
       </div>
     </div>
@@ -326,32 +326,32 @@ const ModeOption = ({ label, desc, checked, onClick, color }) => (
   </button>
 );
 
-// ---------------- Session闁挎稑鐗忛崙浠嬫煥椤旂偓纾� + 闁告娅曞鍌炲矗瀹ュ娲柨娑虫嫹 ----------------
+// ---------------- Session（做题页 + 键盘输入） ----------------
 const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   const [, setTick] = useState(0);
   const [feedback, setFeedback] = useState(null); // null | { ok, skipped, answer }
   const timerRef = useRef(null);
   const pendingRef = useRef(null); // { newRecords, isLast }
 
-  // 閻犱緤鎷�"闁哄牜鍓熼。浠嬫偨閵婏附顦�"闁归晲鑳堕悽濠氬即鐎涙ɑ鐓€
+  // 驱动"已用时"显示的定时刷新
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(id);
   }, []);
 
-  // 闁告鐡曞ù鍥籍閼哥數顏搁悗瑙勭濡炲倿宕抽敓锟�
+  // 组件卸载时清理计时器
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
-  // 闂佹鍠氬ú蹇旀綇閹惧啿寮�
+  // 键盘事件监听
   useEffect(() => {
     const onKey = (e) => {
       if (!session) return;
 
-      // 闁告瑥绉归々顓㈡⒓閼告鍞介柨娑欘儛nter/Space 缂佹柨顑呭畵鍡欐崉鐎圭姷绠栫紒娑橆槸缁讹拷
+      // 反馈展示期间：按 Enter/Space 可立即进入下一题
       if (feedback) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -360,7 +360,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         return;
       }
 
-      // 闊洨鏅弳鎰磼閸曨偅鍊ら梺鍖℃嫹
+      // 忽略带修饰键的组合
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       if (e.key >= '0' && e.key <= '9') {
@@ -472,11 +472,11 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     scheduleAdvance(newRecords, { ok: false, skipped: true, answer: current.answer });
   };
 
-  const totalStr = total === Infinity ? '闁愁叏鎷�' : String(total);
+  const totalStr = total === Infinity ? '∞' : String(total);
   const progress = `${index + 1} / ${totalStr}`;
   const correctCount = records.filter((r) => r.isCorrect).length;
 
-  // 闁告瑥绉归々顓㈠冀瀹勬壆纭€
+  // 反馈区域背景
   const fbBg = feedback
     ? feedback.ok
       ? 'bg-emerald-500/25 ring-2 ring-emerald-400'
@@ -487,23 +487,23 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* 濡炪倕鐖奸崕瀛樼┍閳╁啩绱栭柡澶涙嫹 */}
+      {/* 顶部导航 */}
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onExit}
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
         >
           <ChevronLeft size={18} />
-          <span className="text-xs font-black uppercase tracking-widest">闂侇偀鍋撻柛鎴嫹</span>
+          <span className="text-xs font-black uppercase tracking-widest">退出</span>
         </button>
         <div className="text-xs font-black uppercase tracking-widest text-slate-400">
-          {session.subName} 鐠猴拷 {mode === 'race' ? '缂佹梻鍋ら埀顒傚枑鑶╃€殿噯鎷�' : '閻犱緡鍘剧划灞轿熼垾宕囩'}
+          {session.subName} · {mode === 'race' ? '冲刺模式' : '训练模式'}
         </div>
       </div>
 
-      {/* 濡増岣垮ú浼村础閿燂拷 */}
+      {/* 题目卡片 */}
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 shadow-xl shadow-black/10 relative overflow-hidden">
-        {/* 闁告瑥绉归々顓㈠籍閸撲焦鐣遍柡浣规綑瀹曢亶宕ｉ幋婵嗗辅 */}
+        {/* 反馈背景淡色层 */}
         {feedback && (
           <div
             className={`absolute inset-0 pointer-events-none transition-opacity ${
@@ -519,7 +519,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         <div className="relative z-10">
           <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest opacity-60 mb-10">
             <span>{progress}</span>
-            <span>闁哄牜鍓熼。浠嬫偨閵婏附顦� {fmtMs(elapsed)}</span>
+            <span>本题用时 {fmtMs(elapsed)}</span>
           </div>
 
           <div className="text-center py-8">
@@ -528,7 +528,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
             </p>
           </div>
 
-          {/* 閺夊牊鎸搁崣锟�/闁告瑥绉归々顓㈠礌閿燂拷 */}
+          {/* 输入/反馈区 */}
           <div
             className={`rounded-2xl h-24 flex items-center justify-center px-6 transition-all duration-150 ${fbBg}`}
           >
@@ -560,7 +560,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
                     <span className="text-[#fbc02d]">{feedback.answer}</span>
                   </>
                 ) : input === '' ? (
-                  <span className="opacity-30 text-2xl">閺夊牊鎸搁崣鍡欑驳閺冣偓椤㈠秹鏁嶇仦鎯х樆 Enter 缁绢収鍠涢锟�</span>
+                  <span className="opacity-30 text-2xl">输入答案后按 Enter 提交</span>
                 ) : (
                   input
                 )}
@@ -568,17 +568,17 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
             </div>
           </div>
 
-          {/* 閹煎瓨娲熼崕纾嬬疀椤愶絽绁归梺娆惧枟瑜颁胶绮堥敓锟� + 閻忓繐绻楅锟� */}
+          {/* 快捷键提示 + 计数 */}
           <div className="mt-6 flex items-center justify-between text-[10px] font-black uppercase tracking-widest opacity-40">
             <div className="flex items-center space-x-3">
-              <span>Enter 缁绢収鍠涢锟�</span>
-              <span>鐠猴拷</span>
-              <span>Backspace 闁告帪鎷�</span>
-              <span>鐠猴拷</span>
-              <span>Esc 閻犲搫鐤囩换锟�</span>
+              <span>Enter 提交</span>
+              <span>·</span>
+              <span>Backspace 删除</span>
+              <span>·</span>
+              <span>Esc 跳过</span>
             </div>
             <div>
-              婵繐绲块垾锟� {correctCount} / 鐎规瓕灏欓悺锟� {records.length}
+              正确 {correctCount} / 已答 {records.length}
             </div>
           </div>
         </div>
@@ -608,23 +608,23 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
             <Trophy size={28} />
           </div>
           <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">
-            {result.subName} 鐠猴拷 缂佹梻鍋ら埀顒傚枎閻ｎ剟骞嬮敓锟�
+            {result.subName} · 冲刺结果
           </p>
           <p className="text-5xl font-black italic">{accuracy}%</p>
           <p className="text-sm font-medium opacity-60 mt-1">
-            闁稿骏鎷� {result.total} 濡府鎷� 鐠猴拷 婵繐绲块垾锟� {result.correct} 鐠猴拷 闂佹寧鐟ㄩ锟� {result.wrong} 鐠猴拷 閻犲搫鐤囩换鍎�' '}
+            共 {result.total} 题 · 正确 {result.correct} · 错误 {result.wrong} · 跳过{' '}
             {result.skipped}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mt-8">
-          <StatCell label="闁诡剝宕甸弫銈夊籍閿燂拷" value={fmtMs(result.totalMs)} />
-          <StatCell label="妤犵偛鍟垮ḿ搴⌒掕箛娑辨毌" value={fmtMs(result.avgMs)} />
+          <StatCell label="总用时" value={fmtMs(result.totalMs)} />
+          <StatCell label="平均用时" value={fmtMs(result.avgMs)} />
         </div>
       </div>
 
       <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9]">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">闂侇偅鍔欓。浠嬪及鎼达絿鐭�</p>
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">答题明细</p>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {result.records.map((r, i) => (
             <div
@@ -648,7 +648,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
               </div>
               <div className="flex items-center space-x-3 flex-shrink-0 ml-3">
                 <span className="text-xs text-slate-400">
-                  {r.skipped ? '閻犲搫鐤囩换锟�' : `濞达綇鎷�: ${r.userAnswer}`}
+                  {r.skipped ? '已跳过' : `你的答案: ${r.userAnswer}`}
                 </span>
                 {!r.isCorrect && (
                   <span className="text-xs font-black text-[#fbc02d]">= {r.answer}</span>
@@ -668,19 +668,19 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           className="flex-1 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <RotateCcw size={14} />
-          <span>闁告劕绉靛ḿ鍨▔閳ь剛绱掗敓锟�</span>
+          <span>再来一组</span>
         </button>
         <button
           onClick={onSubs}
           className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
-          闁瑰箍鍨介。浠嬪垂閿燂拷
+          换个题型
         </button>
         <button
           onClick={onHome}
           className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
-          閺夆晜鏌ㄥú锟�
+          返回
         </button>
       </div>
     </div>
@@ -700,7 +700,7 @@ const HistoryView = ({ onBack }) => {
 
   const clearAll = () => {
     if (list.length === 0) return;
-    if (confirm('缁绢収鍠栭悾鍓ф啺娴ｅ湱顏哥紒宀€鍎ゆ晶宥夊嫉婢跺﹤鍧婇柛娆掑蔼椤斿洩銇愰弴鐐村亱闁挎冻鎷�')) {
+    if (confirm('确定要清空所有历史记录吗？该操作不可恢复。')) {
       saveHistory([]);
       setList([]);
     }
@@ -714,15 +714,15 @@ const HistoryView = ({ onBack }) => {
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
         >
           <ChevronLeft size={18} />
-          <span className="text-xs font-black uppercase tracking-widest">閺夆晜鏌ㄥú锟�</span>
+          <span className="text-xs font-black uppercase tracking-widest">返回</span>
         </button>
-        <h2 className="text-2xl font-black italic">闁告ê妫楄ぐ鍓佹媼閺夎法绉�</h2>
+        <h2 className="text-2xl font-black italic">历史记录</h2>
         <button
           onClick={clearAll}
           disabled={list.length === 0}
           className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-[#ff6b6b] disabled:opacity-30 transition-colors"
         >
-          婵炴挸鎳愰埞锟�
+          清空
         </button>
       </div>
 
@@ -731,8 +731,8 @@ const HistoryView = ({ onBack }) => {
           <div className="w-16 h-16 mx-auto rounded-2xl bg-[#f2f0e9] flex items-center justify-center mb-4 text-slate-400">
             <HistoryIcon size={28} />
           </div>
-          <p className="text-sm font-bold text-slate-400">闁哄棗鍊瑰Λ銈囩博閻愯　鍋撻悢铏圭煀濞戞梻濮鹃鍥亹閿燂拷</p>
-          <p className="text-xs text-slate-400 mt-1">閻庣懓鏈崹姘▔閳ь剙鈻庨敓锟�"缂佹梻鍋ら埀顒傚枑鑶╃€殿噯鎷�"闁告艾绨肩槐浼存嚊椤忓嫬袟濞ｅ洦绻傞悺銊╁礆閹峰瞼绠归梺璇ф嫹</p>
+          <p className="text-sm font-bold text-slate-400">暂无历史记录</p>
+          <p className="text-xs text-slate-400 mt-1">完成一次"冲刺模式"后会在此留下成绩</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -750,9 +750,9 @@ const HistoryView = ({ onBack }) => {
                   </p>
                 </div>
                 <div className="flex items-center space-x-6 flex-shrink-0">
-                  <HistoryStat label="婵繐绲块垾姗€鎮抽敓锟�" value={`${accuracy}%`} accent />
-                  <HistoryStat label="闁烩偓鍔嶅锟�" value={fmtMs(r.totalMs)} />
-                  <HistoryStat label="妤犵偛鍟垮ḿ锟�" value={fmtMs(r.avgMs)} />
+                  <HistoryStat label="正确率" value={`${accuracy}%`} accent />
+                  <HistoryStat label="总用时" value={fmtMs(r.totalMs)} />
+                  <HistoryStat label="平均" value={fmtMs(r.avgMs)} />
                 </div>
               </div>
             );

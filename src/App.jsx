@@ -37,11 +37,11 @@ const daysBetween = (from, to) => {
   return Math.round(ms / 86400000);
 };
 const monthNames = [
-  '1鏈�', '2鏈�', '3鏈�', '4鏈�', '5鏈�', '6鏈�',
-  '7鏈�', '8鏈�', '9鏈�', '10鏈�', '11鏈�', '12鏈�',
+  '1月', '2月', '3月', '4月', '5月', '6月',
+  '7月', '8月', '9月', '10月', '11月', '12月',
 ];
-const weekdayShort = ['涓€', '浜�', '涓�', '鍥�', '浜�', '鍏�', '鏃�'];
-const weekdayFull = ['鍛ㄦ棩', '鍛ㄤ竴', '鍛ㄤ簩', '鍛ㄤ笁', '鍛ㄥ洓', '鍛ㄤ簲', '鍛ㄥ叚'];
+const weekdayShort = ['一', '二', '三', '四', '五', '六', '日'];
+const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EVENTS_KEY = 'exam_calendar_events';
 
 const App = () => {
@@ -133,7 +133,7 @@ const App = () => {
   };
   const clearAllEvents = () => {
     if (Object.keys(events).length === 0) return;
-    if (confirm('纭畾瑕佹竻绌烘墍鏈夊凡璁剧疆鐨勬棩瀛愬悧锛熸鎿嶄綔涓嶅彲鎭㈠銆�')) {
+    if (confirm('确定要清空所有已设置的日子吗？该操作不可恢复。')) {
       setEvents({});
     }
   };
@@ -148,7 +148,7 @@ const App = () => {
   if (!bootChecked) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#f2f0e9] text-sm font-bold text-slate-400">
-        姝ｅ湪鍔犺浇...
+        正在加载...
       </div>
     );
   }
@@ -158,15 +158,15 @@ const App = () => {
   }
 
   const stats = [
-    { label: '鏈懆瀛︿範', value: '45', unit: '棰�', trend: '+12%', icon: BookOpen },
-    { label: '姝ｇ‘鐜�', value: '72', unit: '%', trend: '+5%', icon: CheckCircle2 },
-    { label: '杩炵画鎵撳崱', value: '12', unit: '澶�', trend: '+2', icon: RefreshCcw },
-    { label: '骞冲潎鐢ㄦ椂', value: '1.5', unit: 'h', trend: '-10%', icon: Clock },
+    { label: '本周学习', value: '45', unit: '题', trend: '+12%', icon: BookOpen },
+    { label: '正确率', value: '72', unit: '%', trend: '+5%', icon: CheckCircle2 },
+    { label: '连续打卡', value: '12', unit: '天', trend: '+2', icon: RefreshCcw },
+    { label: '平均用时', value: '1.5', unit: 'h', trend: '-10%', icon: Clock },
   ];
 
   const recentExams = [
-    { id: 1, title: '2024 骞夸笢鐪佽€冭娴嬬湡棰�', date: '2024-03-20', score: '78/100', status: '宸插畬鎴�' },
-    { id: 2, title: '2023 骞夸笢鐪佽€冭娴嬬湡棰�', date: '2023-11-15', score: '65/100', status: '宸插鐩�' },
+    { id: 1, title: '2024 广东省考行测真题', date: '2024-03-20', score: '78/100', status: '已完成' },
+    { id: 2, title: '2023 广东省考行测真题', date: '2023-11-15', score: '65/100', status: '已复盘' },
   ];
 
   const SidebarItem = ({ id, icon: Icon, label }) => (
@@ -197,26 +197,26 @@ const App = () => {
     return (
       <div className="bg-[#1a1a1a] rounded-[2.5rem] p-8 text-white">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold">鎵撳崱璁板綍</h3>
+          <h3 className="font-bold">打卡记录</h3>
           <div className="flex items-center space-x-1">
             <button
               onClick={prevMonth}
               className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-              title="涓婁竴鏈�"
+              title="上一月"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               onClick={goToday}
               className="px-3 py-1 rounded-full text-xs font-bold bg-[#fbc02d] text-black hover:brightness-110 transition-all"
-              title="鍥炲埌浠婂ぉ"
+              title="回到今天"
             >
-              {year}骞� {monthNames[month]}
+              {year}年 {monthNames[month]}
             </button>
             <button
               onClick={nextMonth}
               className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
-              title="涓嬩竴鏈�"
+              title="下一月"
             >
               <ChevronRight size={16} />
             </button>
@@ -224,7 +224,7 @@ const App = () => {
               <button
                 onClick={clearAllEvents}
                 className="ml-2 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#ff6b6b]/20 hover:text-[#ff6b6b] transition-colors"
-                title="娓呯┖鎵€鏈変簨浠�"
+                title="清空所有事件"
               >
                 <Trash2 size={14} />
               </button>
@@ -257,7 +257,7 @@ const App = () => {
                 key={`cell-${i}`}
                 className={cls}
                 onClick={() => openEditor(key)}
-                title={hasEvent ? label : '鐐瑰嚮璁剧疆浜嬩欢'}
+                title={hasEvent ? label : '点击设置事件'}
               >
                 {day}
                 {hasEvent && !isToday && (
@@ -280,10 +280,10 @@ const App = () => {
             <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-[#fbc02d] flex items-center justify-center">
               <Calendar size={18} />
             </div>
-            <h3 className="text-lg font-bold">閲嶈鏃ュ瓙鍊掕鏃�</h3>
+            <h3 className="text-lg font-bold">重要日子倒计时</h3>
           </div>
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-            {upcomingEvents.length} 涓�
+            {upcomingEvents.length} 个
           </span>
         </div>
 
@@ -305,7 +305,7 @@ const App = () => {
                 <button
                   onClick={() => deleteEvent(key)}
                   className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white text-slate-400 hover:text-[#ff6b6b] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                  title="鍒犻櫎"
+                  title="删除"
                 >
                   <X size={14} />
                 </button>
@@ -313,9 +313,9 @@ const App = () => {
                 <p className="text-base font-black italic truncate">{label}</p>
                 <div className="mt-4 flex items-baseline space-x-1">
                   <span className={`text-4xl font-black tracking-tight ${badgeColor}`}>
-                    {days === 0 ? '浠婂ぉ' : days}
+                    {days === 0 ? '今天' : days}
                   </span>
-                  {days > 0 && <span className="text-xs font-bold text-slate-400">澶╁悗</span>}
+                  {days > 0 && <span className="text-xs font-bold text-slate-400">天后</span>}
                 </div>
               </div>
             );
@@ -341,9 +341,9 @@ const App = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">璁剧疆浜嬩欢</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">设置事件</p>
               <p className="text-xl font-black italic">
-                {editingKey} 路 {weekdayCN}
+                {editingKey} · {weekdayCN}
               </p>
             </div>
             <button
@@ -354,7 +354,7 @@ const App = () => {
             </button>
           </div>
 
-          <label className="text-xs font-bold text-slate-400 block mb-2">浜嬩欢鍚嶇О</label>
+          <label className="text-xs font-bold text-slate-400 block mb-2">事件名称</label>
           <input
             type="text"
             autoFocus
@@ -364,7 +364,7 @@ const App = () => {
               if (e.key === 'Enter') saveEvent();
               if (e.key === 'Escape') closeEditor();
             }}
-            placeholder="渚嬪锛氬箍涓滅渷鑰�"
+            placeholder="例如：广东省考"
             maxLength={30}
             className="w-full bg-[#f2f0e9]/60 border border-transparent rounded-2xl py-4 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fbc02d] mb-6"
           />
@@ -374,7 +374,7 @@ const App = () => {
               onClick={saveEvent}
               className="flex-1 bg-[#1a1a1a] text-white font-black py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs"
             >
-              淇濆瓨
+              保存
             </button>
             {current && (
               <button
@@ -384,14 +384,14 @@ const App = () => {
                 }}
                 className="px-5 py-3 rounded-2xl text-[#ff6b6b] hover:bg-[#ff6b6b]/10 font-black text-xs uppercase tracking-widest"
               >
-                鍒犻櫎
+                删除
               </button>
             )}
             <button
               onClick={closeEditor}
               className="px-5 py-3 rounded-2xl text-slate-400 hover:bg-[#f2f0e9] font-black text-xs uppercase tracking-widest"
             >
-              鍙栨秷
+              取消
             </button>
           </div>
         </div>
@@ -410,11 +410,11 @@ const App = () => {
         </div>
 
         <nav className="flex-1 space-y-3">
-          <SidebarItem id="dashboard" icon={LayoutDashboard} label="浠〃鐩�" />
-          <SidebarItem id="practice" icon={BookOpen} label="鏁拌祫缁冧範" />
-          <SidebarItem id="review" icon={RefreshCcw} label="鐪熼澶嶇洏" />
-          <SidebarItem id="mistakes" icon={FileText} label="閿欓鏈�" />
-          <SidebarItem id="analysis" icon={BarChart3} label="瀛︽儏鍒嗘瀽" />
+          <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
+          <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
+          <SidebarItem id="review" icon={RefreshCcw} label="真题复盘" />
+          <SidebarItem id="mistakes" icon={FileText} label="错题本" />
+          <SidebarItem id="analysis" icon={BarChart3} label="学情分析" />
         </nav>
 
         <div className="pt-6 border-t border-black/5 space-y-2">
@@ -424,16 +424,16 @@ const App = () => {
             </div>
             <div className="hidden lg:block overflow-hidden">
               <p className="text-sm font-bold truncate italic">Amanda</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">绉佷汉缁冧範绌洪棿</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">私人练习空间</p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            title="閫€鍑虹櫥褰�"
+            title="退出登录"
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-[#666] hover:bg-black/5 hover:text-[#ff6b6b] transition-all"
           >
             <LogOut size={18} />
-            <span className="hidden lg:block text-xs font-black uppercase tracking-widest">閫€鍑虹櫥褰�</span>
+            <span className="hidden lg:block text-xs font-black uppercase tracking-widest">退出登录</span>
           </button>
         </div>
       </aside>
@@ -442,13 +442,13 @@ const App = () => {
         <header className="h-24 flex items-center justify-between px-10">
           <div>
             <h2 className="text-2xl font-black tracking-tight">
-              {activeTab === 'dashboard' && '娆㈣繋鍥炴潵锛孉manda锛�'}
-              {activeTab === 'practice' && '鏁拌祫缁冧範'}
-              {activeTab === 'review' && '鐪熼澶嶇洏'}
-              {activeTab === 'mistakes' && '閿欓鏈�'}
-              {activeTab === 'analysis' && '瀛︽儏鍒嗘瀽'}
+              {activeTab === 'dashboard' && '欢迎回来，Amanda！'}
+              {activeTab === 'practice' && '数资练习'}
+              {activeTab === 'review' && '真题复盘'}
+              {activeTab === 'mistakes' && '错题本'}
+              {activeTab === 'analysis' && '学情分析'}
             </h2>
-            <p className="text-sm font-medium text-slate-400">淇濇寔鑺傚锛岀ǔ姝ユ彁鍗囥€�</p>
+            <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
           </div>
         </header>
 
@@ -458,8 +458,8 @@ const App = () => {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-between">
                   <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-1">浠婃棩姒傝</h3>
-                    <p className="text-sm font-bold opacity-60">鏈懆瀛︿範杩涘害</p>
+                    <h3 className="text-xl font-bold mb-1">今日概览</h3>
+                    <p className="text-sm font-bold opacity-60">本周学习进度</p>
                   </div>
 
                   <div className="absolute top-10 right-10 w-48 h-48 bg-[#fbc02d] rounded-full blur-[40px] opacity-60 animate-pulse" />
@@ -468,20 +468,20 @@ const App = () => {
                   <div className="relative z-10 flex items-center space-x-12 mt-10">
                     <div className="text-center">
                       <p className="text-5xl font-black italic">2.30</p>
-                      <p className="text-xs font-bold uppercase tracking-widest opacity-50">绱灏忔椂</p>
+                      <p className="text-xs font-bold uppercase tracking-widest opacity-50">累计小时</p>
                     </div>
                     <div className="flex-1 space-y-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-2 bg-[#fbc02d] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">琛屾祴鍒烽</span>
+                        <span className="text-xs font-bold opacity-60 italic">行测刷题</span>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-2 bg-[#ff6b6b] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">鐢宠绮捐</span>
+                        <span className="text-xs font-bold opacity-60 italic">申论精讲</span>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-2 bg-[#1a1a1a] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">閿欓澶嶇洏</span>
+                        <span className="text-xs font-bold opacity-60 italic">错题复盘</span>
                       </div>
                     </div>
                   </div>
@@ -495,13 +495,13 @@ const App = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#f2f0e9] flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-bold mb-1">鏈湀瀛︿範</h3>
-                    <p className="text-xs text-slate-400 font-medium">宸插畬鎴愮洰鏍囩殑 72%</p>
+                    <h3 className="text-lg font-bold mb-1">本月学习</h3>
+                    <p className="text-xs text-slate-400 font-medium">已完成目标的 72%</p>
                     <button
                       onClick={() => setActiveTab('practice')}
                       className="mt-6 flex items-center space-x-2 text-xs font-black uppercase italic bg-[#f2f0e9] px-4 py-2 rounded-full hover:bg-[#e8e6dd] transition-colors"
                     >
-                      <span>寮€濮嬬粌涔�</span>
+                      <span>开始练习</span>
                       <ChevronRight size={14} />
                     </button>
                   </div>
@@ -530,7 +530,7 @@ const App = () => {
                       />
                     </svg>
                     <div className="absolute text-center">
-                      <p className="text-sm text-slate-400 font-bold">鎬婚閲�</p>
+                      <p className="text-sm text-slate-400 font-bold">总题量</p>
                       <p className="text-xl font-black">8,500</p>
                     </div>
                   </div>
@@ -538,7 +538,7 @@ const App = () => {
 
                 <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#f2f0e9]">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold">鏈€杩戠湡棰�</h3>
+                    <h3 className="text-lg font-bold">最近真题</h3>
                     <button className="p-2 bg-[#1a1a1a] text-white rounded-full hover:scale-110 transition-transform">
                       <Plus size={16} />
                     </button>
@@ -605,9 +605,9 @@ const App = () => {
                 <div className="w-24 h-24 bg-white rounded-[2rem] mx-auto flex items-center justify-center text-[#1a1a1a] shadow-xl shadow-black/5 mb-8 group-hover:scale-110 transition-transform">
                   <Upload size={40} />
                 </div>
-                <h3 className="text-2xl font-black italic mb-2 uppercase">涓婁紶鐪熼鍗�</h3>
+                <h3 className="text-2xl font-black italic mb-2 uppercase">上传真题卷</h3>
                 <p className="text-slate-400 font-bold max-w-sm mx-auto mb-10 tracking-tight text-sm">
-                  鏀寔 PDF銆佸浘鐗囷紝绯荤粺浼氳嚜鍔� OCR 骞剁敓鎴愮粨鏋勫寲閿欓鍒嗘瀽銆�
+                  支持 PDF、图片，系统会自动 OCR 并生成结构化错题分析。
                 </p>
                 <button
                   onClick={() => {
@@ -616,7 +616,7 @@ const App = () => {
                   }}
                   className="bg-[#1a1a1a] text-white font-black px-12 py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs"
                 >
-                  {isUploading ? 'AI 姝ｅ湪瑙ｆ瀽...' : '涓婁紶璇曞嵎'}
+                  {isUploading ? 'AI 正在解析...' : '上传试卷'}
                 </button>
               </div>
             </div>
@@ -627,9 +627,9 @@ const App = () => {
               <div className="w-24 h-24 rounded-[2rem] bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a] mb-6">
                 <FileText size={40} />
               </div>
-              <h3 className="text-2xl font-black italic mb-2">閿欓鏈缓璁句腑</h3>
+              <h3 className="text-2xl font-black italic mb-2">错题本建设中</h3>
               <p className="text-sm text-slate-400 font-bold max-w-md">
-                瀹屾垚缁冧範鍚庯紝閿欓浼氳嚜鍔ㄥ綊绫诲埌杩欓噷锛屾敮鎸佹寜鐭ヨ瘑鐐圭瓫閫変笌閲嶇粌銆�
+                完成练习后，错题会自动归类到这里，支持按知识点筛选与重练。
               </p>
             </div>
           )}
@@ -639,9 +639,9 @@ const App = () => {
               <div className="w-24 h-24 rounded-[2rem] bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a] mb-6">
                 <BarChart3 size={40} />
               </div>
-              <h3 className="text-2xl font-black italic mb-2">瀛︽儏鍒嗘瀽寤鸿涓�</h3>
+              <h3 className="text-2xl font-black italic mb-2">学情分析建设中</h3>
               <p className="text-sm text-slate-400 font-bold max-w-md">
-                鍗冲皢涓婄嚎锛氭寜妯″潡銆佹寜鏃堕棿鐨勬纭巼瓒嬪娍鍥撅紝鑷姩璇嗗埆钖勫急椤广€�
+                即将上线：按模块、按时间的正确率趋势图，自动识别薄弱项。
               </p>
             </div>
           )}
