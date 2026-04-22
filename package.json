@@ -10,7 +10,9 @@
     "start:server": "node --env-file=.env server/index.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:batch": "node scripts/validate-batch.mjs",
+    "import:batch": "node scripts/import-batch.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -26,6 +28,7 @@
     "@eslint/js": "^9.39.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.4",

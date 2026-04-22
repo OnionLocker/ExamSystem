@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
   ChevronRight,
   ChevronLeft,
@@ -12,11 +13,17 @@ import {
   Trophy,
   Check,
   X,
+  PictureInPicture2,
+  BookOpen,
 } from 'lucide-react';
-import { CATEGORIES, generate, getSub, judge } from './generators.js';
+import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
+import PopupPractice from './PopupPractice.jsx';
 
 const HISTORY_KEY = 'numeric_practice_history_v1';
-const RACE_SIZE = 10;
+const RACE_SIZE_DEFAULT = 10;
+const RACE_SIZE_PRESETS = [5, 10, 20, 50];
+const RACE_SIZE_MIN = 1;
+const RACE_SIZE_MAX = 200;
 
 // 作答反馈展示时长（毫秒）
 const FEEDBACK_CORRECT_MS = 120;
@@ -33,6 +40,17 @@ const categoryIcons = {
 const fmtMs = (ms) => {
   if (ms < 1000) return `${ms} 毫秒`;
   return `${(ms / 1000).toFixed(1)} 秒`;
+};
+
+// 较长时长用 mm:ss / h:mm:ss
+const fmtDuration = (ms) => {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`;
+  return `${pad(m)}:${pad(sec)}`;
 };
 const loadHistory = () => {
   try {
@@ -51,6 +69,7 @@ const NumericPractice = () => {
   const [currentCat, setCurrentCat] = useState(null);
   const [currentSubId, setCurrentSubId] = useState(null);
   const [mode, setMode] = useState('train');
+  const [raceSize, setRaceSize] = useState(RACE_SIZE_DEFAULT);
 
   const [session, setSession] = useState(null);
   const [sessionResult, setSessionResult] = useState(null);
@@ -74,7 +93,11 @@ const NumericPractice = () => {
     if (!currentCat || !currentSubId) return;
     const sub = getSub(currentCat.id, currentSubId);
     if (!sub) return;
-    const total = mode === 'race' ? RACE_SIZE : Infinity;
+    const safeRace = Math.max(
+      RACE_SIZE_MIN,
+      Math.min(RACE_SIZE_MAX, Number(raceSize) || RACE_SIZE_DEFAULT),
+    );
+    const total = mode === 'race' ? safeRace : Infinity;
     const firstQ = generate(sub.gen);
     setSession({
       catId: currentCat.id,
@@ -127,9 +150,11 @@ const NumericPractice = () => {
         cat={currentCat}
         subId={currentSubId}
         mode={mode}
+        raceSize={raceSize}
         onBack={goHome}
         onPickSub={setCurrentSubId}
         onPickMode={setMode}
+        onPickRaceSize={setRaceSize}
         onStart={startSession}
         onOpenHistory={openHistory}
       />
@@ -139,7 +164,10 @@ const NumericPractice = () => {
       <SessionView
         session={session}
         setSession={setSession}
-        onExit={goHome}
+        onExit={() => {
+          setSession(null);
+          setView('subs');
+        }}
         onFinishRace={finishRace}
       />
     );
@@ -224,8 +252,122 @@ const HomeView = ({ onPick }) => {
 };
 
 // ---------------- Subs ----------------
-const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, onOpenHistory }) => {
+const SubsView = ({
+  cat,
+  subId,
+  mode,
+  raceSize,
+  onBack,
+  onPickSub,
+  onPickMode,
+  onPickRaceSize,
+  onStart,
+  onOpenHistory,
+}) => {
   if (!cat) return null;
+
+  const openPopup = async () => {
+    if (!subId) return;
+    const w = 420;
+    const h = 300;
+
+    // 方案 1：Document Picture-in-Picture（Chrome/Edge 116+）
+    // 优势：无浏览器标题栏 + 地址栏，默认置顶悬浮
+    if (window.documentPictureInPicture?.requestWindow) {
+      try {
+        const pipWin = await window.documentPictureInPicture.requestWindow({
+          width: w,
+          height: h,
+        });
+
+        // 将当前文档的所有样式（Vite 注入的 <style> 与 <link rel="stylesheet">）复制到 PiP 窗
+        const copyStyles = () => {
+          [...document.styleSheets].forEach((sheet) => {
+            try {
+              if (sheet.cssRules) {
+                const style = pipWin.document.createElement('style');
+                style.textContent = [...sheet.cssRules].map((r) => r.cssText).join('\n');
+                pipWin.document.head.appendChild(style);
+              }
+            } catch {
+              // 跨域样式表，降级用 <link>
+              if (sheet.href) {
+                const link = pipWin.document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = sheet.href;
+                pipWin.document.head.appendChild(link);
+              }
+            }
+          });
+          // <style> 标签也拷贝一份（保险）
+          document.head.querySelectorAll('style').forEach((node) => {
+            pipWin.document.head.appendChild(node.cloneNode(true));
+          });
+        };
+        copyStyles();
+
+        // 基本样式
+        const baseStyle = pipWin.document.createElement('style');
+        baseStyle.textContent = `
+          html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+          #pip-root { height: 100%; }
+        `;
+        pipWin.document.head.appendChild(baseStyle);
+
+        // 挂载 React
+        const container = pipWin.document.createElement('div');
+        container.id = 'pip-root';
+        pipWin.document.body.appendChild(container);
+        const root = createRoot(container);
+        root.render(
+          <PopupPractice catId={cat.id} subId={subId} mode={mode} embedded />,
+        );
+
+        // 关闭时卸载
+        pipWin.addEventListener('pagehide', () => {
+          try {
+            root.unmount();
+          } catch {
+            // ignore
+          }
+        });
+        return;
+      } catch (err) {
+        // 用户拒绝或不支持 -> 降级
+        console.warn('Document PiP failed, falling back to window.open:', err);
+      }
+    }
+
+    // 方案 2：降级 window.open（会有标题栏/地址栏）
+    const params = new URLSearchParams({
+      popup: '1',
+      cat: cat.id,
+      sub: subId,
+      mode,
+    });
+    const url = `${window.location.pathname}?${params.toString()}`;
+    const left =
+      (window.screen.availLeft || 0) + (window.screen.availWidth || 1280) - w - 40;
+    const top =
+      (window.screen.availTop || 0) + (window.screen.availHeight || 800) - h - 80;
+    const features = [
+      `width=${w}`,
+      `height=${h}`,
+      `left=${Math.max(0, left)}`,
+      `top=${Math.max(0, top)}`,
+      'popup=yes',
+      'resizable=yes',
+      'scrollbars=no',
+      'menubar=no',
+      'toolbar=no',
+      'location=no',
+      'status=no',
+    ].join(',');
+    const winRef = window.open(url, `study_popup_${cat.id}_${subId}`, features);
+    if (winRef) winRef.focus();
+  };
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
@@ -277,11 +419,14 @@ const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, on
         />
         <ModeOption
           label="冲刺模式"
-          desc={`${RACE_SIZE} 题限时挑战，结束后统计用时与正确率。`}
+          desc={`${raceSize} 题限时挑战，结束后统计用时与正确率。`}
           checked={mode === 'race'}
           onClick={() => onPickMode('race')}
           color="#fbc02d"
         />
+        {mode === 'race' && (
+          <RaceSizePicker value={raceSize} onChange={onPickRaceSize} />
+        )}
       </div>
 
       <div className="flex space-x-4">
@@ -291,6 +436,14 @@ const SubsView = ({ cat, subId, mode, onBack, onPickSub, onPickMode, onStart, on
         >
           <Play size={16} />
           <span>开始练习</span>
+        </button>
+        <button
+          onClick={openPopup}
+          title="悬浮小窗练习（Chrome/Edge 支持无边框悬浮窗）"
+          className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] hover:bg-[#fbc02d] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+        >
+          <PictureInPicture2 size={14} />
+          <span className="hidden sm:inline">小窗练习</span>
         </button>
         <button
           onClick={onOpenHistory}
@@ -326,10 +479,78 @@ const ModeOption = ({ label, desc, checked, onClick, color }) => (
   </button>
 );
 
+// 冲刺模式题数选择器：预设 + 自定义输入
+const RaceSizePicker = ({ value, onChange }) => {
+  const isPreset = RACE_SIZE_PRESETS.includes(Number(value));
+  const clamp = (n) => Math.max(RACE_SIZE_MIN, Math.min(RACE_SIZE_MAX, n));
+  return (
+    <div className="ml-10 mt-2 flex items-center flex-wrap gap-2">
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">
+        题数
+      </span>
+      {RACE_SIZE_PRESETS.map((n) => {
+        const active = Number(value) === n;
+        return (
+          <button
+            key={n}
+            onClick={() => onChange(n)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border ${
+              active
+                ? 'bg-[#1a1a1a] text-[#fbc02d] border-[#1a1a1a]'
+                : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-[#1a1a1a]'
+            }`}
+          >
+            {n}
+          </button>
+        );
+      })}
+      <div
+        className={`flex items-center space-x-1 rounded-xl border px-2 py-1 transition-all ${
+          !isPreset
+            ? 'bg-[#1a1a1a] border-[#1a1a1a]'
+            : 'bg-white border-[#f2f0e9] hover:border-[#1a1a1a]'
+        }`}
+      >
+        <span
+          className={`text-[10px] font-black uppercase tracking-widest ${
+            !isPreset ? 'text-[#fbc02d]' : 'text-slate-400'
+          }`}
+        >
+          自定义
+        </span>
+        <input
+          type="number"
+          min={RACE_SIZE_MIN}
+          max={RACE_SIZE_MAX}
+          value={value}
+          onChange={(e) => {
+            const raw = e.target.value;
+            if (raw === '') return onChange('');
+            const n = parseInt(raw, 10);
+            if (!Number.isNaN(n)) onChange(clamp(n));
+          }}
+          onBlur={(e) => {
+            const n = parseInt(e.target.value, 10);
+            if (Number.isNaN(n)) onChange(RACE_SIZE_DEFAULT);
+            else onChange(clamp(n));
+          }}
+          className={`w-14 bg-transparent text-center text-xs font-black focus:outline-none tabular-nums ${
+            !isPreset ? 'text-[#fbc02d]' : 'text-[#1a1a1a]'
+          }`}
+        />
+      </div>
+      <span className="text-[10px] font-medium text-slate-400">
+        ({RACE_SIZE_MIN}–{RACE_SIZE_MAX})
+      </span>
+    </div>
+  );
+};
+
 // ---------------- Session（做题页 + 键盘输入） ----------------
 const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   const [, setTick] = useState(0);
   const [feedback, setFeedback] = useState(null); // null | { ok, skipped, answer }
+  const [showTable, setShowTable] = useState(false);
   const timerRef = useRef(null);
   const pendingRef = useRef(null); // { newRecords, isLast }
 
@@ -350,6 +571,8 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   useEffect(() => {
     const onKey = (e) => {
       if (!session) return;
+      // 对照表打开时，让弹层独占键盘（ESC 由弹层处理）
+      if (showTable) return;
 
       // 反馈展示期间：按 Enter/Space 可立即进入下一题
       if (feedback) {
@@ -383,7 +606,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, feedback]);
+  }, [session, feedback, showTable]);
 
   if (!session) return null;
   const { current, input, index, total, mode, records } = session;
@@ -499,6 +722,18 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         <div className="text-xs font-black uppercase tracking-widest text-slate-400">
           {session.subName} · {mode === 'race' ? '冲刺模式' : '训练模式'}
         </div>
+        {session.subId === 'pctToFrac' || session.subId === 'square' ? (
+          <button
+            onClick={() => setShowTable(true)}
+            title={session.subId === 'square' ? '查看常见平方数对照表（背诵用）' : '查看百化分对照表（背诵用）'}
+            className="flex items-center space-x-1.5 text-slate-400 hover:text-[#fbc02d] transition-colors"
+          >
+            <BookOpen size={14} />
+            <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">对照表</span>
+          </button>
+        ) : (
+          <span className="w-16" />
+        )}
       </div>
 
       {/* 题目卡片 */}
@@ -519,7 +754,11 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         <div className="relative z-10">
           <div className="flex items-center justify-between text-xs font-black uppercase tracking-widest opacity-60 mb-10">
             <span>{progress}</span>
-            <span>本题用时 {fmtMs(elapsed)}</span>
+            <span className="flex items-center space-x-3 tabular-nums">
+              <span>本题 {fmtMs(elapsed)}</span>
+              <span className="opacity-40">·</span>
+              <span>总计 {fmtDuration(totalElapsed)}</span>
+            </span>
           </div>
 
           <div className="text-center py-8">
@@ -591,6 +830,136 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
           100% { transform: scale(1); opacity: 1; }
         }
       `}</style>
+
+      {showTable && session.subId === 'square' && (
+        <SquareTableModal onClose={() => setShowTable(false)} />
+      )}
+      {showTable && session.subId === 'pctToFrac' && (
+        <BaiHuaFenTableModal onClose={() => setShowTable(false)} />
+      )}
+    </div>
+  );
+};
+
+// ---------------- 百化分对照表弹层 ----------------
+const BaiHuaFenTableModal = ({ onClose }) => {
+  // ESC 关闭
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-2xl font-black italic">百化分对照表</h3>
+            <p className="text-xs font-medium text-slate-400 mt-1">
+              1/3 ~ 1/19，百分比保留 1 位
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-[#f2f0e9] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {BAI_HUA_FEN_TABLE.map((f) => (
+            <div
+              key={f.den}
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f2f0e9]/60 border border-[#f2f0e9] hover:border-[#1a1a1a] hover:bg-white transition-all"
+            >
+              <span className="font-black text-xl italic text-[#1a1a1a]">
+                1/{f.den}
+              </span>
+              <div className="text-lg font-black tabular-nums text-[#1a1a1a]">
+                {(+f.pct.toFixed(1)).toString()}%
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-6 text-center">
+          按 ESC 或点击空白处关闭
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ---------------- 常见平方数对照表弹层 ----------------
+const SquareTableModal = ({ onClose }) => {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-2xl font-black italic">常见平方数对照表</h3>
+            <p className="text-xs font-medium text-slate-400 mt-1">
+              11² ~ 29²，考场必背
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-xl bg-[#f2f0e9] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {SQUARE_TABLE.map((s) => (
+            <div
+              key={s.n}
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f2f0e9]/60 border border-[#f2f0e9] hover:border-[#1a1a1a] hover:bg-white transition-all"
+            >
+              <span className="font-black text-xl italic text-[#1a1a1a]">
+                {s.n}²
+              </span>
+              <div className="text-lg font-black tabular-nums text-[#1a1a1a]">
+                {s.sq}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-6 text-center">
+          按 ESC 或点击空白处关闭
+        </p>
+      </div>
     </div>
   );
 };

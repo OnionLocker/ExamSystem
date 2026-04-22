@@ -12,6 +12,8 @@ const mapRow = (r) => r && ({
   ...r,
   options: parseJSON(r.options, []),
   tags: parseJSON(r.tags, []),
+  stem_images: parseJSON(r.stem_images, []),
+  explanation_images: parseJSON(r.explanation_images, []),
 });
 
 // GET /api/questions  ֧持ɸѡ: category / sub_category / limit / offset / random

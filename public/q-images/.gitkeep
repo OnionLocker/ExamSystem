@@ -1,0 +1,2 @@
+批次图片会导入到 public/q-images/<batch_id>/ 下。
+前端通过 /q-images/<batch_id>/xxx.png 直接访问（Vite 会把 public/ 作为静态根）。

@@ -27,11 +27,11 @@ export default function Login({ onAuthed }) {
     <div className="h-screen w-screen bg-[#f2f0e9] flex items-center justify-center p-6 font-sans text-[#1a1a1a]">
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-black/5 border border-white p-10">
         <div className="flex items-center space-x-3 mb-8">
-          <div className="w-12 h-12 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-[#fbc02d] font-black italic text-lg">
-            考
+          <div className="w-12 h-12 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-[#fbc02d] font-black text-lg">
+            学
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tighter uppercase">BE.SMART</h1>
+            <h1 className="text-xl font-black tracking-tighter uppercase">STUDY!</h1>
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">省考练习系统</p>
           </div>
         </div>

@@ -1,0 +1,68 @@
+[
+  {
+    "external_id": "example-2024-xj-Q001",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "下列关于《民法典》的说法，正确的是？",
+    "options": [
+      { "key": "A", "text": "《民法典》于 2020 年 5 月 28 日通过" },
+      { "key": "B", "text": "《民法典》于 2020 年 1 月 1 日起施行" },
+      { "key": "C", "text": "《民法典》共七编 1260 条" },
+      { "key": "D", "text": "《民法典》废止了《合同法》但保留了《物权法》" }
+    ],
+    "answer": "A",
+    "explanation": "《民法典》于 2020 年 5 月 28 日由十三届全国人大三次会议通过，自 2021 年 1 月 1 日起施行，共七编 1260 条，同时废止《合同法》《物权法》等 9 部法律。",
+    "difficulty": 2,
+    "tags": ["民法典", "时间"]
+  },
+  {
+    "external_id": "example-2024-xj-Q002",
+    "category": "判断推理",
+    "sub_category": "图形推理",
+    "question_type": "single",
+    "stem": "从所给的四个选项中，选择最合适的一个填入问号处，使之呈现一定的规律性。",
+    "stem_images": ["images/q-0002-stem.png"],
+    "options": [
+      { "key": "A", "images": ["images/q-0002-opt-A.png"] },
+      { "key": "B", "images": ["images/q-0002-opt-B.png"] },
+      { "key": "C", "images": ["images/q-0002-opt-C.png"] },
+      { "key": "D", "images": ["images/q-0002-opt-D.png"] }
+    ],
+    "answer": "C",
+    "explanation": "每个图形的对称轴数量依次为 1, 2, 3, ?, 故选 C（4 条对称轴）。",
+    "difficulty": 3,
+    "tags": ["对称"]
+  },
+  {
+    "external_id": "example-2024-xj-Q003",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "example-2024-xj-M01",
+    "stem": "2023 年 A 省社会消费品零售总额约为多少亿元？",
+    "options": [
+      { "key": "A", "text": "12500" },
+      { "key": "B", "text": "13800" },
+      { "key": "C", "text": "14200" },
+      { "key": "D", "text": "15600" }
+    ],
+    "answer": "B",
+    "explanation": "材料第一段直接给出：2023 年 A 省社会消费品零售总额为 13800 亿元。",
+    "difficulty": 1
+  },
+  {
+    "external_id": "example-2024-xj-Q004",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "example-2024-xj-M01",
+    "stem": "2023 年 A 省社会消费品零售总额同比增长率为？",
+    "options": [
+      { "key": "A", "text": "约 3.8%" },
+      { "key": "B", "text": "约 5.2%" },
+      { "key": "C", "text": "约 6.7%" },
+      { "key": "D", "text": "约 8.1%" }
+    ],
+    "answer": "B",
+    "explanation": "材料：'同比增长 5.2%'，直接给出。",
+    "difficulty": 1
+  }
+]

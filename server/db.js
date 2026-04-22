@@ -16,20 +16,72 @@ db.pragma('foreign_keys = ON');
 // ---------- Schema ----------
 db.exec(`
 CREATE TABLE IF NOT EXISTS questions (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  category       TEXT    NOT NULL,
-  sub_category   TEXT,
-  content        TEXT    NOT NULL,
-  options        TEXT,                   -- JSON: [{ key:'A', text:'...' }, ...]
-  correct_answer TEXT    NOT NULL,
-  explanation    TEXT,
-  difficulty     INTEGER DEFAULT 2,      -- 1~5
-  tags           TEXT,                   -- JSON: [ 'xxx' ]
-  source         TEXT,                   -- 来源：年份、套卷
-  created_at     TEXT    DEFAULT CURRENT_TIMESTAMP
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id        TEXT UNIQUE,              -- 批次内唯一 ID，用于幂等导入
+  category           TEXT    NOT NULL,
+  sub_category       TEXT,
+  question_type      TEXT    DEFAULT 'single', -- single / multi / judge
+  content            TEXT    NOT NULL,         -- 题干文本（可含 LaTeX）
+  stem_images        TEXT,                     -- JSON: ['/q-images/...']
+  options            TEXT,                     -- JSON: [{ key, text, images? }]
+  correct_answer     TEXT    NOT NULL,         -- 'A' / 'AC' / 'T' / 'F'
+  explanation        TEXT,
+  explanation_images TEXT,                     -- JSON: ['/q-images/...']
+  difficulty         INTEGER DEFAULT 2,        -- 1~5
+  tags               TEXT,                     -- JSON: ['xxx']
+  source             TEXT,                     -- 来源：年份、套卷
+  year               INTEGER,
+  region             TEXT,                     -- '广东-县级' / '广东-乡镇' 等
+  material_id        INTEGER,                  -- 资料分析组题引用 materials.id
+  batch_id           TEXT,                     -- 导入批次（用于回滚/管理）
+  created_at         TEXT    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category);
+CREATE INDEX IF NOT EXISTS idx_questions_sub      ON questions(sub_category);
+
+CREATE TABLE IF NOT EXISTS materials (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id TEXT UNIQUE,
+  content     TEXT    NOT NULL,
+  images      TEXT,                             -- JSON: ['/q-images/...']
+  source      TEXT,
+  year        INTEGER,
+  region      TEXT,
+  batch_id    TEXT,
+  created_at  TEXT    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_materials_batch ON materials(batch_id);
+`);
+
+// ---------- Migration: 给已存在的旧 DB 补齐新字段 ----------
+const qCols = new Set(
+  db.prepare(`PRAGMA table_info(questions)`).all().map((r) => r.name)
+);
+const addCol = (name, decl) => {
+  if (!qCols.has(name)) db.exec(`ALTER TABLE questions ADD COLUMN ${name} ${decl}`);
+};
+addCol('external_id',        'TEXT');
+addCol('question_type',      "TEXT DEFAULT 'single'");
+addCol('stem_images',        'TEXT');
+addCol('explanation_images', 'TEXT');
+addCol('year',               'INTEGER');
+addCol('region',             'TEXT');
+addCol('material_id',        'INTEGER');
+addCol('batch_id',           'TEXT');
+// 依赖新列的索引必须放在 migration 之后
+// 注意：UPSERT (ON CONFLICT) 不支持部分索引，所以这里用完整 UNIQUE
+// SQLite 对 NULL 不视为重复，老数据（external_id=NULL）安全
+// 先 DROP 再建，避免历史上可能存在的 partial index 残留
+db.exec(`
+  DROP INDEX IF EXISTS uniq_questions_external_id;
+  CREATE UNIQUE INDEX uniq_questions_external_id ON questions(external_id);
+  CREATE INDEX IF NOT EXISTS idx_questions_material ON questions(material_id);
+  CREATE INDEX IF NOT EXISTS idx_questions_batch    ON questions(batch_id);
+`);
+
+db.exec(`
 
 CREATE TABLE IF NOT EXISTS practice_sessions (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,

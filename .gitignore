@@ -19,6 +19,10 @@ data/
 *.db-wal
 *.db-shm
 
+# 导入的批次图片（可能很大，不入 git）
+public/q-images/*
+!public/q-images/.gitkeep
+
 # 环境变量
 .env
 .env.*

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
+  ListChecks,
   RefreshCcw,
   FileText,
   BarChart3,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
+import QuestionBank from './practice/QuestionBank.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 
 // ---------------- date utils ----------------
@@ -403,14 +405,15 @@ const App = () => {
     <div className="flex h-screen bg-[#f2f0e9] text-[#1a1a1a] font-sans overflow-hidden p-4">
       <aside className="w-24 lg:w-64 flex flex-col p-4 space-y-10">
         <div className="flex items-center space-x-3 px-4 py-2">
-          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-[#fbc02d] font-black italic">
-            B.
+          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-[#fbc02d] font-black">
+            学
           </div>
-          <h1 className="text-xl font-black tracking-tighter hidden lg:block uppercase">BE.SMART</h1>
+          <h1 className="text-xl font-black tracking-tighter hidden lg:block uppercase">STUDY!</h1>
         </div>
 
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
+          <SidebarItem id="bank" icon={ListChecks} label="刷题" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
           <SidebarItem id="review" icon={RefreshCcw} label="真题复盘" />
           <SidebarItem id="mistakes" icon={FileText} label="错题本" />
@@ -423,7 +426,7 @@ const App = () => {
               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" />
             </div>
             <div className="hidden lg:block overflow-hidden">
-              <p className="text-sm font-bold truncate italic">Amanda</p>
+              <p className="text-sm font-bold truncate italic">Russell</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">私人练习空间</p>
             </div>
           </div>
@@ -442,7 +445,8 @@ const App = () => {
         <header className="h-24 flex items-center justify-between px-10">
           <div>
             <h2 className="text-2xl font-black tracking-tight">
-              {activeTab === 'dashboard' && '欢迎回来，Amanda！'}
+              {activeTab === 'dashboard' && '欢迎回来，Russell！'}
+              {activeTab === 'bank' && '刷题'}
               {activeTab === 'practice' && '数资练习'}
               {activeTab === 'review' && '真题复盘'}
               {activeTab === 'mistakes' && '错题本'}
@@ -596,6 +600,8 @@ const App = () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'bank' && <QuestionBank />}
 
           {activeTab === 'practice' && <NumericPractice />}
 

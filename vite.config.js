@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // 强制所有文本响应带 charset=utf-8，避免浏览器按系统默认编码（GBK 等）解码
 const forceUtf8Plugin = () => ({
@@ -30,10 +31,15 @@ const forceUtf8Plugin = () => ({
 })
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), forceUtf8Plugin()],
+  plugins: [react(), tailwindcss(), forceUtf8Plugin(), basicSsl()],
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // 启用 HTTPS（由 basicSsl 插件提供自签证书）
+    // 启用后需要通过 https://<host>:5173 访问；
+    // 首次访问会有证书警告，点击"高级 → 继续访问"即可。
+    // 这是使用 Document Picture-in-Picture（无边框悬浮小窗）的必要条件。
+    https: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
