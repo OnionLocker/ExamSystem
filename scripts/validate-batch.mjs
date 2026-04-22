@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 // ---------- 枚举 ----------
 export const CATEGORY_ENUM = {
@@ -331,8 +332,9 @@ export function validateBatch(dir) {
   return { rep, manifest, materialMap, questions };
 }
 
-// CLI
-if (import.meta.url === `file://${process.argv[1]}`) {
+// CLI（Windows 下 process.argv[1] 是反斜杠路径，不能直接拼成 file:// URL 比较；
+// 用 pathToFileURL 规范化后再比对，才能跨平台判断"是否作为主脚本运行"）
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const dir = process.argv[2];
   if (!dir) {
     console.error('用法: node scripts/validate-batch.mjs <batch-dir>');
