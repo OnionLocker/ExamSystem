@@ -23,6 +23,9 @@ data/
 public/q-images/*
 !public/q-images/.gitkeep
 
+# 批次内部的原始素材/一次性脚本（不入 git）
+batches/*/_raw/
+
 # 环境变量
 .env
 .env.*

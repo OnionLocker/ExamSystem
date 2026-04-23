@@ -1,0 +1,16 @@
+{
+  "batch_id": "quizsim-pilot-100",
+  "source": "GitHub · Lawson2019/QuizSim · test.md (MIT 未声明，CC-BY-SA 合理引用)",
+  "source_url": "https://github.com/Lawson2019/QuizSim",
+  "region": "广东-模拟",
+  "year": 2025,
+  "license": "仅个人学习使用 · 原始素材来自 GitHub 公开仓库",
+  "created_at": "2026-04-23",
+  "notes": "第一批试点 · 从 QuizSim 题库（GitHub 开源）抽取言语理解 100 题，全部含解析。",
+  "stats": {
+    "total_questions": 100,
+    "by_category": {
+      "言语理解与表达": 100
+    }
+  }
+}
