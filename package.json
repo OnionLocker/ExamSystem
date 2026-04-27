@@ -8,6 +8,7 @@
     "dev:web": "vite",
     "dev:server": "nodemon --watch server --ext js,json --exec \"node --env-file=.env server/index.js\"",
     "start:server": "node --env-file=.env server/index.js",
+    "prod": "vite build && concurrently -k -n API,WEB -c blue,green \"npm:start:server\" \"node server/prod.js\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",

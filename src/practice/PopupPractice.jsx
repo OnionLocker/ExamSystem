@@ -458,6 +458,7 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
   const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
   const cellBg = stealth ? 'bg-white border-slate-200' : 'bg-white/[0.06] border-white/10';
   const text = stealth ? 'text-slate-800' : 'text-white';
+  const accent = stealth ? 'text-slate-500' : 'text-[#fbc02d]';
 
   return (
     <div
@@ -483,8 +484,13 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
               className={`flex items-center justify-between px-2.5 py-2 rounded-lg border ${cellBg}`}
             >
               <span className={`font-black text-base ${text}`}>1/{f.den}</span>
-              <div className={`text-sm font-black tabular-nums ${text}`}>
-                {(+f.pct.toFixed(1)).toString()}%
+              <div className="text-right leading-tight">
+                <div className={`text-sm font-black tabular-nums ${text}`}>
+                  {f.dec.toFixed(2)}
+                </div>
+                <div className={`text-[11px] font-bold tabular-nums ${accent} mt-0.5`}>
+                  {f.pct.toFixed(2)}%
+                </div>
               </div>
             </div>
           ))}

@@ -16,10 +16,17 @@ import {
   Calendar,
   Trash2,
   X,
+  Timer as TimerIcon,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
 import QuestionBank from './practice/QuestionBank.jsx';
+import Pomodoro from './pomodoro/Pomodoro.jsx';
+import TopBarTimer from './pomodoro/TopBarTimer.jsx';
+import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
+import StudyLogPanel from './studyLog/StudyLogPanel.jsx';
+import { useStudyHeatmap, LEVEL_COLORS } from './studyLog/heatmap.js';
+import { loadLog, summarize } from './studyLog/studyLog.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 
 // ---------------- date utils ----------------
@@ -46,11 +53,22 @@ const weekdayShort = ['一', '二', '三', '四', '五', '六', '日'];
 const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EVENTS_KEY = 'exam_calendar_events';
 
-const App = () => {
+const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isUploading, setIsUploading] = useState(false);
   const [authed, setAuthed] = useState(!!getToken());
   const [bootChecked, setBootChecked] = useState(false);
+  // 学习日志版本号：每次增删写入后 +1，驱动日历/面板重渲染
+  const [studyVersion, setStudyVersion] = useState(0);
+  const bumpStudy = () => setStudyVersion((v) => v + 1);
+  const { getDay: getStudyDay } = useStudyHeatmap(studyVersion);
+
+  // 监听学习日志变更事件（番茄钟完成、数资冲刺完成、导入、删除均会派发）
+  useEffect(() => {
+    const onChange = () => bumpStudy();
+    window.addEventListener('study-log-change', onChange);
+    return () => window.removeEventListener('study-log-change', onChange);
+  }, []);
 
   const [viewMonth, setViewMonth] = useState(() => {
     const t = new Date();
@@ -159,17 +177,6 @@ const App = () => {
     return <Login onAuthed={() => setAuthed(true)} />;
   }
 
-  const stats = [
-    { label: '本周学习', value: '45', unit: '题', trend: '+12%', icon: BookOpen },
-    { label: '正确率', value: '72', unit: '%', trend: '+5%', icon: CheckCircle2 },
-    { label: '连续打卡', value: '12', unit: '天', trend: '+2', icon: RefreshCcw },
-    { label: '平均用时', value: '1.5', unit: 'h', trend: '-10%', icon: Clock },
-  ];
-
-  const recentExams = [
-    { id: 1, title: '2024 广东省考行测真题', date: '2024-03-20', score: '78/100', status: '已完成' },
-    { id: 2, title: '2023 广东省考行测真题', date: '2023-11-15', score: '65/100', status: '已复盘' },
-  ];
 
   const SidebarItem = ({ id, icon: Icon, label }) => (
     <button
@@ -234,40 +241,92 @@ const App = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-3 text-center text-[10px] font-bold opacity-40 mb-4">
+        <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-bold text-white/30 mb-3">
           {weekdayShort.map((d, i) => (
             <div key={`wd-${i}`}>{d}</div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-3 text-center">
+        <div className="grid grid-cols-7 gap-1.5 text-center">
           {cells.map((day, i) => {
-            if (day === null) return <div key={`cell-${i}`} className="h-8" />;
+            if (day === null) return <div key={`cell-${i}`} className="aspect-square" />;
             const key = toKey(year, month, day);
             const isToday = key === todayKey;
             const hasEvent = !!events[key];
             const label = events[key];
+            const study = getStudyDay(key); // { score, minutes, level, color } | null
 
+            // GitHub 风：小圆角方块，数字做次要信息
             let cls =
-              'relative text-xs h-8 flex items-center justify-center rounded-full transition-colors cursor-pointer group ';
-            if (isToday) cls += 'bg-[#fbc02d] text-black font-black ';
-            else if (hasEvent) cls += 'bg-white/10 text-[#fbc02d] font-black ring-1 ring-[#fbc02d] ';
-            else cls += 'hover:bg-white/10 ';
+              'relative aspect-square flex items-center justify-center rounded-md text-sm transition-all duration-200 cursor-pointer group ';
+            let style = {};
+            let numberCls = 'tabular-nums ';
+
+            if (isToday) {
+              // 今日：细琥珀描边 + 背景根据是否学习分两种
+              cls += 'ring-1 ring-[#fbc02d] ';
+              if (study) {
+                style.backgroundColor = study.color;
+                numberCls += study.level >= 6 ? 'text-[#1a1a1a] font-black' : 'text-white font-black';
+              } else {
+                cls += 'bg-white/[0.04] ';
+                numberCls += 'text-[#fbc02d] font-black';
+              }
+            } else if (study) {
+              style.backgroundColor = study.color;
+              // 文字色：高档位用暗色保证可读，低档位用白色半透明当作点缀
+              if (study.level >= 6) {
+                numberCls += 'text-[#1a1a1a] font-black';
+              } else if (study.level >= 3) {
+                numberCls += 'text-white font-black';
+              } else {
+                numberCls += 'text-white/70 font-bold';
+              }
+            } else {
+              cls += 'bg-white/[0.04] hover:bg-white/[0.08] ';
+              numberCls += 'text-white/50 font-bold';
+            }
 
             return (
               <div
                 key={`cell-${i}`}
-                className={cls}
+                className={cls + numberCls}
+                style={style}
                 onClick={() => openEditor(key)}
-                title={hasEvent ? label : '点击设置事件'}
+                title={
+                  (hasEvent ? `${label}` : '') +
+                  (study ? ` · 学习 ${study.score} 分 / ${study.minutes} 分钟` : '')
+                }
               >
-                {day}
-                {hasEvent && !isToday && (
-                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#fbc02d]" />
+                <span className="relative z-10">{day}</span>
+                {/* 事件标签：右上角小点 */}
+                {hasEvent && (
+                  <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-[#fbc02d]" />
                 )}
               </div>
             );
           })}
+        </div>
+
+        {/* 图例 */}
+        <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
+            学习强度
+          </span>
+          <div className="flex items-center space-x-1.5 text-[10px] font-bold text-white/30">
+            <span>少</span>
+            <div className="flex items-center space-x-[3px]">
+              <span className="w-2.5 h-2.5 rounded-[3px] bg-white/[0.04]" />
+              {LEVEL_COLORS.slice(1).map((c, i) => (
+                <span
+                  key={i}
+                  className="w-2.5 h-2.5 rounded-[3px]"
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+            <span>多</span>
+          </div>
         </div>
       </div>
     );
@@ -415,6 +474,7 @@ const App = () => {
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
           <SidebarItem id="bank" icon={ListChecks} label="刷题" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
+          <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" />
           <SidebarItem id="review" icon={RefreshCcw} label="真题复盘" />
           <SidebarItem id="mistakes" icon={FileText} label="错题本" />
           <SidebarItem id="analysis" icon={BarChart3} label="学情分析" />
@@ -448,162 +508,36 @@ const App = () => {
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
               {activeTab === 'bank' && '刷题'}
               {activeTab === 'practice' && '数资练习'}
+              {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'review' && '真题复盘'}
               {activeTab === 'mistakes' && '错题本'}
               {activeTab === 'analysis' && '学情分析'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
           </div>
+          <TopBarTimer onOpen={() => setActiveTab('pomodoro')} />
         </header>
 
         <div className="flex-1 overflow-y-auto p-10 pt-4 space-y-10">
           {activeTab === 'dashboard' && (
             <div className="space-y-10">
+              <StudyLogPanel version={studyVersion} onChange={bumpStudy} />
+
+              {/* 今日概览 + 日历热力图 */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-between">
-                  <div className="relative z-10">
-                    <h3 className="text-xl font-bold mb-1">今日概览</h3>
-                    <p className="text-sm font-bold opacity-60">本周学习进度</p>
-                  </div>
-
-                  <div className="absolute top-10 right-10 w-48 h-48 bg-[#fbc02d] rounded-full blur-[40px] opacity-60 animate-pulse" />
-                  <div className="absolute bottom-10 right-40 w-32 h-32 bg-[#ff6b6b] rounded-full blur-[35px] opacity-40" />
-
-                  <div className="relative z-10 flex items-center space-x-12 mt-10">
-                    <div className="text-center">
-                      <p className="text-5xl font-black italic">2.30</p>
-                      <p className="text-xs font-bold uppercase tracking-widest opacity-50">累计小时</p>
-                    </div>
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-2 bg-[#fbc02d] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">行测刷题</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-2 bg-[#ff6b6b] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">申论精讲</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-2 bg-[#1a1a1a] rounded-full" />
-                        <span className="text-xs font-bold opacity-60 italic">错题复盘</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
+                <DashboardTodayCard studyVersion={studyVersion} />
                 {renderCalendar()}
               </div>
 
               {renderCountdowns()}
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#f2f0e9] flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold mb-1">本月学习</h3>
-                    <p className="text-xs text-slate-400 font-medium">已完成目标的 72%</p>
-                    <button
-                      onClick={() => setActiveTab('practice')}
-                      className="mt-6 flex items-center space-x-2 text-xs font-black uppercase italic bg-[#f2f0e9] px-4 py-2 rounded-full hover:bg-[#e8e6dd] transition-colors"
-                    >
-                      <span>开始练习</span>
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                  <div className="relative w-32 h-32 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90">
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="58"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        fill="transparent"
-                        className="text-[#f2f0e9]"
-                      />
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="58"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        fill="transparent"
-                        strokeDasharray={364.4}
-                        strokeDashoffset={100}
-                        className="text-[#ff6b6b]"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <div className="absolute text-center">
-                      <p className="text-sm text-slate-400 font-bold">总题量</p>
-                      <p className="text-xl font-black">8,500</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#f2f0e9]">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold">最近真题</h3>
-                    <button className="p-2 bg-[#1a1a1a] text-white rounded-full hover:scale-110 transition-transform">
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                  <div className="space-y-5">
-                    {recentExams.map((exam) => (
-                      <div key={exam.id} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 overflow-hidden">
-                          <div className="w-10 h-10 rounded-full bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a] flex-shrink-0">
-                            <BookOpen size={18} />
-                          </div>
-                          <div className="truncate">
-                            <p className="text-sm font-bold truncate italic">{exam.title}</p>
-                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                              {exam.status}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex space-x-1 flex-shrink-0">
-                          {Array.from({ length: 8 }).map((_, i) => (
-                            <div
-                              key={`bar-${exam.id}-${i}`}
-                              className={`w-1.5 h-6 rounded-full ${i < 6 ? 'bg-[#ff6b6b]' : 'bg-[#f2f0e9]'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((s) => (
-                  <div key={s.label} className="bg-white rounded-[2rem] p-6 shadow-sm border border-[#f2f0e9]">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a]">
-                        <s.icon size={18} />
-                      </div>
-                      <span
-                        className={`text-[10px] font-black uppercase tracking-widest ${
-                          s.trend.startsWith('-') ? 'text-[#ff6b6b]' : 'text-emerald-500'
-                        }`}
-                      >
-                        {s.trend}
-                      </span>
-                    </div>
-                    <p className="text-3xl font-black tracking-tight">
-                      {s.value}
-                      <span className="text-sm font-bold opacity-50 ml-1">{s.unit}</span>
-                    </p>
-                    <p className="text-xs font-bold text-slate-400 mt-1">{s.label}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
 
           {activeTab === 'bank' && <QuestionBank />}
 
           {activeTab === 'practice' && <NumericPractice />}
+
+          {activeTab === 'pomodoro' && <Pomodoro />}
 
           {activeTab === 'review' && (
             <div className="space-y-10">
@@ -655,6 +589,97 @@ const App = () => {
       </main>
 
       {renderEditor()}
+    </div>
+  );
+};
+
+const App = () => (
+  <PomodoroProvider>
+    <AppInner />
+  </PomodoroProvider>
+);
+
+// ============ 今日概览卡片（接真实数据）============
+const DashboardTodayCard = ({ studyVersion }) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const log = useMemo(() => loadLog(), [studyVersion]);
+  const stats = useMemo(() => summarize(log), [log]);
+  const today = stats.today;
+
+  // 按 type 聚合今日明细（时长/次数）
+  const byType = useMemo(() => {
+    const acc = {
+      pomodoro: { minutes: 0, count: 0, color: '#ff6b6b', label: '番茄专注' },
+      numeric: { minutes: 0, count: 0, color: '#fbc02d', label: '数资练习' },
+      import: { minutes: 0, count: 0, color: '#3b82f6', label: '导入套题' },
+      review: { minutes: 0, count: 0, color: '#22c55e', label: '错题复盘' },
+    };
+    for (const e of today.entries) {
+      if (!acc[e.type]) continue;
+      acc[e.type].count += 1;
+      acc[e.type].minutes += e.minutes || 0;
+    }
+    return acc;
+  }, [today]);
+
+  const totalScore = today.score;
+  const totalMin = today.minutes;
+  // 百分比条：按 type 得分占比（本日得分聚合）
+  const scoreByType = useMemo(() => {
+    const m = { pomodoro: 0, numeric: 0, import: 0, review: 0 };
+    for (const e of today.entries) {
+      if (m[e.type] != null) m[e.type] += e.score || 0;
+    }
+    return m;
+  }, [today]);
+
+  return (
+    <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-between">
+      <div className="relative z-10">
+        <h3 className="text-xl font-bold mb-1">今日概览</h3>
+        <p className="text-sm font-bold opacity-60">
+          已连续打卡 {stats.streak} 天 · 本周学习 {stats.weekDays} 天
+        </p>
+      </div>
+
+      <div className="absolute top-10 right-10 w-48 h-48 bg-[#fbc02d] rounded-full blur-[40px] opacity-60 animate-pulse" />
+      <div className="absolute bottom-10 right-40 w-32 h-32 bg-[#ff6b6b] rounded-full blur-[35px] opacity-40" />
+
+      <div className="relative z-10 mt-10 flex items-center space-x-12">
+        <div className="text-center">
+          <p className="text-5xl font-black italic tabular-nums">{totalScore}</p>
+          <p className="text-xs font-bold uppercase tracking-widest opacity-50 mt-1">今日得分</p>
+          <p className="text-xs font-bold opacity-60 mt-3 tabular-nums">
+            {totalMin > 0 ? `${totalMin} 分钟` : '暂无专注'}
+          </p>
+        </div>
+        <div className="flex-1 space-y-3">
+          {Object.entries(byType).map(([k, v]) => {
+            const score = scoreByType[k] || 0;
+            const active = v.count > 0;
+            return (
+              <div key={k} className="flex items-center space-x-3">
+                <div
+                  className="w-8 h-2 rounded-full flex-shrink-0"
+                  style={{
+                    backgroundColor: active ? v.color : 'rgba(0,0,0,0.1)',
+                  }}
+                />
+                <span
+                  className={`text-xs font-bold italic ${active ? 'opacity-80' : 'opacity-30'}`}
+                >
+                  {v.label}
+                </span>
+                {active && (
+                  <span className="text-[10px] font-black tabular-nums ml-auto opacity-60">
+                    {v.count} 次 · +{score}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

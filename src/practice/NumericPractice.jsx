@@ -15,9 +15,15 @@ import {
   X,
   PictureInPicture2,
   BookOpen,
+  Gamepad2,
 } from 'lucide-react';
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
+import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
+import RankDashboard from './RankDashboard.jsx';
+import RankBadge from './RankBadge.jsx';
+import { recordPromotionResult, evaluate, loadStats, getRank, getBaseMs } from './ranks.js';
+import GamesHome from './games/GamesHome.jsx';
 
 const HISTORY_KEY = 'numeric_practice_history_v1';
 const RACE_SIZE_DEFAULT = 10;
@@ -120,6 +126,13 @@ const NumericPractice = () => {
     const correct = records.filter((r) => r.isCorrect).length;
     const wrong = records.filter((r) => !r.isCorrect && !r.skipped).length;
     const skipped = records.filter((r) => r.skipped).length;
+    // 写入段位统计（只算晋升模式），拿到段位变化
+    const rankChange = recordPromotionResult({
+      subId,
+      total: records.length,
+      correct,
+      totalMs,
+    });
     const result = {
       id: Date.now(),
       catId,
@@ -134,16 +147,26 @@ const NumericPractice = () => {
       totalMs,
       avgMs: Math.round(totalMs / records.length),
       records,
+      rankChange, // { before, after }
     };
     const list = loadHistory();
     list.unshift(result);
     saveHistory(list.slice(0, 100));
+    // 写入学习日志
+    addStudyEntry({
+      type: 'numeric',
+      module: subName,
+      count: result.total,
+      correct: result.correct,
+      score: scoreNumeric(result.total, result.correct),
+    });
     setSessionResult(result);
     setView('result');
   };
   const openHistory = () => setView('history');
 
-  if (view === 'home') return <HomeView onPick={openCategory} />;
+  if (view === 'home') return <HomeView onPick={openCategory} onOpenGames={() => setView('games')} />;
+  if (view === 'games') return <GamesHome onBack={goHome} />;
   if (view === 'subs')
     return (
       <SubsView
@@ -185,15 +208,55 @@ const NumericPractice = () => {
 };
 
 // ---------------- Home ----------------
-const HomeView = ({ onPick }) => {
+const HomeView = ({ onPick, onOpenGames }) => {
   return (
-    <div className="max-w-4xl mx-auto space-y-10">
+    <div className="max-w-4xl mx-auto space-y-8">
+      {/* 段位总览横幅 */}
+      <RankDashboard onClickCategory={onPick} />
+
       <div>
         <h2 className="text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
         <p className="text-sm font-medium text-slate-400 mt-2">
-          选择一个练习分类，进入题库开始训练，或挑战限时冲刺模式。
+          选择一个练习分类，进入题库开始训练，或挑战「晋升模式」冲击更高段位。
         </p>
       </div>
+
+      <button
+        onClick={onOpenGames}
+        className="w-full text-left rounded-[2rem] p-6 bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 transition-all group overflow-hidden relative"
+      >
+        <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#fbc02d]/15 blur-2xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+          <div className="flex items-start space-x-4">
+            <div className="w-14 h-14 rounded-2xl bg-[#fbc02d] text-black flex items-center justify-center flex-shrink-0">
+              <Gamepad2 size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#fbc02d]">
+                小游戏模块
+              </p>
+              <h3 className="text-2xl font-black italic mt-2">点数字</h3>
+              <p className="text-sm font-medium text-white/65 mt-1">
+                用 5×5 / 6×6 / 7×7 / 8×8 / 9×9 / 10×10 随机数字表练专注与找数速度，并分别记录最佳成绩。
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 md:flex-col md:items-end">
+            <div className="flex items-center gap-2 flex-wrap justify-start md:justify-end text-[10px] font-black uppercase tracking-widest text-white/45">
+              <span className="px-2.5 py-1 rounded-full bg-white/10">5×5</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">6×6</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">7×7</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">8×8</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">9×9</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">10×10</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-[#fbc02d] transition-colors">
+              <span>进入小游戏</span>
+              <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </div>
+      </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {CATEGORIES.map((cat) => {
@@ -409,20 +472,24 @@ const SubsView = ({
       </div>
 
       <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9] space-y-3">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">选择模式</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400">选择模式</p>
+          {subId && <SubRankChip subId={subId} subName={cat.subs.find((s) => s.id === subId)?.name} />}
+        </div>
         <ModeOption
           label="训练模式"
-          desc="不限题数，专注练习，按 Esc 可跳过当前题目，随时可退出。"
+          desc="不限题数，专注练习。按 Esc 可跳过，随时可退出。成绩不计入段位。"
           checked={mode === 'train'}
           onClick={() => onPickMode('train')}
           color="#22c55e"
         />
         <ModeOption
-          label="冲刺模式"
-          desc={`${raceSize} 题限时挑战，结束后统计用时与正确率。`}
+          label="晋升模式"
+          desc={`${raceSize} 题限时挑战，计入段位统计。达到速度 + 准度双标即可晋升。`}
           checked={mode === 'race'}
           onClick={() => onPickMode('race')}
           color="#fbc02d"
+          highlight
         />
         {mode === 'race' && (
           <RaceSizePicker value={raceSize} onChange={onPickRaceSize} />
@@ -457,13 +524,21 @@ const SubsView = ({
   );
 };
 
-const ModeOption = ({ label, desc, checked, onClick, color }) => (
+const ModeOption = ({ label, desc, checked, onClick, color, highlight }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center space-x-4 p-4 rounded-2xl border transition-all text-left ${
+    className={`w-full flex items-center space-x-4 p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
       checked ? 'border-[#1a1a1a] bg-[#f2f0e9]/50' : 'border-[#f2f0e9] hover:border-slate-300'
     }`}
   >
+    {highlight && (
+      <span
+        className="absolute top-2 right-3 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
+        style={{ backgroundColor: `${color}22`, color }}
+      >
+        计入段位
+      </span>
+    )}
     <span
       className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
         checked ? 'ring-2 ring-offset-2 ring-[#1a1a1a]' : 'border-2 border-slate-300'
@@ -478,6 +553,41 @@ const ModeOption = ({ label, desc, checked, onClick, color }) => (
     </div>
   </button>
 );
+
+// 子项段位小徽章（显示当前子项已达段位 + 下一段进度）
+const SubRankChip = ({ subId, subName }) => {
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const onChange = () => setVersion((v) => v + 1);
+    window.addEventListener('numeric-rank-change', onChange);
+    return () => window.removeEventListener('numeric-rank-change', onChange);
+  }, []);
+  const ev = (() => {
+    // eslint-disable-next-line no-unused-expressions
+    version; // 触发重算
+    const stats = loadStats();
+    return evaluate(stats[subId], subId);
+  })();
+  const rank = getRank(ev.rankId);
+  const base = getBaseMs(subId);
+  return (
+    <div
+      className="flex items-center space-x-2 px-3 py-1.5 rounded-full"
+      style={{ backgroundColor: `${rank.color}15` }}
+      title={`${subName || ''} 当前段位：${rank.label} · 基线 ${(base / 1000).toFixed(1)}s/题`}
+    >
+      <RankBadge rankId={ev.rankId} size={20} />
+      <span className="text-[11px] font-black italic" style={{ color: rank.color }}>
+        {rank.label}
+      </span>
+      {ev.rankId !== 'unranked' && ev.rankId !== 'king' && (
+        <span className="text-[9px] font-black tabular-nums text-slate-400">
+          {Math.round((ev.progressToNext || 0) * 100)}%
+        </span>
+      )}
+    </div>
+  );
+};
 
 // 冲刺模式题数选择器：预设 + 自定义输入
 const RaceSizePicker = ({ value, onChange }) => {
@@ -720,7 +830,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
           <span className="text-xs font-black uppercase tracking-widest">退出</span>
         </button>
         <div className="text-xs font-black uppercase tracking-widest text-slate-400">
-          {session.subName} · {mode === 'race' ? '冲刺模式' : '训练模式'}
+          {session.subName} · {mode === 'race' ? '晋升模式' : '训练模式'}
         </div>
         {session.subId === 'pctToFrac' || session.subId === 'square' ? (
           <button
@@ -868,7 +978,7 @@ const BaiHuaFenTableModal = ({ onClose }) => {
           <div>
             <h3 className="text-2xl font-black italic">百化分对照表</h3>
             <p className="text-xs font-medium text-slate-400 mt-1">
-              1/3 ~ 1/19，百分比保留 1 位
+              1/3 ~ 1/19，小数与百分比均保留 2 位
             </p>
           </div>
           <button
@@ -888,8 +998,13 @@ const BaiHuaFenTableModal = ({ onClose }) => {
               <span className="font-black text-xl italic text-[#1a1a1a]">
                 1/{f.den}
               </span>
-              <div className="text-lg font-black tabular-nums text-[#1a1a1a]">
-                {(+f.pct.toFixed(1)).toString()}%
+              <div className="text-right leading-tight">
+                <div className="text-lg font-black tabular-nums text-[#1a1a1a]">
+                  {f.dec.toFixed(2)}
+                </div>
+                <div className="text-sm font-bold tabular-nums text-[#fbc02d] mt-0.5">
+                  {f.pct.toFixed(2)}%
+                </div>
               </div>
             </div>
           ))}
@@ -968,6 +1083,13 @@ const SquareTableModal = ({ onClose }) => {
 const ResultView = ({ result, onRetry, onHome, onSubs }) => {
   if (!result) return null;
   const accuracy = Math.round((result.correct / result.total) * 100);
+  const change = result.rankChange;
+  const beforeRank = change ? getRank(change.before.rankId) : null;
+  const afterRank = change ? getRank(change.after.rankId) : null;
+  const promoted =
+    change && change.before.rankId !== change.after.rankId
+      ? getRank(change.after.rankId).value - getRank(change.before.rankId).value
+      : 0;
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 text-center relative overflow-hidden">
@@ -977,7 +1099,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
             <Trophy size={28} />
           </div>
           <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">
-            {result.subName} · 冲刺结果
+            {result.subName} · 晋升结果
           </p>
           <p className="text-5xl font-black italic">{accuracy}%</p>
           <p className="text-sm font-medium opacity-60 mt-1">
@@ -991,6 +1113,90 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           <StatCell label="平均用时" value={fmtMs(result.avgMs)} />
         </div>
       </div>
+
+      {/* 段位评定卡片 */}
+      {change && (
+        <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9]">
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
+            段位评定
+          </p>
+          {promoted > 0 ? (
+            <div className="flex items-center justify-center space-x-5 py-4">
+              <div className="text-center opacity-60">
+                <RankBadge rankId={beforeRank.id} size={52} />
+                <p className="text-[10px] font-black uppercase tracking-widest mt-2 text-slate-400">
+                  {beforeRank.label}
+                </p>
+              </div>
+              <div
+                className="text-3xl font-black italic"
+                style={{ color: afterRank.color, animation: 'rankUp 0.6s ease-out' }}
+              >
+                →
+              </div>
+              <div className="text-center" style={{ animation: 'rankUp 0.6s ease-out' }}>
+                <RankBadge rankId={afterRank.id} size={64} />
+                <p
+                  className="text-sm font-black italic mt-2"
+                  style={{ color: afterRank.color }}
+                >
+                  {afterRank.label} ↑
+                </p>
+              </div>
+            </div>
+          ) : promoted < 0 ? (
+            <div className="flex items-center justify-center space-x-5 py-4">
+              <div className="text-center opacity-60">
+                <RankBadge rankId={beforeRank.id} size={52} />
+                <p className="text-[10px] font-black uppercase tracking-widest mt-2 text-slate-400">
+                  {beforeRank.label}
+                </p>
+              </div>
+              <div className="text-3xl font-black italic text-slate-400">→</div>
+              <div className="text-center">
+                <RankBadge rankId={afterRank.id} size={64} />
+                <p className="text-sm font-black italic mt-2 text-slate-500">
+                  {afterRank.label} ↓
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center space-x-4 py-4">
+              <RankBadge rankId={afterRank.id} size={56} />
+              <div>
+                <p
+                  className="text-lg font-black italic"
+                  style={{ color: afterRank.color }}
+                >
+                  {afterRank.label}
+                </p>
+                {change.after.rankId === 'unranked' ? (
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                    再完成 {change.after.needMore} 题即可评级
+                  </p>
+                ) : change.after.rankId === 'king' ? (
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">已达顶峰 · 保持！</p>
+                ) : (
+                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                    距下一段进度 {Math.round((change.after.progressToNext || 0) * 100)}%
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {change.after.rankId !== 'unranked' && change.after.rankId !== 'king' && (
+            <div className="mt-3 h-1.5 bg-[#f2f0e9] rounded-full overflow-hidden">
+              <div
+                className="h-full transition-all duration-700"
+                style={{
+                  width: `${Math.round((change.after.progressToNext || 0) * 100)}%`,
+                  backgroundColor: afterRank.color,
+                }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9]">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">答题明细</p>
@@ -1052,6 +1258,14 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           返回
         </button>
       </div>
+
+      <style>{`
+        @keyframes rankUp {
+          0%   { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+          60%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
@@ -1101,7 +1315,7 @@ const HistoryView = ({ onBack }) => {
             <HistoryIcon size={28} />
           </div>
           <p className="text-sm font-bold text-slate-400">暂无历史记录</p>
-          <p className="text-xs text-slate-400 mt-1">完成一次"冲刺模式"后会在此留下成绩</p>
+          <p className="text-xs text-slate-400 mt-1">完成一次「晋升模式」后会在此留下成绩</p>
         </div>
       ) : (
         <div className="space-y-3">

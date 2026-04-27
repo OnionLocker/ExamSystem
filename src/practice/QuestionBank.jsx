@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Moon, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight, Moon } from 'lucide-react';
 import { api } from '../api.js';
+import BankSession from './BankSession.jsx';
 
 // ---------------- 题库分类结构 ----------------
 // 与 DB 中 `category` / `sub_category` 完全一致（中文名做键）
@@ -147,43 +148,6 @@ const BankRow = ({
   );
 };
 
-// "即将开放"占位弹层
-const ComingSoonModal = ({ target, onClose }) => {
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-6"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-[2rem] p-10 max-w-md w-full shadow-2xl text-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-[#fbc02d] text-black flex items-center justify-center mb-5">
-          <Sparkles size={28} />
-        </div>
-        <h3 className="text-2xl font-black italic mb-2">{target}</h3>
-        <p className="text-sm font-medium text-slate-500 mb-6">
-          题库导入功能开发中，敬请期待。
-        </p>
-        <button
-          onClick={onClose}
-          className="bg-[#1a1a1a] text-white font-black px-10 py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs"
-        >
-          知道了
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const QuestionBank = () => {
   const [metaRows, setMetaRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +155,20 @@ const QuestionBank = () => {
     数量关系: true,
     判断推理: true,
   }));
-  const [pending, setPending] = useState(null); // 点击的目标名（占位弹层）
+  // session: 正在进行的刷题会话参数；null = 显示题库列表
+  const [session, setSession] = useState(null);
+
+  const loadMeta = () => {
+    setLoading(true);
+    return api('/api/questions/meta/categories')
+      .then((rows) => {
+        setMetaRows(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        setMetaRows([]);
+      })
+      .finally(() => setLoading(false));
+  };
 
   useEffect(() => {
     let aborted = false;
@@ -219,7 +196,30 @@ const QuestionBank = () => {
   const toggle = (name) =>
     setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
 
-  const handleClick = (label) => setPending(label);
+  // 启动刷题会话
+  // mode: 'category' → 只传 category（混合随机）; 'sub' → 传 category + sub_category
+  const startPractice = ({ category, subCategory, label, total }) => {
+    if (!total || total <= 0) return; // 没题不进
+    setSession({ category, subCategory, label });
+  };
+
+  const exitSession = () => {
+    setSession(null);
+    // 返回列表时刷新一下分类计数（后续接入 done 进度也要刷）
+    loadMeta();
+  };
+
+  // 会话进行中 → 整页切到答题视图
+  if (session) {
+    return (
+      <BankSession
+        category={session.category}
+        subCategory={session.subCategory}
+        label={session.label}
+        onExit={exitSession}
+      />
+    );
+  }
 
   const grandTotal = Array.from(catTotal.values()).reduce((a, b) => a + b, 0);
 
@@ -271,7 +271,12 @@ const QuestionBank = () => {
                   mixHint={hasSubs}
                   onToggle={() => toggle(cat.name)}
                   onPractice={() =>
-                    handleClick(hasSubs ? `${cat.name} · 混合随机` : cat.name)
+                    startPractice({
+                      category: cat.name,
+                      subCategory: null,
+                      label: hasSubs ? `${cat.name} · 混合随机` : cat.name,
+                      total,
+                    })
                   }
                 />
                 {hasSubs && isOpen && (
@@ -286,7 +291,14 @@ const QuestionBank = () => {
                           name={s.name}
                           done={0}
                           total={subT}
-                          onPractice={() => handleClick(`${cat.name} · ${s.name}`)}
+                          onPractice={() =>
+                            startPractice({
+                              category: cat.name,
+                              subCategory: s.name,
+                              label: `${cat.name} · ${s.name}`,
+                              total: subT,
+                            })
+                          }
                         />
                       );
                     })}
@@ -308,7 +320,6 @@ const QuestionBank = () => {
         </p>
       </div>
 
-      {pending && <ComingSoonModal target={pending} onClose={() => setPending(null)} />}
     </div>
   );
 };
