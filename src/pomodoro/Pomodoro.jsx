@@ -14,8 +14,6 @@ import {
   CheckCircle2,
   Timer as TimerIcon,
   CloudRain,
-  Music,
-  Music2,
   Waves,
   Flame,
   Trees,
@@ -456,9 +454,6 @@ const BGM_TYPES = [
   { id: 'night', name: '夜晚', desc: '蟋蟀虫鸣，夏夜氛围', icon: Moon },
   { id: 'cafe', name: '咖啡厅', desc: '嘈杂人声 + 杯盘碰撞', icon: Coffee },
   { id: 'keyboard', name: '键盘声', desc: '机械键盘敲击，办公氛围', icon: Keyboard },
-  { id: 'brown', name: '棕噪音', desc: '低沉如远雷，催眠级别', icon: Music },
-  { id: 'pink', name: '粉噪音', desc: '柔和均衡，最通用', icon: Music2 },
-  { id: 'white', name: '白噪音', desc: '纯净嘶嘶声，屏蔽干扰', icon: Volume2 },
 ];
 
 const BGMBlock = ({ settings, updateSettings, toggleBGM }) => {

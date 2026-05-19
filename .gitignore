@@ -28,6 +28,9 @@ public/q-images/*
 # 批次内部的原始素材/一次性脚本（不入 git）
 batches/*/_raw/
 
+# Claude Code 本地配置（每个开发者各自的，不入 git）
+.claude/
+
 # 环境变量
 .env
 .env.*

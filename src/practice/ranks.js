@@ -27,7 +27,7 @@ export const getRankByValue = (v) => RANKS.find((r) => r.value === v) || RANKS[0
 
 // ---------------- 评级阈值（按 baseMs 的倍率 + 正确率闸门） ----------------
 // [rankId, msMultiplier, minAccuracy]  由严到宽
-const THRESHOLDS = [
+export const THRESHOLDS = [
   ['king',     1.0, 0.95],
   ['master',   1.3, 0.92],
   ['diamond',  1.7, 0.88],
@@ -77,6 +77,27 @@ export const SUB_BASE_MS = {
   gcdQ:        20000,
   lcmQ:        20000,
   weekday:     18000,
+  encounter:    20000,
+  pursue:       20000,
+  boat:         25000,
+  mixture:      30000,
+  dilute:       25000,
+  inclusion2:   25000,
+  permutation:  20000,
+  combination:  20000,
+  probability:  20000,
+  chickenRabbit: 20000,
+  age:           25000,
+  profit:        25000,
+  planting:      18000,
+  squareFormation: 18000,
+  // numReason 数字推理（行测高频，每题平均 60s 是王者标准）
+  arithSeq:    20000,
+  geoSeq:      20000,
+  sumSeq:      25000,
+  productSeq:  25000,
+  powerSeq:    30000,
+  multiArith:  35000,
   // data 资料分析
   baseQtyRough: 20000,
   baseQtyExact: 30000,
@@ -91,6 +112,9 @@ export const SUB_BASE_MS = {
   pullGrowth:   40000,
   contribute:   40000,
   annualGrowth: 40000,
+  mixedGrowth:  35000,
+  multipleOf:   12000,
+  percentagePoint: 18000,
 };
 
 export const getBaseMs = (subId) => SUB_BASE_MS[subId] || 15000;
@@ -197,8 +221,11 @@ export const clearRankStats = () => {
 };
 
 // ---------------- 聚合：分类段位 + 整体段位 ----------------
-// 对一个分类：取其下所有已评级子项 rank.value 的平均值，向下取整 → 分类段位
-// 整体：对四个分类段位再平均
+// v2: 加权平均聚合
+//   · 分类段位 = Σ(rank.value × sub.weight) / Σ(sub.weight)，仅取已评级子项
+//   · 整体段位 = Σ(rank.value × cat.weight) / Σ(cat.weight)，仅取已评级分类
+// 子项 weight 反映真实省考出题频率（5=每年必考 / 1-2=偶尔），
+// 分类 weight 反映真实考试分值占比（data 40 / quant 35 / aux 15 / basic 10）。
 export const computeCategoryRank = (cat, stats) => {
   const entries = cat.subs.map((s) => ({
     sub: s,
@@ -214,7 +241,15 @@ export const computeCategoryRank = (cat, stats) => {
       entries,
     };
   }
-  const avg = ranked.reduce((s, e) => s + getRank(e.eval.rankId).value, 0) / ranked.length;
+  // 加权平均（subject weight）
+  let sumWV = 0;
+  let sumW = 0;
+  for (const e of ranked) {
+    const w = e.sub.weight ?? 1;
+    sumWV += getRank(e.eval.rankId).value * w;
+    sumW += w;
+  }
+  const avg = sumWV / sumW;
   const v = Math.max(1, Math.round(avg));
   return {
     rankId: getRankByValue(v).id,
@@ -226,23 +261,34 @@ export const computeCategoryRank = (cat, stats) => {
 };
 
 export const computeOverallRank = (categories, stats) => {
-  const catRanks = categories.map((c) => computeCategoryRank(c, stats));
+  const catRanks = categories.map((c) => ({ ...computeCategoryRank(c, stats), cat: c }));
   const ranked = catRanks.filter((c) => c.rankId !== 'unranked');
   if (ranked.length === 0) {
     return { rankId: 'unranked', catRanks, totalScore: 0 };
   }
-  const avg = ranked.reduce((s, c) => s + getRank(c.rankId).value, 0) / ranked.length;
+  // 加权平均（category weight）
+  let sumWV = 0;
+  let sumW = 0;
+  for (const c of ranked) {
+    const w = c.cat.weight ?? 1;
+    sumWV += getRank(c.rankId).value * w;
+    sumW += w;
+  }
+  const avg = sumWV / sumW;
   const v = Math.max(1, Math.round(avg));
-  // 段位总分（展示用）：所有子项 rankValue*100 之和
+  // 段位总分（展示用）：Σ(子项段位 × 子项权重 × 分类权重)
   let totalScore = 0;
   for (const c of catRanks) {
     for (const e of c.entries) {
-      totalScore += getRank(e.eval.rankId).value * 100;
+      const subW = e.sub.weight ?? 1;
+      const catW = c.cat.weight ?? 1;
+      totalScore += getRank(e.eval.rankId).value * subW * catW;
     }
   }
   return {
     rankId: getRankByValue(v).id,
     catRanks,
-    totalScore,
+    totalScore: Math.round(totalScore),
+    avgValue: avg,
   };
 };

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Trophy } from 'lucide-react';
 import { CATEGORIES } from './generators.js';
 import {
   RANKS,
@@ -11,6 +12,7 @@ import {
   clearRankStats,
 } from './ranks.js';
 import RankBadge from './RankBadge.jsx';
+import RankInfo from './RankInfo.jsx';
 
 // ============================================================
 // 数资练习顶部横幅：展示整体段位 + 四大类小段位 + 简要说明
@@ -18,7 +20,7 @@ import RankBadge from './RankBadge.jsx';
 // ============================================================
 const RankDashboard = ({ onClickCategory }) => {
   const [version, setVersion] = useState(0);
-  const [showDetail, setShowDetail] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   useEffect(() => {
     const onChange = () => setVersion((v) => v + 1);
@@ -111,9 +113,9 @@ const RankDashboard = ({ onClickCategory }) => {
           </div>
         </div>
 
-        {/* 展开 / 段位解释 */}
-        <div className="mt-5 pt-5 border-t border-white/5 flex items-center justify-between">
-          <div className="flex items-center space-x-1 text-[10px]">
+        {/* 底部：段位图例 + 段位图谱入口 */}
+        <div className="mt-5 pt-5 border-t border-white/5 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center space-x-1 text-[10px] flex-wrap gap-y-1">
             {RANKS.slice(1).map((r) => (
               <div
                 key={r.id}
@@ -132,39 +134,16 @@ const RankDashboard = ({ onClickCategory }) => {
             ))}
           </div>
           <button
-            onClick={() => setShowDetail((v) => !v)}
-            className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-[#fbc02d] transition-colors"
+            onClick={() => setShowInfo(true)}
+            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#fbc02d] text-[#1a1a1a] hover:brightness-110 text-[10px] font-black uppercase tracking-widest transition-all"
           >
-            {showDetail ? '收起细则' : '查看细则'}
+            <Trophy size={12} strokeWidth={2.5} />
+            <span>段位图谱</span>
           </button>
         </div>
-
-        {showDetail && (
-          <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-4 text-[11px] text-white/60 font-medium">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5">
-                评定规则
-              </p>
-              仅「晋升模式」计入统计。每个子项按累计数据独立评段，
-              最少需完成 {MIN_COUNT} 题才能评级。
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5">
-                速度 × 准度
-              </p>
-              速度为主（每题平均用时 vs 子项基线），准度为闸门（正确率达标）。
-              王者 ≤ 基线×1.0 且正确率 ≥ 95%。
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1.5">
-                两种模式
-              </p>
-              <span className="text-white/80 font-black">训练模式</span> 不限题数自由练习、不计段位；
-              <span className="text-white/80 font-black"> 晋升模式</span> 限时测评、计入段位统计。
-            </div>
-          </div>
-        )}
       </div>
+
+      {showInfo && <RankInfo onClose={() => setShowInfo(false)} />}
     </div>
   );
 };

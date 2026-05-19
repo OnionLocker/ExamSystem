@@ -100,24 +100,88 @@ const playBeep = () => {
 };
 
 // ============================================================
-// 背景白噪音引擎：纯 WebAudio，离线生成
+// 背景音引擎：纯采样 + 随机事件层
 // ============================================================
-// 四种类型：
-//   white  - 纯白噪音（均匀频谱）
-//   pink   - 粉红噪音（低频更强，更柔和）
-//   brown  - 棕噪音/红噪音（低频最强，雷雨般低沉）
-//   rain   - 模拟雨声：白噪音 + LP 过滤 + 缓慢抖动
+// 每个场景由两部分组成：
+//   1) base loop：底层环境音，循环播放（如雨声、海浪、咖啡厅嗡嗡）
+//   2) events（可选）：在底层之上随机触发的离散事件音
+//      （如森林里的鸟鸣、雷雨里的远雷、夜晚的蟋蟀）
+// 事件按照 [minMs, maxMs] 内随机间隔触发，每次随机挑一个事件音播一次。
+// 事件层是 v1.1 关键增强 —— 让"听 5 分钟就识别出 loop"变成不可能。
+//
+// 素材都在 public/sounds/，详见该目录下的 README.md。
 // ------------------------------------------------------------
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-class NoiseEngine {
+const SCENE_SOUNDS = {
+  rain: '/sounds/rain.mp3',
+  thunderstorm: '/sounds/thunderstorm.mp3',
+  ocean: '/sounds/ocean.mp3',
+  stream: '/sounds/stream.mp3',
+  forest: '/sounds/forest.mp3',
+  fire: '/sounds/fire.mp3',
+  wind: '/sounds/wind.mp3',
+  night: '/sounds/night.mp3',
+  cafe: '/sounds/cafe.mp3',
+  keyboard: '/sounds/keyboard.mp3',
+};
+
+// 场景的随机事件配置：
+//   sounds:  事件音 URL 数组（随机抽一个）
+//   minMs/maxMs: 两次事件之间的随机间隔（均匀分布）
+//   volume:  事件音相对于底层的音量倍率（不会超过 1）
+const SCENE_EVENTS = {
+  forest: {
+    sounds: [
+      '/sounds/events/bird1.mp3',
+      '/sounds/events/bird2.mp3',
+      '/sounds/events/bird3.mp3',
+      '/sounds/events/bird4.mp3',
+    ],
+    minMs: 6000,
+    maxMs: 22000,
+    volume: 0.55,
+  },
+  thunderstorm: {
+    sounds: [
+      '/sounds/events/thunder1.mp3',
+      '/sounds/events/thunder2.mp3',
+      '/sounds/events/thunder3.mp3',
+    ],
+    minMs: 18000,
+    maxMs: 60000,
+    volume: 0.85,
+  },
+  rain: {
+    // 雨声偶尔来一记远雷，强度低
+    sounds: [
+      '/sounds/events/thunder1.mp3',
+      '/sounds/events/thunder2.mp3',
+    ],
+    minMs: 90000,
+    maxMs: 240000,
+    volume: 0.35,
+  },
+  night: {
+    sounds: ['/sounds/events/cricket.mp3'],
+    minMs: 12000,
+    maxMs: 35000,
+    volume: 0.45,
+  },
+};
+
+// 容错：localStorage 里的 bgmType 如果是已下线的 white/pink/brown 等，回退到默认场景
+const DEFAULT_SCENE = 'rain';
+
+class SoundEngine {
   constructor() {
     this.ctx = null;
-    this.master = null; // 总输出 gain
-    this.nodes = []; // 需要 stop/disconnect 的活跃节点
-    this.timers = []; // setTimeout 句柄（颗粒事件调度）
+    this.master = null;       // 当前场景的总输出 GainNode
+    this.activeNodes = [];    // 挂在 master 下的需清理节点
+    this.eventTimers = [];    // 事件调度的 setTimeout 句柄
     this.type = null;
     this.volume = 0.4;
+    this.bufferCache = new Map(); // url -> AudioBuffer | null
+    this.gen = 0;             // 代次号，作废过期的异步流程
   }
 
   _ensureCtx() {
@@ -132,480 +196,109 @@ class NoiseEngine {
     return true;
   }
 
-  // 生成 2 秒无缝循环噪音 buffer
-  _makeNoiseBuffer(color = 'white') {
-    const seconds = 2;
-    const rate = this.ctx.sampleRate;
-    const len = seconds * rate;
-    const buf = this.ctx.createBuffer(1, len, rate);
-    const d = buf.getChannelData(0);
-    if (color === 'white') {
-      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    } else if (color === 'pink') {
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (let i = 0; i < len; i++) {
-        const w = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + w * 0.0555179;
-        b1 = 0.99332 * b1 + w * 0.0750759;
-        b2 = 0.96900 * b2 + w * 0.1538520;
-        b3 = 0.86650 * b3 + w * 0.3104856;
-        b4 = 0.55000 * b4 + w * 0.5329522;
-        b5 = -0.7616 * b5 - w * 0.0168980;
-        d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11;
-        b6 = w * 0.115926;
-      }
-    } else if (color === 'brown') {
-      let last = 0;
-      for (let i = 0; i < len; i++) {
-        const w = Math.random() * 2 - 1;
-        last = (last + 0.02 * w) / 1.02;
-        d[i] = last * 3.5;
-      }
+  // ---------- 采样加载（带缓存） ----------
+  async _loadSample(url) {
+    if (this.bufferCache.has(url)) return this.bufferCache.get(url);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const arr = await res.arrayBuffer();
+      const buf = await this.ctx.decodeAudioData(arr);
+      this.bufferCache.set(url, buf);
+      return buf;
+    } catch (e) {
+      console.warn(
+        `[SoundEngine] 采样加载失败：${url}（该层会静默跳过）。` +
+          `把 mp3 放到对应路径即可恢复，详见 public/sounds/README.md`,
+        e?.message || e,
+      );
+      this.bufferCache.set(url, null); // 标记缺失避免重试
+      return null;
     }
-    return buf;
   }
 
-  // 创建循环噪音源，返回 { src, gain }
-  _noiseLayer(color, vol, filterOpts) {
-    const ctx = this.ctx;
-    const src = ctx.createBufferSource();
-    src.buffer = this._makeNoiseBuffer(color);
+  // ---------- 底层 loop 播放 ----------
+  _playBaseLoop(buf) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
     src.loop = true;
-
-    const gain = ctx.createGain();
-    gain.gain.value = vol;
-
-    let out = src;
-    if (filterOpts) {
-      const f = ctx.createBiquadFilter();
-      f.type = filterOpts.type || 'lowpass';
-      f.frequency.value = filterOpts.freq || 1000;
-      f.Q.value = filterOpts.q ?? 0.7;
-      out.connect(f);
-      out = f;
-      this.nodes.push(f);
-
-      // 可选 LFO 调 cutoff
-      if (filterOpts.lfoRate) {
-        const lfo = ctx.createOscillator();
-        const lfoGain = ctx.createGain();
-        lfo.type = 'sine';
-        lfo.frequency.value = filterOpts.lfoRate;
-        lfoGain.gain.value = filterOpts.lfoDepth || 300;
-        lfo.connect(lfoGain);
-        lfoGain.connect(f.frequency);
-        lfo.start();
-        this.nodes.push(lfo);
-      }
-    }
-    out.connect(gain);
-    gain.connect(this.master);
+    src.connect(this.master);
     src.start();
-    this.nodes.push(src);
-    this.nodes.push(gain);
-    return gain;
+    this.activeNodes.push(src);
   }
 
-  // 颗粒事件（如雨滴、噼啪声、鸟鸣）：周期性生成短促声音
-  _scheduleGrain(fn, meanMs) {
-    const run = () => {
-      if (!this.ctx || this.type === null) return;
-      try {
-        fn();
-      } catch {
-        // ignore
-      }
-      // 随机间隔：均值周围 ±50%
-      const jitter = meanMs * (0.5 + Math.random());
-      const id = setTimeout(run, jitter);
-      this.timers.push(id);
+  // ---------- 单次事件音 ----------
+  _playEventOnce(buf, volume) {
+    if (!this.master || !this.ctx) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = false;
+    const g = this.ctx.createGain();
+    g.gain.value = volume;
+    src.connect(g);
+    g.connect(this.master);
+    src.start();
+    src.onended = () => {
+      try { src.disconnect(); } catch { /* ignore */ }
+      try { g.disconnect(); } catch { /* ignore */ }
     };
-    const id = setTimeout(run, Math.random() * meanMs);
-    this.timers.push(id);
   }
 
-  // 单个"脉冲"声源：用带限噪音 + 快速包络模拟敲击/滴答/拍击
-  _pulse({ color = 'white', freq = 2000, q = 8, dur = 0.06, gain = 0.3, delay = 0, type = 'bandpass' }) {
-    const ctx = this.ctx;
-    const t0 = ctx.currentTime + delay;
-    const src = ctx.createBufferSource();
-    src.buffer = this._makeNoiseBuffer(color);
-    const filter = ctx.createBiquadFilter();
-    filter.type = type;
-    filter.frequency.value = freq;
-    filter.Q.value = q;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain, t0 + 0.003);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(filter);
-    filter.connect(g);
-    g.connect(this.master);
-    src.start(t0);
-    src.stop(t0 + dur + 0.02);
+  // ---------- 事件层调度 ----------
+  async _scheduleEvents(type, myGen) {
+    const cfg = SCENE_EVENTS[type];
+    if (!cfg) return;
+
+    // 并发预加载所有事件音
+    const buffers = await Promise.all(cfg.sounds.map((u) => this._loadSample(u)));
+    if (myGen !== this.gen) return;
+    const valid = buffers.filter((b) => b);
+    if (valid.length === 0) return;
+
+    const tick = () => {
+      if (myGen !== this.gen || !this.master) return;
+      const buf = valid[Math.floor(Math.random() * valid.length)];
+      this._playEventOnce(buf, cfg.volume);
+      // 排下一次
+      const wait = cfg.minMs + Math.random() * (cfg.maxMs - cfg.minMs);
+      const id = setTimeout(tick, wait);
+      this.eventTimers.push(id);
+    };
+
+    // 首次事件做一个稍长的延迟（避免一开播就来事件，听感突兀）
+    const initial = cfg.minMs * 1.5 + Math.random() * (cfg.maxMs - cfg.minMs);
+    const id = setTimeout(tick, initial);
+    this.eventTimers.push(id);
   }
 
-  // 正弦音调（鸟叫、虫鸣）
-  _tone({ freq, dur = 0.15, gain = 0.08, delay = 0, freqEnd, type = 'sine' }) {
-    const ctx = this.ctx;
-    const t0 = ctx.currentTime + delay;
-    const osc = ctx.createOscillator();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t0);
-    if (freqEnd) {
-      osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), t0 + dur);
-    }
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t0);
-    g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(g);
-    g.connect(this.master);
-    osc.start(t0);
-    osc.stop(t0 + dur + 0.02);
-  }
-
-  // ================= 预设 =================
-  _build(type) {
-    switch (type) {
-      case 'white':
-        // 稍微用 shelf 削一点极高频，避免刺耳
-        return this._noiseLayer('white', 0.9, { type: 'lowpass', freq: 8000, q: 0.5 });
-
-      case 'pink':
-        // 粉噪 + 非常轻的高频染色
-        this._noiseLayer('pink', 0.9);
-        return; // 使用默认：不做单一回返，多层已经连接 master
-
-      case 'brown':
-        // 棕噪音 + 极慢的低通 LFO 制造呼吸感
-        this._noiseLayer('brown', 1.0, {
-          type: 'lowpass',
-          freq: 700,
-          q: 0.7,
-          lfoRate: 0.04,
-          lfoDepth: 200,
-        });
-        return;
-
-      case 'rain': {
-        // 背景：低通白噪音 + 慢 LFO
-        this._noiseLayer('white', 0.55, {
-          type: 'lowpass',
-          freq: 1400,
-          q: 0.5,
-          lfoRate: 0.07,
-          lfoDepth: 500,
-        });
-        // 远雷：棕噪音 + 很低的 LP
-        this._noiseLayer('brown', 0.35, { type: 'lowpass', freq: 220, q: 0.5 });
-        // 雨滴：高频 bandpass 短脉冲
-        this._scheduleGrain(() => {
-          const freq = 1800 + Math.random() * 3000;
-          this._pulse({
-            freq,
-            q: 14,
-            dur: 0.03 + Math.random() * 0.04,
-            gain: 0.08 + Math.random() * 0.1,
-          });
-        }, 55);
-        return;
-      }
-
-      case 'thunderstorm': {
-        // 雷雨：雨声 + 偶尔远雷
-        this._noiseLayer('white', 0.5, {
-          type: 'lowpass',
-          freq: 1200,
-          q: 0.5,
-          lfoRate: 0.08,
-          lfoDepth: 600,
-        });
-        this._noiseLayer('brown', 0.5, { type: 'lowpass', freq: 180, q: 0.5 });
-        this._scheduleGrain(() => {
-          this._pulse({
-            freq: 2000 + Math.random() * 4000,
-            q: 16,
-            dur: 0.035,
-            gain: 0.12,
-          });
-        }, 45);
-        // 偶尔低频轰鸣（远雷）
-        this._scheduleGrain(() => {
-          const ctx = this.ctx;
-          const t0 = ctx.currentTime;
-          const src = ctx.createBufferSource();
-          src.buffer = this._makeNoiseBuffer('brown');
-          const f = ctx.createBiquadFilter();
-          f.type = 'lowpass';
-          f.frequency.value = 120;
-          f.Q.value = 0.5;
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0, t0);
-          g.gain.linearRampToValueAtTime(0.8, t0 + 0.4);
-          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.5);
-          src.connect(f);
-          f.connect(g);
-          g.connect(this.master);
-          src.start(t0);
-          src.stop(t0 + 4);
-        }, 18000);
-        return;
-      }
-
-      case 'ocean': {
-        // 海浪：非常慢 LFO 驱动 LP，呼吸般的起伏
-        const ctx = this.ctx;
-        const src = ctx.createBufferSource();
-        src.buffer = this._makeNoiseBuffer('brown');
-        src.loop = true;
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.value = 600;
-        filter.Q.value = 0.6;
-        const g = ctx.createGain();
-        g.gain.value = 1.0;
-
-        // LFO 慢速呼吸
-        const lfo = ctx.createOscillator();
-        const lfoGain = ctx.createGain();
-        lfo.type = 'sine';
-        lfo.frequency.value = 0.08; // ~12s 一个周期
-        lfoGain.gain.value = 500;
-        lfo.connect(lfoGain);
-        lfoGain.connect(filter.frequency);
-        lfo.start();
-
-        // LFO 也调 gain 让整体音量起伏
-        const volLfo = ctx.createOscillator();
-        const volLfoGain = ctx.createGain();
-        volLfo.type = 'sine';
-        volLfo.frequency.value = 0.08;
-        volLfoGain.gain.value = 0.25;
-        volLfo.connect(volLfoGain);
-        volLfoGain.connect(g.gain);
-        volLfo.start();
-
-        src.connect(filter);
-        filter.connect(g);
-        g.connect(this.master);
-        src.start();
-        this.nodes.push(src, filter, lfo, volLfo);
-        return;
-      }
-
-      case 'fire': {
-        // 篝火：brown 噪音做底 + 不断的随机噼啪脉冲
-        this._noiseLayer('brown', 0.5, { type: 'lowpass', freq: 400, q: 0.6 });
-        this._noiseLayer('pink', 0.15, { type: 'highpass', freq: 1200, q: 0.5 });
-        // 噼啪声
-        this._scheduleGrain(() => {
-          const burst = 1 + Math.floor(Math.random() * 3);
-          for (let i = 0; i < burst; i++) {
-            this._pulse({
-              freq: 2500 + Math.random() * 3500,
-              q: 20,
-              dur: 0.02 + Math.random() * 0.04,
-              gain: 0.12 + Math.random() * 0.15,
-              delay: i * 0.025 + Math.random() * 0.04,
-            });
-          }
-        }, 420);
-        return;
-      }
-
-      case 'forest': {
-        // 森林：微风 + 偶尔鸟鸣
-        this._noiseLayer('pink', 0.3, {
-          type: 'lowpass',
-          freq: 1600,
-          q: 0.4,
-          lfoRate: 0.12,
-          lfoDepth: 400,
-        });
-        this._noiseLayer('brown', 0.2, { type: 'lowpass', freq: 300, q: 0.5 });
-        // 鸟鸣：频率扫掠的短哨音，间隔较长
-        this._scheduleGrain(() => {
-          const patterns = [
-            () => {
-              // 单音哨
-              this._tone({
-                freq: 2600 + Math.random() * 1200,
-                freqEnd: 2800 + Math.random() * 1200,
-                dur: 0.12,
-                gain: 0.1,
-              });
-            },
-            () => {
-              // 双音
-              const f = 2400 + Math.random() * 800;
-              this._tone({ freq: f, dur: 0.08, gain: 0.08 });
-              this._tone({ freq: f * 1.15, dur: 0.08, gain: 0.08, delay: 0.12 });
-            },
-            () => {
-              // 三连音
-              const f = 2200 + Math.random() * 800;
-              for (let i = 0; i < 3; i++) {
-                this._tone({
-                  freq: f * (1 + i * 0.08),
-                  dur: 0.07,
-                  gain: 0.08,
-                  delay: i * 0.11,
-                });
-              }
-            },
-          ];
-          pick(patterns)();
-        }, 4500);
-        return;
-      }
-
-      case 'cafe': {
-        // 咖啡厅：中低频白噪做人声嘈杂 + 偶尔瓷器碰撞
-        this._noiseLayer('pink', 0.55, {
-          type: 'bandpass',
-          freq: 500,
-          q: 0.8,
-          lfoRate: 0.5,
-          lfoDepth: 150,
-        });
-        this._noiseLayer('brown', 0.35, { type: 'lowpass', freq: 250, q: 0.5 });
-        // 瓷器碰撞：高频短促脉冲
-        this._scheduleGrain(() => {
-          this._pulse({
-            freq: 4500 + Math.random() * 2500,
-            q: 30,
-            dur: 0.08,
-            gain: 0.12,
-            type: 'bandpass',
-          });
-          // 有时伴随共鸣
-          if (Math.random() < 0.4) {
-            this._pulse({
-              freq: 3200 + Math.random() * 1500,
-              q: 25,
-              dur: 0.06,
-              gain: 0.08,
-              delay: 0.03,
-            });
-          }
-        }, 5500);
-        return;
-      }
-
-      case 'keyboard': {
-        // 机械键盘：brown 噪音轻底 + 敲击脉冲
-        this._noiseLayer('brown', 0.08, { type: 'lowpass', freq: 200, q: 0.4 });
-        this._scheduleGrain(() => {
-          // 每次 1~5 个字符连击
-          const count = 1 + Math.floor(Math.random() * 5);
-          for (let i = 0; i < count; i++) {
-            const delay = i * (0.08 + Math.random() * 0.12);
-            // 两层：低频"砰" + 高频"咔"
-            this._pulse({
-              color: 'brown',
-              freq: 200 + Math.random() * 100,
-              q: 8,
-              dur: 0.03,
-              gain: 0.25,
-              delay,
-              type: 'bandpass',
-            });
-            this._pulse({
-              color: 'white',
-              freq: 3500 + Math.random() * 1500,
-              q: 20,
-              dur: 0.015,
-              gain: 0.18,
-              delay: delay + 0.005,
-              type: 'bandpass',
-            });
-          }
-        }, 900);
-        return;
-      }
-
-      case 'wind': {
-        // 风声：低通白噪 + 很慢 + 很深的 LFO
-        this._noiseLayer('white', 0.7, {
-          type: 'lowpass',
-          freq: 900,
-          q: 1.2,
-          lfoRate: 0.05,
-          lfoDepth: 700,
-        });
-        this._noiseLayer('brown', 0.25, { type: 'lowpass', freq: 150, q: 0.5 });
-        return;
-      }
-
-      case 'stream': {
-        // 溪流：中频 band + 密集高频"水花"
-        this._noiseLayer('white', 0.55, {
-          type: 'bandpass',
-          freq: 2200,
-          q: 0.6,
-          lfoRate: 0.35,
-          lfoDepth: 500,
-        });
-        this._noiseLayer('brown', 0.3, { type: 'lowpass', freq: 400, q: 0.5 });
-        // 水花
-        this._scheduleGrain(() => {
-          this._pulse({
-            freq: 3500 + Math.random() * 2500,
-            q: 10,
-            dur: 0.04,
-            gain: 0.06,
-          });
-        }, 90);
-        return;
-      }
-
-      case 'night': {
-        // 夜晚虫鸣：低频风 + 蟋蟀（高频颤音）
-        this._noiseLayer('brown', 0.3, { type: 'lowpass', freq: 200, q: 0.5 });
-        this._noiseLayer('white', 0.08, { type: 'lowpass', freq: 2000, q: 0.4 });
-        // 蟋蟀：高频短脉冲连续 5~8 次
-        this._scheduleGrain(() => {
-          const f = 4500 + Math.random() * 800;
-          const count = 5 + Math.floor(Math.random() * 4);
-          for (let i = 0; i < count; i++) {
-            this._pulse({
-              freq: f,
-              q: 40,
-              dur: 0.025,
-              gain: 0.09,
-              delay: i * 0.055,
-            });
-          }
-        }, 1500);
-        return;
-      }
-
-      default:
-        // 未知类型，降级为粉噪
-        this._noiseLayer('pink', 0.9);
-        return;
-    }
-  }
-
+  // ---------- 公共 API ----------
   play(type, volume) {
     if (!this._ensureCtx()) return;
     this.stop();
-    this.type = type;
+
+    const myGen = ++this.gen;
+    // 未知场景兜底（兼容老版本 localStorage 里的 white/pink/brown）
+    const sceneType = SCENE_SOUNDS[type] ? type : DEFAULT_SCENE;
+    this.type = sceneType;
     this.volume = volume;
 
-    // 总输出带淡入
     const master = this.ctx.createGain();
     master.gain.value = 0;
     master.connect(this.ctx.destination);
     this.master = master;
 
-    // 构建声音图（各层接到 this.master）
-    this._build(type);
-
-    // 淡入 1.5s
+    // 1.2s 淡入
     const now = this.ctx.currentTime;
-    master.gain.linearRampToValueAtTime(volume, now + 1.5);
+    master.gain.linearRampToValueAtTime(volume, now + 1.2);
+
+    // 加载并播放底层 loop
+    this._loadSample(SCENE_SOUNDS[sceneType]).then((buf) => {
+      if (myGen !== this.gen || !this.master) return;
+      if (buf) this._playBaseLoop(buf);
+    });
+
+    // 启动事件层（如果有配置）
+    this._scheduleEvents(sceneType, myGen);
   }
 
   setVolume(v) {
@@ -619,22 +312,23 @@ class NoiseEngine {
 
   stop() {
     if (!this.ctx || !this.master) return;
-    const now = this.ctx.currentTime;
     const master = this.master;
-    const nodes = this.nodes;
-    const timers = this.timers;
+    const nodes = this.activeNodes;
+    const timers = this.eventTimers;
     this.master = null;
-    this.nodes = [];
-    this.timers = [];
+    this.activeNodes = [];
+    this.eventTimers = [];
     this.type = null;
+    this.gen++; // 让进行中的异步流程作废
 
-    // 清颗粒定时器
+    // 立即清掉所有事件调度
     timers.forEach((id) => clearTimeout(id));
 
-    // 淡出 0.8s 后 stop 所有
+    const now = this.ctx.currentTime;
     master.gain.cancelScheduledValues(now);
     master.gain.setValueAtTime(master.gain.value, now);
-    master.gain.linearRampToValueAtTime(0, now + 0.8);
+    master.gain.linearRampToValueAtTime(0, now + 0.6);
+
     setTimeout(() => {
       nodes.forEach((n) => {
         try {
@@ -653,7 +347,7 @@ class NoiseEngine {
       } catch {
         // ignore
       }
-    }, 900);
+    }, 700);
   }
 
   get isPlaying() {
@@ -692,7 +386,7 @@ export const PomodoroProvider = ({ children }) => {
   const phaseEndHandledRef = useRef(false);
   const noiseRef = useRef(null);
   if (!noiseRef.current && typeof window !== 'undefined') {
-    noiseRef.current = new NoiseEngine();
+    noiseRef.current = new SoundEngine();
   }
 
   // 持久化

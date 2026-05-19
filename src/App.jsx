@@ -2,13 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
-  RefreshCcw,
-  FileText,
-  BarChart3,
-  Plus,
-  Upload,
-  Clock,
-  CheckCircle2,
   ChevronRight,
   ChevronLeft,
   LogOut,
@@ -16,6 +9,9 @@ import {
   Trash2,
   X,
   Timer as TimerIcon,
+  Sliders,
+  ClipboardList,
+  Layers,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -25,6 +21,10 @@ import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
 import StudyLogPanel from './studyLog/StudyLogPanel.jsx';
 import { useStudyHeatmap, LEVEL_COLORS } from './studyLog/heatmap.js';
 import { loadLog, summarize } from './studyLog/studyLog.js';
+import Mixer from './mixer/Mixer.jsx';
+import MockExam from './mockExam/MockExam.jsx';
+import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
+import Flashcards from './flashcards/Flashcards.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 
 // ---------------- date utils ----------------
@@ -53,7 +53,6 @@ const EVENTS_KEY = 'exam_calendar_events';
 
 const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isUploading, setIsUploading] = useState(false);
   const [authed, setAuthed] = useState(!!getToken());
   const [bootChecked, setBootChecked] = useState(false);
   // 学习日志版本号：每次增删写入后 +1，驱动日历/面板重渲染
@@ -471,10 +470,10 @@ const AppInner = () => {
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
+          <SidebarItem id="flashcards" icon={Layers} label="抽认卡" />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" />
-          <SidebarItem id="review" icon={RefreshCcw} label="真题复盘" />
-          <SidebarItem id="mistakes" icon={FileText} label="错题本" />
-          <SidebarItem id="analysis" icon={BarChart3} label="学情分析" />
+          <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" />
+          <SidebarItem id="mixer" icon={Sliders} label="声音混音器" />
         </nav>
 
         <div className="pt-6 border-t border-black/5 space-y-2">
@@ -504,10 +503,10 @@ const AppInner = () => {
             <h2 className="text-2xl font-black tracking-tight">
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
               {activeTab === 'practice' && '数资练习'}
+              {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
-              {activeTab === 'review' && '真题复盘'}
-              {activeTab === 'mistakes' && '错题本'}
-              {activeTab === 'analysis' && '学情分析'}
+              {activeTab === 'mockexam' && '全卷模考'}
+              {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
           </div>
@@ -531,58 +530,18 @@ const AppInner = () => {
 
           {activeTab === 'practice' && <NumericPractice />}
 
+          {activeTab === 'flashcards' && <Flashcards />}
+
           {activeTab === 'pomodoro' && <Pomodoro />}
 
-          {activeTab === 'review' && (
-            <div className="space-y-10">
-              <div className="bg-[#f2f0e9] border-4 border-dashed border-[#dfdbcc] rounded-[3rem] p-16 text-center group cursor-pointer hover:border-[#fbc02d] transition-colors">
-                <div className="w-24 h-24 bg-white rounded-[2rem] mx-auto flex items-center justify-center text-[#1a1a1a] shadow-xl shadow-black/5 mb-8 group-hover:scale-110 transition-transform">
-                  <Upload size={40} />
-                </div>
-                <h3 className="text-2xl font-black italic mb-2 uppercase">上传真题卷</h3>
-                <p className="text-slate-400 font-bold max-w-sm mx-auto mb-10 tracking-tight text-sm">
-                  支持 PDF、图片，系统会自动 OCR 并生成结构化错题分析。
-                </p>
-                <button
-                  onClick={() => {
-                    setIsUploading(true);
-                    setTimeout(() => setIsUploading(false), 2500);
-                  }}
-                  className="bg-[#1a1a1a] text-white font-black px-12 py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs"
-                >
-                  {isUploading ? 'AI 正在解析...' : '上传试卷'}
-                </button>
-              </div>
-            </div>
-          )}
+          {activeTab === 'mockexam' && <MockExam />}
 
-          {activeTab === 'mistakes' && (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-24 h-24 rounded-[2rem] bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a] mb-6">
-                <FileText size={40} />
-              </div>
-              <h3 className="text-2xl font-black italic mb-2">错题本建设中</h3>
-              <p className="text-sm text-slate-400 font-bold max-w-md">
-                完成练习后，错题会自动归类到这里，支持按知识点筛选与重练。
-              </p>
-            </div>
-          )}
-
-          {activeTab === 'analysis' && (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="w-24 h-24 rounded-[2rem] bg-[#f2f0e9] flex items-center justify-center text-[#1a1a1a] mb-6">
-                <BarChart3 size={40} />
-              </div>
-              <h3 className="text-2xl font-black italic mb-2">学情分析建设中</h3>
-              <p className="text-sm text-slate-400 font-bold max-w-md">
-                即将上线：按模块、按时间的正确率趋势图，自动识别薄弱项。
-              </p>
-            </div>
-          )}
+          {activeTab === 'mixer' && <Mixer />}
         </div>
       </main>
 
       {renderEditor()}
+      <Cheatsheet />
     </div>
   );
 };
@@ -606,7 +565,6 @@ const DashboardTodayCard = ({ studyVersion }) => {
       pomodoro: { minutes: 0, count: 0, color: '#ff6b6b', label: '番茄专注' },
       numeric: { minutes: 0, count: 0, color: '#fbc02d', label: '数资练习' },
       import: { minutes: 0, count: 0, color: '#3b82f6', label: '导入套题' },
-      review: { minutes: 0, count: 0, color: '#22c55e', label: '错题复盘' },
     };
     for (const e of today.entries) {
       if (!acc[e.type]) continue;
@@ -620,7 +578,7 @@ const DashboardTodayCard = ({ studyVersion }) => {
   const totalMin = today.minutes;
   // 百分比条：按 type 得分占比（本日得分聚合）
   const scoreByType = useMemo(() => {
-    const m = { pomodoro: 0, numeric: 0, import: 0, review: 0 };
+    const m = { pomodoro: 0, numeric: 0, import: 0 };
     for (const e of today.entries) {
       if (m[e.type] != null) m[e.type] += e.score || 0;
     }
