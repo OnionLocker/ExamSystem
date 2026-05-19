@@ -4,11 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { authRouter, authMiddleware } from './auth.js';
-import questionsRouter from './routes/questions.js';
-import practiceRouter from './routes/practice.js';
-import mistakesRouter from './routes/mistakes.js';
 import reviewsRouter from './routes/reviews.js';
-import statsRouter from './routes/stats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -17,14 +13,6 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
-// 题目图片静态服务（无鉴权，允许前端直接 <img src="/q-images/...">）
-app.use(
-  '/q-images',
-  express.static(path.join(__dirname, '..', 'public', 'q-images'), {
-    maxAge: '7d',
-    fallthrough: true,
-  })
-);
 
 // 所有 /api/* 先过鉴Ȩ（内部会放行 /health 与 /auth/*）
 app.use('/api', authMiddleware);
@@ -34,11 +22,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth',      authRouter);
-app.use('/api/questions', questionsRouter);
-app.use('/api/practice',  practiceRouter);
-app.use('/api/mistakes',  mistakesRouter);
 app.use('/api/reviews',   reviewsRouter);
-app.use('/api/stats',     statsRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

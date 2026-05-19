@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
-  ListChecks,
   RefreshCcw,
   FileText,
   BarChart3,
@@ -20,7 +19,6 @@ import {
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
-import QuestionBank from './practice/QuestionBank.jsx';
 import Pomodoro from './pomodoro/Pomodoro.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
 import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
@@ -472,7 +470,6 @@ const AppInner = () => {
 
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
-          <SidebarItem id="bank" icon={ListChecks} label="刷题" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" />
           <SidebarItem id="review" icon={RefreshCcw} label="真题复盘" />
@@ -506,7 +503,6 @@ const AppInner = () => {
           <div>
             <h2 className="text-2xl font-black tracking-tight">
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
-              {activeTab === 'bank' && '刷题'}
               {activeTab === 'practice' && '数资练习'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'review' && '真题复盘'}
@@ -532,8 +528,6 @@ const AppInner = () => {
               {renderCountdowns()}
             </div>
           )}
-
-          {activeTab === 'bank' && <QuestionBank />}
 
           {activeTab === 'practice' && <NumericPractice />}
 
