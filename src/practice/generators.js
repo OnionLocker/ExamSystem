@@ -12,6 +12,20 @@ const round2 = (n) => Math.round(n * 100) / 100;
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
 const lcm = (a, b) => (a * b) / gcd(a, b);
 
+// 给乘/除速算题统一加误差容忍：默认 ±1%，最少 ±1
+// pctMin=0.01 表示 1%，floor=1 表示最少 ±1
+const withTol = ({ prompt, answer }, pctMin = 0.01, floor = 1) => {
+  const tol = Math.max(floor, Math.round(Math.abs(answer) * pctMin));
+  // 题面尾部追加"允许误差 ±X"，避免歧义
+  const tagged = `${prompt}（速算：允许误差 ±${tol}）`;
+  return {
+    prompt: tagged,
+    answer,
+    tolerance: tol,
+    displayAnswer: (n) => `${n}（精确值，允许 ${answer - tol} ~ ${answer + tol}）`,
+  };
+};
+
 // 常见分数 ↔ 小数 ↔ 百分数 对照表（资料分析常用，非"百化分"专用）
 const FRAC_TABLE = [
   { num: 1, den: 2, dec: 0.5, pct: 50 },
@@ -98,6 +112,18 @@ export const generators = {
     const sign2 = op2 === '+' ? '+' : '−';
     return { prompt: `${a} ${sign1} ${b} ${sign2} ${c} =`, answer: final };
   },
+  // 三位数加减（两数）：a + b 或 a - b，二选一
+  addOrSub3: () => {
+    const op = pick(['+', '-']);
+    if (op === '+') {
+      const a = rand(100, 999);
+      const b = rand(100, 999);
+      return { prompt: `${a} + ${b} =`, answer: a + b };
+    }
+    const a = rand(200, 999);
+    const b = rand(100, a);
+    return { prompt: `${a} − ${b} =`, answer: a - b };
+  },
   add4: () => {
     const nums = Array.from({ length: 4 }, () => rand(100, 999));
     return {
@@ -108,7 +134,7 @@ export const generators = {
   mul3x1: () => {
     const a = rand(100, 999);
     const b = rand(2, 9);
-    return { prompt: `${a} × ${b} =`, answer: a * b };
+    return withTol({ prompt: `${a} × ${b} =`, answer: a * b });
   },
   div3by1: () => {
     const b = rand(2, 9);
@@ -119,12 +145,12 @@ export const generators = {
   mul2x2: () => {
     const a = rand(11, 99);
     const b = rand(11, 99);
-    return { prompt: `${a} × ${b} =`, answer: a * b };
+    return withTol({ prompt: `${a} × ${b} =`, answer: a * b });
   },
   big99: () => {
     const a = rand(11, 19);
     const b = rand(11, 19);
-    return { prompt: `${a} × ${b} =`, answer: a * b };
+    return withTol({ prompt: `${a} × ${b} =`, answer: a * b });
   },
   mulEst: () => {
     const a = rand(120, 980);
@@ -144,9 +170,9 @@ export const generators = {
     const a = q * b;
     if (a < 10000) {
       const factor = Math.ceil(10000 / a);
-      return { prompt: `${a * factor} ÷ ${b * factor} =`, answer: q };
+      return withTol({ prompt: `${a * factor} ÷ ${b * factor} =`, answer: q });
     }
-    return { prompt: `${a} ÷ ${b} =`, answer: q };
+    return withTol({ prompt: `${a} ÷ ${b} =`, answer: q });
   },
 
   // ======================================================================
@@ -173,7 +199,7 @@ export const generators = {
   // 2-9 的乘法（两位数 × 一位数，一位因子固定）
   mulBy: (n) => () => {
     const a = rand(10, 99);
-    return { prompt: `${a} × ${n} =`, answer: a * n };
+    return withTol({ prompt: `${a} × ${n} =`, answer: a * n });
   },
   mulBy2: null, // 占位，下面统一赋值
   mulBy3: null,
@@ -184,12 +210,12 @@ export const generators = {
   // 两位数 × 11（尾首相加法）
   mulBy11: () => {
     const a = rand(10, 99);
-    return { prompt: `${a} × 11 =`, answer: a * 11 };
+    return withTol({ prompt: `${a} × 11 =`, answer: a * 11 });
   },
   // 两位数 × 15
   mulBy15: () => {
     const a = rand(10, 99);
-    return { prompt: `${a} × 15 =`, answer: a * 15 };
+    return withTol({ prompt: `${a} × 15 =`, answer: a * 15 });
   },
   // 分数化小数：如 3/8 = ? 保留 3 位
   fracToDec: () => {
@@ -880,7 +906,8 @@ export const CATEGORIES = [
     subs: [
       { id: 'add3', name: '三位数加法', gen: 'add3', weight: 3 },
       { id: 'sub3', name: '三位数减法', gen: 'sub3', weight: 3 },
-      { id: 'addsub3', name: '三位数加减', gen: 'addsub3', weight: 3 },
+      { id: 'addOrSub3', name: '三位数加减（两数）', gen: 'addOrSub3', weight: 3 },
+      { id: 'addsub3', name: '三数加减（混合）', gen: 'addsub3', weight: 3 },
       { id: 'add4', name: '四数相加', gen: 'add4', weight: 3 },
       { id: 'mul3x1', name: '三位数乘一位数', gen: 'mul3x1', weight: 4 },
       { id: 'div3by1', name: '三位数除一位数', gen: 'div3by1', weight: 4 },
