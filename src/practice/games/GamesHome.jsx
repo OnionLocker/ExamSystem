@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Gamepad2, Grid3x3, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Gamepad2, Grid3x3, Brain, Layers, Lock } from 'lucide-react';
 import NumberGridGame from './NumberGridGame.jsx';
+import MentalCarryGame from './MentalCarryGame.jsx';
+import DigitSpanGame from './DigitSpanGame.jsx';
 
 // ============================================================
 // 小游戏总入口
-// 目前仅 1 款：点数字（Schulte Table）
+// 目前 3 款：
+//   ● 点数字（Schulte Table）—— 找数 / 专注
+//   ● 移位加减（Mental Carry）—— 治"记一忘一"
+//   ● 数字记忆广度（Digit Span）—— 工作记忆扩容
 // 后续可在 GAMES 数组中追加更多游戏
 // ============================================================
 
@@ -15,6 +20,22 @@ const GAMES = [
     desc: '5×5 / 6×6 / 7×7 / 8×8 / 9×9 / 10×10 随机数字表，从 1 顺序点到末尾。锻炼找数能力与专注度。',
     icon: Grid3x3,
     color: '#fbc02d',
+    available: true,
+  },
+  {
+    id: 'mentalCarry',
+    name: '移位加减',
+    desc: '强制按个 → 十 → 百顺序敲答案。把心算从「记 4-6 位数」压缩成「当前位 + 进位」。专治资料分析"记现期忘基期"。',
+    icon: Brain,
+    color: '#22c55e',
+    available: true,
+  },
+  {
+    id: 'digitSpan',
+    name: '数字记忆广度',
+    desc: '屏幕闪 N 个数字让你倒序回忆。工作记忆训练（N-Back 变种），治"翻页找数据"的根本短板。',
+    icon: Layers,
+    color: '#a855f7',
     available: true,
   },
   {
@@ -116,8 +137,8 @@ const GamesHome = ({ onBack }) => {
         })}
       </div>
 
-      {active === 'numberGrid' && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 md:p-8">
+      {active && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 md:p-8">
           <button
             type="button"
             aria-label="关闭小游戏"
@@ -127,8 +148,16 @@ const GamesHome = ({ onBack }) => {
           <div className="absolute inset-0 bg-slate-950/28" />
 
           <div className="relative z-[121] flex w-full max-w-[1500px] flex-col items-center justify-center">
-            <div className="w-full max-h-[92vh] overflow-y-auto rounded-[2.75rem] border border-white/70 bg-white/78 p-3 shadow-[0_40px_140px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:p-4">
-              <NumberGridGame onBack={() => setActive(null)} />
+            <div className="w-full max-h-[92vh] overflow-y-auto rounded-[1.75rem] sm:rounded-[2.75rem] border border-white/70 bg-white/78 p-3 shadow-[0_40px_140px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:p-4">
+              {active === 'numberGrid' && (
+                <NumberGridGame onBack={() => setActive(null)} />
+              )}
+              {active === 'mentalCarry' && (
+                <MentalCarryGame onBack={() => setActive(null)} />
+              )}
+              {active === 'digitSpan' && (
+                <DigitSpanGame onBack={() => setActive(null)} />
+              )}
             </div>
             <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
               ESC 退出聚焦模式

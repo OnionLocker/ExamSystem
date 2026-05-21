@@ -235,20 +235,17 @@ const HomeView = ({ onPick, onOpenGames }) => {
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#fbc02d]">
                 小游戏模块
               </p>
-              <h3 className="text-2xl font-black italic mt-2">点数字</h3>
+              <h3 className="text-2xl font-black italic mt-2">认知训练 · 3 款</h3>
               <p className="text-sm font-medium text-white/65 mt-1">
-                用 5×5 / 6×6 / 7×7 / 8×8 / 9×9 / 10×10 随机数字表练专注与找数速度，并分别记录最佳成绩。
+                点数字 · 移位加减 · 数字记忆广度。从找数到工作记忆扩容，专治考公心算的认知瓶颈。
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3 md:flex-col md:items-end">
             <div className="flex items-center gap-2 flex-wrap justify-start md:justify-end text-[10px] font-black uppercase tracking-widest text-white/45">
-              <span className="px-2.5 py-1 rounded-full bg-white/10">5×5</span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10">6×6</span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10">7×7</span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10">8×8</span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10">9×9</span>
-              <span className="px-2.5 py-1 rounded-full bg-white/10">10×10</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">点数字</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">移位加减</span>
+              <span className="px-2.5 py-1 rounded-full bg-white/10">记忆广度</span>
             </div>
             <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-[#fbc02d] transition-colors">
               <span>进入小游戏</span>
