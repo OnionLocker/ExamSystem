@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, RotateCcw, Play, Trophy, Zap, Timer as TimerIcon } from 'lucide-react';
+import { playCorrect, playWrong } from '../sfx.js';
 
 // ============================================================
 // 点数字小游戏（Schulte Table）
@@ -103,6 +104,7 @@ const NumberGridGame = ({ onBack }) => {
     if (v === next) {
       if (next === total) {
         // 完成
+        playCorrect();
         const duration = Date.now() - startedAt + penaltyMs;
         const prev = store[size] || { best: null, plays: 0, totalMs: 0 };
         const isNewBest = prev.best == null || duration < prev.best;
@@ -131,6 +133,7 @@ const NumberGridGame = ({ onBack }) => {
       }
     } else {
       // 点错：扣时 + 抖动
+      playWrong();
       wrongCountRef.current += 1;
       setPenaltyMs((p) => p + PENALTY_MS);
       setWrongIdx(idx);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { playCorrect, playWrong } from '../sfx.js';
 import {
   ChevronLeft,
   RotateCcw,
@@ -263,6 +264,7 @@ const MentalCarryGame = ({ onBack }) => {
 
         if (nextPos >= need) {
           // 题目完成
+          playCorrect();
           const timeMs = Date.now() - questionStartedAt;
           setFeedback('ok');
           setEnteredDigits(newEntered);
@@ -281,6 +283,7 @@ const MentalCarryGame = ({ onBack }) => {
         }
       } else {
         // 答错
+        playWrong();
         setQuestionWrongCount((c) => c + 1);
         setFeedback('wrong');
         setWrongShake((s) => s + 1);

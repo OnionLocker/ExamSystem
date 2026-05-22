@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { playCorrect, playWrong } from '../sfx.js';
 import {
   ChevronLeft,
   RotateCcw,
@@ -167,6 +168,8 @@ const DigitSpanGame = ({ onBack }) => {
       }
 
       const newMax = ok ? Math.max(maxOkLen, length) : maxOkLen;
+
+      if (ok) playCorrect(); else playWrong();
 
       setHistory(newHistory);
       setStreakOk(newStreakOk);

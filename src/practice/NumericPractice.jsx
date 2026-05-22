@@ -25,6 +25,7 @@ import RankBadge from './RankBadge.jsx';
 import { recordPromotionResult, getRank, getBaseMs, getLadderInfo } from './ranks.js';
 import GamesHome from './games/GamesHome.jsx';
 import { playBgm, stopBgm } from './bgm.js';
+import { playCorrect, playWrong } from './sfx.js';
 import BgmControls from './BgmControls.jsx';
 
 const HISTORY_KEY = 'numeric_practice_history_v1';
@@ -810,6 +811,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     if (input === '' || input === '-' || input === '.') return;
     const timeMs = Date.now() - session.questionStartedAt;
     const isCorrect = judge(current, input);
+    if (isCorrect) playCorrect(); else playWrong();
     const rec = {
       prompt: current.prompt,
       answer: current.answer,

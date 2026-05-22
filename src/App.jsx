@@ -26,6 +26,7 @@ import MockExam from './mockExam/MockExam.jsx';
 import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
 import Flashcards from './flashcards/Flashcards.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
+import { prewarmAllBgm } from './practice/bgm.js';
 
 // ---------------- date utils ----------------
 const pad = (n) => String(n).padStart(2, '0');
@@ -83,6 +84,26 @@ const AppInner = () => {
 
   useEffect(() => {
     setOnUnauthorized(() => setAuthed(false));
+  }, []);
+
+  // BGM 预热:首次任意手势触发(浏览器策略要求 user gesture 才允许 AudioContext)
+  // 一次性,把 games / training / ranked 三条都 fetch + decode 好,
+  // 后续 playBgm() 立刻有声,不需要等加载。
+  useEffect(() => {
+    let done = false;
+    const trigger = () => {
+      if (done) return;
+      done = true;
+      prewarmAllBgm();
+      window.removeEventListener('pointerdown', trigger, true);
+      window.removeEventListener('keydown', trigger, true);
+    };
+    window.addEventListener('pointerdown', trigger, true);
+    window.addEventListener('keydown', trigger, true);
+    return () => {
+      window.removeEventListener('pointerdown', trigger, true);
+      window.removeEventListener('keydown', trigger, true);
+    };
   }, []);
 
   useEffect(() => {
