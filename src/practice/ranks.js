@@ -166,7 +166,16 @@ export const evaluate = (stat, subId) => {
 
 // ---------------- 存储层 ----------------
 const STATS_KEY = 'numeric_rank_stats_v1';
-// 数据结构：{ [subId]: { totalCount, totalCorrect, totalMs, bestAvgMs, plays, lastPlayedAt } }
+// 数据结构（v1 → 现在的 stat）：
+// {
+//   [subId]: {
+//     totalCount, totalCorrect, totalMs, bestAvgMs, plays, lastPlayedAt,
+//     // —— 新增 LP 系统字段 ——
+//     lp: 0~100,            // 当前 ladderRank 段位内的 LP
+//     ladderRank: rankId,   // 显式段位（受 LP 升降影响，不同于累计 evaluate()）
+//   }
+// }
+// 老用户没有 lp/ladderRank 字段时，第一次完赛会用 evaluate(prev) 的结果初始化。
 
 export const loadStats = () => {
   try {
@@ -184,6 +193,132 @@ const saveStats = (stats) => {
   }
 };
 
+// ---------------- LP 系统 ----------------
+// 每段位的「合格 perf 标准」：perf = (baseMs/avgMs) * accuracy
+// 高于此值得正分，低于此值得负分
+const PERF_STD = {
+  unranked: 0.20,
+  bronze:   0.30,
+  silver:   0.45,
+  gold:     0.60,
+  platinum: 0.75,
+  diamond:  0.90,
+  master:   1.05,
+  king:     1.20,
+};
+
+// 每场 LP 上下限（避免一场翻盘）
+const LP_DELTA_MIN = -30;
+const LP_DELTA_MAX = 40;
+
+// 升段后留 30 LP 缓冲（避免立刻掉段）
+const LP_AFTER_PROMOTE = 30;
+// 掉段后留 70 LP 缓冲（不至于刚掉段又立马再掉）
+const LP_AFTER_DEMOTE = 70;
+
+// 累计段位下限保护：ladderRank 不能比 evaluate(累计) 低 N 阶以上
+const PROTECT_GAP = 2;
+
+// 给定 rankId 取上一段（更高）/ 下一段（更低）
+// RANKS 顺序：unranked(0) → king(7)
+const rankUp = (id) => {
+  const v = getRank(id).value;
+  return getRankByValue(Math.min(7, v + 1)).id;
+};
+const rankDown = (id) => {
+  const v = getRank(id).value;
+  // 不掉到 unranked
+  return getRankByValue(Math.max(1, v - 1)).id;
+};
+
+/**
+ * 计算单场比赛对 LP / 段位的影响
+ * 输入：
+ *   prevStat   - 该子项的上一次保存值（包含 lp/ladderRank，可能为 undefined 字段）
+ *   raceResult - { total, correct, totalMs }
+ *   subId
+ *   cumulRankId - 累计 evaluate() 计算出的"真实段位"，用于下限保护
+ * 输出：
+ *   { lpDelta, lpBefore, lpAfter, rankBefore, rankAfter, promoted, demoted, perf, std, protected }
+ */
+export const computeRaceLpChange = (prevStat, raceResult, subId, cumulRankId) => {
+  const total = raceResult.total;
+  const correct = raceResult.correct;
+  const accuracy = total > 0 ? correct / total : 0;
+  const avgMs = total > 0 ? raceResult.totalMs / total : 0;
+  const base = getBaseMs(subId);
+  const speedRatio = avgMs > 0 ? base / avgMs : 0; // >1 = 比基线快
+
+  // 当前段位（首次进入：用累计 evaluate 的结果或 bronze 兜底）
+  const lpBefore = Number.isFinite(prevStat?.lp) ? prevStat.lp : 50;
+  const rankBefore =
+    prevStat?.ladderRank ||
+    (cumulRankId !== 'unranked' ? cumulRankId : 'bronze');
+
+  const std = PERF_STD[rankBefore] ?? PERF_STD.bronze;
+  const perf = speedRatio * accuracy;
+
+  // 准度奖惩
+  let accBonus = 0;
+  if (accuracy >= 0.95) accBonus = 10;
+  else if (accuracy < 0.7) accBonus = -10;
+
+  // 主体公式：(perf - std) × 80 + 准度奖惩，截断到 [-30, +40]
+  let delta = Math.round((perf - std) * 80) + accBonus;
+  delta = Math.max(LP_DELTA_MIN, Math.min(LP_DELTA_MAX, delta));
+
+  // 应用 LP，处理升降段
+  let lpAfter = lpBefore + delta;
+  let rankAfter = rankBefore;
+  let promoted = false;
+  let demoted = false;
+  let isProtected = false;
+
+  if (lpAfter >= 100 && rankBefore !== 'king') {
+    rankAfter = rankUp(rankBefore);
+    lpAfter = LP_AFTER_PROMOTE;
+    promoted = true;
+  } else if (lpAfter < 0) {
+    if (rankBefore === 'bronze' || rankBefore === 'unranked') {
+      lpAfter = 0; // 已是底段，不再掉
+    } else {
+      rankAfter = rankDown(rankBefore);
+      lpAfter = LP_AFTER_DEMOTE;
+      demoted = true;
+    }
+  } else {
+    lpAfter = Math.max(0, Math.min(100, lpAfter));
+  }
+
+  // 累计下限保护：rankAfter 不能比累计段位低 PROTECT_GAP 阶以上
+  if (cumulRankId && cumulRankId !== 'unranked') {
+    const cumulV = getRank(cumulRankId).value;
+    const afterV = getRank(rankAfter).value;
+    const minAllowedV = Math.max(1, cumulV - PROTECT_GAP);
+    if (afterV < minAllowedV) {
+      rankAfter = getRankByValue(minAllowedV).id;
+      lpAfter = Math.max(lpAfter, LP_AFTER_DEMOTE); // 给个缓冲
+      demoted = false; // 触发保护时不算掉段
+      isProtected = true;
+    }
+  }
+
+  return {
+    lpDelta: delta,
+    lpBefore,
+    lpAfter,
+    rankBefore,
+    rankAfter,
+    promoted,
+    demoted,
+    perf,
+    std,
+    accuracy,
+    avgMs,
+    protected: isProtected,
+  };
+};
+
 // 晋升模式完赛后：合并一场结果
 export const recordPromotionResult = ({ subId, total, correct, totalMs }) => {
   if (!subId || !total) return null;
@@ -192,13 +327,33 @@ export const recordPromotionResult = ({ subId, total, correct, totalMs }) => {
     totalCount: 0, totalCorrect: 0, totalMs: 0, bestAvgMs: Infinity, plays: 0, lastPlayedAt: 0,
   };
   const avgMs = totalMs / total;
-  const next = {
+
+  // 先算累计 evaluate（用于段位下限保护 + 「真实实力」展示）
+  const evalBefore = evaluate(prev, subId);
+
+  const cumulNext = {
     totalCount: prev.totalCount + total,
     totalCorrect: prev.totalCorrect + correct,
     totalMs: prev.totalMs + totalMs,
     bestAvgMs: Math.min(prev.bestAvgMs ?? Infinity, avgMs),
     plays: prev.plays + 1,
     lastPlayedAt: Date.now(),
+  };
+  const evalAfter = evaluate(cumulNext, subId);
+
+  // 计算 LP 变化（用「应用本场后」的累计段位作为下限保护）
+  const lp = computeRaceLpChange(
+    prev,
+    { total, correct, totalMs },
+    subId,
+    evalAfter.rankId,
+  );
+
+  // 合并写回（保留 LP 字段）
+  const next = {
+    ...cumulNext,
+    lp: lp.lpAfter,
+    ladderRank: lp.rankAfter,
   };
   stats[subId] = next;
   saveStats(stats);
@@ -207,7 +362,31 @@ export const recordPromotionResult = ({ subId, total, correct, totalMs }) => {
   } catch {
     // ignore
   }
-  return { before: evaluate(prev, subId), after: evaluate(next, subId) };
+  return { before: evalBefore, after: evalAfter, lp };
+};
+
+// ---------------- LP 显示读取 ----------------
+// 取某子项的"显示用段位"（ladderRank + lp），未玩过的就 fallback 到 evaluate
+export const getLadderInfo = (subId, statsArg) => {
+  const stats = statsArg || loadStats();
+  const stat = stats[subId];
+  const evalRes = evaluate(stat, subId);
+  if (!stat || !stat.ladderRank) {
+    return {
+      rankId: evalRes.rankId,
+      lp: stat?.lp ?? 0,
+      hasLadder: false,
+      cumulRankId: evalRes.rankId,
+      progressToNext: evalRes.progressToNext,
+    };
+  }
+  return {
+    rankId: stat.ladderRank,
+    lp: stat.lp ?? 0,
+    hasLadder: true,
+    cumulRankId: evalRes.rankId,
+    progressToNext: evalRes.progressToNext,
+  };
 };
 
 // 清空（调试）

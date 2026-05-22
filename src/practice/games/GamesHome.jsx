@@ -3,6 +3,8 @@ import { ChevronLeft, ChevronRight, Gamepad2, Grid3x3, Brain, Layers, Lock } fro
 import NumberGridGame from './NumberGridGame.jsx';
 import MentalCarryGame from './MentalCarryGame.jsx';
 import DigitSpanGame from './DigitSpanGame.jsx';
+import { playBgm, stopBgm } from '../bgm.js';
+import BgmControls from '../BgmControls.jsx';
 
 // ============================================================
 // 小游戏总入口
@@ -54,6 +56,9 @@ const GamesHome = ({ onBack }) => {
   useEffect(() => {
     if (!active) return undefined;
 
+    // 进入小游戏 modal → 起 games BGM(像素轻快风);关闭时停
+    playBgm('games');
+
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
@@ -68,6 +73,7 @@ const GamesHome = ({ onBack }) => {
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener('keydown', onKeyDown);
+      stopBgm();
     };
   }, [active]);
 
@@ -139,6 +145,7 @@ const GamesHome = ({ onBack }) => {
 
       {active && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 md:p-8">
+          <BgmControls position="top-right" />
           <button
             type="button"
             aria-label="关闭小游戏"

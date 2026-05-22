@@ -22,8 +22,10 @@ import PopupPractice from './PopupPractice.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
 import RankDashboard from './RankDashboard.jsx';
 import RankBadge from './RankBadge.jsx';
-import { recordPromotionResult, evaluate, loadStats, getRank, getBaseMs } from './ranks.js';
+import { recordPromotionResult, getRank, getBaseMs, getLadderInfo } from './ranks.js';
 import GamesHome from './games/GamesHome.jsx';
+import { playBgm, stopBgm } from './bgm.js';
+import BgmControls from './BgmControls.jsx';
 
 const HISTORY_KEY = 'numeric_practice_history_v1';
 const RACE_SIZE_DEFAULT = 10;
@@ -115,8 +117,10 @@ const NumericPractice = () => {
       index: 0,
       current: firstQ,
       input: '',
-      startedAt: Date.now(),
-      questionStartedAt: Date.now(),
+      // ready=false 时:渲染入场蒙版,等用户按空格才真正开始计时 + 起 BGM
+      ready: false,
+      startedAt: 0,
+      questionStartedAt: 0,
       records: [],
     });
     setView('session');
@@ -551,7 +555,7 @@ const ModeOption = ({ label, desc, checked, onClick, color, highlight }) => (
   </button>
 );
 
-// 子项段位小徽章（显示当前子项已达段位 + 下一段进度）
+// 子项段位小徽章（显示当前子项已达段位 + LP 进度）
 const SubRankChip = ({ subId, subName }) => {
   const [version, setVersion] = useState(0);
   useEffect(() => {
@@ -559,27 +563,27 @@ const SubRankChip = ({ subId, subName }) => {
     window.addEventListener('numeric-rank-change', onChange);
     return () => window.removeEventListener('numeric-rank-change', onChange);
   }, []);
-  const ev = (() => {
+  const ladder = (() => {
     // eslint-disable-next-line no-unused-expressions
     version; // 触发重算
-    const stats = loadStats();
-    return evaluate(stats[subId], subId);
+    return getLadderInfo(subId);
   })();
-  const rank = getRank(ev.rankId);
+  const rank = getRank(ladder.rankId);
   const base = getBaseMs(subId);
+  const showLp = ladder.hasLadder && ladder.rankId !== 'unranked' && ladder.rankId !== 'king';
   return (
     <div
       className="flex items-center space-x-2 px-3 py-1.5 rounded-full"
       style={{ backgroundColor: `${rank.color}15` }}
-      title={`${subName || ''} 当前段位：${rank.label} · 基线 ${(base / 1000).toFixed(1)}s/题`}
+      title={`${subName || ''} 当前段位：${rank.label} · LP ${ladder.lp}/100 · 基线 ${(base / 1000).toFixed(1)}s/题`}
     >
-      <RankBadge rankId={ev.rankId} size={20} />
+      <RankBadge rankId={ladder.rankId} size={20} />
       <span className="text-[11px] font-black italic" style={{ color: rank.color }}>
         {rank.label}
       </span>
-      {ev.rankId !== 'unranked' && ev.rankId !== 'king' && (
+      {showLp && (
         <span className="text-[9px] font-black tabular-nums text-slate-400">
-          {Math.round((ev.progressToNext || 0) * 100)}%
+          {ladder.lp} LP
         </span>
       )}
     </div>
@@ -661,16 +665,35 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   const timerRef = useRef(null);
   const pendingRef = useRef(null); // { newRecords, isLast }
 
+  const ready = !!session?.ready;
+  const isRace = session?.mode === 'race';
+
+  // 蒙版按空格 → 开始（设 startedAt + 起 BGM）
+  const handleReady = () => {
+    if (!session || session.ready) return;
+    const now = Date.now();
+    setSession((s) => (s ? { ...s, ready: true, startedAt: now, questionStartedAt: now } : s));
+    playBgm(isRace ? 'ranked' : 'training');
+  };
+
+  // session 结束 / 退出 → 停 BGM
+  const handleExit = () => {
+    stopBgm();
+    onExit();
+  };
+
   // 驱动"已用时"显示的定时刷新
   useEffect(() => {
+    if (!ready) return undefined;
     const id = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(id);
-  }, []);
+  }, [ready]);
 
-  // 组件卸载时清理计时器
+  // 组件卸载时清理计时器 + 停 BGM
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      stopBgm();
     };
   }, []);
 
@@ -680,6 +703,18 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       if (!session) return;
       // 对照表打开时，让弹层独占键盘（ESC 由弹层处理）
       if (showTable) return;
+
+      // 入场蒙版状态：只响应 Space（开始）和 Esc（退出）
+      if (!session.ready) {
+        if (e.key === ' ') {
+          e.preventDefault();
+          handleReady();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          handleExit();
+        }
+        return;
+      }
 
       // 反馈展示期间：按 Enter/Space 可立即进入下一题
       if (feedback) {
@@ -718,8 +753,8 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   if (!session) return null;
   const { current, input, index, total, mode, records } = session;
   const now = Date.now();
-  const elapsed = now - session.questionStartedAt;
-  const totalElapsed = now - session.startedAt;
+  const elapsed = ready ? now - session.questionStartedAt : 0;
+  const totalElapsed = ready ? now - session.startedAt : 0;
 
   const appendChar = (ch) => {
     setSession((s) => {
@@ -816,18 +851,26 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     : 'bg-white/10 ring-0';
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto relative">
+      <BgmControls position="top-right" />
       {/* 顶部导航 */}
       <div className="flex items-center justify-between mb-6">
         <button
-          onClick={onExit}
+          onClick={handleExit}
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
         >
           <ChevronLeft size={18} />
           <span className="text-xs font-black uppercase tracking-widest">退出</span>
         </button>
-        <div className="text-xs font-black uppercase tracking-widest text-slate-400">
-          {session.subName} · {mode === 'race' ? '晋升模式' : '训练模式'}
+        <div className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          {isRace && (
+            <span className="px-2 py-0.5 rounded-full bg-[#ff6b6b]/10 text-[#ff6b6b] text-[10px] tracking-widest">
+              排位 · BOSS
+            </span>
+          )}
+          <span>
+            {session.subName} · {mode === 'race' ? '晋升模式' : '训练模式'}
+          </span>
         </div>
         {session.subId === 'pctToFrac' || session.subId === 'square' ? (
           <button
@@ -843,8 +886,16 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         )}
       </div>
 
-      {/* 题目卡片 */}
-      <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 shadow-xl shadow-black/10 relative overflow-hidden">
+      {/* 排位模式 BOSS HP 条（纯装饰，不影响判分） */}
+      {isRace && ready && total !== Infinity && (
+        <BossHpBar correctCount={correctCount} total={total} />
+      )}
+
+      {/* 题目卡片（外层套一个 relative 容器以承载入场蒙版） */}
+      <div className="relative">
+        <div className={`bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 shadow-xl shadow-black/10 relative overflow-hidden ${
+          isRace && ready ? 'race-bg' : ''
+        }`}>
         {/* 反馈背景淡色层 */}
         {feedback && (
           <div
@@ -930,11 +981,84 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         </div>
       </div>
 
+      {/* 入场蒙版：未 ready 时盖在题目卡上 */}
+      {!ready && (
+        <div
+          className="absolute inset-0 z-30 rounded-[2.5rem] overflow-hidden flex items-center justify-center cursor-pointer"
+          onClick={handleReady}
+          role="button"
+          tabIndex={0}
+          aria-label="按空格开始"
+        >
+          <div className="absolute inset-0 bg-[#1a1a1a]/95 backdrop-blur-md" />
+          <div className="absolute inset-0 opacity-50" style={{
+            background: isRace
+              ? 'radial-gradient(circle at 30% 50%, rgba(255,107,107,0.30), transparent 60%)'
+              : 'radial-gradient(circle at 70% 40%, rgba(251,192,45,0.25), transparent 60%)',
+          }} />
+          <div className="relative text-center px-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 mb-3">
+              {isRace ? 'RANKED · BOSS BATTLE' : 'TRAINING · FOCUS'}
+            </div>
+            <div
+              className="inline-block text-5xl md:text-6xl font-black italic mb-4"
+              style={{
+                color: isRace ? '#ff6b6b' : '#fbc02d',
+                animation: 'maskBreath 2.4s ease-in-out infinite',
+                textShadow: isRace ? '0 0 32px rgba(255,107,107,0.5)' : '0 0 32px rgba(251,192,45,0.4)',
+              }}
+            >
+              按 SPACE 开始
+            </div>
+            <div className="text-sm font-medium text-white/60 tracking-wide">
+              {isRace
+                ? 'BGM 即将响起 · 调整呼吸 · 进入战斗'
+                : '调整状态 · 进入心流 · 计时与 BGM 同步开启'}
+            </div>
+            <div className="mt-8 inline-flex items-center justify-center gap-2 px-5 py-2 rounded-full bg-white/10 border border-white/15 text-xs font-black tracking-widest text-white/80"
+              style={{ animation: 'maskBounce 1.6s ease-in-out infinite' }}
+            >
+              <span>⌨</span>
+              <span>SPACE</span>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
+
       <style>{`
         @keyframes fb-pop {
           0%   { transform: scale(0.3); opacity: 0; }
           60%  { transform: scale(1.15); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes maskBreath {
+          0%, 100% { transform: scale(1);    filter: brightness(1); }
+          50%      { transform: scale(1.04); filter: brightness(1.2); }
+        }
+        @keyframes maskBounce {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-6px); }
+        }
+        @keyframes scanLine {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .race-bg::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at top, rgba(255,107,107,0.08), transparent 60%);
+          pointer-events: none;
+        }
+        .race-bg::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0;
+          width: 30%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,107,107,0.06), transparent);
+          animation: scanLine 4s linear infinite;
+          pointer-events: none;
         }
       `}</style>
 
@@ -944,6 +1068,39 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       {showTable && session.subId === 'pctToFrac' && (
         <BaiHuaFenTableModal onClose={() => setShowTable(false)} />
       )}
+    </div>
+  );
+};
+
+// ---------------- BOSS HP 条（排位模式装饰） ----------------
+const BossHpBar = ({ correctCount, total }) => {
+  const hpPct = Math.max(0, 100 - (correctCount / total) * 100);
+  const dead = hpPct <= 0;
+  return (
+    <div className="mb-3 px-1">
+      <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest mb-1.5">
+        <span className="flex items-center gap-1.5 text-[#ff6b6b]">
+          <span className="text-base leading-none" style={{ animation: dead ? 'none' : 'maskBreath 1.6s ease-in-out infinite' }}>
+            {dead ? '💀' : '👹'}
+          </span>
+          <span>BOSS HP</span>
+        </span>
+        <span className="tabular-nums text-slate-400">
+          {Math.round(hpPct)} / 100
+        </span>
+      </div>
+      <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+        <div
+          className="h-full transition-all duration-500"
+          style={{
+            width: `${hpPct}%`,
+            background: dead
+              ? '#94a3b8'
+              : 'linear-gradient(90deg,#ff6b6b 0%,#fbc02d 80%,#facc15 100%)',
+            boxShadow: dead ? 'none' : '0 0 8px rgba(255,107,107,0.5)',
+          }}
+        />
+      </div>
     </div>
   );
 };
@@ -1081,12 +1238,14 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
   if (!result) return null;
   const accuracy = Math.round((result.correct / result.total) * 100);
   const change = result.rankChange;
-  const beforeRank = change ? getRank(change.before.rankId) : null;
-  const afterRank = change ? getRank(change.after.rankId) : null;
-  const promoted =
-    change && change.before.rankId !== change.after.rankId
-      ? getRank(change.after.rankId).value - getRank(change.before.rankId).value
-      : 0;
+  const lpRes = change?.lp;
+  const beforeRank = lpRes ? getRank(lpRes.rankBefore) : null;
+  const afterRank = lpRes ? getRank(lpRes.rankAfter) : null;
+  const promoted = lpRes?.promoted;
+  const demoted = lpRes?.demoted;
+  const isProtected = lpRes?.protected;
+  const cumulRank = change ? getRank(change.after.rankId) : null;
+
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 text-center relative overflow-hidden">
@@ -1111,37 +1270,48 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
         </div>
       </div>
 
-      {/* 段位评定卡片 */}
-      {change && (
-        <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9]">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
+      {/* 段位评定卡片（基于 ladderRank + LP） */}
+      {lpRes && (
+        <div className={`bg-white rounded-[2rem] p-6 border border-[#f2f0e9] relative overflow-hidden ${
+          promoted ? 'ring-2 ring-[#fbc02d]/40' : demoted ? 'ring-2 ring-rose-300' : ''
+        }`}>
+          {/* 升段时的金光背景 */}
+          {promoted && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 50% 50%, ${afterRank.color}15, transparent 70%)`,
+                animation: 'glowPulse 1.6s ease-out',
+              }}
+            />
+          )}
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 relative">
             段位评定
+            {promoted && <span className="ml-2 text-[#fbc02d]">· 晋升！</span>}
+            {demoted && <span className="ml-2 text-rose-500">· 段位下滑</span>}
+            {isProtected && <span className="ml-2 text-emerald-500">· 累计实力保护</span>}
           </p>
-          {promoted > 0 ? (
-            <div className="flex items-center justify-center space-x-5 py-4">
-              <div className="text-center opacity-60">
+
+          {promoted ? (
+            <div className="flex items-center justify-center space-x-5 py-4 relative">
+              <div className="text-center opacity-50" style={{ animation: 'rankFadeOut 0.6s ease-out' }}>
                 <RankBadge rankId={beforeRank.id} size={52} />
                 <p className="text-[10px] font-black uppercase tracking-widest mt-2 text-slate-400">
                   {beforeRank.label}
                 </p>
               </div>
-              <div
-                className="text-3xl font-black italic"
-                style={{ color: afterRank.color, animation: 'rankUp 0.6s ease-out' }}
-              >
+              <div className="text-3xl font-black italic" style={{ color: afterRank.color, animation: 'rankUp 0.6s ease-out' }}>
                 →
               </div>
-              <div className="text-center" style={{ animation: 'rankUp 0.6s ease-out' }}>
-                <RankBadge rankId={afterRank.id} size={64} />
-                <p
-                  className="text-sm font-black italic mt-2"
-                  style={{ color: afterRank.color }}
-                >
-                  {afterRank.label} ↑
+              <div className="text-center" style={{ animation: 'rankUp 0.7s ease-out' }}>
+                <RankBadge rankId={afterRank.id} size={68} />
+                <p className="text-sm font-black italic mt-2 flex items-center justify-center gap-1" style={{ color: afterRank.color }}>
+                  {afterRank.label}
+                  <span style={{ animation: 'arrowFloat 1.6s ease-in-out infinite' }}>↑</span>
                 </p>
               </div>
             </div>
-          ) : promoted < 0 ? (
+          ) : demoted ? (
             <div className="flex items-center justify-center space-x-5 py-4">
               <div className="text-center opacity-60">
                 <RankBadge rankId={beforeRank.id} size={52} />
@@ -1150,10 +1320,11 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
                 </p>
               </div>
               <div className="text-3xl font-black italic text-slate-400">→</div>
-              <div className="text-center">
+              <div className="text-center" style={{ animation: 'rankDown 0.7s ease-out' }}>
                 <RankBadge rankId={afterRank.id} size={64} />
-                <p className="text-sm font-black italic mt-2 text-slate-500">
-                  {afterRank.label} ↓
+                <p className="text-sm font-black italic mt-2 text-slate-500 flex items-center justify-center gap-1">
+                  {afterRank.label}
+                  <span>↓</span>
                 </p>
               </div>
             </div>
@@ -1161,36 +1332,29 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
             <div className="flex items-center justify-center space-x-4 py-4">
               <RankBadge rankId={afterRank.id} size={56} />
               <div>
-                <p
-                  className="text-lg font-black italic"
-                  style={{ color: afterRank.color }}
-                >
+                <p className="text-lg font-black italic" style={{ color: afterRank.color }}>
                   {afterRank.label}
                 </p>
-                {change.after.rankId === 'unranked' ? (
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                    再完成 {change.after.needMore} 题即可评级
-                  </p>
-                ) : change.after.rankId === 'king' ? (
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">已达顶峰 · 保持！</p>
-                ) : (
-                  <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-                    距下一段进度 {Math.round((change.after.progressToNext || 0) * 100)}%
-                  </p>
-                )}
+                <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                  {afterRank.id === 'king' ? '已达顶峰 · 保持！' : `${lpRes.lpAfter} / 100 LP`}
+                </p>
               </div>
             </div>
           )}
-          {change.after.rankId !== 'unranked' && change.after.rankId !== 'king' && (
-            <div className="mt-3 h-1.5 bg-[#f2f0e9] rounded-full overflow-hidden">
-              <div
-                className="h-full transition-all duration-700"
-                style={{
-                  width: `${Math.round((change.after.progressToNext || 0) * 100)}%`,
-                  backgroundColor: afterRank.color,
-                }}
-              />
-            </div>
+
+          {/* LP 进度条 + delta 文案 */}
+          {!promoted && !demoted && afterRank.id !== 'king' && (
+            <LpBar lpBefore={lpRes.lpBefore} lpAfter={lpRes.lpAfter} delta={lpRes.lpDelta} color={afterRank.color} />
+          )}
+          {(promoted || demoted) && (
+            <LpBar lpBefore={promoted ? 100 : 0} lpAfter={lpRes.lpAfter} delta={lpRes.lpDelta} color={afterRank.color} resetMode />
+          )}
+
+          {/* 累计段位 footer：让玩家知道"真实实力"在哪 */}
+          {cumulRank && cumulRank.id !== 'unranked' && cumulRank.id !== afterRank.id && (
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-4 text-center">
+              累计实力 · <span style={{ color: cumulRank.color }}>{cumulRank.label}</span>
+            </p>
           )}
         </div>
       )}
@@ -1262,7 +1426,76 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           60%  { transform: scale(1.2) rotate(5deg); opacity: 1; }
           100% { transform: scale(1) rotate(0); opacity: 1; }
         }
+        @keyframes rankDown {
+          0%   { transform: translateY(-12px) scale(1.05); opacity: 1; filter: grayscale(0); }
+          60%  { transform: translateY(8px)   scale(0.92); opacity: 0.7; filter: grayscale(0.6); }
+          100% { transform: translateY(0)     scale(1);   opacity: 1; filter: grayscale(0.3); }
+        }
+        @keyframes rankFadeOut {
+          0%   { opacity: 1; transform: scale(1); }
+          100% { opacity: 0.5; transform: scale(0.9); }
+        }
+        @keyframes glowPulse {
+          0%   { opacity: 0; }
+          40%  { opacity: 1; }
+          100% { opacity: 0; }
+        }
+        @keyframes arrowFloat {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-3px); }
+        }
+        @keyframes lpDeltaPop {
+          0%   { transform: translateY(8px) scale(0.6); opacity: 0; }
+          50%  { transform: translateY(-4px) scale(1.2); opacity: 1; }
+          100% { transform: translateY(0)   scale(1);   opacity: 1; }
+        }
+        @keyframes lpBarShake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-3px); }
+          40%, 80% { transform: translateX(3px); }
+        }
       `}</style>
+    </div>
+  );
+};
+
+// ---------------- LP 进度条（带从 lpBefore 动画到 lpAfter） ----------------
+const LpBar = ({ lpBefore, lpAfter, delta, color, resetMode }) => {
+  // 初始状态是 lpBefore；mount 后 350ms 切到 lpAfter，触发 CSS transition
+  const [pct, setPct] = useState(lpBefore);
+  useEffect(() => {
+    // 用 setTimeout 而非同步 setState：避免 react-hooks/set-state-in-effect 警告
+    const t1 = setTimeout(() => setPct(lpAfter), 350);
+    return () => clearTimeout(t1);
+  }, [lpAfter]);
+  const positive = delta >= 0;
+  const barColor = positive ? color : '#f87171';
+  return (
+    <div className="mt-3 relative">
+      <div
+        className="h-2 rounded-full bg-[#f2f0e9] overflow-hidden"
+        style={{ animation: !positive ? 'lpBarShake 0.4s ease-out 0.4s' : undefined }}
+      >
+        <div
+          className="h-full transition-all duration-1000 ease-out"
+          style={{
+            width: `${Math.max(0, Math.min(100, pct))}%`,
+            backgroundColor: barColor,
+            boxShadow: positive ? `0 0 8px ${barColor}80` : 'none',
+          }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+        <span className="text-slate-400 tabular-nums">
+          {resetMode ? `LP 重置 · ${Math.round(lpAfter)} / 100` : `${Math.round(lpAfter)} / 100`}
+        </span>
+        <span
+          className={`tabular-nums ${positive ? 'text-emerald-500' : 'text-rose-500'}`}
+          style={{ animation: 'lpDeltaPop 0.6s ease-out' }}
+        >
+          {positive ? `+${delta}` : `${delta}`} LP
+        </span>
+      </div>
     </div>
   );
 };

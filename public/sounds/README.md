@@ -110,3 +110,26 @@ ffmpeg -y -i raw.mp3 -ac 1 -ar 44100 -b:a 96k \
 → 文件路径不对，按错误信息检查。底层 loop 缺失会**整个场景静音**；事件音缺失会**静默跳过该事件**，不影响底层 loop。
 
 控制台看到 `bgmType` 是 `white` / `pink` / `brown` 的旧值？这三个场景已下线，引擎会自动回退到 `rain`。
+
+---
+
+## 数资模块 BGM(`bgm/`)
+
+数资模块独立的「沉浸式 BGM」，由 `src/practice/bgm.js` 引擎管理（与番茄钟 SoundEngine、Mixer SoundMixer 完全独立）。
+
+| 文件 | 触发时机 | 风格 | 来源 |
+|------|---------|------|------|
+| `bgm/games.mp3`    | 进入小游戏 modal 时           | 轻快 town/chiptune | OpenGameArt CC0 — [Happy Town](https://opengameart.org/content/happy-town) |
+| `bgm/training.mp3` | 数资训练模式 session 开始时   | 平静 ambient       | OpenGameArt CC0 — [josepharaoh99 / Dust](https://opengameart.org/content/cc0-calm-relaxing-music) |
+| `bgm/ranked.mp3`   | 数资晋升(排位)模式 session    | 8-bit boss battle  | OpenGameArt CC0 — [8bit Action Boss Battle](https://opengameart.org/content/8bit-action-boss-battle) |
+
+资源协议：CC0 / 公有领域（允许商用，无需署名）。
+
+### 缺失策略
+
+任何一个 mp3 缺失或解码失败 → 该轨道在 `BgmEngine` 内被标记为 `loadFailed`，UI 上会显示「资源缺失」但**不会报错**，其他 BGM/UI 不受影响。想替换风格直接覆盖这三个文件即可，无需改代码。
+
+### 用户偏好持久化
+
+启用状态 + 音量保存在 localStorage `bgm_prefs_v1`，跨页面/刷新保持一致。
+
