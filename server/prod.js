@@ -26,11 +26,26 @@ const MIME = {
 };
 
 function serveStatic(req, res) {
-  let filePath = path.join(DIST, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+  const cleanUrl = req.url === '/' ? '/index.html' : req.url.split('?')[0];
+  // 防越权：拒绝 .. 越目录
+  if (cleanUrl.includes('..')) {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
+  const reqExt = path.extname(cleanUrl);
+  let filePath = path.join(DIST, cleanUrl);
 
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
-      // SPA fallback → index.html
+      // 关键：带扩展名的资源（.js / .css / .mp3 / .png 等）一律真 404，
+      // 否则会把 HTML 当成 JS 返回，浏览器解析失败 → 整页白屏
+      if (reqExt) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not Found');
+        return;
+      }
+      // 仅对无扩展名（SPA 路由路径）兜底到 index.html
       filePath = path.join(DIST, 'index.html');
     }
 
@@ -46,7 +61,8 @@ function serveStatic(req, res) {
       }
       res.writeHead(200, {
         'Content-Type': mime,
-        'Cache-Control': isHtml ? 'no-cache' : 'public, max-age=86400',
+        // index.html 不缓存，资源带 hash 可长期缓存
+        'Cache-Control': isHtml ? 'no-cache, no-store, must-revalidate' : 'public, max-age=86400',
       });
       res.end(data);
     });

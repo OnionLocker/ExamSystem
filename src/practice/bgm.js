@@ -53,6 +53,28 @@ class BgmEngine {
     this.activeNodes = null;       // { src, gain }
     this.subscribers = new Set();
     this.prefs = loadPrefs();
+    // 快照缓存：useSyncExternalStore 强制要求 getSnapshot() 返回稳定引用
+    // 只有真正变更时才重建，否则返回同一对象，避免 React 进入 #185 死循环
+    this._snapshot = null;
+    this._invalidateSnapshot();
+  }
+
+  // 计算当前真实状态（用于决定是否需要重建快照）
+  _computeRaw() {
+    return {
+      enabled: this.prefs.enabled,
+      volume: this.prefs.volume,
+      activeId: this.activeId,
+      loadFailed: !!(
+        this.activeId &&
+        this.bufferCache.get(BGM_TRACKS[this.activeId]?.url) === null
+      ),
+    };
+  }
+
+  // 标记快照失效（下次 getState 时重建）
+  _invalidateSnapshot() {
+    this._snapshot = null;
   }
 
   // ---------------- 内部:确保 AudioContext 可用 ----------------
@@ -69,6 +91,8 @@ class BgmEngine {
   }
 
   _emit() {
+    // 任何状态变化前都先让快照失效
+    this._invalidateSnapshot();
     this.subscribers.forEach((fn) => {
       try { fn(); } catch { /* ignore */ }
     });
@@ -216,17 +240,22 @@ class BgmEngine {
   }
 
   // ---------------- 公共:状态读取 ----------------
+  // 返回稳定引用：仅当真实状态变化时才生成新对象
   getState() {
-    return {
-      enabled: this.prefs.enabled,
-      volume: this.prefs.volume,
-      activeId: this.activeId,
-      // 加载/解码失败:bufferCache 里是 null
-      loadFailed: !!(
-        this.activeId &&
-        this.bufferCache.get(BGM_TRACKS[this.activeId]?.url) === null
-      ),
-    };
+    if (this._snapshot) {
+      const cur = this._computeRaw();
+      const s = this._snapshot;
+      if (
+        cur.enabled === s.enabled &&
+        cur.volume === s.volume &&
+        cur.activeId === s.activeId &&
+        cur.loadFailed === s.loadFailed
+      ) {
+        return s;
+      }
+    }
+    this._snapshot = this._computeRaw();
+    return this._snapshot;
   }
 }
 
@@ -239,10 +268,38 @@ const getEngine = () => {
   return _instance;
 };
 
+// 在没有 window 的环境（SSR / Node）下也提供一个稳定的 fallback 引用
+const SSR_STATE = Object.freeze({ ...DEFAULT_PREFS, activeId: null, loadFailed: false });
+
 // ---------------- 顶层简化 API(供组件直接调用) ----------------
 export const playBgm = (trackId, opts) => getEngine()?.playBgm(trackId, opts);
 export const stopBgm = (opts) => getEngine()?.stopBgm(opts);
 export const setBgmVolume = (v) => getEngine()?.setVolume(v);
 export const setBgmEnabled = (flag) => getEngine()?.setEnabled(flag);
-export const getBgmState = () => getEngine()?.getState() || { ...DEFAULT_PREFS, activeId: null, loadFailed: false };
+export const getBgmState = () => getEngine()?.getState() || SSR_STATE;
 export const subscribeBgm = (fn) => getEngine()?.subscribe(fn) || (() => {});
+
+// 暴露 ctx 给 sfx.js 共用（避免多 AudioContext）
+export const _getAudioContext = () => getEngine()?.ctx || null;
+
+// 启动期预热：在用户首次手势后异步 fetch + decode 三条 BGM,
+// 这样真正 playBgm(trackId) 时 buffer 已经就位,无加载延迟。
+// 调用时机:用户首次任意点击/键盘事件触发(必须有手势,否则 AudioContext 被限制)
+let _prewarmStarted = false;
+export const prewarmAllBgm = async () => {
+  if (_prewarmStarted) return;
+  _prewarmStarted = true;
+  const eng = getEngine();
+  if (!eng) return;
+  // 即使没启用 BGM 也提前 decode,以便用户开启后立刻能播
+  if (!eng._ensureCtx()) return;
+  const urls = Object.values(BGM_TRACKS).map((t) => t.url);
+  // 顺序加载,避免一次三个并发把弱网带宽吃满
+  for (const url of urls) {
+    try {
+      await eng._loadBuffer(url);
+    } catch {
+      /* 单条失败不影响其他 */
+    }
+  }
+};
