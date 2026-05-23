@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, RotateCcw, Play, Trophy, Zap, Timer as TimerIcon } from 'lucide-react';
 import { playCorrect, playWrong } from '../sfx.js';
+import { cloudGet, cloudSet } from '../../cloudStorage.js';
 
 // ============================================================
 // 点数字小游戏（Schulte Table）
@@ -23,20 +24,8 @@ const SIZES = [
 ];
 
 // 工具
-const loadStore = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
-const saveStore = (s) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    // ignore
-  }
-};
+const loadStore = () => cloudGet(STORAGE_KEY, {});
+const saveStore = (s) => cloudSet(STORAGE_KEY, s);
 const fmtTime = (ms) => {
   if (ms == null || ms === Infinity) return '—';
   const s = ms / 1000;

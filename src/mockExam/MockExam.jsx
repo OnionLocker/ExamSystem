@@ -4,6 +4,7 @@ import {
   GripVertical, Plus, X, Trash2, Check,
 } from 'lucide-react';
 import { DEFAULT_BLOCKS, COLOR_PALETTE, loadBlocks, saveBlocks, resetBlocks } from './blocks.js';
+import { cloudGet, cloudSet } from '../cloudStorage.js';
 
 // ============================================================
 // 90 分钟全卷模考器（简化版）
@@ -12,20 +13,8 @@ import { DEFAULT_BLOCKS, COLOR_PALETTE, loadBlocks, saveBlocks, resetBlocks } fr
 
 const STATE_KEY = 'mockexam_state_v1';
 
-const loadState = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STATE_KEY) || 'null');
-  } catch {
-    return null;
-  }
-};
-const saveState = (s) => {
-  try {
-    localStorage.setItem(STATE_KEY, JSON.stringify(s));
-  } catch {
-    // ignore
-  }
-};
+const loadState = () => cloudGet(STATE_KEY, null);
+const saveState = (s) => cloudSet(STATE_KEY, s);
 
 const formatTime = (sec) => {
   if (sec < 0) sec = 0;

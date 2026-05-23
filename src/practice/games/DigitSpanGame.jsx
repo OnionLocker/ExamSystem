@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { playCorrect, playWrong } from '../sfx.js';
+import { cloudGet, cloudSet } from '../../cloudStorage.js';
 import {
   ChevronLeft,
   RotateCcw,
@@ -67,20 +68,8 @@ const genSequence = (len) => {
   }
   return arr;
 };
-const loadStore = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
-const saveStore = (s) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    /* ignore */
-  }
-};
+const loadStore = () => cloudGet(STORAGE_KEY, {});
+const saveStore = (s) => cloudSet(STORAGE_KEY, s);
 const arrEq = (a, b) =>
   a.length === b.length && a.every((v, i) => v === b[i]);
 

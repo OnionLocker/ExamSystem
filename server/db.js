@@ -128,6 +128,15 @@ CREATE TABLE IF NOT EXISTS reviews (
   file_path  TEXT,
   created_at TEXT    DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 通用 KV 存储:用于跨设备同步前端的学习数据
+-- (study_log / 数资历史 / 段位 / 倒计时 / 闪卡 / 小游戏 / 模考 / 番茄钟 等)
+-- 每条数据本质是一段 JSON,整段读、整段写,前端逻辑不需要改动
+CREATE TABLE IF NOT EXISTS user_kv (
+  k          TEXT PRIMARY KEY,
+  v          TEXT NOT NULL,                   -- JSON 字符串
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 `);
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------

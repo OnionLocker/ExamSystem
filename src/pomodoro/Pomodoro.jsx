@@ -25,15 +25,10 @@ import {
 } from 'lucide-react';
 import { usePomodoro } from './PomodoroContext.jsx';
 import { fmtHMS, PHASE_LABELS, isToday, isThisWeek } from './utils.js';
+import { cloudGet } from '../cloudStorage.js';
 
 // 尝试读取数资练习历史（用来关联到番茄钟完成段）
-const loadPracticeHistory = () => {
-  try {
-    return JSON.parse(localStorage.getItem('numeric_practice_history_v1') || '[]');
-  } catch {
-    return [];
-  }
-};
+const loadPracticeHistory = () => cloudGet('numeric_practice_history_v1', []);
 
 const Pomodoro = () => {
   const {

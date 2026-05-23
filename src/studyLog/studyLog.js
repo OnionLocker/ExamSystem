@@ -19,6 +19,8 @@
 //   score: number,       // 本条贡献的学习分
 // }
 
+import { cloudGet, cloudSet } from '../cloudStorage.js';
+
 const LOG_KEY = 'study_log_v1';
 
 export const MODULES = [
@@ -31,21 +33,9 @@ export const MODULES = [
   { id: 'zhenti', name: '真题整套', defaultSize: 135, color: '#1a1a1a' },
 ];
 
-export const loadLog = () => {
-  try {
-    return JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
+export const loadLog = () => cloudGet(LOG_KEY, []);
 
-const saveLog = (list) => {
-  try {
-    localStorage.setItem(LOG_KEY, JSON.stringify(list));
-  } catch {
-    // ignore
-  }
-};
+const saveLog = (list) => cloudSet(LOG_KEY, list);
 
 // 对外增加一条记录（通用）
 export const addEntry = (entry) => {
@@ -65,6 +55,17 @@ export const addEntry = (entry) => {
     // ignore
   }
   return rec;
+};
+
+// 按 id 删除一条
+export const removeEntry = (id) => {
+  const next = loadLog().filter((r) => r.id !== id);
+  saveLog(next);
+  try {
+    window.dispatchEvent(new CustomEvent('study-log-change'));
+  } catch {
+    // ignore
+  }
 };
 
 // ---------------- 分数计算 ----------------

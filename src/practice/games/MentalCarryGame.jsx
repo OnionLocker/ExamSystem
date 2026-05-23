@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { playCorrect, playWrong } from '../sfx.js';
+import { cloudGet, cloudSet } from '../../cloudStorage.js';
 import {
   ChevronLeft,
   RotateCcw,
@@ -68,20 +69,8 @@ const LEVELS = [
 
 // ----------------- 工具 -----------------
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const loadStore = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
-const saveStore = (s) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    /* ignore */
-  }
-};
+const loadStore = () => cloudGet(STORAGE_KEY, {});
+const saveStore = (s) => cloudSet(STORAGE_KEY, s);
 const fmtTime = (ms) => {
   if (ms == null || ms === Infinity) return '—';
   const s = ms / 1000;

@@ -26,6 +26,7 @@ import { recordPromotionResult, getRank, getBaseMs, getLadderInfo } from './rank
 import GamesHome from './games/GamesHome.jsx';
 import { playBgm, stopBgm } from './bgm.js';
 import { playCorrect, playWrong } from './sfx.js';
+import { cloudGet, cloudSet } from '../cloudStorage.js';
 import BgmControls from './BgmControls.jsx';
 
 const HISTORY_KEY = 'numeric_practice_history_v1';
@@ -61,16 +62,8 @@ const fmtDuration = (ms) => {
   if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`;
   return `${pad(m)}:${pad(sec)}`;
 };
-const loadHistory = () => {
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-  } catch {
-    return [];
-  }
-};
-const saveHistory = (list) => {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-};
+const loadHistory = () => cloudGet(HISTORY_KEY, []);
+const saveHistory = (list) => cloudSet(HISTORY_KEY, list);
 
 // ---------------- 主组件 ----------------
 const NumericPractice = () => {

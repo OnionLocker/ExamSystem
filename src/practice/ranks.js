@@ -10,6 +10,8 @@
 //   · 整体段位 = 四大类的平均值。
 // ============================================================
 
+import { cloudGet, cloudSet } from '../cloudStorage.js';
+
 // ---------------- 段位定义（由低到高） ----------------
 export const RANKS = [
   { id: 'unranked', label: '未评级', short: 'UR', value: 0, color: '#94a3b8', bg: '#e2e8f0', glow: null },
@@ -177,21 +179,9 @@ const STATS_KEY = 'numeric_rank_stats_v1';
 // }
 // 老用户没有 lp/ladderRank 字段时，第一次完赛会用 evaluate(prev) 的结果初始化。
 
-export const loadStats = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STATS_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
+export const loadStats = () => cloudGet(STATS_KEY, {});
 
-const saveStats = (stats) => {
-  try {
-    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
-  } catch {
-    // ignore
-  }
-};
+const saveStats = (stats) => cloudSet(STATS_KEY, stats);
 
 // ---------------- LP 系统 ----------------
 // 每段位的「合格 perf 标准」：perf = (baseMs/avgMs) * accuracy

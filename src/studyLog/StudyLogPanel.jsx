@@ -12,6 +12,7 @@ import {
 import {
   MODULES,
   addEntry,
+  removeEntry,
   scoreImport,
   scoreReview,
   loadLog,
@@ -104,14 +105,7 @@ const StudyLogPanel = ({ version, onChange }) => {
       <TodayDetailBlock
         today={stats.today}
         onRemove={(id) => {
-          const all = loadLog();
-          const next = all.filter((r) => r.id !== id);
-          localStorage.setItem('study_log_v1', JSON.stringify(next));
-          try {
-            window.dispatchEvent(new CustomEvent('study-log-change'));
-          } catch {
-            // ignore
-          }
+          removeEntry(id);
           bump();
         }}
       />

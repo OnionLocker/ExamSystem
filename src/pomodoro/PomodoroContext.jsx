@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { addEntry as addStudyEntry, scorePomodoro } from '../studyLog/studyLog.js';
+import { cloudGet, cloudSet } from '../cloudStorage.js';
 
 // ============================================================
 // 番茄钟全局状态（跨页面持续计时、持久化、提醒）
@@ -44,20 +45,9 @@ const save = (key, v) => {
     // ignore
   }
 };
-const loadArr = (key) => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || '[]');
-  } catch {
-    return [];
-  }
-};
-const saveArr = (key, arr) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(arr));
-  } catch {
-    // ignore
-  }
-};
+// 历史记录走云同步(学习数据,跨设备)
+const loadArr = (key) => cloudGet(key, []);
+const saveArr = (key, arr) => cloudSet(key, arr);
 
 // 浏览器通知
 const notify = (title, body) => {

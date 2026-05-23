@@ -69,23 +69,12 @@ export const isDue = (state) => {
   return Date.now() >= state.dueAt;
 };
 
-// localStorage 持久化
+// 持久化(走 cloudStorage,跨设备同步)
+import { cloudGet, cloudSet } from '../cloudStorage.js';
 const STORAGE_KEY = 'flashcards_progress_v1';
 
-export const loadProgress = () => {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
-export const saveProgress = (data) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // ignore
-  }
-};
+export const loadProgress = () => cloudGet(STORAGE_KEY, {});
+export const saveProgress = (data) => cloudSet(STORAGE_KEY, data);
 
 // 取某卡的状态；不存在则返回新卡状态
 export const getCardState = (cardId) => {

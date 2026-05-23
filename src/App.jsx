@@ -27,6 +27,7 @@ import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
 import Flashcards from './flashcards/Flashcards.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
+import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
 
 // ---------------- date utils ----------------
 const pad = (n) => String(n).padStart(2, '0');
@@ -72,13 +73,7 @@ const AppInner = () => {
     const t = new Date();
     return { year: t.getFullYear(), month: t.getMonth() };
   });
-  const [events, setEvents] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(EVENTS_KEY) || '{}');
-    } catch {
-      return {};
-    }
-  });
+  const [events, setEvents] = useState(() => cloudGet(EVENTS_KEY, {}));
   const [editingKey, setEditingKey] = useState(null);
   const [editingLabel, setEditingLabel] = useState('');
 
@@ -112,11 +107,22 @@ const AppInner = () => {
       return;
     }
     checkAuth()
-      .then((r) => {
+      .then(async (r) => {
         if (!r.authed) {
           clearToken();
           setAuthed(false);
+          return;
         }
+        // 已登录 → 拉服务器数据盖到本地,然后才让 UI 显示
+        try {
+          await hydrateCloudStorage();
+        } catch {
+          /* offline ok */
+        }
+        // hydrate 完之后,本地 EVENTS_KEY 可能被服务器覆盖了,重新读
+        setEvents(cloudGet(EVENTS_KEY, {}));
+        // 通知其他模块:云端数据已就绪,重新读取本地
+        window.dispatchEvent(new Event('cloud-hydrated'));
       })
       .catch(() => {
         clearToken();
@@ -125,8 +131,19 @@ const AppInner = () => {
       .finally(() => setBootChecked(true));
   }, []);
 
+  // 退出前/标签关闭前把待推送的数据 flush 上去
   useEffect(() => {
-    localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
+    const onBeforeUnload = () => { flushCloudPending(); };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    window.addEventListener('pagehide', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      window.removeEventListener('pagehide', onBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
+    cloudSet(EVENTS_KEY, events);
   }, [events]);
 
   const handleLogout = async () => {
@@ -192,7 +209,21 @@ const AppInner = () => {
   }
 
   if (!authed) {
-    return <Login onAuthed={() => setAuthed(true)} />;
+    return (
+      <Login
+        onAuthed={async () => {
+          // 登录成功后立刻拉服务器数据
+          try {
+            await hydrateCloudStorage();
+          } catch {
+            /* offline ok */
+          }
+          setEvents(cloudGet(EVENTS_KEY, {}));
+          window.dispatchEvent(new Event('cloud-hydrated'));
+          setAuthed(true);
+        }}
+      />
+    );
   }
 
 

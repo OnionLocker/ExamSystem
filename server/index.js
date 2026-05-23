@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { authRouter, authMiddleware } from './auth.js';
 import reviewsRouter from './routes/reviews.js';
+import kvRouter from './routes/kv.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,6 +24,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth',      authRouter);
 app.use('/api/reviews',   reviewsRouter);
+app.use('/api/kv',        kvRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

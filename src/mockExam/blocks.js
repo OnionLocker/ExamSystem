@@ -19,35 +19,19 @@ export const COLOR_PALETTE = [
   '#06b6d4', '#ec4899', '#84cc16', '#eab308', '#8b5cf6', '#14b8a6', '#f43f5e',
 ];
 
-// localStorage 持久化
+// 持久化(走 cloudStorage,跨设备同步)
+import { cloudGet, cloudSet, cloudRemove } from '../cloudStorage.js';
+
 const BLOCKS_KEY = 'mockexam_blocks_v2';
 
 export const loadBlocks = () => {
-  try {
-    const raw = localStorage.getItem(BLOCKS_KEY);
-    if (!raw) return DEFAULT_BLOCKS.map((b) => ({ ...b }));
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return DEFAULT_BLOCKS.map((b) => ({ ...b }));
-    }
-    return parsed;
-  } catch {
+  const parsed = cloudGet(BLOCKS_KEY, null);
+  if (!Array.isArray(parsed) || parsed.length === 0) {
     return DEFAULT_BLOCKS.map((b) => ({ ...b }));
   }
+  return parsed;
 };
 
-export const saveBlocks = (blocks) => {
-  try {
-    localStorage.setItem(BLOCKS_KEY, JSON.stringify(blocks));
-  } catch {
-    // ignore
-  }
-};
+export const saveBlocks = (blocks) => cloudSet(BLOCKS_KEY, blocks);
 
-export const resetBlocks = () => {
-  try {
-    localStorage.removeItem(BLOCKS_KEY);
-  } catch {
-    // ignore
-  }
-};
+export const resetBlocks = () => cloudRemove(BLOCKS_KEY);
