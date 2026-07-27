@@ -74,11 +74,20 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   const timerRef = useRef(null);
   const pendingRef = useRef(null);
+  const rootRef = useRef(null); // 根节点，用于定位组件真正所属的 window（PiP 模式下是 PiP 窗口）
 
   // 定时刷新当前题用时
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 100);
     return () => clearInterval(id);
+  }, []);
+
+  // 挂载后把焦点交给组件所属窗口（PiP 窗口），键盘立即可用
+  useEffect(() => {
+    const win = rootRef.current?.ownerDocument?.defaultView;
+    if (win && win !== window) {
+      try { win.focus(); } catch { /* ignore */ }
+    }
   }, []);
 
   // 标题随作答进度更新（嵌入 PiP 时不改主窗标题）
@@ -168,9 +177,14 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     nextQuestion();
   };
 
-  // 键盘监听：监听组件所在 window（PiP 模式下是 PiP window）
+  // 键盘监听：绑定到组件 DOM 真正所属的 window。
+  // PiP 模式下 React 虽在主窗口 realm 执行，但节点挂在 PiP 文档里，
+  // 焦点在 PiP 窗口时键盘事件只会派发到 PiP window —— 必须监听它，
+  // 否则鼠标点过 PiP 小窗后就再也接不到按键（焦点丢失）。
   useEffect(() => {
-    const win = typeof window !== 'undefined' ? window : null;
+    const win =
+      rootRef.current?.ownerDocument?.defaultView ||
+      (typeof window !== 'undefined' ? window : null);
     if (!win) return;
     const onKey = (e) => {
       // 对照表打开时，只处理 ESC 关闭
@@ -271,8 +285,14 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   return (
     <div
-      className={`popup-root relative h-full min-h-full flex flex-col ${theme.wrap} select-none overflow-hidden`}
+      ref={rootRef}
+      tabIndex={-1}
+      className={`popup-root relative h-full min-h-full flex flex-col ${theme.wrap} select-none overflow-hidden focus:outline-none`}
       style={{ fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif' }}
+      onPointerDown={() => {
+        // 点击小窗任意处，把焦点抢回 PiP 窗口，保证键盘可用
+        rootRef.current?.ownerDocument?.defaultView?.focus?.();
+      }}
     >
       {/* 顶栏 */}
       <div
