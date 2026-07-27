@@ -10,8 +10,11 @@ import {
   X,
   Timer as TimerIcon,
   Sliders,
-  ClipboardList,
   Layers,
+  BookMarked,
+  PenTool,
+  ClipboardList,
+  Upload,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -25,6 +28,10 @@ import Mixer from './mixer/Mixer.jsx';
 import MockExam from './mockExam/MockExam.jsx';
 import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
 import Flashcards from './flashcards/Flashcards.jsx';
+import Review from './review/Review.jsx';
+import Copybook from './copybook/Copybook.jsx';
+import Uploads from './uploads/Uploads.jsx';
+import { schedulePrefetchReviewImages } from './review/prefetchReviewImages.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
@@ -521,10 +528,12 @@ const AppInner = () => {
 
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
+          <SidebarItem id="copybook" icon={PenTool} label="字帖练习" />
+          <SidebarItem id="review" icon={BookMarked} label="复习" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
-          <SidebarItem id="flashcards" icon={Layers} label="抽认卡" />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" />
           <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" />
+          <SidebarItem id="uploads" icon={Upload} label="资料上传" />
           <SidebarItem id="mixer" icon={Sliders} label="声音混音器" />
         </nav>
 
@@ -554,10 +563,12 @@ const AppInner = () => {
           <div>
             <h2 className="text-2xl font-black tracking-tight">
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
-              {activeTab === 'practice' && '数资练习'}
+              {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
+              {activeTab === 'review' && '知识点复习'}
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
+              {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
@@ -580,6 +591,10 @@ const AppInner = () => {
             </div>
           )}
 
+          {activeTab === 'copybook' && <Copybook />}
+
+          {activeTab === 'review' && <Review />}
+
           {activeTab === 'practice' && <NumericPractice />}
 
           {activeTab === 'flashcards' && <Flashcards />}
@@ -587,6 +602,8 @@ const AppInner = () => {
           {activeTab === 'pomodoro' && <Pomodoro />}
 
           {activeTab === 'mockexam' && <MockExam />}
+
+          {activeTab === 'uploads' && <Uploads />}
 
           {activeTab === 'mixer' && <Mixer />}
         </div>

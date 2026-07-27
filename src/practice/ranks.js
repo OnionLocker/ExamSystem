@@ -390,11 +390,17 @@ export const clearRankStats = () => {
 };
 
 // ---------------- 聚合：分类段位 + 整体段位 ----------------
-// v2: 加权平均聚合
-//   · 分类段位 = Σ(rank.value × sub.weight) / Σ(sub.weight)，仅取已评级子项
-//   · 整体段位 = Σ(rank.value × cat.weight) / Σ(cat.weight)，仅取已评级分类
+// v3: 覆盖度加权（防止「刷一个简单口算就上高段」）
+//   · 分类段位 = Σ(rank.value × sub.weight) / Σ(全部 sub.weight)
+//       —— 关键：未评级子项按 value=0 计入分母，所以想拿高分类段位
+//          必须把该类大部分子项都练到又快又准（广度 + 深度）。
+//   · 整体段位 = Σ(cat.avgValue × cat.weight) / Σ(全部 cat.weight)
+//       —— 关键：没练的整类按 0 分计入分母（不再被忽略），
+//          没覆盖资料分析/数量关系这些大类就上不了高段。
+//   · 两级覆盖度叠加：高整体段位需要「全类覆盖 + 每类内广度」。
+//   · 只要该类/整体至少有一个已评级子项，就至少显示青铜（不会因四舍五入回到未评级）。
 // 子项 weight 反映真实省考出题频率（5=每年必考 / 1-2=偶尔），
-// 分类 weight 反映真实考试分值占比（data 40 / quant 35 / aux 15 / basic 10）。
+// 分类 weight 反映真实考试分值占比（data 30 / quant 30 / numReason 15 / aux 15 / basic 10）。
 export const computeCategoryRank = (cat, stats) => {
   const entries = cat.subs.map((s) => ({
     sub: s,
@@ -402,50 +408,45 @@ export const computeCategoryRank = (cat, stats) => {
     eval: evaluate(stats[s.id], s.id),
   }));
   const ranked = entries.filter((e) => e.eval.rankId !== 'unranked');
-  if (ranked.length === 0) {
-    return {
-      rankId: 'unranked',
-      rankedCount: 0,
-      totalSubs: cat.subs.length,
-      entries,
-    };
-  }
-  // 加权平均（subject weight）
+
+  // 覆盖度加权：全部子项都计入分母，未评级子项 value=0
   let sumWV = 0;
   let sumW = 0;
-  for (const e of ranked) {
+  for (const e of entries) {
     const w = e.sub.weight ?? 1;
-    sumWV += getRank(e.eval.rankId).value * w;
     sumW += w;
+    sumWV += getRank(e.eval.rankId).value * w; // unranked → 0
   }
-  const avg = sumWV / sumW;
-  const v = Math.max(1, Math.round(avg));
+  const avgValue = sumW > 0 ? sumWV / sumW : 0;
+  const rankId =
+    ranked.length === 0 ? 'unranked' : getRankByValue(Math.max(1, Math.round(avgValue))).id;
+
   return {
-    rankId: getRankByValue(v).id,
+    rankId,
     rankedCount: ranked.length,
     totalSubs: cat.subs.length,
     entries,
-    avgValue: avg,
+    avgValue,
   };
 };
 
 export const computeOverallRank = (categories, stats) => {
   const catRanks = categories.map((c) => ({ ...computeCategoryRank(c, stats), cat: c }));
-  const ranked = catRanks.filter((c) => c.rankId !== 'unranked');
-  if (ranked.length === 0) {
-    return { rankId: 'unranked', catRanks, totalScore: 0 };
-  }
-  // 加权平均（category weight）
+  const anyRanked = catRanks.some((c) => c.rankId !== 'unranked');
+
+  // 覆盖度加权：全部分类都计入分母，没练的类 avgValue=0
+  // 用分类的连续 avgValue（未四舍五入）参与，避免二次取整造成断崖
   let sumWV = 0;
   let sumW = 0;
-  for (const c of ranked) {
+  for (const c of catRanks) {
     const w = c.cat.weight ?? 1;
-    sumWV += getRank(c.rankId).value * w;
     sumW += w;
+    sumWV += (c.avgValue ?? 0) * w;
   }
-  const avg = sumWV / sumW;
-  const v = Math.max(1, Math.round(avg));
-  // 段位总分（展示用）：Σ(子项段位 × 子项权重 × 分类权重)
+  const avgValue = sumW > 0 ? sumWV / sumW : 0;
+  const rankId = !anyRanked ? 'unranked' : getRankByValue(Math.max(1, Math.round(avgValue))).id;
+
+  // 段位总分（展示用，随覆盖广度累加）：Σ(子项段位 × 子项权重 × 分类权重)
   let totalScore = 0;
   for (const c of catRanks) {
     for (const e of c.entries) {
@@ -455,9 +456,9 @@ export const computeOverallRank = (categories, stats) => {
     }
   }
   return {
-    rankId: getRankByValue(v).id,
+    rankId,
     catRanks,
     totalScore: Math.round(totalScore),
-    avgValue: avg,
+    avgValue,
   };
 };

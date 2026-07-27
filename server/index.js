@@ -6,13 +6,16 @@ import { fileURLToPath } from 'node:url';
 import { authRouter, authMiddleware } from './auth.js';
 import reviewsRouter from './routes/reviews.js';
 import kvRouter from './routes/kv.js';
+import uploadsRouter from './routes/uploads.js';
+import reviewModulesRouter from './routes/reviewModules.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+// 复习图片以 base64 走 JSON 上传，单图上限 15MB → base64 约 20MB，故放宽到 25mb
+app.use(express.json({ limit: '25mb' }));
 
 
 // 所有 /api/* 先过鉴Ȩ（内部会放行 /health 与 /auth/*）
@@ -25,6 +28,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth',      authRouter);
 app.use('/api/reviews',   reviewsRouter);
 app.use('/api/kv',        kvRouter);
+app.use('/api/uploads',   uploadsRouter);
+app.use('/api/review-modules', reviewModulesRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

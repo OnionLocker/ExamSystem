@@ -137,6 +137,28 @@ CREATE TABLE IF NOT EXISTS user_kv (
   v          TEXT NOT NULL,                   -- JSON 字符串
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 复习模块：每个模块是一组图片（知识点/错题截图等）
+CREATE TABLE IF NOT EXISTS review_modules (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT    NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at TEXT    DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS review_images (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  module_id  INTEGER NOT NULL,
+  filename   TEXT    NOT NULL,               -- 磁盘文件名（uuid.ext）
+  orig_name  TEXT,                           -- 原始文件名
+  mime       TEXT    DEFAULT 'image/jpeg',
+  sort_order INTEGER DEFAULT 0,
+  created_at TEXT    DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (module_id) REFERENCES review_modules(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_review_images_module ON review_images(module_id);
 `);
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------

@@ -271,6 +271,7 @@ const TYPE_META = {
   numeric: { label: '数资练习', color: '#fbc02d' },
   import: { label: '导入套题', color: '#3b82f6' },
   review: { label: '错题复盘', color: '#22c55e' },
+  chat: { label: '导师辅导', color: '#a855f7' },
 };
 
 const TodayDetailBlock = ({ today, onRemove }) => {
@@ -349,6 +350,7 @@ const formatEntry = (e) => {
     return `${e.module} · ${e.count} ${e.module === '申论' ? '篇' : '题'}`;
   }
   if (e.type === 'review') return `复盘 ${e.count} 题`;
+  if (e.type === 'chat') return e.module || '导师辅导';
   return '';
 };
 

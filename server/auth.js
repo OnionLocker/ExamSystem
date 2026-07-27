@@ -22,7 +22,11 @@ export const authMiddleware = (req, res, next) => {
   if (open) return next();
 
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  // 优先取请求头 Bearer；再兜底 URL 查询参数 ?token=
+  // （<img src> / 预取无法带自定义头，只能走 query）
+  const token = header.startsWith('Bearer ')
+    ? header.slice(7)
+    : (req.query?.token ? String(req.query.token) : '');
   if (token && tokens.has(token)) return next();
   return res.status(401).json({ error: 'unauthorized' });
 };
