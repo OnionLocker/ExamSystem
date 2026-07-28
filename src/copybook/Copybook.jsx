@@ -15,29 +15,10 @@ export default function Copybook() {
   const [activeModel, setActiveModel] = useState('all'); // 'all', 'image2', 'banana2'
   const [promptText, setPromptText] = useState('高清书法字帖，米字格硬笔临摹，字迹工整横平竖直，规范楷书硬笔书法，高分辨率白底黑字');
   const [generating, setGenerating] = useState(false);
-  const [genResults, setGenResults] = useState({
-    image2: null,
-    banana2: null,
-  });
 
   const handleGenerate = async () => {
     setGenerating(true);
-    // 模拟调用 API 过程并准备比对展示
     setTimeout(() => {
-      setGenResults({
-        image2: {
-          name: 'Image2 (GPT-Image-2)',
-          status: 'success',
-          note: '笔画线条均匀，硬笔质感好，米字格对齐精确',
-          timestamp: new Date().toLocaleTimeString(),
-        },
-        banana2: {
-          name: 'Banana2 (Gemini Image)',
-          status: 'success',
-          note: '字形风骨更具书法感，墨痕自然，结构张力强',
-          timestamp: new Date().toLocaleTimeString(),
-        },
-      });
       setGenerating(false);
     }, 1200);
   };
@@ -130,7 +111,7 @@ export default function Copybook() {
           </div>
         </div>
 
-        {/* 右侧标准矢量米字格字帖 (可直接描红与打印) */}
+        {/* 右侧标准矢量米字格字帖 */}
         <div className="lg:col-span-2 bg-white rounded-[2rem] border border-[#f2f0e9] p-6 flex flex-col items-center justify-center space-y-4 shadow-sm">
           <div className="w-full flex items-center justify-between">
             <span className="text-xs font-black uppercase tracking-widest text-slate-400">高清矢量米字格临摹</span>
@@ -141,14 +122,12 @@ export default function Copybook() {
           <div className="w-full max-w-lg grid grid-cols-4 gap-2 bg-[#fdfbf7] p-4 rounded-2xl border border-red-200 shadow-inner">
             {[1, 2, 3, 4].map((idx) => (
               <div key={idx} className="relative aspect-square border-2 border-red-400 bg-white flex items-center justify-center overflow-hidden">
-                {/* 米字格虚线 */}
                 <svg className="absolute inset-0 w-full h-full stroke-red-200 stroke-1 pointer-events-none" viewBox="0 0 100 100">
                   <line x1="0" y1="50" x2="100" y2="50" strokeDasharray="3,3" />
                   <line x1="50" y1="0" x2="50" y2="100" strokeDasharray="3,3" />
                   <line x1="0" y1="0" x2="100" y2="100" strokeDasharray="2,2" />
                   <line x1="100" y1="0" x2="0" y2="100" strokeDasharray="2,2" />
                 </svg>
-                {/* 描红示范 */}
                 <span className={`text-6xl font-serif select-none ${idx === 1 ? 'text-black font-black' : 'text-red-300 font-normal'}`}>
                   {selectedChar.char}
                 </span>
@@ -222,7 +201,6 @@ export default function Copybook() {
                 <span className="text-[10px] text-slate-400 font-bold">API: /v1/images/generations</span>
               </div>
               
-              {/* 示意生成效果图 */}
               <div className="aspect-video bg-[#f2f0e9] rounded-xl flex flex-col items-center justify-center border border-dashed border-slate-300 relative overflow-hidden group">
                 <div className="text-center space-y-2 p-6">
                   <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto shadow-md">
@@ -249,7 +227,6 @@ export default function Copybook() {
                 <span className="text-[10px] text-slate-400 font-bold">API: /v1/chat/completions</span>
               </div>
 
-              {/* 示意生成效果图 */}
               <div className="aspect-video bg-[#f2f0e9] rounded-xl flex flex-col items-center justify-center border border-dashed border-slate-300 relative overflow-hidden group">
                 <div className="text-center space-y-2 p-6">
                   <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto shadow-md">

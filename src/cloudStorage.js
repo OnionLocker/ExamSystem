@@ -29,6 +29,7 @@ export const SYNCED_KEYS = new Set([
   'mockexam_state_v1',               // 模考当前状态
   'mockexam_blocks_v2',              // 模考块次设置
   'pomodoro_history_v1',             // 番茄钟完成历史(学习数据,跨设备)
+  'vocab_mastered_ids_v1',           // 言语词汇掌握进度
   // 不同步:pomodoro_state_v1 (当前计时进行中,跟设备走)
   //         pomodoro_settings_v1 (工作时长/白噪音偏好,跟设备走)
 ]);

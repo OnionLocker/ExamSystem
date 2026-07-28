@@ -15,6 +15,7 @@ import {
   PenTool,
   ClipboardList,
   Upload,
+  Zap,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -30,6 +31,7 @@ import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
 import Flashcards from './flashcards/Flashcards.jsx';
 import Review from './review/Review.jsx';
 import Copybook from './copybook/Copybook.jsx';
+import StudyBoost from './studyBoost/StudyBoost.jsx';
 import Uploads from './uploads/Uploads.jsx';
 import { schedulePrefetchReviewImages } from './review/prefetchReviewImages.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
@@ -528,6 +530,7 @@ const AppInner = () => {
 
         <nav className="flex-1 space-y-3">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
+          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" />
           <SidebarItem id="copybook" icon={PenTool} label="字帖练习" />
           <SidebarItem id="review" icon={BookMarked} label="复习" />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
@@ -563,6 +566,7 @@ const AppInner = () => {
           <div>
             <h2 className="text-2xl font-black tracking-tight">
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
+              {activeTab === 'studyBoost' && '学习提升 · 言语高频考点库'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
               {activeTab === 'flashcards' && '抽认卡'}
@@ -590,6 +594,8 @@ const AppInner = () => {
               {renderCountdowns()}
             </div>
           )}
+
+          {activeTab === 'studyBoost' && <StudyBoost />}
 
           {activeTab === 'copybook' && <Copybook />}
 

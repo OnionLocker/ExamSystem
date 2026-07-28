@@ -10,6 +10,14 @@ const UPLOAD_ROOT = path.join(__dirname, '..', '..', 'data', 'uploads');
 // 两个固定子目录
 const SUBDIRS = ['pdf', '解析'];
 
+// 允许的文件格式（子目录名只是归档分类，两类都可放 PDF / Word）
+const ALLOWED_EXT = ['.pdf', '.doc', '.docx'];
+const MIME_BY_EXT = {
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
 // 按北京时间(UTC+8)生成日期目录名：YYYY.MM.DD
 const beijingDateKey = () => {
   const now = new Date(Date.now() + 8 * 60 * 60 * 1000); // 偏移到北京时间
@@ -58,7 +66,7 @@ const storage = multer.diskStorage({
     try {
       original = Buffer.from(file.originalname, 'latin1').toString('utf8');
     } catch { /* ignore */ }
-    let name = safeName(original) || `file-${Date.now()}.pdf`;
+    let name = safeName(original) || `file-${Date.now()}`;
     // 同名则加序号后缀，避免覆盖
     const dir = path.join(UPLOAD_ROOT, req._uploadDateKey, req._uploadType);
     const ext = path.extname(name);
@@ -77,10 +85,8 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 }, // 单文件 100MB
   fileFilter(_req, file, cb) {
-    const ok =
-      file.mimetype === 'application/pdf' ||
-      file.originalname.toLowerCase().endsWith('.pdf');
-    cb(ok ? null : new Error('仅支持上传 PDF 文件'), ok);
+    const ok = ALLOWED_EXT.includes(path.extname(file.originalname).toLowerCase());
+    cb(ok ? null : new Error('仅支持上传 PDF / Word 文件'), ok);
   },
 });
 
@@ -104,12 +110,15 @@ router.post('/', (req, res) => {
 
 // GET /api/uploads  列出所有日期目录及其文件
 router.get('/', (_req, res) => {
-  if (!fs.existsSync(UPLOAD_ROOT)) return res.json({ today: beijingDateKey(), dates: [] });
-  const dates = fs
-    .readdirSync(UPLOAD_ROOT, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .sort((a, b) => b.localeCompare(a)); // 新日期在前
+  const today = beijingDateKey();
+  const existing = fs.existsSync(UPLOAD_ROOT)
+    ? fs
+        .readdirSync(UPLOAD_ROOT, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
+    : [];
+  // 当天目录要等首次上传才会建出来，这里补上，保证列表里总有今天这一组
+  const dates = [...new Set([today, ...existing])].sort((a, b) => b.localeCompare(a)); // 新日期在前
 
   const result = dates.map((dateKey) => {
     const entry = { date: dateKey };
@@ -131,7 +140,7 @@ router.get('/', (_req, res) => {
     return entry;
   });
 
-  res.json({ today: beijingDateKey(), dates: result });
+  res.json({ today, dates: result });
 });
 
 // GET /api/uploads/file?date=&type=&name=  预览/下载（前端带 token 以 blob 获取）
@@ -144,7 +153,8 @@ router.get('/file', (req, res) => {
   if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
     return res.status(404).json({ error: '文件不存在' });
   }
-  res.setHeader('Content-Type', 'application/pdf');
+  const mime = MIME_BY_EXT[path.extname(name).toLowerCase()] || 'application/octet-stream';
+  res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(name)}`);
   fs.createReadStream(filePath).pipe(res);
 });

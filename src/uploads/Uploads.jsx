@@ -7,6 +7,9 @@ const TYPES = [
   { key: '解析', label: '解析' },
 ];
 
+const ALLOWED_EXT = ['.pdf', '.doc', '.docx'];
+const hasAllowedExt = (name) => ALLOWED_EXT.some((e) => name.toLowerCase().endsWith(e));
+
 const fmtSize = (n) => {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -49,11 +52,9 @@ const Uploads = () => {
 
   const doUpload = useCallback(
     async (files) => {
-      const list = Array.from(files || []).filter(
-        (f) => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'),
-      );
+      const list = Array.from(files || []).filter((f) => hasAllowedExt(f.name));
       if (!list.length) {
-        setMsg('请选择 PDF 文件');
+        setMsg('请选择 PDF 或 Word 文件');
         return;
       }
       setUploading(true);
@@ -92,7 +93,14 @@ const Uploads = () => {
       if (!res.ok) throw new Error();
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      if (name.toLowerCase().endsWith('.pdf')) {
+        window.open(url, '_blank');
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+      }
       setTimeout(() => URL.revokeObjectURL(url), 60000);
     } catch {
       setMsg('无法打开文件');
@@ -173,13 +181,15 @@ const Uploads = () => {
         >
           <Upload size={32} className="mx-auto mb-3 text-slate-400" />
           <p className="font-bold text-sm">
-            {uploading ? '上传中…' : '点击选择或拖拽 PDF 到此处'}
+            {uploading ? '上传中…' : '点击选择或拖拽 PDF / Word 到此处'}
           </p>
-          <p className="text-xs text-slate-400 mt-1">支持多选，单文件最大 100MB</p>
+          <p className="text-xs text-slate-400 mt-1">
+            支持 PDF / DOC / DOCX，可多选，单文件最大 100MB
+          </p>
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf,.pdf"
+            accept=".pdf,.doc,.docx"
             multiple
             className="hidden"
             onChange={(e) => doUpload(e.target.files)}
