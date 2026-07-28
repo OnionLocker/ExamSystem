@@ -85,21 +85,39 @@ const Review = () => {
   const [error, setError] = useState('');
   const [activeModule, setActiveModule] = useState(null);
 
-  const loadModules = useCallback(async () => {
-    setError('');
+  // 拉取模块列表。返回数据，由调用方决定怎么写状态 —— 这样 effect 里的写入
+  // 都发生在 await 之后，不会在 effect 同步体内触发级联渲染。
+  const fetchModules = useCallback(async () => {
     try {
-      const rows = await api('/api/review-modules');
-      setModules(rows || []);
+      return { rows: (await api('/api/review-modules')) || [], error: '' };
     } catch (e) {
-      if (e.status !== 401) setError(e.message || '加载失败');
-    } finally {
-      setLoading(false);
+      if (e.status === 401) return null; // 401 由 api 层统一处理，这里静默
+      return { rows: null, error: e.message || '加载失败' };
     }
   }, []);
 
+  // 供刷新按钮 / 子组件手动调用
+  const loadModules = useCallback(async () => {
+    const res = await fetchModules();
+    if (!res) return;
+    if (res.rows) setModules(res.rows);
+    setError(res.error);
+    setLoading(false);
+  }, [fetchModules]);
+
   useEffect(() => {
-    loadModules();
-  }, [loadModules]);
+    let alive = true;
+    (async () => {
+      const res = await fetchModules();
+      if (!alive || !res) return;
+      if (res.rows) setModules(res.rows);
+      setError(res.error);
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [fetchModules]);
 
   if (activeModule) {
     return (
@@ -406,29 +424,50 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
   const [nameDraft, setNameDraft] = useState('');
   const [renaming, setRenaming] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef(null);
   const nameInputRef = useRef(null);
   const touchStartX = useRef(null);
+  // dragenter/dragleave 在子元素间移动会反复触发，用计数器判断是否真正离开
+  const dragDepth = useRef(0);
 
-  const loadImages = useCallback(async () => {
-    setLoading(true);
+  // 只负责取数，不写状态；写状态交给调用方，保证不在 effect 同步体内 setState
+  const fetchImages = useCallback(async () => {
     try {
-      const rows = await api(`/api/review-modules/${module.id}/images`);
-      setImages(rows || []);
-      setIndex((i) => {
-        if (!rows?.length) return 0;
-        return Math.min(i, rows.length - 1);
-      });
+      return { rows: (await api(`/api/review-modules/${module.id}/images`)) || [] };
     } catch (e) {
-      if (e.status !== 401) alert(e.message || '加载图片失败');
-    } finally {
-      setLoading(false);
+      if (e.status === 401) return null;
+      return { rows: null, error: e.message || '加载图片失败' };
     }
   }, [module.id]);
 
+  const applyImages = useCallback((res) => {
+    if (!res) return;
+    if (res.error) alert(res.error);
+    if (!res.rows) {
+      setLoading(false);
+      return;
+    }
+    setImages(res.rows);
+    setIndex((i) => (res.rows.length ? Math.min(i, res.rows.length - 1) : 0));
+    setLoading(false);
+  }, []);
+
+  // 供上传/删除后手动刷新
+  const loadImages = useCallback(async () => {
+    applyImages(await fetchImages());
+  }, [fetchImages, applyImages]);
+
   useEffect(() => {
-    loadImages();
-  }, [loadImages]);
+    let alive = true;
+    (async () => {
+      const res = await fetchImages();
+      if (alive) applyImages(res);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [fetchImages, applyImages]);
 
   // 进入模块后后台把本模块图片全部预取进浏览器缓存
   useEffect(() => {
@@ -464,18 +503,27 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
     return () => window.removeEventListener('keydown', onKey);
   }, [go, onBack, editingName, lightboxOpen]);
 
-  // 切图时退出改名态
-  useEffect(() => {
+  // 切图时退出改名态。用"渲染期比对上一次的值"而不是 effect：
+  // effect 里同步 setState 会多跑一轮渲染，且改名框会闪一下旧内容。
+  const [lastIndex, setLastIndex] = useState(index);
+  if (lastIndex !== index) {
+    setLastIndex(index);
     setEditingName(false);
     setNameDraft('');
-  }, [index]);
+  }
 
   const handleUpload = async (files) => {
-    const list = Array.from(files || []).filter((f) => f.type.startsWith('image/'));
+    const all = Array.from(files || []);
+    // 拖文件夹进来时会混入非图片文件，按类型 + 扩展名双重过滤
+    const isImage = (f) =>
+      (f.type && f.type.startsWith('image/')) ||
+      /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(f.name || '');
+    const list = all.filter(isImage);
     if (!list.length) {
-      alert('请选择图片文件');
+      alert(all.length ? `这 ${all.length} 个文件里没有图片` : '请选择图片文件');
       return;
     }
+    const skipped = all.length - list.length;
     setUploading(true);
     let ok = 0;
     try {
@@ -501,6 +549,10 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
         image_count: rows?.length || 0,
       });
       prefetchModuleImages((rows || []).map((r) => r.url));
+      if (skipped > 0) {
+        setUploadProgress('');
+        alert(`已上传 ${ok} 张图片，跳过 ${skipped} 个非图片文件`);
+      }
     } catch (e) {
       alert(e.message || `上传失败（已成功 ${ok} 张）`);
       await loadImages();
@@ -510,6 +562,109 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
       if (fileRef.current) fileRef.current.value = '';
     }
   };
+
+  // ---------- 拖拽上传 ----------
+  // 递归展开被拖进来的文件夹（Chrome/Edge/Safari 支持 webkitGetAsEntry）
+  const filesFromEntry = async (entry) => {
+    if (!entry) return [];
+    if (entry.isFile) {
+      return new Promise((resolve) => {
+        entry.file((f) => resolve([f]), () => resolve([]));
+      });
+    }
+    if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const all = [];
+      // readEntries 每次最多返回 100 条，要循环读到空
+      const readBatch = () =>
+        new Promise((resolve) => {
+          reader.readEntries((batch) => resolve(batch || []), () => resolve([]));
+        });
+      for (;;) {
+        const batch = await readBatch();
+        if (!batch.length) break;
+        for (const e of batch) all.push(...(await filesFromEntry(e)));
+      }
+      return all;
+    }
+    return [];
+  };
+
+  const filesFromDataTransfer = async (dt) => {
+    if (!dt) return [];
+    const items = Array.from(dt.items || []);
+    const entries = items
+      .filter((it) => it.kind === 'file')
+      .map((it) => (it.webkitGetAsEntry ? it.webkitGetAsEntry() : null))
+      .filter(Boolean);
+
+    // 有 entry API 就用它（能进文件夹）；否则退回 dt.files
+    if (entries.length) {
+      const nested = await Promise.all(entries.map(filesFromEntry));
+      const flat = nested.flat();
+      if (flat.length) return flat;
+    }
+    return Array.from(dt.files || []);
+  };
+
+  const resetDrag = () => {
+    dragDepth.current = 0;
+    setDragOver(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resetDrag();
+    if (uploading) return;
+    const files = await filesFromDataTransfer(e.dataTransfer);
+    if (!files.length) {
+      alert('没有读到文件，试试直接拖图片文件');
+      return;
+    }
+    handleUpload(files);
+  };
+
+  const handleDragEnter = (e) => {
+    if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current += 1;
+    setDragOver(true);
+  };
+
+  const handleDragOver = (e) => {
+    if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // 告诉浏览器这是"复制"操作，光标才会显示 + 号
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    if (!dragOver) setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) resetDrag();
+  };
+
+  // 顺手支持粘贴截图（Win+Shift+S / 微信截图后直接 Ctrl+V）
+  useEffect(() => {
+    const onPaste = (e) => {
+      if (editingName || lightboxOpen) return;
+      const files = Array.from(e.clipboardData?.files || []).filter((f) =>
+        f.type.startsWith('image/')
+      );
+      if (!files.length) return;
+      e.preventDefault();
+      handleUpload(files);
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+    // handleUpload 依赖 module.id，切模块时会重建，这里跟随即可
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingName, lightboxOpen, module.id, uploading]);
 
   const deleteCurrent = async () => {
     const img = images[index];
@@ -632,9 +787,15 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
         </div>
       </div>
 
-      {/* 主查看区 */}
+      {/* 主查看区（同时是拖拽放置区） */}
       <div
-        className="flex-1 min-h-[420px] bg-[#1a1a1a] rounded-[2.5rem] relative overflow-hidden flex flex-col select-none"
+        className={`flex-1 min-h-[420px] bg-[#1a1a1a] rounded-[2.5rem] relative overflow-hidden flex flex-col select-none transition-all ${
+          dragOver ? 'ring-4 ring-[#fbc02d] ring-offset-2 ring-offset-[#f2f0e9]' : ''
+        }`}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onTouchStart={(e) => {
           if (lightboxOpen) return;
           touchStartX.current = e.changedTouches[0]?.clientX ?? null;
@@ -651,6 +812,17 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
       >
         <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full blur-[100px] bg-[#fbc02d] opacity-20 pointer-events-none" />
 
+        {/* 拖拽悬浮提示：盖住整个查看区，pointer-events-none 保证 drop 事件仍落在父容器 */}
+        {dragOver && (
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#1a1a1a]/85 backdrop-blur-sm pointer-events-none">
+            <div className="w-20 h-20 rounded-3xl bg-[#fbc02d] flex items-center justify-center text-black mb-4">
+              <Upload size={36} />
+            </div>
+            <p className="text-white text-lg font-black">松手即上传</p>
+            <p className="text-white/50 text-sm font-medium mt-1.5">支持多张图片，也可以直接拖整个文件夹</p>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-white/50">
             <Loader2 className="animate-spin mr-2" size={20} />
@@ -663,7 +835,8 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
             </div>
             <p className="text-white text-lg font-black">还没有图片</p>
             <p className="text-white/40 text-sm font-medium mt-2 mb-6 max-w-sm">
-              上传笔记截图、公式卡片或知识点图片，用左右键或按钮翻阅复习
+              把图片<span className="text-[#fbc02d] font-bold">拖到这里</span>，或 Ctrl+V 粘贴截图，
+              也可以点下面的按钮选文件。用左右键翻阅复习
             </p>
             <button
               onClick={() => fileRef.current?.click()}
@@ -845,10 +1018,13 @@ const ImageLightbox = ({ url, title, index, total, onClose, onPrev, onNext }) =>
     setOffset({ x: 0, y: 0 });
   }, []);
 
-  // 换图重置缩放
-  useEffect(() => {
-    resetView();
-  }, [url, resetView]);
+  // 换图重置缩放：同样用渲染期比对，避免新图先以旧的缩放/位移画一帧再跳回
+  const [lastUrl, setLastUrl] = useState(url);
+  if (lastUrl !== url) {
+    setLastUrl(url);
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }
 
   const zoomBy = useCallback((delta, cx, cy) => {
     setZoom((prev) => {

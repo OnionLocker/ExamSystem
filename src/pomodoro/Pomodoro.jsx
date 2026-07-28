@@ -95,11 +95,6 @@ const Pomodoro = () => {
     };
   }, [lastSession]);
 
-  const onStart = () => {
-    if (phase === 'idle') startWork();
-    else if (phase === 'paused') resume();
-  };
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>

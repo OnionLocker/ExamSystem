@@ -4,7 +4,6 @@ import { CATEGORIES } from './generators.js';
 import {
   RANKS,
   getRank,
-  evaluate,
   loadStats,
   computeCategoryRank,
   computeOverallRank,
@@ -28,6 +27,9 @@ const RankDashboard = ({ onClickCategory }) => {
     return () => window.removeEventListener('numeric-rank-change', onChange);
   }, []);
 
+  // version 是有意的缓存失效信号：loadStats 读的是 localStorage，
+  // eslint 看不到这层依赖，所以必须手动把 version 放进依赖里。
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stats = useMemo(() => loadStats(), [version]);
   const overall = useMemo(() => computeOverallRank(CATEGORIES, stats), [stats]);
   const overallRank = getRank(overall.rankId);
@@ -156,6 +158,8 @@ export const CategoryRankDetail = ({ cat, onClose }) => {
     window.addEventListener('numeric-rank-change', onChange);
     return () => window.removeEventListener('numeric-rank-change', onChange);
   }, []);
+  // 同上：version 驱动 localStorage 重读
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stats = useMemo(() => loadStats(), [version]);
   const detail = useMemo(() => computeCategoryRank(cat, stats), [cat, stats]);
   return (

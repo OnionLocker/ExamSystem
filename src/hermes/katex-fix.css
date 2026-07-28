@@ -1,0 +1,59 @@
+/* KaTeX 排版微调
+ *
+ * 分数的可读性由两处共同保证，改动前请一起看：
+ *   1. MarkdownMessage.jsx 的 KATEX_OPTIONS —— \frac 按 \dfrac 排版、minRuleThickness
+ *      撑开线条厚度与上下间距。几何（分子分母的位置）只在那里调。
+ *   2. 本文件 —— 纯视觉层：字号、呼吸空间、溢出处理，外加线条厚度的像素下限。
+ */
+
+/* 行内公式默认偏小，整体放大一点 */
+.katex {
+  font-size: 1.08em;
+}
+
+/* KaTeX 把分数线算成 em 厚度，小字号下可能不足一个物理像素而被浏览器抹掉；
+   这里兜一个像素下限。内联 border-bottom-width 是 KaTeX 写的，只能用 !important 盖。 */
+.katex .frac-line,
+.katex .overline .overline-line,
+.katex .underline .underline-line,
+.katex .hline {
+  border-bottom-width: max(1.5px, 0.07em) !important;
+  border-bottom-color: currentColor;
+}
+
+/* 中文没有对应的 KaTeX 字体，走 cjk_fallback，而 KaTeX 是按西文 metrics 算行高的：
+   中文字形占满 em box，分母顶部会直接顶在分数线上、把横线糊掉（“增量/基期”这类）。
+   缩一档字号让字形退回 metrics 之内，线两侧就有空隙了。 */
+.katex .mfrac .cjk_fallback {
+  font-size: 0.85em;
+}
+
+/* 行内分数上下需要一点呼吸空间，否则会顶到相邻行 */
+.katex .mfrac {
+  padding: 0.08em 0;
+}
+
+/* 含行内分数的段落把行高放宽，避免上下两行的分数互相贴住 */
+.katex-inline-host {
+  line-height: 2;
+}
+
+/* 块级公式（$$…$$）居中、给足上下间距；超长公式横向滚动而不撑破容器 */
+.katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.3em 0.15em 0.45em;
+}
+
+.katex-display > .katex {
+  font-size: 1.15em;
+  white-space: nowrap;
+}
+
+/* 公式语法错误时 KaTeX 输出红色源码，别让它撑破布局 */
+.katex-error {
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 0.9em;
+}

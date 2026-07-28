@@ -23,6 +23,8 @@ import {
 // 学习打卡主面板：顶部汇总 + 快速录入（可折叠）+ 今日明细
 // ============================================================
 const StudyLogPanel = ({ version, onChange }) => {
+  // version 是有意的缓存失效信号：loadLog 读 localStorage，eslint 看不到这层依赖
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const log = useMemo(() => loadLog(), [version]);
   const stats = useMemo(() => summarize(log), [log]);
   const bump = () => onChange?.();

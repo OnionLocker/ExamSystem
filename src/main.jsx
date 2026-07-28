@@ -14,7 +14,7 @@ class RootErrorBoundary extends Component {
     return { error }
   }
   componentDidCatch(error, info) {
-    // eslint-disable-next-line no-console
+     
     console.error('[RootErrorBoundary]', error, info)
     this.setState({ info })
   }
@@ -68,6 +68,8 @@ class RootErrorBoundary extends Component {
 
 // 根据 URL 参数决定入口：?popup=1 时启动"小窗练习"独立页
 const isPopup = new URLSearchParams(window.location.search).get('popup') === '1'
+// 入口文件按设计不导出任何东西，fast-refresh 规则在这里不适用
+// eslint-disable-next-line react-refresh/only-export-components
 const Root = isPopup ? PopupPractice : App
 
 createRoot(document.getElementById('root')).render(

@@ -82,7 +82,7 @@ const scheduleCloudPut = (key, value) => {
       });
     } catch (e) {
       // 服务器不可达不影响本地体验;下次写入或 hydrate 时会重试
-      // eslint-disable-next-line no-console
+       
       console.warn('[cloud] push fail', key, e?.message || e);
     }
   }, PUSH_DEBOUNCE_MS);
@@ -142,7 +142,7 @@ export const hydrateCloudStorage = async () => {
   try {
     serverData = await api('/api/kv');
   } catch (e) {
-    // eslint-disable-next-line no-console
+     
     console.warn('[cloud] hydrate offline', e?.message || e);
     return 'offline';
   }
@@ -161,7 +161,7 @@ export const hydrateCloudStorage = async () => {
         await api('/api/kv/batch', { method: 'POST', body: { items } });
         return 'migrated';
       } catch (e) {
-        // eslint-disable-next-line no-console
+         
         console.warn('[cloud] migrate fail', e?.message || e);
         return 'offline';
       }

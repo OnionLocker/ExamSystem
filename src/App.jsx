@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Upload,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -33,7 +34,7 @@ import Review from './review/Review.jsx';
 import Copybook from './copybook/Copybook.jsx';
 import StudyBoost from './studyBoost/StudyBoost.jsx';
 import Uploads from './uploads/Uploads.jsx';
-import { schedulePrefetchReviewImages } from './review/prefetchReviewImages.js';
+import HermesChat from './hermes/HermesChat.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
@@ -62,10 +63,28 @@ const weekdayShort = ['一', '二', '三', '四', '五', '六', '日'];
 const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EVENTS_KEY = 'exam_calendar_events';
 
+// 侧边栏导航项。定义在组件外层：如果写在 AppInner 内部，每次渲染都会得到一个
+// 新的组件类型，React 会把所有导航按钮卸载重建（丢失焦点、动画重放）。
+const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
+  <button
+    onClick={() => onSelect(id)}
+    className={`w-full flex items-center space-x-3 px-4 py-4 rounded-2xl transition-all duration-300 ${
+      activeTab === id
+        ? 'bg-[#1a1a1a] text-[#fbc02d] shadow-lg shadow-black/10'
+        : 'text-[#666] hover:bg-black/5 hover:text-black'
+    }`}
+  >
+    <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 2} />
+    <span className="font-bold tracking-tight">{label}</span>
+  </button>
+);
+
 const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [authed, setAuthed] = useState(!!getToken());
-  const [bootChecked, setBootChecked] = useState(false);
+  // 没有 token 就没什么可校验的，开局即视为"已检查完"；
+  // 有 token 时由下面的 checkAuth effect 负责置位
+  const [bootChecked, setBootChecked] = useState(() => !getToken());
   // 学习日志版本号：每次增删写入后 +1，驱动日历/面板重渲染
   const [studyVersion, setStudyVersion] = useState(0);
   const bumpStudy = () => setStudyVersion((v) => v + 1);
@@ -111,10 +130,9 @@ const AppInner = () => {
   }, []);
 
   useEffect(() => {
-    if (!getToken()) {
-      setBootChecked(true);
-      return;
-    }
+    // 无 token 时不需要校验：bootChecked 的初始值已经据此算好（见 useState），
+    // 这里直接返回，避免在 effect 同步体内 setState 触发额外一轮渲染。
+    if (!getToken()) return;
     checkAuth()
       .then(async (r) => {
         if (!r.authed) {
@@ -235,20 +253,6 @@ const AppInner = () => {
     );
   }
 
-
-  const SidebarItem = ({ id, icon: Icon, label }) => (
-    <button
-      onClick={() => setActiveTab(id)}
-      className={`w-full flex items-center space-x-3 px-4 py-4 rounded-2xl transition-all duration-300 ${
-        activeTab === id
-          ? 'bg-[#1a1a1a] text-[#fbc02d] shadow-lg shadow-black/10'
-          : 'text-[#666] hover:bg-black/5 hover:text-black'
-      }`}
-    >
-      <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 2} />
-      <span className="font-bold tracking-tight">{label}</span>
-    </button>
-  );
 
   const renderCalendar = () => {
     const { year, month } = viewMonth;
@@ -529,15 +533,16 @@ const AppInner = () => {
         </div>
 
         <nav className="flex-1 space-y-3">
-          <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" />
-          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" />
-          <SidebarItem id="copybook" icon={PenTool} label="字帖练习" />
-          <SidebarItem id="review" icon={BookMarked} label="复习" />
-          <SidebarItem id="practice" icon={BookOpen} label="数资练习" />
-          <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" />
-          <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" />
-          <SidebarItem id="uploads" icon={Upload} label="资料上传" />
-          <SidebarItem id="mixer" icon={Sliders} label="声音混音器" />
+          <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="copybook" icon={PenTool} label="字帖练习" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="review" icon={BookMarked} label="复习" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="mixer" icon={Sliders} label="声音混音器" activeTab={activeTab} onSelect={setActiveTab} />
         </nav>
 
         <div className="pt-6 border-t border-black/5 space-y-2">
@@ -573,6 +578,7 @@ const AppInner = () => {
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
               {activeTab === 'uploads' && '资料上传'}
+              {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
@@ -580,7 +586,14 @@ const AppInner = () => {
           <TopBarTimer onOpen={() => setActiveTab('pomodoro')} />
         </header>
 
-        <div className="flex-1 overflow-y-auto p-10 pt-4 space-y-10">
+        {/* Hermes 对话页要占满高度且自己管滚动，故单独用 overflow-hidden 容器 */}
+        <div
+          className={
+            activeTab === 'hermes'
+              ? 'flex-1 overflow-hidden px-10 pb-6 pt-2'
+              : 'flex-1 overflow-y-auto p-10 pt-4 space-y-10'
+          }
+        >
           {activeTab === 'dashboard' && (
             <div className="space-y-10">
               <StudyLogPanel version={studyVersion} onChange={bumpStudy} />
@@ -610,6 +623,8 @@ const AppInner = () => {
           {activeTab === 'mockexam' && <MockExam />}
 
           {activeTab === 'uploads' && <Uploads />}
+
+          {activeTab === 'hermes' && <HermesChat />}
 
           {activeTab === 'mixer' && <Mixer />}
         </div>

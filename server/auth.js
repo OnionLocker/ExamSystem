@@ -31,6 +31,9 @@ export const authMiddleware = (req, res, next) => {
   return res.status(401).json({ error: 'unauthorized' });
 };
 
+// 校验裸 token（不经 Express 中间件的场景使用，例如 WebSocket upgrade）
+export const isValidToken = (token) => !!(token && tokens.has(token));
+
 export const authRouter = Router();
 
 // POST /api/auth/login  { password }

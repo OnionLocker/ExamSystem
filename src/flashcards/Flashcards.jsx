@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Layers, RotateCcw, ChevronRight, Check, X, Eye, Sparkles } from 'lucide-react';
-import { DECKS, getCard } from './decks.js';
+import { DECKS } from './decks.js';
 import {
   loadProgress,
   filterDueCards,
@@ -28,8 +28,11 @@ const Flashcards = () => {
 
   if (activeDeckId) {
     const deck = DECKS.find((d) => d.id === activeDeckId);
+    // key 让换牌组时组件重新挂载：抽题队列在挂载时洗一次牌，
+    // 没有 key 会复用同一实例、沿用上一组的队列
     return (
       <ReviewSession
+        key={deck.id}
         deck={deck}
         onExit={() => setActiveDeckId(null)}
       />
@@ -149,25 +152,45 @@ const DeckList = ({ onSelect }) => {
 
 // ============== 复习会话 ==============
 const ReviewSession = ({ deck, onExit }) => {
-  // 取出所有要做的卡（到期 + 新卡），shuffle
-  const queue = useMemo(() => {
+  // 取出所有要做的卡（到期 + 新卡）并打乱。
+  // 用 useState 的惰性初始化而不是 useMemo：洗牌依赖 Math.random()，
+  // 在渲染期调用属于不纯（StrictMode 双跑会得到两个不同顺序）。
+  // 放进 state 后只在本组件挂载时算一次；换 deck 时组件会按 key 重挂（见调用处）。
+  const [queue] = useState(() => {
     const { due, newCards } = filterDueCards(deck.cards);
     // 到期优先，再上新卡
     const arr = [...due, ...newCards];
-    // shuffle
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deck.id]);
+  });
 
   const [idx, setIdx] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [stats, setStats] = useState({ correct: 0, hard: 0, fail: 0 });
 
   const card = queue[idx];
+
+  // 评分并进入下一张。定义在键盘 effect 之前：原先写在后面，effect 依赖它却
+  // 在声明前引用（运行时靠 effect 延后执行才没出错），顺序理顺后依赖也能写全。
+  const answer = useCallback(
+    (q) => {
+      if (!card) return;
+      const newState = review(getCardState(card.id), q);
+      setCardState(card.id, newState);
+      setStats((s) => ({
+        ...s,
+        correct: s.correct + (q >= 4 ? 1 : 0),
+        hard: s.hard + (q === 3 ? 1 : 0),
+        fail: s.fail + (q === 0 ? 1 : 0),
+      }));
+      setFlipped(false);
+      setIdx((i) => i + 1);
+    },
+    [card],
+  );
 
   // 键盘快捷键
   useEffect(() => {
@@ -187,22 +210,7 @@ const ReviewSession = ({ deck, onExit }) => {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card, flipped]);
-
-  const answer = (q) => {
-    if (!card) return;
-    const newState = review(getCardState(card.id), q);
-    setCardState(card.id, newState);
-    setStats((s) => ({
-      ...s,
-      correct: s.correct + (q >= 4 ? 1 : 0),
-      hard: s.hard + (q === 3 ? 1 : 0),
-      fail: s.fail + (q === 0 ? 1 : 0),
-    }));
-    setFlipped(false);
-    setIdx((i) => i + 1);
-  };
+  }, [card, flipped, answer, onExit]);
 
   if (!card) {
     return <SessionDone deck={deck} stats={stats} onExit={onExit} />;

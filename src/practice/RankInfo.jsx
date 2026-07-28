@@ -62,7 +62,6 @@ const RankInfo = ({ onClose }) => {
   );
 };
 
-// eslint-disable-next-line no-unused-vars
 const TabBtn = ({ id, tab, setTab, IconCmp, children }) => (
   <button
     onClick={() => setTab(id)}

@@ -41,7 +41,7 @@ router.put('/:key', (req, res) => {
   let str;
   try {
     str = JSON.stringify(value);
-  } catch (e) {
+  } catch {
     return res.status(400).json({ error: 'value 不是合法 JSON' });
   }
   if (Buffer.byteLength(str, 'utf8') > MAX_VAL_BYTES) {

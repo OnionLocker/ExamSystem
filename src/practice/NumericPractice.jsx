@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ChevronRight,
@@ -557,11 +557,11 @@ const SubRankChip = ({ subId, subName }) => {
     window.addEventListener('numeric-rank-change', onChange);
     return () => window.removeEventListener('numeric-rank-change', onChange);
   }, []);
-  const ladder = (() => {
-    // eslint-disable-next-line no-unused-expressions
-    version; // 触发重算
-    return getLadderInfo(subId);
-  })();
+  // version 变化时重新读取段位信息（getLadderInfo 读的是 localStorage，
+  // eslint 看不到这层依赖，所以要显式把 version 放进依赖里驱动重算）。
+  // 原先写成一句裸表达式 `version;`，意图不明还得挂 eslint 豁免。
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const ladder = useMemo(() => getLadderInfo(subId), [subId, version]);
   const rank = getRank(ladder.rankId);
   const base = getBaseMs(subId);
   const showLp = ladder.hasLadder && ladder.rankId !== 'unranked' && ladder.rankId !== 'king';
@@ -653,7 +653,9 @@ const RaceSizePicker = ({ value, onChange }) => {
 
 // ---------------- Session（做题页 + 键盘输入） ----------------
 const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
-  const [, setTick] = useState(0);
+  // 当前时刻由定时器推进。存时间戳而不是自增计数：渲染期直接读 Date.now()
+  // 属于不纯（同一次渲染重跑会得到不同结果），改成渲染只消费这个 state。
+  const [nowTs, setNowTs] = useState(() => Date.now());
   const [feedback, setFeedback] = useState(null); // null | { ok, skipped, answer }
   const [showTable, setShowTable] = useState(false);
   const timerRef = useRef(null);
@@ -679,7 +681,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   // 驱动"已用时"显示的定时刷新
   useEffect(() => {
     if (!ready) return undefined;
-    const id = setInterval(() => setTick((t) => t + 1), 100);
+    const id = setInterval(() => setNowTs(Date.now()), 100);
     return () => clearInterval(id);
   }, [ready]);
 
@@ -691,7 +693,20 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     };
   }, []);
 
-  // 键盘事件监听
+  // 键盘事件监听。
+  //
+  // 下面调用的 appendChar / submit / skip / flushAdvance 都定义在本组件后半段
+  // （它们依赖 `if (!session) return null` 之后解构出来的 current/input/records）。
+  // react-hooks 的 immutability 规则不接受"effect 引用后面声明的函数"，但这里
+  // 运行时是安全的：onKey 只在用户按键时执行，那时函数早已定义。
+  //
+  // 试过三种改法都不可行：① 把函数上移 → 它们要用的解构变量在 early-return 之后，
+  // 一起上移会让 hook 排在 early-return 后面（rules-of-hooks 报错）；
+  // ② 用 ref 转发 → 赋值写在渲染期违反 refs 规则，写进 effect 又排在 early-return 之后；
+  // ③ 改成函数声明靠提升 → 该规则不看提升，照样报错。
+  // 真正修好需要把 SessionView 拆成"外层 guard + 内层组件"，那会动到计时与判分
+  // 逻辑，风险不对等。故在此显式豁免，并留下原因。
+  /* eslint-disable react-hooks/immutability */
   useEffect(() => {
     const onKey = (e) => {
       if (!session) return;
@@ -743,14 +758,15 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, feedback, showTable]);
+  /* eslint-enable react-hooks/immutability */
 
   if (!session) return null;
   const { current, input, index, total, mode, records } = session;
-  const now = Date.now();
-  const elapsed = ready ? now - session.questionStartedAt : 0;
-  const totalElapsed = ready ? now - session.startedAt : 0;
+  // 用定时器推进的 nowTs，而不是渲染期再读一次时钟
+  const elapsed = ready ? nowTs - session.questionStartedAt : 0;
+  const totalElapsed = ready ? nowTs - session.startedAt : 0;
 
-  const appendChar = (ch) => {
+  function appendChar(ch) {
     setSession((s) => {
       if (!s) return s;
       if (s.input.length >= 12) return s;
@@ -759,8 +775,9 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       return { ...s, input: s.input + ch };
     });
   };
-  const backspace = () =>
+  function backspace() {
     setSession((s) => (s ? { ...s, input: s.input.slice(0, -1) } : s));
+  }
 
   const scheduleAdvance = (newRecords, fb) => {
     pendingRef.current = { newRecords };
@@ -773,7 +790,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     timerRef.current = setTimeout(flushAdvance, delay);
   };
 
-  const flushAdvance = () => {
+  function flushAdvance() {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -799,7 +816,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     });
   };
 
-  const submit = () => {
+  function submit() {
     if (feedback) return;
     if (input === '' || input === '-' || input === '.') return;
     const timeMs = Date.now() - session.questionStartedAt;
@@ -817,7 +834,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
     scheduleAdvance(newRecords, { ok: isCorrect, skipped: false, answer: current.answer });
   };
 
-  const skip = () => {
+  function skip() {
     if (feedback) return;
     const timeMs = Date.now() - session.questionStartedAt;
     const rec = {

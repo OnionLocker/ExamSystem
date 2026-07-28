@@ -347,6 +347,9 @@ class SoundEngine {
 
 const PomodoroContext = createContext(null);
 
+// context hook 与它的 Provider 放在同一文件是通行做法；拆开只为满足 fast-refresh
+// 反而让调用方多一个 import。这里只影响开发时热更新粒度，不影响运行时。
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePomodoro = () => {
   const ctx = useContext(PomodoroContext);
   if (!ctx) throw new Error('usePomodoro must be inside <PomodoroProvider>');
@@ -374,10 +377,11 @@ export const PomodoroProvider = ({ children }) => {
   const [history, setHistory] = useState(() => loadArr(HISTORY_KEY));
   const [, setTick] = useState(0);
   const phaseEndHandledRef = useRef(false);
-  const noiseRef = useRef(null);
-  if (!noiseRef.current && typeof window !== 'undefined') {
-    noiseRef.current = new SoundEngine();
-  }
+  // SoundEngine 只需构造一次。用 useState 的惰性初始化，而不是渲染期写 ref：
+  // 渲染期读写 ref 在 React 19 并发渲染下不保证只执行一次。
+  const [noiseEngine] = useState(() =>
+    typeof window !== 'undefined' ? new SoundEngine() : null,
+  );
 
   // 持久化
   useEffect(() => save(SETTINGS_KEY, settings), [settings]);
@@ -442,9 +446,14 @@ export const PomodoroProvider = ({ children }) => {
     const endedAt = (state.startedAt || 0) + (state.durationMs || 0);
     const finishedPhase = state.phase;
 
-    // 记录完成 & 计数
+    // 记录完成 & 计数。
+    // recordCompletion 内部会 setHistory，直接在 effect 同步体里调用会触发级联渲染，
+    // 所以挪到微任务里执行 —— 上面的 phaseEndHandledRef 已保证每个阶段只跑一次，
+    // 延后一个微任务不影响正确性（写的是历史记录，不参与本次渲染输出）。
     if (finishedPhase === 'work') {
-      recordCompletion('work', state.durationMs, state.startedAt, endedAt);
+      queueMicrotask(() =>
+        recordCompletion('work', state.durationMs, state.startedAt, endedAt),
+      );
     }
 
     // 通知/提示音
@@ -505,7 +514,7 @@ export const PomodoroProvider = ({ children }) => {
   // ------- 背景白噪音 -------
   // 根据 phase + settings 自动控制播放
   useEffect(() => {
-    const noise = noiseRef.current;
+    const noise = noiseEngine;
     if (!noise) return;
     const { bgmEnabled, bgmType, bgmVolume, bgmAutoStart, bgmPlayInBreak } = settings;
     const phase = state.phase;
@@ -523,20 +532,20 @@ export const PomodoroProvider = ({ children }) => {
     } else {
       if (noise.isPlaying) noise.stop();
     }
-  }, [state.phase, settings]);
+  }, [state.phase, settings, noiseEngine]);
 
   // 卸载时停掉
   useEffect(() => {
     return () => {
-      if (noiseRef.current) noiseRef.current.stop();
+      if (noiseEngine) noiseEngine.stop();
     };
-  }, []);
+  }, [noiseEngine]);
 
   // 手动开关 BGM（即使不在工作/休息阶段也能试听）
   // overrides: { type, volume } 可选，用于立即切换而不等 settings 更新
   const toggleBGM = useCallback(
     (forceOn, overrides = {}) => {
-      const noise = noiseRef.current;
+      const noise = noiseEngine;
       if (!noise) return;
       const willPlay = forceOn ?? !noise.isPlaying;
       if (willPlay) {
@@ -548,7 +557,7 @@ export const PomodoroProvider = ({ children }) => {
         noise.stop();
       }
     },
-    [settings],
+    [settings, noiseEngine],
   );
 
   // ------- 控制操作 -------

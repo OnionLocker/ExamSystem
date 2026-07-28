@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Check,
@@ -43,7 +43,9 @@ const fmtDuration = (sec) => {
 
 // 计时器 Hook：返回已经过去的秒数（每秒 tick）
 const useElapsed = (startMs, running) => {
-  const [now, setNow] = useState(Date.now());
+  // 惰性初始化：useState(Date.now()) 每次渲染都会求值（哪怕只用首次结果），
+  // 属于渲染期调用不纯函数；传函数则只在挂载时执行一次。
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -73,7 +75,7 @@ const ImageList = ({ images }) => {
 };
 
 // 单个选项按钮
-const OptionItem = ({ option, state, onClick, questionType, index }) => {
+const OptionItem = ({ option, state, onClick }) => {
   // state: idle | selected | correct | wrong | correct-hint
   const base =
     'w-full text-left px-5 py-4 rounded-2xl border-2 transition-all flex items-start space-x-3';
@@ -194,12 +196,10 @@ const QuestionCard = ({
 
       {/* 选项 */}
       <div className="mt-6 space-y-3">
-        {options.map((opt, i) => (
+        {options.map((opt) => (
           <OptionItem
             key={opt.key}
             option={opt}
-            index={i}
-            questionType={question.question_type}
             state={optionState(opt.key)}
             onClick={() => onToggle(opt.key)}
           />
@@ -270,7 +270,6 @@ const ExplanationCard = ({ feedback, question }) => {
 const ResultView = ({ label, total, answered, durationSec, onRetry, onExit }) => {
   const attempted = answered.length;
   const correct = answered.filter((a) => a.is_correct).length;
-  const wrong = attempted - correct;
   const accuracy = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
 
   return (
@@ -376,11 +375,20 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
   const [errMsg, setErrMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // 总计时（session 起始）
-  const sessionStartRef = useRef(Date.now());
-  // 每题起始时间
-  const questionStartRef = useRef(Date.now());
-  const totalElapsed = useElapsed(sessionStartRef.current, phase === 'running');
+  // 本场起始时刻。用 state 而不是 useRef(Date.now())：后者每次渲染都会求值
+  // （虽然只保留首次结果），且渲染期读 ref.current 也不合规。
+  // 「再开一把」时会重置它，所以是真正的可变状态，需要 setter。
+  const [sessionStart, setSessionStart] = useState(() => Date.now());
+  // 每题起始时间：只在事件回调里读写，用 ref 合适
+  const questionStartRef = useRef(sessionStart);
+  // 记录"本题开始"的时刻。包成 useCallback，规则才能确认取时钟发生在
+  // 事件回调而非渲染期（goNext 等普通函数无法被静态证明）。
+  const markQuestionStart = useCallback(() => {
+    questionStartRef.current = Date.now();
+  }, []);
+  const totalElapsed = useElapsed(sessionStart, phase === 'running');
+  // 本场用时（秒）。渲染期不再调 Date.now()，直接复用计时 Hook 的结果
+  const sessionDurationSec = totalElapsed;
 
   // 初始化：拉题 + 开 session
   useEffect(() => {
@@ -406,8 +414,8 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
         if (aborted) return;
         setSessionId(s.id);
         setQuestions(items);
-        sessionStartRef.current = Date.now();
-        questionStartRef.current = Date.now();
+        setSessionStart(Date.now());
+        markQuestionStart();
         setPhase('running');
       } catch (e) {
         if (!aborted) {
@@ -519,12 +527,12 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
     setIndex((i) => i + 1);
     setSelection(null);
     setFeedback(null);
-    questionStartRef.current = Date.now();
+    markQuestionStart();
   };
 
   const finish = async () => {
     try {
-      const durationSec = Math.round((Date.now() - sessionStartRef.current) / 1000);
+      const durationSec = Math.round((Date.now() - sessionStart) / 1000);
       await api(`/api/practice/sessions/${sessionId}/finish`, {
         method: 'POST',
         body: { duration_sec: durationSec },
@@ -627,7 +635,7 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
         label={label}
         total={total}
         answered={answered}
-        durationSec={Math.round((Date.now() - sessionStartRef.current) / 1000)}
+        durationSec={sessionDurationSec}
         onRetry={() => {
           // 简单粗暴：再开一把
           setPhase('loading');
@@ -636,8 +644,8 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
           setFeedback(null);
           setAnswered([]);
           setSessionId(null);
-          sessionStartRef.current = Date.now();
-          questionStartRef.current = Date.now();
+          setSessionStart(Date.now());
+          markQuestionStart();
           // 触发重拉
           (async () => {
             try {
@@ -658,8 +666,8 @@ const BankSession = ({ category, subCategory, label, onExit }) => {
               });
               setSessionId(s.id);
               setQuestions(items);
-              sessionStartRef.current = Date.now();
-              questionStartRef.current = Date.now();
+              setSessionStart(Date.now());
+              markQuestionStart();
               setPhase('running');
             } catch (e) {
               setErrMsg(e?.message || '加载失败');

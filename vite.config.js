@@ -51,6 +51,8 @@ export default defineConfig(async ({ command }) => {
         '/api': {
           target: 'http://localhost:3001',
           changeOrigin: true,
+          // Hermes 对话页走 /api/hermes/ws，需要代理 WebSocket
+          ws: true,
         },
       },
     },
@@ -62,6 +64,7 @@ export default defineConfig(async ({ command }) => {
         '/api': {
           target: 'http://localhost:3001',
           changeOrigin: true,
+          ws: true,
         },
       },
     },

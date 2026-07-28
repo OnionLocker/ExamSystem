@@ -32,23 +32,41 @@ const Uploads = () => {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // 只取数不写状态，写入交给调用方 —— 避免在 effect 同步体内 setState
+  const fetchList = useCallback(async () => {
     try {
       const res = await fetch('/api/uploads', { headers: authHeaders() });
       const data = await res.json();
-      setToday(data.today || '');
-      setDates(data.dates || []);
+      return { today: data.today || '', dates: data.dates || [] };
     } catch {
-      setMsg('加载列表失败');
-    } finally {
-      setLoading(false);
+      return { error: '加载列表失败' };
     }
   }, []);
 
+  const applyList = useCallback((data) => {
+    if (data.error) setMsg(data.error);
+    else {
+      setToday(data.today);
+      setDates(data.dates);
+    }
+    setLoading(false);
+  }, []);
+
+  // 供上传/删除后手动刷新
+  const load = useCallback(async () => {
+    applyList(await fetchList());
+  }, [fetchList, applyList]);
+
   useEffect(() => {
-    load();
-  }, [load]);
+    let alive = true;
+    (async () => {
+      const data = await fetchList();
+      if (alive) applyList(data);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [fetchList, applyList]);
 
   const doUpload = useCallback(
     async (files) => {

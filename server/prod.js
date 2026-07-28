@@ -91,12 +91,52 @@ function proxyApi(req, res) {
   req.pipe(proxyReq, { end: true });
 }
 
+// WebSocket 转发：Hermes 对话页走 /api/hermes/ws，需要把 upgrade 握手透传到 3001
+function proxyUpgrade(req, clientSocket, head) {
+  const proxyReq = http.request({
+    hostname: API_HOST,
+    port: API_PORT,
+    path: req.url,
+    method: 'GET',
+    headers: { ...req.headers, host: `${API_HOST}:${API_PORT}` },
+  });
+
+  proxyReq.on('upgrade', (proxyRes, upstreamSocket, upstreamHead) => {
+    const lines = Object.entries(proxyRes.headers).map(([k, v]) =>
+      Array.isArray(v) ? v.map((x) => `${k}: ${x}`).join('\r\n') : `${k}: ${v}`,
+    );
+    clientSocket.write(
+      `HTTP/1.1 101 Switching Protocols\r\n${lines.join('\r\n')}\r\n\r\n`,
+    );
+    if (upstreamHead?.length) clientSocket.unshift(upstreamHead);
+    upstreamSocket.pipe(clientSocket);
+    clientSocket.pipe(upstreamSocket);
+    upstreamSocket.on('error', () => clientSocket.destroy());
+    clientSocket.on('error', () => upstreamSocket.destroy());
+  });
+
+  // 后端拒绝升级（例如 401）：把状态行回给浏览器再断开
+  proxyReq.on('response', (proxyRes) => {
+    clientSocket.write(`HTTP/1.1 ${proxyRes.statusCode} ${proxyRes.statusMessage}\r\n\r\n`);
+    clientSocket.destroy();
+  });
+
+  proxyReq.on('error', () => clientSocket.destroy());
+  if (head?.length) proxyReq.write(head);
+  proxyReq.end();
+}
+
 const server = http.createServer((req, res) => {
   if (req.url.startsWith('/api')) {
     proxyApi(req, res);
   } else {
     serveStatic(req, res);
   }
+});
+
+server.on('upgrade', (req, socket, head) => {
+  if (req.url.startsWith('/api')) proxyUpgrade(req, socket, head);
+  else socket.destroy();
 });
 
 server.listen(PORT, '0.0.0.0', () => {

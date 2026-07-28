@@ -70,7 +70,9 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   const [qStartedAt, setQStartedAt] = useState(() => Date.now());
   // 本次会话开始时间（总时间）
   const [sessionStartedAt, setSessionStartedAt] = useState(() => Date.now());
-  const [, setTick] = useState(0);
+  // 当前时刻由定时器推进。存时间戳而不是自增计数：渲染期直接调 Date.now()
+  // 属于不纯（同一次渲染重跑结果不同），改成渲染只消费这个 state。
+  const [now, setNow] = useState(() => Date.now());
 
   const timerRef = useRef(null);
   const pendingRef = useRef(null);
@@ -78,7 +80,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   // 定时刷新当前题用时
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 100);
+    const id = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(id);
   }, []);
 
@@ -280,8 +282,9 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   const total = stats.correct + stats.wrong + stats.skipped;
   const accuracy = total > 0 ? Math.round((stats.correct / total) * 100) : 0;
   const avgMs = total > 0 ? Math.round(stats.totalMs / total) : null;
-  const currentMs = Date.now() - qStartedAt;
-  const sessionMs = Date.now() - sessionStartedAt;
+  // 用定时器推进的 now，而不是渲染期再读一次时钟
+  const currentMs = now - qStartedAt;
+  const sessionMs = now - sessionStartedAt;
 
   return (
     <div

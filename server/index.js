@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,7 @@ import reviewsRouter from './routes/reviews.js';
 import kvRouter from './routes/kv.js';
 import uploadsRouter from './routes/uploads.js';
 import reviewModulesRouter from './routes/reviewModules.js';
+import { attachHermesWs } from './routes/hermesChat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,6 +39,11 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+
+// 显式创建 http server：Hermes 对话页需要挂 WebSocket upgrade
+const server = http.createServer(app);
+attachHermesWs(server);
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`[api] listening on http://localhost:${PORT}`);
 });

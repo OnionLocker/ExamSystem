@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import { BookOpen, Search, CheckCircle2, Bookmark, Zap, ArrowRight, Trophy, Sparkles, HelpCircle, Flame, ShieldAlert, Lightbulb } from 'lucide-react';
 import rawWordsData from '../copybook/words_data_enriched.json';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
@@ -47,15 +47,22 @@ export default function StudyBoost() {
     cloudSet(MASTERED_KEY, next);
   };
 
-  // 生成混淆测试题
-  const generateQuestion = (index) => {
-    const targetWord = filteredWords[index % filteredWords.length] || rawWordsData[0];
-    const dists = rawWordsData.filter(w => w.id !== targetWord.id).sort(() => 0.5 - Math.random()).slice(0, 3);
-    const options = [targetWord, ...dists].sort(() => 0.5 - Math.random());
-    return { targetWord, options };
-  };
+  // 生成混淆测试题。用 useCallback 固定身份，才能安全地放进下面 useMemo 的依赖里
+  // （它读 filteredWords，漏掉依赖会拿到旧的词表闭包）
+  const generateQuestion = useCallback(
+    (index) => {
+      const targetWord = filteredWords[index % filteredWords.length] || rawWordsData[0];
+      const dists = rawWordsData.filter(w => w.id !== targetWord.id).sort(() => 0.5 - Math.random()).slice(0, 3);
+      const options = [targetWord, ...dists].sort(() => 0.5 - Math.random());
+      return { targetWord, options };
+    },
+    [filteredWords]
+  );
 
-  const currentQuestion = useMemo(() => generateQuestion(currentQuestionIndex), [currentQuestionIndex, filteredWords]);
+  const currentQuestion = useMemo(
+    () => generateQuestion(currentQuestionIndex),
+    [currentQuestionIndex, generateQuestion]
+  );
 
   const handleChoice = (option) => {
     setUserChoice(option.id);

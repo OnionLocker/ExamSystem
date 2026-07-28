@@ -53,27 +53,34 @@ const MockExam = () => {
     loadState() || { startedAt: null, pausedRemaining: null, finished: false },
   );
   const [editing, setEditing] = useState(false);
-  const [, setTick] = useState(0);
+  // 当前时刻由 1Hz 定时器推进，渲染期只读它（见下方 effect）
+  const [now, setNow] = useState(() => Date.now());
   const lastBlockRef = useRef(-1);
 
   useEffect(() => saveState(state), [state]);
   useEffect(() => saveBlocks(blocks), [blocks]);
 
-  // 1Hz tick
+  // 1Hz tick：存的是"当前时刻"而不是自增计数。
+  // 渲染期直接读 Date.now() 属于不纯（同一次渲染重跑会得到不同结果），
+  // 所以把时间戳作为 state 由定时器推进，渲染只消费它。
+  // useState 的初始值已经是当前时刻，这里只需启动定时器推进它
   useEffect(() => {
-    const id = setInterval(() => setTick((v) => v + 1), 1000);
+    const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
 
   // 计算累计起始秒
-  const blockStarts = useMemo(() => {
-    let acc = 0;
-    return blocks.map((b) => {
-      const s = acc;
-      acc += b.minutes * 60;
-      return s;
-    });
-  }, [blocks]);
+  // 前缀和：每个 block 的累计起始秒。
+  // 不用 map + 外部累加变量（那是渲染期改外部状态，React 19 会告警），
+  // 改成 reduce 里只操作自己的累加器。
+  const blockStarts = useMemo(
+    () =>
+      blocks.reduce((acc, b, i) => {
+        acc.push(i === 0 ? 0 : acc[i - 1] + blocks[i - 1].minutes * 60);
+        return acc;
+      }, []),
+    [blocks]
+  );
   const totalSec = blocks.reduce((s, b) => s + b.minutes * 60, 0);
 
   // 当前剩余秒（纯计算）
@@ -83,23 +90,23 @@ const MockExam = () => {
   } else if (state.pausedRemaining != null) {
     elapsedSec = totalSec - state.pausedRemaining;
   } else if (state.startedAt) {
-    elapsedSec = Math.min(totalSec, Math.floor((Date.now() - state.startedAt) / 1000));
+    elapsedSec = Math.min(totalSec, Math.floor((now - state.startedAt) / 1000));
   } else {
     elapsedSec = 0;
   }
   const remainingSec = totalSec - elapsedSec;
 
-  // 时间到自动设置 finished（用 effect，避免 render 期 setState）
-  useEffect(() => {
-    if (
-      !state.finished &&
-      state.startedAt != null &&
-      state.pausedRemaining == null &&
-      elapsedSec >= totalSec
-    ) {
-      setState((s) => ({ ...s, finished: true }));
-    }
-  }, [elapsedSec, totalSec, state.finished, state.startedAt, state.pausedRemaining]);
+  // 时间到自动收卷。
+  // 不放在独立 effect 里：那样每次 tick 都要先渲染一遍再 setState 触发第二遍。
+  // 这里在渲染期按"已算出的 elapsedSec"判断，条件里带 !finished 保证只翻转一次。
+  if (
+    !state.finished &&
+    state.startedAt != null &&
+    state.pausedRemaining == null &&
+    elapsedSec >= totalSec
+  ) {
+    setState((s) => (s.finished ? s : { ...s, finished: true }));
+  }
 
   // 当前 block 索引
   let currentBlockIdx = -1;
