@@ -40,83 +40,88 @@ export const THRESHOLDS = [
 // 其余达标但达不到白银 → 青铜
 
 // ---------------- 子项基准用时 baseMs（毫秒） ----------------
-// 这是"王者基线"：顶尖考生的平均每题用时。
+// 这是"王者基线"：顶尖考生做**本站生成题**的平均每题用时（含读题 + 心算 + 键入）。
+//
+// 口径必须对齐生成题、不能照搬真题耗时：生成题把读材料、定位数据、判断问法
+// 全省了（资料分析尤其明显 —— 题干就是"基期 500，现期 700，增长率≈?"）。
+// 基线按真题估会让 speedRatio 虚高，perf 轻松破王者线，正确率再低也一路涨段。
 export const SUB_BASE_MS = {
-  // basic 基本计算
-  add3:      8000,
-  sub3:      8000,
-  addsub3:   8000,
-  add4:      10000,
-  mul3x1:    9000,
-  div3by1:   10000,
-  mul2x2:    10000,
-  big99:     6000,
-  mulEst:    7000,
-  div5by3:   15000,
-  // aux 计算辅助
-  carryAdd:  4000,
-  borrowSub: 4000,
-  mulBy2:    4000,
-  mulBy3:    4000,
-  mulBy4:    4000,
-  mulBy5:    4000,
-  mulBy6:    4000,
-  mulBy9:    4000,
-  mulBy11:   5000,
-  mulBy15:   5000,
-  fracToDec: 5000,
-  decToFrac: 5000,
-  pctToFrac: 5000,
-  fracToPct: 5000,
-  pctToFracEst: 8000,
-  square:    4000,
-  // quant 数量关系
-  ratio:       25000,
-  engineering: 25000,
-  amgm:        25000,
-  hanxin:      20000,
-  diophantine: 25000,
-  gcdQ:        20000,
-  lcmQ:        20000,
-  weekday:     18000,
-  encounter:    20000,
-  pursue:       20000,
-  boat:         25000,
-  mixture:      30000,
-  dilute:       25000,
-  inclusion2:   25000,
-  permutation:  20000,
-  combination:  20000,
-  probability:  20000,
-  chickenRabbit: 20000,
-  age:           25000,
-  profit:        25000,
-  planting:      18000,
-  squareFormation: 18000,
-  // numReason 数字推理（行测高频，每题平均 60s 是王者标准）
-  arithSeq:    20000,
-  geoSeq:      20000,
-  sumSeq:      25000,
-  productSeq:  25000,
-  powerSeq:    30000,
-  multiArith:  35000,
-  // data 资料分析
-  baseQtyRough: 20000,
-  baseQtyExact: 30000,
-  growthAmt:    20000,
-  growthRate:   20000,
-  baseDiff:     30000,
-  prodGrowth:   35000,
-  divGrowth:    35000,
-  avgGrowth:    35000,
-  baseRatio:    40000,
-  ratioDiff:    40000,
-  pullGrowth:   40000,
-  contribute:   40000,
-  annualGrowth: 40000,
-  mixedGrowth:  35000,
-  multipleOf:   12000,
-  percentagePoint: 18000,
+  // basic 基本计算（题干就是算式，时间 = 心算 + 键入答案）
+  add3:      4500,
+  sub3:      4500,
+  addOrSub3: 4500,
+  addsub3:   6000,
+  add4:      6500,
+  mul3x1:    5000,
+  div3by1:   5500,
+  mul2x2:    6000,
+  big99:     3000,
+  mulEst:    4000,
+  div5by3:   8000,
+  // aux 计算辅助（记忆型速算，答案短）
+  carryAdd:  1500,
+  borrowSub: 1600,
+  mulBy2:    1500,
+  mulBy3:    1600,
+  mulBy4:    1700,
+  mulBy5:    1600,
+  mulBy6:    1800,
+  mulBy9:    1800,
+  mulBy11:   2200,
+  mulBy15:   2500,
+  fracToDec: 2500,
+  decToFrac: 2600,
+  pctToFrac: 2200,
+  fracToPct: 2200,
+  pctToFracEst: 3500,
+  square:    1800,
+  // quant 数量关系（要读题建模，但题干只有一行、数字友好）
+  ratio:       12000,
+  engineering: 13000,
+  amgm:         7000,
+  hanxin:      16000,
+  diophantine: 16000,
+  gcdQ:         9000,
+  lcmQ:         9000,
+  weekday:      7000,
+  encounter:    9000,
+  pursue:       9000,
+  boat:        11000,
+  mixture:     14000,
+  dilute:      11000,
+  inclusion2:  11000,
+  permutation:  9000,
+  combination:  9000,
+  probability:  7000,
+  chickenRabbit: 9000,
+  age:          11000,
+  profit:       12000,
+  planting:      7000,
+  squareFormation: 4500,
+  // numReason 数字推理（生成题带规律提示，比真题快得多）
+  arithSeq:     7000,
+  geoSeq:       7000,
+  sumSeq:       7000,
+  productSeq:   7000,
+  powerSeq:    11000,
+  multiArith:  12000,
+  // data 资料分析（生成题是纯计算，没有读材料/定位数据的开销）
+  baseQtyRough:  8000,
+  baseQtyExact: 11000,
+  growthAmt:     9000,
+  growthRate:    7000,
+  baseDiff:      8000,
+  prodGrowth:    8000,
+  divGrowth:    10000,
+  avgGrowth:    10000,
+  baseRatio:    12000,
+  ratioDiff:    14000,
+  pullGrowth:   11000,
+  contribute:    7000,
+  annualGrowth: 14000,
+  mixedGrowth:  11000,
+  multipleOf:    5000,
+  percentagePoint: 6000,
 };
 
 export const getBaseMs = (subId) => SUB_BASE_MS[subId] || 15000;
@@ -186,7 +191,7 @@ const saveStats = (stats) => cloudSet(STATS_KEY, stats);
 // ---------------- LP 系统 ----------------
 // 每段位的「合格 perf 标准」：perf = (baseMs/avgMs) * accuracy
 // 高于此值得正分，低于此值得负分
-const PERF_STD = {
+export const PERF_STD = {
   unranked: 0.20,
   bronze:   0.30,
   silver:   0.45,
@@ -197,14 +202,33 @@ const PERF_STD = {
   king:     1.20,
 };
 
+// 准度奖惩（LP 直接加减）：公考的失分点是准度而不是手速，低于 85% 就开始扣分。
+// 旧规则只在 <70% 才罚，70~95% 是一整段"无所谓"的平地，于是刷手速最划算。
+// [正确率下限, LP 奖惩]，由高到低取第一条命中的
+export const ACC_BONUS_TIERS = [
+  [0.95,  10],
+  [0.85,   0],
+  [0.75, -10],
+  [0.65, -20],
+  [0,    -30], // 抵掉全部速度优势：这个准度在考场上是不及格的
+];
+
+export const accBonusFor = (accuracy) =>
+  ACC_BONUS_TIERS.find(([min]) => accuracy >= min)?.[1] ?? 0;
+
+// 速度项封顶：比基线快 1.5 倍以上不再额外加分。
+// 没有封顶时，1 秒做完基线 4 秒的题会算出 speedRatio=4、perf 远超王者线 1.20，
+// 每场都吃 +40 上限，正确率再低也一路涨段 —— 段位就变成了纯手速榜。
+export const SPEED_RATIO_CAP = 1.5;
+
 // 每场 LP 上下限（避免一场翻盘）
-const LP_DELTA_MIN = -30;
-const LP_DELTA_MAX = 40;
+export const LP_DELTA_MIN = -30;
+export const LP_DELTA_MAX = 40;
 
 // 升段后留 30 LP 缓冲（避免立刻掉段）
-const LP_AFTER_PROMOTE = 30;
+export const LP_AFTER_PROMOTE = 30;
 // 掉段后留 70 LP 缓冲（不至于刚掉段又立马再掉）
-const LP_AFTER_DEMOTE = 70;
+export const LP_AFTER_DEMOTE = 70;
 
 // 累计段位下限保护：ladderRank 不能比 evaluate(累计) 低 N 阶以上
 const PROTECT_GAP = 2;
@@ -237,7 +261,8 @@ export const computeRaceLpChange = (prevStat, raceResult, subId, cumulRankId) =>
   const accuracy = total > 0 ? correct / total : 0;
   const avgMs = total > 0 ? raceResult.totalMs / total : 0;
   const base = getBaseMs(subId);
-  const speedRatio = avgMs > 0 ? base / avgMs : 0; // >1 = 比基线快
+  // >1 = 比基线快；封顶之后再快也不换分，把胜负交回准度
+  const speedRatio = avgMs > 0 ? Math.min(base / avgMs, SPEED_RATIO_CAP) : 0;
 
   // 当前段位（首次进入：用累计 evaluate 的结果或 bronze 兜底）
   const lpBefore = Number.isFinite(prevStat?.lp) ? prevStat.lp : 50;
@@ -248,10 +273,7 @@ export const computeRaceLpChange = (prevStat, raceResult, subId, cumulRankId) =>
   const std = PERF_STD[rankBefore] ?? PERF_STD.bronze;
   const perf = speedRatio * accuracy;
 
-  // 准度奖惩
-  let accBonus = 0;
-  if (accuracy >= 0.95) accBonus = 10;
-  else if (accuracy < 0.7) accBonus = -10;
+  const accBonus = accBonusFor(accuracy);
 
   // 主体公式：(perf - std) × 80 + 准度奖惩，截断到 [-30, +40]
   let delta = Math.round((perf - std) * 80) + accBonus;

@@ -1,6 +1,19 @@
 import { useState } from 'react';
-import { X, Trophy, Target, Layers, Activity } from 'lucide-react';
-import { RANKS, THRESHOLDS, MIN_COUNT, getRank, SUB_BASE_MS } from './ranks.js';
+import { X, Trophy, Target, Layers, Activity, TrendingUp } from 'lucide-react';
+import {
+  RANKS,
+  THRESHOLDS,
+  MIN_COUNT,
+  getRank,
+  SUB_BASE_MS,
+  PERF_STD,
+  ACC_BONUS_TIERS,
+  SPEED_RATIO_CAP,
+  LP_DELTA_MIN,
+  LP_DELTA_MAX,
+  LP_AFTER_PROMOTE,
+  LP_AFTER_DEMOTE,
+} from './ranks.js';
 import { CATEGORIES } from './generators.js';
 import RankBadge from './RankBadge.jsx';
 
@@ -46,6 +59,7 @@ const RankInfo = ({ onClose }) => {
         <div className="flex space-x-2 px-8 pt-5">
           <TabBtn id="overview" tab={tab} setTab={setTab} IconCmp={Trophy}>段位预览</TabBtn>
           <TabBtn id="thresholds" tab={tab} setTab={setTab} IconCmp={Target}>评定阈值</TabBtn>
+          <TabBtn id="lp" tab={tab} setTab={setTab} IconCmp={TrendingUp}>LP 升降</TabBtn>
           <TabBtn id="aggregation" tab={tab} setTab={setTab} IconCmp={Layers}>聚合规则</TabBtn>
           <TabBtn id="baselines" tab={tab} setTab={setTab} IconCmp={Activity}>基线时间</TabBtn>
         </div>
@@ -54,6 +68,7 @@ const RankInfo = ({ onClose }) => {
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {tab === 'overview' && <OverviewPanel />}
           {tab === 'thresholds' && <ThresholdsPanel />}
+          {tab === 'lp' && <LpPanel />}
           {tab === 'aggregation' && <AggregationPanel />}
           {tab === 'baselines' && <BaselinesPanel />}
         </div>
@@ -205,6 +220,111 @@ const ThresholdsPanel = () => (
     </div>
   </div>
 );
+
+// ----- LP 升降 -----
+// 说明文案不写死数字，全部从 ranks.js 的导出常量读，调参后这一页自动跟着变
+const LpPanel = () => {
+  const ranked = RANKS.filter((r) => r.id !== 'unranked');
+  return (
+    <div className="space-y-6">
+      <div className="bg-[#1a1a1a] text-white rounded-2xl p-6">
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">
+          晋升模式每完成一场，按这场的表现算涨跌
+        </p>
+        <div className="space-y-2">
+          <p className="font-mono text-xs bg-white/[0.07] rounded-xl px-4 py-3 leading-relaxed">
+            perf = min(基线用时 ÷ 你的平均用时, {SPEED_RATIO_CAP}) × 正确率
+          </p>
+          <p className="font-mono text-xs bg-white/[0.07] rounded-xl px-4 py-3 leading-relaxed">
+            ΔLP = (perf − 本段合格线) × 80 + 准度奖惩
+          </p>
+        </div>
+        <p className="text-xs text-white/60 mt-4 leading-relaxed font-medium">
+          单场涨跌夹在 {LP_DELTA_MIN} ~ +{LP_DELTA_MAX} LP，一场翻不了盘。LP 满 100 升段（升后回落到{' '}
+          {LP_AFTER_PROMOTE} LP），跌破 0 掉段（掉后留 {LP_AFTER_DEMOTE} LP 缓冲），青铜不再往下掉。
+          训练模式不计 LP。
+        </p>
+      </div>
+
+      <div className="bg-white border border-[#f2f0e9] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#f2f0e9]">
+          <p className="text-sm font-black">各段位的合格线</p>
+          <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+            比本段合格线打得好就涨、差就跌 —— 段位越高标准越严，所以不会一直涨
+          </p>
+        </div>
+        <div className="divide-y divide-[#f2f0e9]">
+          {ranked.map((r) => (
+            <div key={r.id} className="flex items-center justify-between px-5 py-2.5">
+              <div className="flex items-center space-x-3">
+                <RankBadge rankId={r.id} size={26} />
+                <span className="font-black italic text-sm" style={{ color: r.color }}>
+                  {r.label}
+                </span>
+              </div>
+              <span className="font-black tabular-nums text-sm">
+                {(PERF_STD[r.id] ?? 0).toFixed(2)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white border border-[#f2f0e9] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#f2f0e9]">
+          <p className="text-sm font-black">准度奖惩</p>
+          <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+            在 perf 之外直接加减 LP，低于 85% 就开始扣
+          </p>
+        </div>
+        <div className="divide-y divide-[#f2f0e9]">
+          {ACC_BONUS_TIERS.map(([min, bonus], i) => {
+            const upper = i === 0 ? null : ACC_BONUS_TIERS[i - 1][0];
+            const label =
+              i === 0
+                ? `≥ ${(min * 100).toFixed(0)}%`
+                : min === 0
+                  ? `< ${(upper * 100).toFixed(0)}%`
+                  : `${(min * 100).toFixed(0)}% ~ ${(upper * 100).toFixed(0)}%`;
+            return (
+              <div key={min} className="flex items-center justify-between px-5 py-2.5">
+                <span className="text-sm font-bold tabular-nums">{label}</span>
+                <span
+                  className="font-black tabular-nums text-sm"
+                  style={{ color: bonus > 0 ? '#16a34a' : bonus < 0 ? '#dc2626' : '#94a3b8' }}
+                >
+                  {bonus > 0 ? `+${bonus}` : bonus} LP
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="bg-[#fef3c7] border border-[#fbc02d]/40 rounded-2xl p-5 space-y-3">
+        <div>
+          <p className="text-xs font-black text-[#7c2d12] mb-1.5 uppercase tracking-widest">
+            为什么速度要封顶
+          </p>
+          <p className="text-xs text-[#7c2d12] leading-relaxed font-medium">
+            不封顶的话，用四分之一基线的时间做完就会算出 speedRatio = 4，perf 直接顶破王者线
+            {PERF_STD.king.toFixed(2)}，<span className="font-black">正确率再低也每场满额加分</span>，
+            段位就退化成手速榜。封顶之后再快也不换分，胜负回到准度上。
+          </p>
+        </div>
+        <div className="border-t border-[#7c2d12]/15 pt-3">
+          <p className="text-xs font-black text-[#7c2d12] mb-1.5 uppercase tracking-widest">
+            基线是"生成题口径"
+          </p>
+          <p className="text-xs text-[#7c2d12] leading-relaxed font-medium">
+            基线按<span className="font-black">本站生成题</span>估，不是真题耗时。生成题省掉了读材料、
+            定位数据、判断问法（资料分析尤其明显），照搬真题的 20~40 秒会让 speedRatio 虚高。
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ----- 聚合规则 -----
 const AggregationPanel = () => (
