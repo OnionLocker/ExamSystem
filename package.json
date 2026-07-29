@@ -14,7 +14,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "validate:batch": "node scripts/validate-batch.mjs",
-    "import:batch": "node scripts/import-batch.mjs"
+    "import:batch": "node scripts/import-batch.mjs",
+    "clean:vocab": "node scripts/clean-vocab.mjs",
+    "validate:vocab-pack": "node scripts/validate-vocab-pack.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
