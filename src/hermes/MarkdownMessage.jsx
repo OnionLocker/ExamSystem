@@ -16,9 +16,32 @@ import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
 import './katex-fix.css';
 
+// navigator.clipboard 只在安全上下文里存在：明文 HTTP 访问（预览端口 4173
+// 走的就是 http，且不是 localhost）时它整个是 undefined，
+// 于是只剩 execCommand('copy') 这条老路可走
+const writeClipboard = async (text) => {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch { /* 权限被拒就落到 execCommand */ }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.cssText = 'position:fixed;top:-9999px;opacity:0';
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { ok = false; }
+  ta.remove();
+  return ok;
+};
+
 // 代码块：带语言标签和复制按钮
 const CodeBlock = ({ language, code }) => {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState('');
 
   const html = useMemo(() => {
     if (language && hljs.getLanguage(language)) {
@@ -34,11 +57,9 @@ const CodeBlock = ({ language, code }) => {
   }, [code, language]);
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch { /* 无剪贴板权限就算了 */ }
+    const ok = await writeClipboard(code);
+    setCopyState(ok ? 'ok' : 'fail');
+    setTimeout(() => setCopyState(''), 1800);
   };
 
   return (
@@ -52,8 +73,10 @@ const CodeBlock = ({ language, code }) => {
           title="复制代码"
           className="flex items-center space-x-1 text-[10px] font-bold text-[#666] hover:text-[#1a1a1a] transition-colors"
         >
-          {copied ? <Check size={12} /> : <Copy size={12} />}
-          <span>{copied ? '已复制' : '复制'}</span>
+          {copyState === 'ok' ? <Check size={12} /> : <Copy size={12} />}
+          <span>
+            {copyState === 'ok' ? '已复制' : copyState === 'fail' ? '复制失败，请手选' : '复制'}
+          </span>
         </button>
       </div>
       <pre className="px-4 py-3 overflow-x-auto text-[13px] leading-relaxed">

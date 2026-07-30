@@ -43,6 +43,7 @@ const HermesChat = () => {
   const [showThinking, setShowThinking] = useState(false);
   const [pendingImages, setPendingImages] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [dragOver, setDragOver] = useState(false);
 
   const scrollRef = useRef(null);
   const stickToBottom = useRef(true);
@@ -50,6 +51,9 @@ const HermesChat = () => {
   // sid 的镜像：send/interrupt 等回调里要读最新值，又不想因此重建回调
   const sidRef = useRef(null);
   useEffect(() => { sidRef.current = sid; }, [sid]);
+  // busy 是 state，setBusy 要等下一次渲染才拦得住第二次点击。
+  // 图片上传是 await，中间那几秒只能靠同步的 ref 挡住连点
+  const sendingRef = useRef(false);
 
   // ---------- 消息辅助 ----------
   const appendAssistantDelta = useCallback((text) => {
@@ -270,10 +274,29 @@ const HermesChat = () => {
   const send = useCallback(async () => {
     const gw = gwRef.current;
     const text = input.trim();
-    if (!gw || busy) return;
+    if (!gw || busy || sendingRef.current) return;
     if (!text && pendingImages.length === 0) return;
 
+    sendingRef.current = true;
+    const images = pendingImages;
+    const msgId = uid();
+
+    // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
+    // 图片上传要好几秒，这期间一点反馈都没有的话用户只会以为没发出去
     setBanner('');
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: msgId, role: 'user', content: text || '(图片)', streaming: false,
+        tools: [], thinking: '', images: images.map((i) => i.dataUrl),
+      },
+    ]);
+    setInput('');
+    setPendingImages([]);
+    setBusy(true);
+    setStatus(images.length > 0 ? '上传图片' : '已发送');
+    stickToBottom.current = true;
+
     let target = sidRef.current;
     try {
       // 还没有活动会话就先开一个
@@ -285,7 +308,7 @@ const HermesChat = () => {
       }
 
       // 图片先挂到会话上，再发文本
-      for (const img of pendingImages) {
+      for (const img of images) {
         await gw.request('image.attach_bytes', {
           session_id: target,
           content_base64: img.dataUrl,
@@ -293,25 +316,18 @@ const HermesChat = () => {
         });
       }
 
-      const shown = text || '(图片)';
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(), role: 'user', content: shown, streaming: false,
-          tools: [], thinking: '', images: pendingImages.map((i) => i.dataUrl),
-        },
-      ]);
-      setInput('');
-      setPendingImages([]);
-      setBusy(true);
-      setStatus('已发送');
-      stickToBottom.current = true;
-
       await gw.request('prompt.submit', { session_id: target, text: text || '看看这张图片' });
+      setStatus('已发送');
     } catch (err) {
+      // 没送出去就别把气泡留在那儿冒充已发送，内容还给输入框方便重发
       setBanner(`发送失败：${err.message}`);
+      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      setInput((cur) => cur || text);
+      setPendingImages((cur) => (cur.length > 0 ? cur : images));
       setBusy(false);
       setStatus('');
+    } finally {
+      sendingRef.current = false;
     }
   }, [busy, input, pendingImages]);
 
@@ -334,11 +350,10 @@ const HermesChat = () => {
     }
   };
 
-  // 粘贴图片
-  const onPaste = (e) => {
-    const files = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
-    if (files.length === 0) return;
-    e.preventDefault();
+  // 收图的公共入口，粘贴和拖拽都走这里；返回是否收到了图片
+  const addImageFiles = (fileList) => {
+    const files = [...(fileList || [])].filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) return false;
     for (const f of files) {
       if (f.size > IMAGE_MAX_BYTES) {
         setBanner(`图片过大（上限 ${IMAGE_MAX_BYTES / 1024 / 1024}MB）`);
@@ -353,6 +368,38 @@ const HermesChat = () => {
       };
       reader.readAsDataURL(f);
     }
+    return true;
+  };
+
+  // 粘贴图片
+  const onPaste = (e) => {
+    if (addImageFiles(e.clipboardData?.files)) e.preventDefault();
+  };
+
+  // 拖入图片。dragover 不 preventDefault 的话不会触发 drop，
+  // 浏览器会走默认行为直接打开这张图、把整个页面顶掉
+  const onDragOver = (e) => {
+    if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragOver(true);
+  };
+
+  const onDragLeave = (e) => {
+    // 在子元素之间移动也会冒 dragleave，只认真正离开容器的那次
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setDragOver(false);
+  };
+
+  const onDrop = (e) => {
+    if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+    e.preventDefault();
+    setDragOver(false);
+    if (connState !== 'open') {
+      setBanner('还没连上 Hermes，稍等一下再拖');
+      return;
+    }
+    if (!addImageFiles(e.dataTransfer?.files)) setBanner('只认图片文件');
   };
 
   // 自适应输入框高度
@@ -462,7 +509,12 @@ const HermesChat = () => {
       )}
 
       {/* ── 对话区 ── */}
-      <div className="flex-1 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden min-w-0">
+      <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        className="flex-1 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden min-w-0"
+      >
         <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">
           <div className="flex items-center space-x-2 min-w-0">
             {!sidebarOpen && (
@@ -573,7 +625,9 @@ const HermesChat = () => {
         </div>
 
         {/* ── 输入区 ── */}
-        <div className="px-5 py-3 border-t border-black/5">
+        <div className={`px-5 py-3 border-t transition-colors ${
+          dragOver ? 'border-[#fbc02d] bg-[#fbc02d]/10' : 'border-black/5'
+        }`}>
           {pendingImages.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingImages.map((img) => (
@@ -598,7 +652,9 @@ const HermesChat = () => {
               onKeyDown={onKeyDown}
               onPaste={onPaste}
               rows={1}
-              placeholder={connState === 'open' ? 'Enter 发送，Shift+Enter 换行，可粘贴图片' : '等待连接…'}
+              placeholder={connState === 'open'
+                ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，Shift+Enter 换行，图片可粘贴或拖入')
+                : '等待连接…'}
               disabled={connState !== 'open'}
               className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#fbc02d] transition-colors disabled:bg-black/[0.03] disabled:text-[#bbb]"
             />
