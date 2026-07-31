@@ -51,6 +51,9 @@ const HermesChat = () => {
   // sid 的镜像：send/interrupt 等回调里要读最新值，又不想因此重建回调
   const sidRef = useRef(null);
   useEffect(() => { sidRef.current = sid; }, [sid]);
+  // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
+  const activeStoredIdRef = useRef(null);
+  useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
   // busy 是 state，setBusy 要等下一次渲染才拦得住第二次点击。
   // 图片上传是 await，中间那几秒只能靠同步的 ref 挡住连点
   const sendingRef = useRef(false);
@@ -277,6 +280,12 @@ const HermesChat = () => {
     if (!gw || busy || sendingRef.current) return;
     if (!text && pendingImages.length === 0) return;
 
+    // 挂机回来常见的一种失败：WS 断开超过宽限期后，服务端把会话回收了
+    // （end_reason=ws_orphan_reap）。WS 自己会重连，所以界面看着是「已连接」，
+    // 但我们手里的 sid 已经失效，一发就报 session not found。
+    // 这时候静默换一个可用会话再重发，不该让用户手动刷新页面。
+    const isSessionGone = (err) => /session not found/i.test(err?.message || '');
+
     sendingRef.current = true;
     const images = pendingImages;
     const msgId = uid();
@@ -297,17 +306,23 @@ const HermesChat = () => {
     setStatus(images.length > 0 ? '上传图片' : '已发送');
     stickToBottom.current = true;
 
-    let target = sidRef.current;
-    try {
-      // 还没有活动会话就先开一个
-      if (!target) {
-        const res = await gw.request('session.create', { cols: 100, cwd: '/home/ubuntu' });
-        target = res.session_id;
-        sidRef.current = target;
-        setSid(target);
+    // 拿一个可用会话：优先 resume 当前存档（能保住上下文），
+    // 没有存档可 resume 就新建一个
+    const acquireSession = async () => {
+      const stored = activeStoredIdRef.current;
+      if (stored) {
+        try {
+          const res = await gw.request('session.resume', { session_id: stored, cols: 100 });
+          return res.session_id;
+        } catch { /* 存档也 resume 不了就退到新建 */ }
       }
+      const res = await gw.request('session.create', { cols: 100, cwd: '/home/ubuntu' });
+      return res.session_id;
+    };
 
-      // 图片先挂到会话上，再发文本
+    // 一次完整的投递：挂图片 + 提交文本。会话失效时整段重放，
+    // 所以图片不会只挂上一半
+    const deliver = async (target) => {
       for (const img of images) {
         await gw.request('image.attach_bytes', {
           session_id: target,
@@ -315,8 +330,29 @@ const HermesChat = () => {
           filename: img.name,
         });
       }
-
       await gw.request('prompt.submit', { session_id: target, text: text || '看看这张图片' });
+    };
+
+    try {
+      let target = sidRef.current;
+      if (!target) {
+        target = await acquireSession();
+        sidRef.current = target;
+        setSid(target);
+      }
+
+      try {
+        await deliver(target);
+      } catch (err) {
+        if (!isSessionGone(err)) throw err;
+        // 会话被回收了，换一个新的重发一次。只重试一次：
+        // 如果新会话也说 not found，那就是别的问题，不该无限重试
+        setStatus('会话已过期，正在重连');
+        const fresh = await acquireSession();
+        sidRef.current = fresh;
+        setSid(fresh);
+        await deliver(fresh);
+      }
       setStatus('已发送');
     } catch (err) {
       // 没送出去就别把气泡留在那儿冒充已发送，内容还给输入框方便重发
@@ -339,6 +375,13 @@ const HermesChat = () => {
       finishStreaming();
       setStatus('');
     } catch (err) {
+      // 会话已经被回收的话，也就没有在跑的任务需要打断了，
+      // 把界面收干净就行，不用拿这个去烦用户
+      if (/session not found/i.test(err?.message || '')) {
+        finishStreaming();
+        setStatus('');
+        return;
+      }
       setBanner(`中断失败：${err.message}`);
     }
   }, [finishStreaming]);
