@@ -16,9 +16,21 @@ from datetime import datetime, timedelta, timezone
 HERMES_DB = os.path.expanduser("~/.hermes/state.db")
 EXAM_DB = "/home/ubuntu/ExamSystem/data/exam.db"
 REPORTS_DIR = "/home/ubuntu/ExamSystem/data/reports"
-CLIPROXY_URL = "http://107.173.214.139:8317/v1/chat/completions"
-CLIPROXY_KEY = "sk-26cc8fd6d9e03b7be4483eace4f4d8bcb31d18b68669a81b"
-MODEL_NAME = "gemini-3.5-flash-low"
+
+# 凭据只从环境变量读，不写进仓库。
+#
+# 之前这里是硬编码的 URL + key，随 a843437 推到了公开仓库，任何人都能匿名取到
+# 并拿它打同一个配额池——Hermes 用的是同一把 key，被打爆后 429 会连带把主模型
+# 打进 1 小时冷却。轮换 key 时只改 ~/.hermes/.env，不要再写回源码。
+#
+# CLIPROXY_API_KEY 这个名字是刻意选的：cron 执行脚本前会过
+# _sanitize_subprocess_env()，它按 provider 注册表剥掉 DEEPSEEK_API_KEY 之类的
+# 标准名，自定义名才能活着传进来（已实测确认）。
+CLIPROXY_URL = os.environ.get(
+    "CLIPROXY_URL", "http://107.173.214.139:8317/v1/chat/completions"
+)
+CLIPROXY_KEY = os.environ.get("CLIPROXY_API_KEY", "")
+MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.5-flash-low")
 
 TZ = timezone(timedelta(hours=8))
 MAX_MSG_CHARS = 1200
@@ -125,6 +137,14 @@ def query_gemini_evaluation(messages):
   "report": "Markdown 短评：1)判定结论 2)今日内容 3)若无效说明为何不加热力；若有效给薄弱点与明日任务。语气简洁严厉。"
 }}
 """
+
+    if not CLIPROXY_KEY:
+        print(
+            "CLIPROXY_API_KEY not set — refusing to call the judge.\n"
+            "  Put it in ~/.hermes/.env as CLIPROXY_API_KEY=<key> (chmod 600).",
+            file=sys.stderr,
+        )
+        return None
 
     payload = {
         "model": MODEL_NAME,
