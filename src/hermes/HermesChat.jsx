@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Send, Square, Plus, MessageSquare, Loader2, RefreshCw,
-  Brain, Smartphone, CalendarClock, Terminal, X, Image as ImageIcon,
+  Brain, Smartphone, CalendarClock, Terminal, X, Image as ImageIcon, Trash2,
 } from 'lucide-react';
 
 import HermesGateway from './gateway.js';
@@ -15,10 +15,10 @@ import ToolCard from './ToolCard.jsx';
 
 // 会话来源 → 展示分组
 const SOURCE_META = {
-  weixin:  { label: '微信',     icon: Smartphone,    order: 0 },
+  weixin:  { label: '微信',     icon: Smartphone,    order: 3 },
   cron:    { label: '每日计划', icon: CalendarClock, order: 1 },
-  tui:     { label: '本地',     icon: Terminal,      order: 2 },
-  cli:     { label: '本地',     icon: Terminal,      order: 2 },
+  tui:     { label: '本地',     icon: Terminal,      order: 0 },
+  cli:     { label: '本地',     icon: Terminal,      order: 0 },
 };
 const sourceMeta = (s) => SOURCE_META[s] || { label: '其他', icon: MessageSquare, order: 3 };
 
@@ -27,10 +27,36 @@ const uid = () => `m${++msgSeq}`;
 
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
+// 会话列表拉取上限。gateway 侧 session.list 会给每条会话跑一次 preview 子查询
+// （50 条约 77ms，全量 124 条 200ms+），条数直接决定首屏等待时间。
+// 40 条足够覆盖最近的对话，再往前翻的需求很少。
+const SESSION_LIST_LIMIT = 40;
+
+// 上次的会话列表缓存。进页面时先用它把左栏渲染出来，等 WS 连上再静默替换成新数据，
+// 这样首屏不用干等「握手 + DB 查询」。sessionStorage 而不是 localStorage：
+// 关掉标签页就失效，避免长期拿着过期列表。
+const SESSION_CACHE_KEY = 'hermes.sessions.v1';
+
+const readCachedSessions = () => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeCachedSessions = (list) => {
+  try {
+    sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(list));
+  } catch { /* 隐私模式下 sessionStorage 可能不可写，缓存失败不影响功能 */ }
+};
+
 const HermesChat = () => {
   const gwRef = useRef(null);
   const [connState, setConnState] = useState('idle');
-  const [sessions, setSessions] = useState([]);
+  const [sessions, setSessions] = useState(() => readCachedSessions());
   const [sessionsLoading, setSessionsLoading] = useState(false);
   // sid 是 gateway 的活动会话 id（session.create/resume 返回），与列表里的存档 id 不同
   const [sid, setSid] = useState(null);
@@ -118,6 +144,18 @@ const HermesChat = () => {
     });
     setBusy(false);
     setStatus('');
+    // 回复完成后刷新列表：Hermes 在第一轮对话结束后才生成 title，
+    // 这里延迟刷一次让左栏显示正确的标题
+    setTimeout(() => {
+      const gw = gwRef.current;
+      if (!gw) return;
+      gw.request('session.list', { limit: SESSION_LIST_LIMIT }).then((res) => {
+        if (Array.isArray(res?.sessions)) {
+          setSessions(res.sessions);
+          writeCachedSessions(res.sessions);
+        }
+      }).catch(() => {});
+    }, 1500);
   }, []);
 
   // ---------- 建立连接 ----------
@@ -183,11 +221,16 @@ const HermesChat = () => {
       .then(async () => {
         if (cancelled) return;
         setBanner('');
-        // 这里不能调用下面的 refreshSessions（TDZ：本 effect 先于它初始化），直接取一次
-        setSessionsLoading(true);
+        // 有缓存就先不显示 loading，静默刷新；没有缓存才转圈等
+        const cached = readCachedSessions();
+        if (cached.length === 0) setSessionsLoading(true);
         try {
-          const res = await gw.request('session.list', {});
-          if (!cancelled) setSessions(Array.isArray(res?.sessions) ? res.sessions : []);
+          const res = await gw.request('session.list', { limit: SESSION_LIST_LIMIT });
+          const list = Array.isArray(res?.sessions) ? res.sessions : [];
+          if (!cancelled) {
+            setSessions(list);
+            writeCachedSessions(list);
+          }
         } catch (err) {
           if (!cancelled) setBanner(`拉取会话列表失败：${err.message}`);
         } finally {
@@ -207,13 +250,40 @@ const HermesChat = () => {
   }, []);
 
   // ---------- 会话列表 ----------
+  const deleteSession = useCallback(async (e, sessionId) => {
+    e.stopPropagation();
+    const gw = gwRef.current;
+    if (!gw) return;
+    try {
+      // session.close 需要 live session id（_sessions 字典的 key，即 session.create/resume 返回的 id），
+      // session.delete 需要 stored/DB session id（列表里的 s.id / session_key）。
+      // 只有当前正在续接的那个 stored session 才有对应的 live id（sidRef.current）。
+      const liveId = activeStoredIdRef.current === sessionId ? sidRef.current : null;
+      if (liveId) {
+        await gw.request('session.close', { session_id: liveId }).catch(() => {});
+      }
+      await gw.request('session.delete', { session_id: sessionId });
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      if (activeStoredIdRef.current === sessionId) {
+        setActiveStoredId(null);
+        setSid(null);
+        sidRef.current = null;
+        setMessages([]);
+      }
+    } catch (err) {
+      setBanner(`删除失败：${err.message}`);
+    }
+  }, []);
+
   const refreshSessions = useCallback(async () => {
     const gw = gwRef.current;
     if (!gw) return;
     setSessionsLoading(true);
     try {
-      const res = await gw.request('session.list', {});
-      setSessions(Array.isArray(res?.sessions) ? res.sessions : []);
+      const res = await gw.request('session.list', { limit: SESSION_LIST_LIMIT });
+      const list = Array.isArray(res?.sessions) ? res.sessions : [];
+      setSessions(list);
+      writeCachedSessions(list);
     } catch (err) {
       setBanner(`拉取会话列表失败：${err.message}`);
     } finally {
@@ -268,6 +338,11 @@ const HermesChat = () => {
       setActiveStoredId(null);
       setMessages([]);
       setPendingImages([]);
+      // 新建后立刻刷新列表，让左栏出现这条新会话
+      try {
+        const listRes = await gw.request('session.list', {});
+        setSessions(Array.isArray(listRes?.sessions) ? listRes.sessions : []);
+      } catch { /* 列表刷新失败不影响对话 */ }
     } catch (err) {
       setBanner(`新建会话失败：${err.message}`);
     }
@@ -526,22 +601,37 @@ const HermesChat = () => {
                   </div>
                   <div className="space-y-1">
                     {items.map((s) => (
-                      <button
+                      <div
                         key={s.id}
-                        onClick={() => openSession(s)}
-                        disabled={busy}
-                        title={s.title || s.id}
-                        className={`w-full text-left px-2.5 py-2 rounded-xl transition-colors disabled:opacity-50 ${
+                        className={`group relative flex items-center rounded-xl transition-colors ${
                           activeStoredId === s.id
                             ? 'bg-[#1a1a1a] text-[#fbc02d]'
                             : 'hover:bg-black/5 text-[#444]'
-                        }`}
+                        } ${busy ? 'opacity-50 pointer-events-none' : ''}`}
                       >
-                        <div className="text-xs font-bold truncate">{s.title || '(无标题)'}</div>
-                        <div className={`text-[10px] font-bold ${activeStoredId === s.id ? 'text-[#fbc02d]/60' : 'text-[#bbb]'}`}>
-                          {s.message_count} 条
-                        </div>
-                      </button>
+                        <button
+                          onClick={() => openSession(s)}
+                          disabled={busy}
+                          title={s.title || s.id}
+                          className="flex-1 min-w-0 text-left px-2.5 py-2"
+                        >
+                          <div className="text-xs font-bold truncate pr-5">{s.title || '(无标题)'}</div>
+                          <div className={`text-[10px] font-bold ${activeStoredId === s.id ? 'text-[#fbc02d]/60' : 'text-[#bbb]'}`}>
+                            {s.message_count} 条
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => deleteSession(e, s.id)}
+                          title="删除会话"
+                          className={`absolute right-1.5 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${
+                            activeStoredId === s.id
+                              ? 'text-[#fbc02d]/60 hover:text-[#fbc02d]'
+                              : 'text-[#bbb] hover:text-[#ef5350]'
+                          }`}
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
