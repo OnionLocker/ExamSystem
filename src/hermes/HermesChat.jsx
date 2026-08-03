@@ -27,6 +27,19 @@ const uid = () => `m${++msgSeq}`;
 
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 
+// session.resume 返回的历史消息里，图片是以裸 data URL 的形式内嵌在 text 末尾的
+// （hermes 侧 _coerce_message_text 把多模态 content 折叠成单一字符串时留下的）。
+// 不解析出来的话：m.images 永远是 undefined（图片不显示），而那几 MB 的 base64
+// 会被当成正文塞进 markdown 渲染器。官方 desktop 端对应的函数叫 extractEmbeddedImages。
+const EMBEDDED_IMAGE_RE = /data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
+
+const extractEmbeddedImages = (text) => text.match(EMBEDDED_IMAGE_RE) || [];
+
+// 去掉正文里的裸 data URL。图片一般是前面带换行单独一行，连换行一起吃掉，
+// 避免正文尾部留下一串空行
+const stripEmbeddedImages = (text) =>
+  text.replace(new RegExp(`\\n*${EMBEDDED_IMAGE_RE.source}`, 'g'), '').trim();
+
 // 会话列表拉取上限。gateway 侧 session.list 会给每条会话跑一次 preview 子查询
 // （50 条约 77ms，全量 124 条 200ms+），条数直接决定首屏等待时间。
 // 40 条足够覆盖最近的对话，再往前翻的需求很少。
@@ -314,10 +327,15 @@ const HermesChat = () => {
       const hydrated = (res.messages || [])
         // tool 角色的历史条目没有可读文本，跳过；只还原对话本身
         .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.text)
-        .map((m) => ({
-          id: uid(), role: m.role, content: String(m.text),
-          streaming: false, tools: [], thinking: '',
-        }));
+        .map((m) => {
+          const raw = String(m.text);
+          const images = extractEmbeddedImages(raw);
+          return {
+            id: uid(), role: m.role,
+            content: images.length > 0 ? stripEmbeddedImages(raw) : raw,
+            streaming: false, tools: [], thinking: '', images,
+          };
+        });
       setMessages(hydrated);
       stickToBottom.current = true;
     } catch (err) {

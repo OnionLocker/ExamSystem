@@ -9,6 +9,8 @@ import reviewsRouter from './routes/reviews.js';
 import kvRouter from './routes/kv.js';
 import uploadsRouter from './routes/uploads.js';
 import reviewModulesRouter from './routes/reviewModules.js';
+import questionsRouter from './routes/questions.js';
+import practiceRouter from './routes/practice.js';
 import { attachHermesWs } from './routes/hermesChat.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,18 +22,20 @@ app.use(cors());
 app.use(express.json({ limit: '25mb' }));
 
 
-// 所有 /api/* 先过鉴Ȩ（内部会放行 /health 与 /auth/*）
+// 所有 /api/* 先过鉴权（内部会放行 /health 与 /auth/*）
 app.use('/api', authMiddleware);
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'exam-system-backend', time: new Date().toISOString() });
 });
 
-app.use('/api/auth',      authRouter);
-app.use('/api/reviews',   reviewsRouter);
-app.use('/api/kv',        kvRouter);
-app.use('/api/uploads',   uploadsRouter);
+app.use('/api/auth',           authRouter);
+app.use('/api/reviews',        reviewsRouter);
+app.use('/api/kv',             kvRouter);
+app.use('/api/uploads',        uploadsRouter);
 app.use('/api/review-modules', reviewModulesRouter);
+app.use('/api/questions',      questionsRouter);
+app.use('/api/practice',       practiceRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

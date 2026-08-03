@@ -1,0 +1,9 @@
+{
+  "batch_id": "translation-logic-special-01",
+  "source": "AI 专项练题 · 翻译推理 5 题强化",
+  "region": "广东-模拟",
+  "year": 2026,
+  "license": "仅个人学习使用",
+  "created_at": "2026-08-03",
+  "notes": "Hermes 自动生成并通过 A 路交叉形式化 + Z3 机械判定与独立盲审验证的翻译推理题集"
+}

@@ -30,7 +30,9 @@ const IMG_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const IMG_HARD_LIMIT = 2 * 1024 * 1024; // 2MB
 const IMG_SOFT_LIMIT = 500 * 1024; // 500KB 警告
 
-const BATCH_ID_RE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
+// 允许中文、数字、字母、下划线、中划线，2~80 字符
+// 用于目录名 public/q-images/<batch_id>/，Linux 路径无限制
+const BATCH_ID_RE = /^[一-鿿A-Za-z0-9][一-鿿A-Za-z0-9_-]{0,78}[一-鿿A-Za-z0-9]$|^[一-鿿A-Za-z0-9]{1,80}$/;
 
 // ---------- 工具 ----------
 const readJSON = (p) => JSON.parse(fs.readFileSync(p, 'utf-8'));

@@ -17,6 +17,7 @@ import {
   Upload,
   Zap,
   MessageSquare,
+  Target,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -35,6 +36,7 @@ import Copybook from './copybook/Copybook.jsx';
 import StudyBoost from './studyBoost/StudyBoost.jsx';
 import Uploads from './uploads/Uploads.jsx';
 import HermesChat from './hermes/HermesChat.jsx';
+import AIQuizHome from './aiPractice/AIQuizHome.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
@@ -68,14 +70,16 @@ const EVENTS_KEY = 'exam_calendar_events';
 const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
   <button
     onClick={() => onSelect(id)}
-    className={`w-full flex items-center space-x-3 px-4 py-4 rounded-2xl transition-all duration-300 ${
+    title={label}
+    className={`w-full flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 lg:py-3.5 rounded-2xl transition-all duration-300 flex-shrink-0 ${
       activeTab === id
         ? 'bg-[#1a1a1a] text-[#fbc02d] shadow-lg shadow-black/10'
         : 'text-[#666] hover:bg-black/5 hover:text-black'
     }`}
   >
-    <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 2} />
-    <span className="font-bold tracking-tight">{label}</span>
+    <Icon size={22} strokeWidth={activeTab === id ? 2.5 : 2} className="flex-shrink-0" />
+    {/* 窄屏（iPad 竖屏 / w-24 侧栏）放不下文字，只留图标 + title 提示 */}
+    <span className="hidden lg:block font-bold tracking-tight">{label}</span>
   </button>
 );
 
@@ -523,16 +527,23 @@ const AppInner = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#f2f0e9] text-[#1a1a1a] font-sans overflow-hidden p-4">
-      <aside className="w-24 lg:w-64 flex flex-col p-4 space-y-10">
-        <div className="flex items-center space-x-3 px-4 py-2">
-          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-[#fbc02d] font-black">
+    // iOS Safari 的 100vh 比可视区域高（地址栏/工具栏不计入），会把侧栏底部顶到
+    // 屏幕外。100dvh 跟随动态视口；不支持的浏览器忽略 inline style，退回 h-screen。
+    <div
+      className="flex h-screen bg-[#f2f0e9] text-[#1a1a1a] font-sans overflow-hidden p-4"
+      style={{ height: '100dvh' }}
+    >
+      <aside className="w-24 lg:w-64 flex flex-col p-4 space-y-4 lg:space-y-6 min-h-0">
+        <div className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-2 flex-shrink-0">
+          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-[#fbc02d] font-black flex-shrink-0">
             学
           </div>
           <h1 className="text-xl font-black tracking-tighter hidden lg:block uppercase">STUDY!</h1>
         </div>
 
-        <nav className="flex-1 space-y-3">
+        {/* 导航项比 iPad 竖屏高度多，必须能滚动 —— 否则末尾的「AI 练题」点不到。
+            overscroll-contain 防止滚到底后把整页往下拽（iOS 橡皮筋）。 */}
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 lg:space-y-2.5 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="copybook" icon={PenTool} label="字帖练习" activeTab={activeTab} onSelect={setActiveTab} />
@@ -542,15 +553,16 @@ const AppInner = () => {
           <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="mixer" icon={Sliders} label="声音混音器" activeTab={activeTab} onSelect={setActiveTab} />
         </nav>
 
-        <div className="pt-6 border-t border-black/5 space-y-2">
-          <div className="flex items-center space-x-3 px-2 py-4">
-            <div className="w-10 h-10 rounded-full bg-slate-300 overflow-hidden border-2 border-white shadow-sm">
+        <div className="pt-3 lg:pt-5 border-t border-black/5 space-y-1 flex-shrink-0">
+          <div className="hidden lg:flex items-center space-x-3 px-2 py-3">
+            <div className="w-10 h-10 rounded-full bg-slate-300 overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
               <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" />
             </div>
-            <div className="hidden lg:block overflow-hidden">
+            <div className="overflow-hidden">
               <p className="text-sm font-bold truncate italic">Russell</p>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">私人练习空间</p>
             </div>
@@ -558,9 +570,9 @@ const AppInner = () => {
           <button
             onClick={handleLogout}
             title="退出登录"
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-[#666] hover:bg-black/5 hover:text-[#ff6b6b] transition-all"
+            className="w-full flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 rounded-2xl text-[#666] hover:bg-black/5 hover:text-[#ff6b6b] transition-all"
           >
-            <LogOut size={18} />
+            <LogOut size={18} className="flex-shrink-0" />
             <span className="hidden lg:block text-xs font-black uppercase tracking-widest">退出登录</span>
           </button>
         </div>
@@ -579,6 +591,7 @@ const AppInner = () => {
               {activeTab === 'mockexam' && '全卷模考'}
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
+              {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
               {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
@@ -625,6 +638,8 @@ const AppInner = () => {
           {activeTab === 'uploads' && <Uploads />}
 
           {activeTab === 'hermes' && <HermesChat />}
+
+          {activeTab === 'aiPractice' && <AIQuizHome />}
 
           {activeTab === 'mixer' && <Mixer />}
         </div>
