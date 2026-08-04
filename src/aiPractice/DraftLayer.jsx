@@ -154,6 +154,26 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     return () => document.body.classList.remove('draft-annotating');
   }, [active]);
 
+  // iPadOS 的「随手写」(Scribble) 会在系统层截走快速连续的 Pencil 落笔事件：抬笔之后
+  // 立刻落笔，这一笔的 pointerdown 根本到不了页面，于是怎么划都没墨，停顿一下才正常。
+  // 是 WebKit 的老账（Bug 217430，标记修复了又复发），fabric.js #8465、Flutter #172865、
+  // BlockSuite #7985 踩的都是同一个坑，现象都是"隔一笔丢一笔，写不连贯"。
+  //
+  // touch-action: none 和 user-select: none 都挡不住它，唯一有效的是给目标元素挂一个
+  // 非被动的 touchmove 监听并 preventDefault —— 等于告诉系统这块区域的笔画自己管，
+  // 别拿去猜文字。React 的触摸事件是被动注册的，preventDefault 不生效，只能自己挂。
+  // 不用 touchstart：一样能治 Scribble，但会带来间歇性的输入卡死。
+  //
+  // 顺带一提，Safari 至今不支持 getCoalescedEvents，取合并采样那段在 iPad 上是空转，
+  // 但它原生就按 120/240Hz 派发 pointermove，不吃亏。
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!active || !canvas) return undefined;
+    const keepPenInput = (e) => e.preventDefault();
+    canvas.addEventListener('touchmove', keepPenInput, { passive: false });
+    return () => canvas.removeEventListener('touchmove', keepPenInput);
+  }, [active]);
+
   const endPan = () => {
     const pan = panRef.current;
     panRef.current = null;
