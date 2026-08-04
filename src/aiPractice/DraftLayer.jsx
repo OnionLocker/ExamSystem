@@ -231,6 +231,8 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       return;
     }
     e.preventDefault();
+    // 上一笔要是已经拖出了选区，先清掉，否则那个蓝块和弹出菜单会一直盖在题干上
+    try { window.getSelection()?.removeAllRanges(); } catch { /* 无关紧要 */ }
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 拿不到捕获就算了 */ }
 
     const kind = kindOf();
@@ -314,6 +316,10 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
         // touch-action 对 Apple Pencil 一视同仁，留着纵向平移，竖着写的那一笔
         // 就会被当成滚页。手指翻页改成自己接管（见上面的手指平移）。
         touchAction: active ? 'none' : 'auto',
+        // 同理：不让 Pencil 的拖拽被当成选字，也不弹 iPadOS 的长按菜单
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
         cursor: active ? (tool === 'eraser' ? 'cell' : 'crosshair') : 'auto',
       }}
     />
