@@ -4,11 +4,14 @@
 // 与官方 dashboard 的 Chat 用的是同一套协议和同一个 agent，
 // 因此这里能看到并续接微信、cron、CLI 的全部会话。
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Send, Square, Plus, MessageSquare, Loader2, RefreshCw,
   Brain, Smartphone, CalendarClock, Terminal, X, Image as ImageIcon, Trash2,
+  PenTool, Target, ChevronRight,
 } from 'lucide-react';
 
+import { api } from '../api.js';
 import HermesGateway from './gateway.js';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
@@ -66,7 +69,21 @@ const writeCachedSessions = (list) => {
   } catch { /* 隐私模式下 sessionStorage 可能不可写，缓存失败不影响功能 */ }
 };
 
-const HermesChat = () => {
+// 一次最多带几张草稿纸。每张 PNG 转成 base64 有 300KB~1MB，
+// 带太多会把 prompt 撑爆，也会让模型的注意力散掉。
+const MAX_DRAFT_ATTACH = 4;
+
+const fmtSec = (sec) => {
+  const s = Math.max(0, Math.floor(sec || 0));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
+const clip = (text, max) => {
+  const t = String(text || '').trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
+};
+
+const HermesChat = ({ seed, onSeedConsumed }) => {
   const gwRef = useRef(null);
   const [connState, setConnState] = useState('idle');
   const [sessions, setSessions] = useState(() => readCachedSessions());
@@ -83,6 +100,11 @@ const HermesChat = () => {
   const [pendingImages, setPendingImages] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [dragOver, setDragOver] = useState(false);
+  // 「带上错题 + 草稿纸」用的：practiceRuns 是最近交过卷的几场练习
+  const [showPicker, setShowPicker] = useState(false);
+  const [practiceRuns, setPracticeRuns] = useState([]);
+  const [runsLoading, setRunsLoading] = useState(false);
+  const [attaching, setAttaching] = useState(false);
 
   const scrollRef = useRef(null);
   const stickToBottom = useRef(true);
@@ -372,6 +394,12 @@ const HermesChat = () => {
     const text = input.trim();
     if (!gw || busy || sendingRef.current) return;
     if (!text && pendingImages.length === 0) return;
+    // 断线时直接拦下，输入框里的字原封不动（读 gateway 自己的状态，
+    // 不把 connState 拉进依赖，否则每次重连都要重建这个回调）
+    if (gw.connectionState !== 'open') {
+      setBanner('还没连上 Hermes，连上了再发');
+      return;
+    }
 
     // 挂机回来常见的一种失败：WS 断开超过宽限期后，服务端把会话回收了
     // （end_reason=ws_orphan_reap）。WS 自己会重连，所以界面看着是「已连接」，
@@ -478,6 +506,117 @@ const HermesChat = () => {
       setBanner(`中断失败：${err.message}`);
     }
   }, [finishStreaming]);
+
+  // ---------- 带上练习错题 + 当时的草稿纸 ----------
+  const loadPracticeRuns = useCallback(async () => {
+    setRunsLoading(true);
+    try {
+      const list = await api('/api/practice/sessions?limit=15');
+      setPracticeRuns(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setBanner(`拉取练习记录失败：${err.message}`);
+    } finally {
+      setRunsLoading(false);
+    }
+  }, []);
+
+  const openPicker = useCallback(() => {
+    setShowPicker(true);
+    loadPracticeRuns();
+  }, [loadPracticeRuns]);
+
+  // 把某一场练习的错题拼成 prompt、草稿纸作为附图挂上，然后停在输入框交给用户按发送。
+  // 中间留一手是故意的：想追加一句「重点看第 3 题」时不用重新组织上下文。
+  const attachPractice = useCallback(async (sessionId) => {
+    setAttaching(true);
+    setBanner('');
+    try {
+      const rep = await api(`/api/practice/sessions/${sessionId}/report`);
+      const items = rep?.items || [];
+      const wrong = items.filter((it) => !it.is_correct);
+      if (wrong.length === 0) {
+        setBanner('这一场全对，没有错题可以分析');
+        return;
+      }
+
+      const noOf = (it) => items.indexOf(it) + 1;
+      const drafted = wrong.filter((it) => it.draft_url).slice(0, MAX_DRAFT_ATTACH);
+
+      const images = [];
+      for (const it of drafted) {
+        try {
+          // 让后端直接给 data URL：<img> 再进 canvas 会多一道跨域污染的坑
+          const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
+          if (r?.data_url) {
+            images.push({ id: uid(), name: `q${noOf(it)}-draft.png`, dataUrl: r.data_url });
+          }
+        } catch { /* 单张拿不到就跳过，不该拖垮整次复盘 */ }
+      }
+      const draftedNos = drafted.slice(0, images.length).map(noOf);
+      const draftedSet = new Set(draftedNos);
+
+      const s = rep.session || {};
+      const lines = [
+        `帮我复盘一次公考练习：${s.category || '未命名批次'}，共 ${s.total} 题，对 ${s.correct} 题，用时 ${fmtSec(s.duration_sec)}。`,
+        '',
+        `这一场做错或空着的有 ${wrong.length} 道：`,
+      ];
+
+      for (const it of wrong) {
+        const no = noOf(it);
+        lines.push('', `【第 ${no} 题${it.sub_category ? ` · ${it.sub_category}` : ''}】`, clip(it.content, 900));
+        const opts = (it.options || []).map((o) => `${o.key}. ${o.text ?? ''}`).join('\n');
+        if (opts) lines.push(opts);
+        lines.push(
+          `我选：${it.user_answer || '（空着没做）'} / 正确答案：${it.correct_answer} / 本题用时：${fmtSec(it.time_spent_sec)}`,
+        );
+        if (it.explanation) lines.push(`官方解析：${clip(it.explanation, 500)}`);
+        if (draftedSet.has(no)) lines.push('（这题的草稿纸见附图）');
+      }
+
+      lines.push('');
+      if (draftedNos.length > 0) {
+        lines.push(
+          `附图是我做题时的草稿纸，按顺序依次是第 ${draftedNos.join('、')} 题。`,
+          '每张图里题目、我在题干上的圈划、旁边的演算过程都在一起，能看出我当时是怎么想的。',
+        );
+      } else {
+        lines.push('这几题当时没留草稿纸，只能从答案本身推。');
+      }
+
+      lines.push(
+        '',
+        '请结合草稿纸回答三件事，每条都要落到具体的题和具体的笔迹上，不要讲通用套话：',
+        '1. 每道错题我的推理链是怎么走的、从哪一步开始偏的 —— 是审题漏条件、逻辑用错，还是纯算错。',
+        '2. 我这几张草稿纸本身有什么坏习惯（条件没抄全、符号乱用、步骤跳太多、排版挤在一起、算完不回头验证等），',
+        '   每条都给出下次具体该怎么写。',
+        '3. 综合起来我最该先纠的一个做题习惯是什么，给一个下次练习就能执行的检查动作。',
+        '',
+        '看不清写的是什么就直接说看不清，不要猜。',
+      );
+
+      const prompt = lines.join('\n');
+      if (images.length > 0) setPendingImages((prev) => [...prev, ...images]);
+      setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
+      setShowPicker(false);
+      stickToBottom.current = true;
+      setTimeout(() => taRef.current?.focus(), 0);
+    } catch (err) {
+      setBanner(`带错题失败：${err.message}`);
+    } finally {
+      setAttaching(false);
+    }
+  }, []);
+
+  // AI 练题交卷后点「让 Hermes 复盘错题」会把 sessionId 递过来，进页面就装好上下文
+  const seededRef = useRef(null);
+  useEffect(() => {
+    const key = seed?.sessionId ? `${seed.sessionId}:${seed.nonce}` : null;
+    if (!key || seededRef.current === key) return;
+    seededRef.current = key;
+    onSeedConsumed?.();
+    attachPractice(seed.sessionId);
+  }, [seed, attachPractice, onSeedConsumed]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -691,6 +830,17 @@ const HermesChat = () => {
 
           <div className="flex items-center space-x-2 shrink-0">
             <button
+              onClick={openPicker}
+              disabled={attaching}
+              title="带上某次练习的错题和草稿纸"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+            >
+              {attaching
+                ? <Loader2 size={11} className="animate-spin" />
+                : <PenTool size={11} />}
+              <span>错题草稿</span>
+            </button>
+            <button
               onClick={() => setShowThinking((v) => !v)}
               title="显示/隐藏思考过程"
               className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
@@ -805,9 +955,8 @@ const HermesChat = () => {
               rows={1}
               placeholder={connState === 'open'
                 ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，Shift+Enter 换行，图片可粘贴或拖入')
-                : '等待连接…'}
-              disabled={connState !== 'open'}
-              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#fbc02d] transition-colors disabled:bg-black/[0.03] disabled:text-[#bbb]"
+                : '连接中…先写，连上了再发'}
+              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#fbc02d] transition-colors"
             />
             {busy ? (
               <button
@@ -835,6 +984,78 @@ const HermesChat = () => {
           </p>
         </div>
       </div>
+      {/* 练习记录选择器。portal 到 body：外层 <main> 带 backdrop-blur，
+          在它内部写 fixed inset-0 只能铺满 main、铺不满屏幕 */}
+      {showPicker && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={() => setShowPicker(false)}
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+              <div className="flex items-center space-x-2">
+                <Target size={15} className="text-[#fbc02d]" />
+                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
+                  挑一场练习来复盘
+                </span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={loadPracticeRuns}
+                  title="刷新"
+                  className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
+                >
+                  {runsLoading
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : <RefreshCw size={13} />}
+                </button>
+                <button
+                  onClick={() => setShowPicker(false)}
+                  className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {runsLoading && practiceRuns.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
+              )}
+              {!runsLoading && practiceRuns.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
+                  还没有交过卷的练习。<br />去「AI 练题」做一套并交卷，草稿纸会自动存下来。
+                </p>
+              )}
+              {practiceRuns.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => attachPractice(r.id)}
+                  disabled={attaching}
+                  className="w-full text-left px-4 py-3 rounded-2xl border border-black/5 hover:border-[#fbc02d] hover:bg-[#fffdf5] transition-colors flex items-center gap-3 disabled:opacity-50"
+                >
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-xs font-black truncate">{r.category || '未命名批次'}</span>
+                    <span className="block text-[10px] font-bold text-[#bbb] mt-0.5">
+                      对 {r.correct}/{r.total} · 错 {r.wrong_count} · 用时 {fmtSec(r.duration_sec)}
+                      {r.draft_count > 0 && ` · ${r.draft_count} 张草稿`}
+                    </span>
+                  </span>
+                  <ChevronRight size={14} className="shrink-0 text-[#ccc]" />
+                </button>
+              ))}
+            </div>
+
+            <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
+              会把错题明细和最多 {MAX_DRAFT_ATTACH} 张草稿纸装进输入框，你可以再补一句话再发。
+            </p>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 };

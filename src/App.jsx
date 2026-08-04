@@ -10,7 +10,6 @@ import {
   X,
   Timer as TimerIcon,
   Sliders,
-  Layers,
   BookMarked,
   PenTool,
   ClipboardList,
@@ -92,6 +91,13 @@ const AppInner = () => {
   // 学习日志版本号：每次增删写入后 +1，驱动日历/面板重渲染
   const [studyVersion, setStudyVersion] = useState(0);
   const bumpStudy = () => setStudyVersion((v) => v + 1);
+  // AI 练题交卷后点「让 Hermes 复盘错题」：把这场练习的 id 递给 Hermes 对话页，
+  // 它自己去拉错题明细和草稿纸。nonce 是为了同一场连点两次也能重新触发。
+  const [hermesSeed, setHermesSeed] = useState(null);
+  const seedHermes = (sessionId) => {
+    setHermesSeed({ sessionId, nonce: Date.now() });
+    setActiveTab('hermes');
+  };
   const { getDay: getStudyDay } = useStudyHeatmap(studyVersion);
 
   // 监听学习日志变更事件（番茄钟完成、数资冲刺完成、导入、删除均会派发）
@@ -637,9 +643,11 @@ const AppInner = () => {
 
           {activeTab === 'uploads' && <Uploads />}
 
-          {activeTab === 'hermes' && <HermesChat />}
+          {activeTab === 'hermes' && (
+            <HermesChat seed={hermesSeed} onSeedConsumed={() => setHermesSeed(null)} />
+          )}
 
-          {activeTab === 'aiPractice' && <AIQuizHome />}
+          {activeTab === 'aiPractice' && <AIQuizHome onAnalyzeWithHermes={seedHermes} />}
 
           {activeTab === 'mixer' && <Mixer />}
         </div>

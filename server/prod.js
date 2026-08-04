@@ -99,6 +99,9 @@ function proxyUpgrade(req, clientSocket, head) {
     path: req.url,
     method: 'GET',
     headers: { ...req.headers, host: `${API_HOST}:${API_PORT}` },
+    // 升级请求得独占一条连接：走 keep-alive 连接池可能拿到已被后端关掉的旧 socket，
+    // 而且 agent 的 5s 空闲超时会跟着套在升级后的长连接上
+    agent: false,
   });
 
   proxyReq.on('upgrade', (proxyRes, upstreamSocket, upstreamHead) => {
@@ -108,11 +111,30 @@ function proxyUpgrade(req, clientSocket, head) {
     clientSocket.write(
       `HTTP/1.1 101 Switching Protocols\r\n${lines.join('\r\n')}\r\n\r\n`,
     );
-    if (upstreamHead?.length) clientSocket.unshift(upstreamHead);
+
+    // 握手响应后面往往粘着对方发来的第一批数据帧（upstreamHead / head）。
+    // 这些字节必须退回各自来源那一端的读缓冲，再开双向管道；
+    // 退错了地方（把上游发来的帧 unshift 到 clientSocket），它会被当成浏览器发的帧
+    // 原样回灌给上游 —— 服务端收到一个没掩码的帧，按协议错误 1002 直接断开。
+    if (upstreamHead?.length) upstreamSocket.unshift(upstreamHead);
+    if (head?.length) clientSocket.unshift(head);
+
+    // 升级后就是一条长连接：去掉继承来的空闲超时，关掉 Nagle 攒包，底层开 TCP 保活
+    for (const s of [clientSocket, upstreamSocket]) {
+      s.setTimeout(0);
+      s.setNoDelay(true);
+      s.setKeepAlive(true, 30000);
+    }
+
     upstreamSocket.pipe(clientSocket);
     clientSocket.pipe(upstreamSocket);
-    upstreamSocket.on('error', () => clientSocket.destroy());
-    clientSocket.on('error', () => upstreamSocket.destroy());
+
+    // 任一端没了就把另一端一起收掉，不留半开连接
+    const shutdown = () => { upstreamSocket.destroy(); clientSocket.destroy(); };
+    upstreamSocket.on('error', shutdown);
+    clientSocket.on('error', shutdown);
+    upstreamSocket.on('close', shutdown);
+    clientSocket.on('close', shutdown);
   });
 
   // 后端拒绝升级（例如 401）：把状态行回给浏览器再断开
@@ -122,7 +144,8 @@ function proxyUpgrade(req, clientSocket, head) {
   });
 
   proxyReq.on('error', () => clientSocket.destroy());
-  if (head?.length) proxyReq.write(head);
+  // 注意：head 不能写进 proxyReq（那是 HTTP 请求体，会把握手包弄脏），
+  // 升级成功后再退回 clientSocket 让它顺着管道走
   proxyReq.end();
 }
 

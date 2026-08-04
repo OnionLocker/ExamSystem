@@ -32,7 +32,24 @@ export async function api(path, { method = 'GET', body, headers } = {}) {
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+
+  // 后端不一定返 JSON：路由不存在时 Express 给的是一页 HTML，前面挂了反代也可能抢着返错页。
+  // 直接 JSON.parse 会抛「Unexpected token '<'」，看到报错的人根本无法定位。
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      const err = new Error(
+        res.ok
+          ? '服务端返回了非 JSON 内容'
+          : `HTTP ${res.status}（接口没返 JSON，后端可能需要重启）`,
+      );
+      err.status = res.status;
+      err.body = text.slice(0, 200);
+      throw err;
+    }
+  }
 
   if (!res.ok) {
     const err = new Error((data && data.error) || `HTTP ${res.status}`);

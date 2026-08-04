@@ -28,10 +28,17 @@ const accColor = (rate) => {
   return 'text-red-500';
 };
 
-const AIQuizHome = () => {
+// 展示用的题组名。batch_id 是入库时的技术标识（路径/主键那一类），
+// 不该露到界面上；真正给人看的是 Hermes 出题时写的题集名（source）。
+// 这两个字段语义不同，这里只是在 source 缺失时退回 batch_id，免得卡片没标题。
+const nameOf = (b) => b.source || b.batch_id;
+
+const AIQuizHome = ({ onAnalyzeWithHermes }) => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeBatch, setActiveBatch] = useState(null);
+  // 正在打开的题组：{ batchId, reviewSessionId }。
+  // reviewSessionId 不为空 = 这组以前交过卷，点进去先看当时的做题情况
+  const [active, setActive] = useState(null);
   const [deleting, setDeleting] = useState(null);   // 正在删除的 batch_id
   const [errMsg, setErrMsg] = useState('');
 
@@ -66,8 +73,8 @@ const AIQuizHome = () => {
 
     const hasData = b.attempt_count > 0;
     const warn = hasData
-      ? `确定删除题组「${b.batch_id}」？\n\n这会一起删掉 ${b.count} 道题和 ${b.attempt_count} 条作答记录，不可恢复。`
-      : `确定删除题组「${b.batch_id}」？\n\n共 ${b.count} 道题，不可恢复。`;
+      ? `确定删除题组「${nameOf(b)}」？\n\n这会一起删掉 ${b.count} 道题和 ${b.attempt_count} 条作答记录，不可恢复。`
+      : `确定删除题组「${nameOf(b)}」？\n\n共 ${b.count} 道题，不可恢复。`;
     if (!confirm(warn)) return;
 
     setDeleting(b.batch_id);
@@ -83,11 +90,14 @@ const AIQuizHome = () => {
     }
   };
 
-  if (activeBatch) {
+  if (active) {
     return (
       <AIQuizSession
-        batchId={activeBatch}
-        onExit={() => { setActiveBatch(null); reload(); }}
+        batchId={active.batchId}
+        batchName={nameOf(batches.find((b) => b.batch_id === active.batchId) || { batch_id: active.batchId })}
+        reviewSessionId={active.reviewSessionId}
+        onExit={() => { setActive(null); reload(); }}
+        onAnalyzeWithHermes={onAnalyzeWithHermes}
       />
     );
   }
@@ -103,7 +113,7 @@ const AIQuizHome = () => {
           <div>
             <h3 className="text-base font-black tracking-tight">AI 专项练题</h3>
             <p className="text-[11px] text-slate-400 font-medium">
-              在 Hermes 用 <span className="font-mono bg-black/5 px-1 rounded">/quiz-pipeline</span> 出题后在此刷题
+              让 Hermes 出完题，在这里刷
             </p>
           </div>
         </div>
@@ -158,6 +168,8 @@ const AIQuizHome = () => {
             const timeStr = relTime(b.last_answered_at);
 
             const isDeleting = deleting === b.batch_id;
+            // 做过的点进去是复盘，没做过的直接开做
+            const open = { batchId: b.batch_id, reviewSessionId: b.last_session_id || null };
 
             return (
               // 卡片原来是 <button>，但删除按钮必须是真的 <button>，而 button 不能嵌
@@ -166,12 +178,12 @@ const AIQuizHome = () => {
                 key={b.batch_id}
                 role="button"
                 tabIndex={0}
-                onClick={() => { if (!isDeleting) setActiveBatch(b.batch_id); }}
+                onClick={() => { if (!isDeleting) setActive(open); }}
                 onKeyDown={(e) => {
                   if (isDeleting) return;
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    setActiveBatch(b.batch_id);
+                    setActive(open);
                   }
                 }}
                 className={`w-full text-left bg-white rounded-[1.75rem] p-6 shadow-sm border border-[#f2f0e9] transition-all group cursor-pointer focus:outline-none focus-visible:border-[#fbc02d] focus-visible:ring-2 focus-visible:ring-[#fbc02d]/40 ${
@@ -185,10 +197,7 @@ const AIQuizHome = () => {
                       <BookOpen size={16} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-black truncate">{b.batch_id}</p>
-                      {b.source && (
-                        <p className="text-[11px] text-slate-400 font-medium truncate">{b.source}</p>
-                      )}
+                      <p className="text-sm font-black truncate">{nameOf(b)}</p>
                     </div>
                   </div>
                   <div className="flex items-center flex-shrink-0 ml-3">
@@ -199,7 +208,7 @@ const AIQuizHome = () => {
                       onClick={(e) => handleDelete(b, e)}
                       disabled={isDeleting}
                       title="删除这个题组"
-                      aria-label={`删除题组 ${b.batch_id}`}
+                      aria-label={`删除题组 ${nameOf(b)}`}
                       className="p-2 -m-0.5 rounded-xl text-[#ccc] hover:bg-red-50 hover:text-[#ef5350] active:bg-red-100 transition-colors disabled:opacity-50"
                     >
                       {isDeleting
@@ -240,6 +249,11 @@ const AIQuizHome = () => {
                       <span className="text-slate-400">共答 {b.attempt_count} 次</span>
                     </>
                   )}
+
+                  {/* 点进去会发生什么，先说清楚 */}
+                  <span className="ml-auto pl-2 text-[10px] uppercase tracking-widest text-[#ccc] group-hover:text-[#1a1a1a] transition-colors shrink-0">
+                    {b.last_session_id ? '点开复盘' : '开始做题'}
+                  </span>
 
                   {/* 上次练习时间 */}
                   {timeStr && (

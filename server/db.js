@@ -108,15 +108,22 @@ CREATE TABLE IF NOT EXISTS practice_answers (
 CREATE INDEX IF NOT EXISTS idx_answers_session  ON practice_answers(session_id);
 CREATE INDEX IF NOT EXISTS idx_answers_question ON practice_answers(question_id);
 
-CREATE TABLE IF NOT EXISTS mistakes (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  question_id   INTEGER NOT NULL UNIQUE,
-  wrong_count   INTEGER DEFAULT 1,
-  last_wrong_at TEXT    DEFAULT CURRENT_TIMESTAMP,
-  mastered      INTEGER DEFAULT 0,
-  note          TEXT,
-  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+-- 草稿纸：一次练习里每道题留一张「题目 + 我的圈划 + 演算过程」的合成图。
+-- 图片落盘（data/draft-images/<uuid>.png），库里只存文件名，跟 review_images 一个路子。
+CREATE TABLE IF NOT EXISTS practice_drafts (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id  INTEGER NOT NULL,
+  question_id INTEGER NOT NULL,
+  filename    TEXT    NOT NULL,
+  mime        TEXT    DEFAULT 'image/png',
+  bytes       INTEGER DEFAULT 0,
+  updated_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (session_id, question_id),
+  FOREIGN KEY (session_id)  REFERENCES practice_sessions(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES questions(id)         ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS idx_drafts_session ON practice_drafts(session_id);
 
 CREATE TABLE IF NOT EXISTS reviews (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

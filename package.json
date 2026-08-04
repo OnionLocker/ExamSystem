@@ -24,6 +24,7 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "highlight.js": "11.11.1",
+    "html2canvas-pro": "^2.3.3",
     "katex": "0.18.1",
     "lucide-react": "^1.8.0",
     "multer": "^2.2.0",

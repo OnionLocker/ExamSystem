@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import db from '../db.js';
+import { unlinkDraftsOfSessions } from './practice.js';
 
 const router = Router();
 
@@ -67,7 +68,8 @@ router.get('/meta/categories', (_req, res) => {
 
 // ─────────────────────────────────────────────
 // GET /api/questions/meta/batches
-//   返回 [{batch_id, source, count, done_count, correct_count, last_answered_at}]
+//   返回 [{batch_id, source, count, done_count, correct_count, last_answered_at, last_session_id}]
+//   last_session_id: 最近一次已交卷的练习，前端拿它判定「点进去是开做还是复盘」
 //   done_count: 曾经作答过的不重复题目数
 //   correct_count: 累计答对次数（含重复刷）
 //   last_answered_at: 最近一次作答时间
@@ -82,7 +84,14 @@ router.get('/meta/batches', (_req, res) => {
          COUNT(DISTINCT pa.question_id)          AS done_count,
          COALESCE(SUM(pa.is_correct), 0)         AS correct_count,
          COUNT(pa.id)                            AS attempt_count,
-         MAX(pa.answered_at)                     AS last_answered_at
+         MAX(pa.answered_at)                     AS last_answered_at,
+         -- 没交卷的残局（ended_at IS NULL）不算一次，所以重做到一半跑了不会盖掉旧成绩
+         (SELECT ps.id FROM practice_sessions ps
+           WHERE ps.category = q.batch_id
+             AND ps.ended_at IS NOT NULL
+             AND ps.total > 0
+           ORDER BY ps.ended_at DESC
+           LIMIT 1)                              AS last_session_id
        FROM questions q
        LEFT JOIN practice_answers pa ON pa.question_id = q.id
        WHERE q.batch_id IS NOT NULL AND q.batch_id != ''
@@ -96,7 +105,7 @@ router.get('/meta/batches', (_req, res) => {
 // ─────────────────────────────────────────────
 // DELETE /api/questions/batch/:batchId
 //   删掉整个题组（测试出的题组用）。
-//   questions 一删，practice_answers / mistakes 靠 FK ON DELETE CASCADE 跟着走；
+//   questions 一删，practice_answers 靠 FK ON DELETE CASCADE 跟着走；
 //   本批次的 practice_sessions（category 存的就是 batch_id）也一并清掉，
 //   否则批次列表没了但会话记录还挂着。
 //   → { ok, deleted_questions, deleted_sessions }
@@ -109,6 +118,13 @@ router.delete('/batch/:batchId', (req, res) => {
     .prepare('SELECT COUNT(*) AS c FROM questions WHERE batch_id = ?')
     .get(batchId);
   if (!qCount) return res.status(404).json({ error: 'batch not found' });
+
+  // 草稿图的 DB 行会跟着 session 级联删掉，但磁盘文件不会，先按 session 收集再删
+  const sessionIds = db
+    .prepare('SELECT id FROM practice_sessions WHERE category = ?')
+    .all(batchId)
+    .map((r) => r.id);
+  unlinkDraftsOfSessions(sessionIds);
 
   const run = db.transaction(() => {
     // 先删 session：answers 有两条 FK（session_id / question_id），

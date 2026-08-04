@@ -30,3 +30,18 @@ body,
 .animate-fadeIn {
   animation: fadeIn 180ms ease-out;
 }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideInRight 200ms ease-out;
+}
