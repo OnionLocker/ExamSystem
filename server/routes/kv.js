@@ -22,17 +22,6 @@ router.get('/', (_req, res) => {
   res.json(out);
 });
 
-// GET /api/kv/:key  → 读单条
-router.get('/:key', (req, res) => {
-  const row = db.prepare('SELECT v FROM user_kv WHERE k = ?').get(req.params.key);
-  if (!row) return res.status(404).json({ error: 'not found' });
-  try {
-    res.json({ value: JSON.parse(row.v) });
-  } catch {
-    res.json({ value: row.v });
-  }
-});
-
 // PUT /api/kv/:key  body: { value: any }
 // 服务器为权威源:整段覆盖
 router.put('/:key', (req, res) => {

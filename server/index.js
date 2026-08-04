@@ -1,19 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import http from 'node:http';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { authRouter, authMiddleware } from './auth.js';
-import reviewsRouter from './routes/reviews.js';
 import kvRouter from './routes/kv.js';
 import uploadsRouter from './routes/uploads.js';
 import reviewModulesRouter from './routes/reviewModules.js';
 import questionsRouter from './routes/questions.js';
 import practiceRouter from './routes/practice.js';
 import { attachHermesWs } from './routes/hermesChat.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
@@ -30,7 +25,6 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth',           authRouter);
-app.use('/api/reviews',        reviewsRouter);
 app.use('/api/kv',             kvRouter);
 app.use('/api/uploads',        uploadsRouter);
 app.use('/api/review-modules', reviewModulesRouter);

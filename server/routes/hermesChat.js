@@ -135,4 +135,3 @@ function bridge(client) {
   });
 }
 
-export default attachHermesWs;
