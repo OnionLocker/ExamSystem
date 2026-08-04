@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import {
+  addEntryOncePerDay,
+  hasEntryToday,
+  QUALITATIVE,
+} from '../studyLog/studyLog.js';
 import { PenTool, Image, Sparkles, Download, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
 
 const HANDWRITING_TARGETS = [
@@ -15,6 +20,15 @@ export default function Copybook() {
   const [activeModel, setActiveModel] = useState('all'); // 'all', 'image2', 'banana2'
   const [promptText, setPromptText] = useState('高清书法字帖，米字格硬笔临摹，字迹工整横平竖直，规范楷书硬笔书法，高分辨率白底黑字');
   const [generating, setGenerating] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(() => hasEntryToday('copybook'));
+
+  const handleCheckIn = () => {
+    addEntryOncePerDay('copybook', {
+      module: QUALITATIVE.copybook.label,
+      score: QUALITATIVE.copybook.score,
+    });
+    setCheckedIn(true);
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
@@ -41,14 +55,30 @@ export default function Copybook() {
               规范卷面不求龙飞凤舞，但求<strong>横平竖直、上紧下松、字字独立</strong>。结合 Image2 与 Banana2 多模态图像生成，实时比对字帖训练效果。
             </p>
           </div>
-          <button
-            onClick={handleGenerate}
-            disabled={generating}
-            className="px-6 py-4 rounded-2xl bg-[#fbc02d] text-black font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-[#fbc02d]/20 disabled:opacity-50"
-          >
-            {generating ? <RefreshCw className="animate-spin" size={16} /> : <Sparkles size={16} />}
-            <span>{generating ? '字帖模型生成中...' : '一键比对 Image2 & Banana2'}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            {/* 字帖是线下临摹，系统这边没有"写了多久"的信号，只能由自己确认。
+                与其拿"点了生成"冒充练习，不如让打卡这一下是真的。 */}
+            <button
+              onClick={handleCheckIn}
+              disabled={checkedIn}
+              className={`px-5 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 ${
+                checkedIn
+                  ? 'bg-white/10 text-white/40 cursor-default'
+                  : 'bg-white/15 text-white hover:bg-white/25 active:scale-95'
+              }`}
+            >
+              <CheckCircle2 size={16} />
+              <span>{checkedIn ? '今日已打卡' : `练完打卡 +${QUALITATIVE.copybook.score}`}</span>
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="px-6 py-4 rounded-2xl bg-[#fbc02d] text-black font-black text-xs uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-[#fbc02d]/20 disabled:opacity-50"
+            >
+              {generating ? <RefreshCw className="animate-spin" size={16} /> : <Sparkles size={16} />}
+              <span>{generating ? '字帖模型生成中...' : '一键比对 Image2 & Banana2'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

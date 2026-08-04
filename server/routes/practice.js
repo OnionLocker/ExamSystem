@@ -371,4 +371,66 @@ router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
   });
 });
 
+// ───────────────────────────────────────────────────────────────
+// GET /api/practice/heat
+//   → { '2026-08-03': { score, entries: [{ type, module, count, correct, score }] } }
+//   打卡热力图里「AI 练题」那部分的分数。
+//
+//   为什么由服务端现算，而不是交卷时往学习日志里写一条：
+//   ① 练习记录本来就在库里，历史场次能直接算出来，不需要回填脚本；
+//   ② 重做去重用 SQL 一句话，写日志则要先读出来查重；
+//   ③ 学习日志是个整体 PUT 的 JSON 数组，服务端和前端同时往里写，
+//      晚写的一方会把对方的条目整个覆盖掉。
+//
+//   计分：实际作答题数 × 1.5 + 正确率 × 0.1（跟手动录入刷题同一量级，
+//   多给一点正确率加成）。跳过没答的题不计入。
+//   同一题组当天只算第一次交卷 —— 重做是复习，不该和首刷等价加热。
+// ───────────────────────────────────────────────────────────────
+router.get('/heat', (_req, res) => {
+  // ended_at 存的是 UTC，热力图按东八区分日，跨零点的场次要先挪过来
+  const rows = db
+    .prepare(
+      `SELECT
+         s.id,
+         s.category,
+         date(s.ended_at, '+8 hours')                          AS day,
+         strftime('%s', s.ended_at)                            AS ts,
+         (SELECT q.source FROM questions q
+           WHERE q.batch_id = s.category LIMIT 1)              AS source,
+         (SELECT COUNT(*) FROM practice_answers pa
+           WHERE pa.session_id = s.id AND pa.user_answer != '') AS answered,
+         (SELECT COUNT(*) FROM practice_answers pa
+           WHERE pa.session_id = s.id AND pa.is_correct = 1)    AS correct
+       FROM practice_sessions s
+       WHERE s.ended_at IS NOT NULL
+       ORDER BY s.ended_at ASC`,
+    )
+    .all();
+
+  const out = {};
+  const counted = new Set(); // `${day}|${category}`，同题组当天只认第一场
+
+  for (const r of rows) {
+    if (!r.answered) continue;
+    const dedupeKey = `${r.day}|${r.category}`;
+    if (counted.has(dedupeKey)) continue;
+    counted.add(dedupeKey);
+
+    const acc = Math.round((r.correct / r.answered) * 100);
+    const score = Math.round(r.answered * 1.5 + acc * 0.1);
+    if (!out[r.day]) out[r.day] = { score: 0, entries: [] };
+    out[r.day].score += score;
+    out[r.day].entries.push({
+      type: 'aiquiz',
+      ts: Number(r.ts) * 1000,
+      module: r.source || r.category,
+      count: r.answered,
+      correct: r.correct,
+      score,
+    });
+  }
+
+  res.json(out);
+});
+
 export default router;

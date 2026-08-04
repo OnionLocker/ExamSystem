@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../api.js';
 import {
   loadLog,
   aggregateByDay,
+  mergeServerHeat,
   scoreLevel,
 } from './studyLog.js';
 
@@ -24,15 +26,36 @@ export const LEVEL_COLORS = [
   '#fde28a', // 8: 顶格（最亮，带发光感）
 ];
 
+// AI 练题的热力由服务端按练习记录现算，不进本地学习日志。
+// 这里统一拉一次，热力图和打卡面板共用，省得两处各查一遍。
+export const useServerHeat = (version = 0) => {
+  const [heat, setHeat] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    api('/api/practice/heat')
+      .then((d) => alive && setHeat(d || {}))
+      .catch(() => alive && setHeat({})); // 拿不到就只显示本地日志，不挡渲染
+    return () => {
+      alive = false;
+    };
+  }, [version]);
+  return heat;
+};
+
 // 供仪表盘日历使用：根据 dayKey 返回 { score, minutes, level, color, entries }
 export const useStudyHeatmap = (version = 0) => {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const byDay = useMemo(() => aggregateByDay(loadLog()), [version]);
+  const serverHeat = useServerHeat(version);
+  const byDay = useMemo(
+    () => mergeServerHeat(aggregateByDay(loadLog()), serverHeat),
+    // version 是有意的缓存失效信号：loadLog 读的是 localStorage，eslint 看不到这层依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [version, serverHeat],
+  );
   const getDay = (key) => {
     const v = byDay.get(key);
     if (!v) return null;
     const level = scoreLevel(v.score);
     return { ...v, level, color: LEVEL_COLORS[level] };
   };
-  return { byDay, getDay };
+  return { byDay, getDay, serverHeat };
 };

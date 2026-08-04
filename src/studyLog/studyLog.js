@@ -33,6 +33,21 @@ export const MODULES = [
   { id: 'zhenti', name: '真题整套', defaultSize: 135, color: '#1a1a1a' },
 ];
 
+// 各来源的显示标签与配色。打卡面板的今日明细、仪表盘的今日概览都用这一份，
+// 加新来源时只改这里，两处 UI 自动跟上。
+export const ENTRY_TYPES = {
+  pomodoro: { label: '番茄钟', color: '#ff6b6b' },
+  numeric: { label: '数资练习', color: '#fbc02d' },
+  aiquiz: { label: 'AI 练题', color: '#e0a800' },
+  mock: { label: '全卷模考', color: '#0ea5e9' },
+  import: { label: '导入套题', color: '#3b82f6' },
+  review: { label: '错题复盘', color: '#22c55e' },
+  reviewBrowse: { label: '复习浏览', color: '#14b8a6' },
+  vocab: { label: '词汇练习', color: '#8b5cf6' },
+  copybook: { label: '字帖练习', color: '#f97316' },
+  chat: { label: '导师辅导', color: '#a855f7' },
+};
+
 export const loadLog = () => cloudGet(LOG_KEY, []);
 
 const saveLog = (list) => cloudSet(LOG_KEY, list);
@@ -90,6 +105,47 @@ export const scoreImport = (module, count) => {
 // 错题复盘：每题 0.5 分
 export const scoreReview = (count) => Math.round((count || 0) * 0.5);
 
+// 全卷模考：按实际计时时长算，跟番茄钟同口径（1 分钟 1 分）
+export const scoreMock = (minutes) => Math.round(minutes || 0);
+
+// ---------------- 定性来源 ----------------
+// 有些事情没法精确计量（复习时翻了多少张截图、字帖临了多久），
+// 但确实是在学。这类给固定分，并设一个最低门槛挡住"点一下就算"，
+// 而且当天只记一次 —— 反复进出同一个模块不该反复加热。
+export const QUALITATIVE = {
+  reviewBrowse: { label: '复习浏览', minMinutes: 5, score: 8 },
+  vocab: { label: '词汇练习', minCount: 20, score: 10 },
+  copybook: { label: '字帖练习', score: 10 },
+};
+
+// 当天已经记过这个类型就不再记，返回 null
+export const addEntryOncePerDay = (type, entry) => {
+  const today = dayKey(Date.now());
+  const already = loadLog().some((r) => r.type === type && dayKey(r.ts) === today);
+  if (already) return null;
+  return addEntry({ type, ...entry });
+};
+
+// 当天某个类型已经记过了吗（UI 用来显示"今日已打卡"）
+export const hasEntryToday = (type) => {
+  const today = dayKey(Date.now());
+  return loadLog().some((r) => r.type === type && dayKey(r.ts) === today);
+};
+
+// 有些定性来源要看"当天累计做了多少"（比如词汇练习满 20 题才给分），
+// 这里存当天的临时计数。故意不进云同步白名单：它只是个游标，
+// 达标后会写成正式的日志条目，那条才是要跨设备同步的东西。
+const DAILY_COUNT_KEY = 'study_daily_count_v1';
+
+export const bumpDailyCount = (type, step = 1) => {
+  const today = dayKey(Date.now());
+  const all = cloudGet(DAILY_COUNT_KEY, {});
+  const prev = all[type] && all[type].day === today ? all[type].count : 0;
+  const count = prev + step;
+  cloudSet(DAILY_COUNT_KEY, { ...all, [type]: { day: today, count } });
+  return count;
+};
+
 // ---------------- 聚合查询 ----------------
 // 日期键：YYYY-MM-DD（按本地时区）
 const pad = (n) => String(n).padStart(2, '0');
@@ -112,6 +168,29 @@ export const aggregateByDay = (log = loadLog()) => {
     d.entries.push(r);
   }
   return m;
+};
+
+// AI 练题的分数不在这份日志里，而是服务端按 practice_sessions 现算的
+// （见 GET /api/practice/heat）。这里把它并进按天聚合的结果。
+//
+// 为什么不让前端交卷时往日志里写一条：这份日志是整体 PUT 的 JSON 数组，
+// 服务端和前端同时往里写，晚写的一方会把对方的条目整个覆盖掉；而且现算
+// 还顺带让历史场次不用回填脚本就能直接亮起来。
+export const mergeServerHeat = (byDay, serverHeat) => {
+  if (!serverHeat) return byDay;
+  // 不改传进来的 Map：同一份聚合结果被合并两次就会把分数翻倍
+  const out = new Map();
+  for (const [k, v] of byDay) out.set(k, { ...v, entries: [...v.entries] });
+  for (const [key, day] of Object.entries(serverHeat)) {
+    if (!out.has(key)) out.set(key, { score: 0, minutes: 0, entries: [] });
+    const d = out.get(key);
+    d.score += day.score || 0;
+    for (const e of day.entries || []) {
+      // derived：派生条目删不掉，UI 不给删除按钮
+      d.entries.push({ ...e, id: `srv-${key}-${e.ts}-${e.count}`, derived: true });
+    }
+  }
+  return out;
 };
 
 // 获取最近 N 天的日期键列表（从今天向前）
@@ -142,8 +221,8 @@ export const scoreLevel = (s) => {
 };
 
 // 本周/本日/本月汇总
-export const summarize = (log = loadLog()) => {
-  const byDay = aggregateByDay(log);
+export const summarize = (log = loadLog(), serverHeat = null) => {
+  const byDay = mergeServerHeat(aggregateByDay(log), serverHeat);
   const todayKey = dayKey(Date.now());
   const today = byDay.get(todayKey) || { score: 0, minutes: 0, entries: [] };
 

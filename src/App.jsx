@@ -24,8 +24,8 @@ import Pomodoro from './pomodoro/Pomodoro.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
 import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
 import StudyLogPanel from './studyLog/StudyLogPanel.jsx';
-import { useStudyHeatmap, LEVEL_COLORS } from './studyLog/heatmap.js';
-import { loadLog, summarize } from './studyLog/studyLog.js';
+import { useStudyHeatmap, useServerHeat, LEVEL_COLORS } from './studyLog/heatmap.js';
+import { loadLog, summarize, ENTRY_TYPES } from './studyLog/studyLog.js';
 import Mixer from './mixer/Mixer.jsx';
 import MockExam from './mockExam/MockExam.jsx';
 import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
@@ -669,34 +669,27 @@ const App = () => (
 const DashboardTodayCard = ({ studyVersion }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const log = useMemo(() => loadLog(), [studyVersion]);
-  const stats = useMemo(() => summarize(log), [log]);
+  const serverHeat = useServerHeat(studyVersion);
+  const stats = useMemo(() => summarize(log, serverHeat), [log, serverHeat]);
   const today = stats.today;
 
-  // 按 type 聚合今日明细（时长/次数）
+  // 今日明细按实际出现的来源聚合，而不是写死几种：
+  // 新接一个热力来源时，只要 ENTRY_TYPES 里有它，这张卡自动就会显示
   const byType = useMemo(() => {
-    const acc = {
-      pomodoro: { minutes: 0, count: 0, color: '#ff6b6b', label: '番茄专注' },
-      numeric: { minutes: 0, count: 0, color: '#fbc02d', label: '数资练习' },
-      import: { minutes: 0, count: 0, color: '#3b82f6', label: '导入套题' },
-    };
+    const acc = {};
     for (const e of today.entries) {
-      if (!acc[e.type]) continue;
+      const meta = ENTRY_TYPES[e.type];
+      if (!meta) continue;
+      if (!acc[e.type]) acc[e.type] = { ...meta, minutes: 0, count: 0, score: 0 };
       acc[e.type].count += 1;
       acc[e.type].minutes += e.minutes || 0;
+      acc[e.type].score += e.score || 0;
     }
     return acc;
   }, [today]);
 
   const totalScore = today.score;
   const totalMin = today.minutes;
-  // 百分比条：按 type 得分占比（本日得分聚合）
-  const scoreByType = useMemo(() => {
-    const m = { pomodoro: 0, numeric: 0, import: 0 };
-    for (const e of today.entries) {
-      if (m[e.type] != null) m[e.type] += e.score || 0;
-    }
-    return m;
-  }, [today]);
 
   return (
     <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-between">
@@ -720,7 +713,6 @@ const DashboardTodayCard = ({ studyVersion }) => {
         </div>
         <div className="flex-1 space-y-3">
           {Object.entries(byType).map(([k, v]) => {
-            const score = scoreByType[k] || 0;
             const active = v.count > 0;
             return (
               <div key={k} className="flex items-center space-x-3">
@@ -737,7 +729,7 @@ const DashboardTodayCard = ({ studyVersion }) => {
                 </span>
                 {active && (
                   <span className="text-[10px] font-black tabular-nums ml-auto opacity-60">
-                    {v.count} 次 · +{score}
+                    {v.count} 次 · +{v.score}
                   </span>
                 )}
               </div>

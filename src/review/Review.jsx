@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  addEntryOncePerDay,
+  hasEntryToday,
+  QUALITATIVE,
+} from '../studyLog/studyLog.js';
+import {
   BookMarked,
   Plus,
   Trash2,
@@ -79,7 +84,31 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
+// 复习是"翻资料看截图"，没有题数可数，只能按真正停留的时长定性给分。
+// 只在页面可见时累计，切到别的标签页或锁屏就停 —— 挂着不算学习。
+// 满门槛后当天只记一次，反复进出这个模块不会反复加热。
+const useReviewDwell = () => {
+  useEffect(() => {
+    if (hasEntryToday('reviewBrowse')) return undefined;
+    const need = QUALITATIVE.reviewBrowse.minMinutes * 60;
+    let seconds = 0;
+    const tid = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      seconds += 1;
+      if (seconds < need) return;
+      clearInterval(tid);
+      addEntryOncePerDay('reviewBrowse', {
+        module: QUALITATIVE.reviewBrowse.label,
+        minutes: QUALITATIVE.reviewBrowse.minMinutes,
+        score: QUALITATIVE.reviewBrowse.score,
+      });
+    }, 1000);
+    return () => clearInterval(tid);
+  }, []);
+};
+
 const Review = () => {
+  useReviewDwell();
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

@@ -17,7 +17,9 @@ import {
   scoreReview,
   loadLog,
   summarize,
+  ENTRY_TYPES,
 } from './studyLog.js';
+import { useServerHeat } from './heatmap.js';
 
 // ============================================================
 // 学习打卡主面板：顶部汇总 + 快速录入（可折叠）+ 今日明细
@@ -26,7 +28,8 @@ const StudyLogPanel = ({ version, onChange }) => {
   // version 是有意的缓存失效信号：loadLog 读 localStorage，eslint 看不到这层依赖
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const log = useMemo(() => loadLog(), [version]);
-  const stats = useMemo(() => summarize(log), [log]);
+  const serverHeat = useServerHeat(version);
+  const stats = useMemo(() => summarize(log, serverHeat), [log, serverHeat]);
   const bump = () => onChange?.();
   const [importOpen, setImportOpen] = useState(false);
 
@@ -268,13 +271,6 @@ const NumberStepper = ({ value, onChange, suffix }) => (
 );
 
 // ---------------- 今日明细 ----------------
-const TYPE_META = {
-  pomodoro: { label: '番茄钟', color: '#ff6b6b' },
-  numeric: { label: '数资练习', color: '#fbc02d' },
-  import: { label: '导入套题', color: '#3b82f6' },
-  review: { label: '错题复盘', color: '#22c55e' },
-  chat: { label: '导师辅导', color: '#a855f7' },
-};
 
 const TodayDetailBlock = ({ today, onRemove }) => {
   if (!today.entries.length) {
@@ -296,7 +292,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
       </p>
       <div className="space-y-2">
         {today.entries.map((e) => {
-          const meta = TYPE_META[e.type] || { label: e.type, color: '#999' };
+          const meta = ENTRY_TYPES[e.type] || { label: e.type, color: '#999' };
           return (
             <div
               key={e.id}
@@ -324,13 +320,18 @@ const TodayDetailBlock = ({ today, onRemove }) => {
                     minute: '2-digit',
                   })}
                 </span>
-                <button
-                  onClick={() => onRemove(e.id)}
-                  title="删除"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-[#ff6b6b]"
-                >
-                  <Trash2 size={12} />
-                </button>
+                {/* 服务端现算出来的条目删不掉，要去掉得删那场练习本身 */}
+                {e.derived ? (
+                  <span className="w-3" />
+                ) : (
+                  <button
+                    onClick={() => onRemove(e.id)}
+                    title="删除"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-[#ff6b6b]"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -353,6 +354,14 @@ const formatEntry = (e) => {
   }
   if (e.type === 'review') return `复盘 ${e.count} 题`;
   if (e.type === 'chat') return e.module || '导师辅导';
+  if (e.type === 'aiquiz') {
+    const acc = e.count ? Math.round((e.correct / e.count) * 100) : 0;
+    return `${e.module} · ${e.correct}/${e.count} (${acc}%)`;
+  }
+  if (e.type === 'mock') return `模考 ${e.minutes} 分钟`;
+  if (e.type === 'reviewBrowse') return `翻复习资料 ${e.minutes} 分钟`;
+  if (e.type === 'vocab') return `词汇 ${e.count} 题`;
+  if (e.type === 'copybook') return e.module || '字帖临摹';
   return '';
 };
 

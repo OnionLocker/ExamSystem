@@ -2,6 +2,11 @@ import { useCallback, useState, useMemo } from 'react';
 import { BookOpen, Search, CheckCircle2, Zap, ArrowRight, Trophy, Sparkles, ShieldAlert, Lightbulb, XCircle, RotateCcw, Target } from 'lucide-react';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 import {
+  addEntryOncePerDay,
+  bumpDailyCount,
+  QUALITATIVE,
+} from '../studyLog/studyLog.js';
+import {
   ALL_WORDS,
   QUIZ_POOL,
   QUESTION_KINDS,
@@ -111,6 +116,16 @@ export default function StudyBoost() {
     const correct = option.correct;
     const id = question.target.id;
     setRound(r => ({ asked: r.asked + 1, right: r.right + (correct ? 1 : 0) }));
+
+    // 当天累计答满门槛题数，给一次定性热力（同一天只记一次）
+    const answeredToday = bumpDailyCount('vocab');
+    if (answeredToday >= QUALITATIVE.vocab.minCount) {
+      addEntryOncePerDay('vocab', {
+        module: QUALITATIVE.vocab.label,
+        count: answeredToday,
+        score: QUALITATIVE.vocab.score,
+      });
+    }
     setStats(prev => {
       const cur = prev[id] || { right: 0, wrong: 0, streak: 0 };
       const next = {
