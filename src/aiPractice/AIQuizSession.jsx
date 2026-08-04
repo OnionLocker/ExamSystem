@@ -18,7 +18,7 @@ import {
 import { api, getToken } from '../api.js';
 import DraftLayer from './DraftLayer.jsx';
 import { scrollHost } from './scrollHost.js';
-import { captureNode, warmUpCapture } from './captureNode.js';
+import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
 
 // 笔色。放在这儿而不是 DraftLayer 里：工具栏是这边画的，
 // 而 DraftLayer 只该导出组件本身（否则 react-refresh 失效）。
@@ -350,6 +350,12 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
   const paperRef = useRef(null);
   const dirtyDraftsRef = useRef(new Set());
+  const draftQueueRef = useRef(Promise.resolve());
+  const savingCountRef = useRef(0);
+  const bumpSaving = useCallback((d) => {
+    savingCountRef.current = Math.max(0, savingCountRef.current + d);
+    setSavingDraft(savingCountRef.current > 0);
+  }, []);
   const uploadedRef = useRef(new Set());
 
   const current = questions[index];
@@ -468,6 +474,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
   // ── 草稿纸 ──
   const currentStrokes = current ? drafts[current.id] || [] : [];
+  const hasDraft = currentStrokes.length > 0;
 
   const pushStroke = useCallback((stroke) => {
     const qid = current?.id;
@@ -483,37 +490,44 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     setDrafts((prev) => ({ ...prev, [qid]: fn(prev[qid] || []) }));
   };
 
-  // 把「题目 + 圈划 + 演算」整页存到后台。必须在这道题还在屏幕上时截，
-  // 所以离开本题之前 await 一下（只有真动过笔才截，翻页一般不会卡）。
-  const persistDraft = useCallback(async (qid) => {
+  // 草稿存盘：抓快照这一下是同步的，截图和上传都甩到后台，翻页不用等。
+  // 失败就把这道题重新标脏，下次离开它会再试一次。
+  const persistDraft = useCallback((qid) => {
     if (!sessionId || !qid) return;
     if ((drafts[qid] || []).length === 0) return;
     if (!dirtyDraftsRef.current.has(qid) && uploadedRef.current.has(qid)) return;
 
-    setSavingDraft(true);
-    try {
-      const dataUrl = await captureNode(paperRef.current);
-      if (!dataUrl) return;
-      await api(`/api/practice/sessions/${sessionId}/drafts/${qid}`, {
-        method: 'PUT',
-        body: { data: dataUrl, mime: 'image/png' },
-      });
-      dirtyDraftsRef.current.delete(qid);
-      uploadedRef.current.add(qid);
-    } catch (e) {
-      // 草稿没存上不该挡住做题，提示一下就行
-      setErrMsg(`草稿纸保存失败：${e?.message || '未知错误'}`);
-    } finally {
-      setSavingDraft(false);
-    }
-  }, [sessionId, drafts]);
+    const snap = detachForCapture(paperRef.current);
+    if (!snap) return;
+    dirtyDraftsRef.current.delete(qid);
+    bumpSaving(1);
+
+    // 排成一队跑：截图在 iPad 上不便宜，连着翻几页也不该几张图一起挤
+    draftQueueRef.current = draftQueueRef.current.then(async () => {
+      try {
+        const dataUrl = await captureNode(snap.node);
+        if (!dataUrl) return;
+        await api(`/api/practice/sessions/${sessionId}/drafts/${qid}`, {
+          method: 'PUT',
+          body: { data: dataUrl, mime: 'image/png' },
+        });
+        uploadedRef.current.add(qid);
+      } catch (e) {
+        dirtyDraftsRef.current.add(qid);
+        setErrMsg(`草稿纸保存失败：${e?.message || '未知错误'}`);
+      } finally {
+        snap.dispose();
+        bumpSaving(-1);
+      }
+    });
+  }, [sessionId, drafts, bumpSaving]);
 
   // ── 导航 ──
-  const goTo = useCallback(async (nextIndex) => {
+  const goTo = useCallback((nextIndex) => {
     if (nextIndex < 0 || nextIndex >= total || nextIndex === index) return;
     settle(enter);
     setDraftMode(false);
-    await persistDraft(current?.id);
+    persistDraft(current?.id);
     setIndex(nextIndex);
     setEnter({ qid: questions[nextIndex].id, at: Date.now() });
   }, [total, index, enter, settle, persistDraft, current?.id, questions]);
@@ -571,9 +585,11 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     const pendingSec = enter.at ? Math.max(0, Math.round((Date.now() - enter.at) / 1000)) : 0;
 
     setDraftMode(false);
-    await persistDraft(current?.id);
+    persistDraft(current?.id);
     setPhase('grading');
     setErrMsg('');
+    // 交卷是唯一该等的地方：不等完，复盘页里最后一题会显示成没留草稿
+    await draftQueueRef.current;
 
     const payload = questions.map((q) => ({
       question_id: q.id,
@@ -879,12 +895,12 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             <span className="shrink-0 w-px h-7 bg-[#f2f0e9] mx-0.5" />
 
             <button onClick={() => mutateStrokes((s) => s.slice(0, -1))}
-              disabled={currentStrokes.length === 0} title="撤销一笔"
+              disabled={!hasDraft} title="撤销一笔"
               className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30 transition-colors">
               <Undo2 size={17} />
             </button>
             <button onClick={() => mutateStrokes(() => [])}
-              disabled={currentStrokes.length === 0} title="清空本题草稿"
+              disabled={!hasDraft} title="清空本题草稿"
               className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-red-50 hover:text-[#ef5350] disabled:opacity-30 transition-colors">
               <Trash2 size={17} />
             </button>
@@ -917,7 +933,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           <div className="flex items-center gap-2">
             <button
               onClick={() => goTo(index - 1)}
-              disabled={index === 0 || savingDraft}
+              disabled={index === 0}
               title="上一题"
               className="shrink-0 h-14 px-4 rounded-2xl bg-white border-2 border-[#f2f0e9] text-[#999] font-black flex items-center gap-1.5 hover:border-[#1a1a1a] hover:text-[#1a1a1a] disabled:opacity-40 transition-colors"
             >
@@ -939,26 +955,23 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
             <button
               onClick={() => { setDraftMode(true); setScratchRows((r) => (r === 0 ? 1 : r)); }}
-              title={currentStrokes.length > 0
-                ? `草稿纸：已有 ${currentStrokes.length} 笔，打开就能看到`
+              title={hasDraft
+                ? '草稿纸：这题留了草稿，打开就能看到'
                 : '草稿纸：在题目上圈划、在下面演算'}
               className={`shrink-0 h-14 px-4 rounded-2xl border-2 flex items-center gap-1.5 font-black transition-colors ${
-                currentStrokes.length > 0
+                hasDraft
                   ? 'bg-[#fbc02d] border-[#fbc02d] text-black'
                   : 'bg-white border-[#f2f0e9] text-[#999] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
               }`}
             >
               <PenTool size={17} />
               <span className="text-xs uppercase tracking-widest hidden sm:inline">草稿纸</span>
-              {currentStrokes.length > 0 && (
-                <span className="text-[10px] font-black tabular-nums opacity-60">{currentStrokes.length}</span>
-              )}
             </button>
 
             {isLast ? (
               <button
                 onClick={submitAll}
-                disabled={grading || savingDraft}
+                disabled={grading}
                 className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#fbc02d] hover:text-black disabled:opacity-60 transition-all shadow-lg"
               >
                 {grading
@@ -968,12 +981,10 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             ) : (
               <button
                 onClick={() => goTo(index + 1)}
-                disabled={savingDraft}
                 className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#fbc02d] hover:text-black disabled:opacity-60 transition-all shadow-lg"
               >
-                {savingDraft
-                  ? (<><Loader2 size={17} className="animate-spin" /><span>保存草稿…</span></>)
-                  : (<><span>下一题</span><ArrowRight size={17} /></>)}
+                <span>下一题</span>
+                <ArrowRight size={17} />
               </button>
             )}
           </div>
@@ -983,6 +994,9 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           {draftMode
             ? 'Apple Pencil 画笔迹 · 双指翻页 · Esc 退出批注'
             : 'A/B/C/D 选择 · ← → 翻题 · 最后一题交卷'}
+          {savingDraft && (
+            <span className="text-[#ddd]"> · 草稿保存中</span>
+          )}
         </p>
       </div>
 

@@ -17,6 +17,41 @@ const load = () => {
 // 提前把库拉下来：用户点开批注模式时就预热，真正截图那一刻不用等网络
 export const warmUpCapture = () => { load().catch(() => {}); };
 
+// 把节点当前的样子原地复制一份挂到屏幕外，好让截图在后台慢慢跑。
+//
+// html2canvas 读的是活着的 DOM：直接把截图丢到后台，用户一翻页就会截到下一题的内容。
+// 而截图在 iPad 上要几百毫秒到一秒多，让用户站在原地等一个"正在保存草稿"的圈显然不对。
+// 先同步克隆一份（这一步很快，就是一次 DOM 复制），翻页立刻走，截图对着副本跑，
+// 快照仍然是离开时那道题。
+export const detachForCapture = (node) => {
+  const cssW = node?.offsetWidth;
+  if (!cssW) return null;
+
+  const clone = node.cloneNode(true);
+  // cloneNode 不会搬 canvas 里的像素，笔迹得自己画过去一次
+  const from = node.querySelectorAll('canvas');
+  const to = clone.querySelectorAll('canvas');
+  from.forEach((src, i) => {
+    const dst = to[i];
+    if (!dst || !src.width || !src.height) return;
+    dst.width = src.width;
+    dst.height = src.height;
+    try {
+      dst.getContext('2d')?.drawImage(src, 0, 0);
+    } catch {
+      /* 画不过来就只丢这一层笔迹，不该连截图一起废掉 */
+    }
+  });
+
+  // 宽度钉成原来那么宽，副本里的 w-full / 换行位置才跟屏幕上一模一样
+  const holder = document.createElement('div');
+  holder.style.cssText = `position:fixed;top:0;left:-99999px;width:${cssW}px;pointer-events:none;z-index:-1;`;
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+
+  return { node: clone, dispose: () => holder.remove() };
+};
+
 const MAX_PX = 1600;
 
 export async function captureNode(node) {
