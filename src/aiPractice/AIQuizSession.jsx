@@ -765,18 +765,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       )}
 
       {/* 草稿纸范围：题干、选项、演算区都在这一层里，批注层盖在最上面 */}
-      <div
-        ref={paperRef}
-        className="relative"
-        // 批注时把整层设成不可选：iPadOS 会把 Pencil 的拖拽当成选中文字的手势，
-        // 写一横就选中一行题干并弹出拷贝/搜索/服务菜单，字根本写不下去。
-        // 这手势和滚页一样在我们拿到事件之前就定了，只能从源头把文字变成不可选。
-        style={
-          draftMode
-            ? { userSelect: 'none', WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }
-            : undefined
-        }
-      >
+      <div ref={paperRef} className="relative">
         <div className={`bg-white rounded-[2rem] p-5 sm:p-8 shadow-sm border-2 transition-colors ${
           draftMode ? 'border-[#fbc02d]' : 'border-[#f2f0e9]'
         }`}>
@@ -992,7 +981,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
         <p className="mt-2 text-center text-[10px] font-black uppercase tracking-widest text-[#ccc]">
           {draftMode
-            ? 'Apple Pencil 画笔迹 · 手指翻页 · Esc 退出批注'
+            ? 'Apple Pencil 画笔迹 · 双指翻页 · Esc 退出批注'
             : 'A/B/C/D 选择 · ← → 翻题 · 最后一题交卷'}
         </p>
       </div>

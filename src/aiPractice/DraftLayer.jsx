@@ -42,24 +42,17 @@ const savePenSeen = () => {
   }
 };
 
-// ---- 手指翻页 ----
+// ---- 双指翻页 ----
 // 批注模式下 canvas 必须 touch-action: none，不能只关横向：iPadOS 的 touch-action
 // 对 Apple Pencil 和手指一视同仁，只要留着 pan-y，竖着写的那一笔就会被判成滚页
 // （横着划反而画得出来，所以症状是"写不了字，一写页面就跑"）。手势一旦交给合成器，
-// preventDefault 也拽不回来。于是浏览器手势全部关掉，手指滚动这件事自己做。
-const PALM_MAX_PX = 40; // 接触面比这大的当手掌，不是指尖
-const PEN_COOLDOWN_MS = 500; // 刚落过笔的这段时间里，任何触摸都按手掌处理
+// preventDefault 也拿不回来。于是浏览器手势全部关掉，翻页这件事自己做。
+//
+// 翻页坚持要两根手指：写字时手掌、小指压在屏幕上都是单点接触，跟"想翻页的手指"
+// 在事件层面分不出来，只靠落笔冷却挡不干净 —— 字与字之间抬笔挪手的那一下就够
+// 页面窜出去了。两指才滚，手掌就再也顶不动页面。
 const FLICK_DECAY = 0.94; // 每帧衰减，甩一下有点惯性才像原生滚动
 const FLICK_MIN_V = 0.02; // px/ms，低于这个速度就停
-
-// 这一下触摸是不是"想翻页的手指"。写字时手掌压上来、笔画间隙的误碰都要挡掉。
-const isRealFinger = (e, lastPenTs, drawing) => {
-  if (drawing) return false;
-  if (Date.now() - lastPenTs < PEN_COOLDOWN_MS) return false;
-  // Safari 对触摸不一定给得出接触面尺寸，给不出时这条自然失效，不影响上面两条
-  if (e.width > PALM_MAX_PX || e.height > PALM_MAX_PX) return false;
-  return true;
-};
 
 const strokeWidth = (kind, pressure) => {
   if (kind === 'hl') return HL_W;
@@ -125,10 +118,17 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   // 写字时手掌搭在屏幕上也走这条路，再由 isRealFinger 挡掉。
   const penSeenRef = useRef(loadPenSeen());
 
-  // 手指平移的现场：按下的那根手指、上一帧位置、用于惯性的瞬时速度
+  // 翻页要两根手指。写字时手掌、小指搭在屏幕上都是单点接触，跟"想翻页的手指"
+  // 从事件上分不出来（Safari 也不一定给得出接触面尺寸），只靠冷却时间挡不干净：
+  // 字与字之间抬笔挪手的那一下就够页面窜出去。改成两指才滚，手掌就再也顶不动了。
+  const touchesRef = useRef(new Map()); // pointerId -> clientY
   const panRef = useRef(null);
-  const lastPenTsRef = useRef(0);
   const flickRef = useRef(0);
+
+  const avgTouchY = () => {
+    const ys = [...touchesRef.current.values()];
+    return ys.reduce((a, b) => a + b, 0) / (ys.length || 1);
+  };
 
   // 手指松开后按当时的速度滑一段，不然长题干只能一寸一寸拖，很难受
   const startFlick = useCallback((host, v0) => {
@@ -147,17 +147,19 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
 
   useEffect(() => () => cancelAnimationFrame(flickRef.current), []);
 
-  const beginPan = (e) => {
-    cancelAnimationFrame(flickRef.current); // 滑动中再按下：先刹住
-    // 拖到画布外也要能收到事件，否则 pointerup 掉在别处，panRef 就死在那里了
-    try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 同下 */ }
-    panRef.current = {
-      id: e.pointerId,
-      host: scrollHost(canvasRef.current),
-      y: e.clientY,
-      t: performance.now(),
-      v: 0,
-    };
+  // 批注期间整页禁选，挡掉 Pencil 拖拽选字和手掌长按弹出的系统菜单
+  useEffect(() => {
+    if (!active) return undefined;
+    document.body.classList.add('draft-annotating');
+    return () => document.body.classList.remove('draft-annotating');
+  }, [active]);
+
+  const endPan = () => {
+    const pan = panRef.current;
+    panRef.current = null;
+    if (pan && Math.abs(pan.v) > FLICK_MIN_V && performance.now() - pan.t < 100) {
+      startFlick(pan.host, pan.v);
+    }
   };
 
   const redraw = useCallback(() => {
@@ -215,21 +217,33 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   const onPointerDown = (e) => {
     if (!active) return;
     if (e.pointerType === 'pen') {
-      lastPenTsRef.current = Date.now();
       if (!penSeenRef.current) {
         penSeenRef.current = true;
         savePenSeen();
       }
-      // 笔落下去的那一刻，先前那个“手指”就能确定是先搭上来的手掌
+      // 笔落下来了，先前搭在屏幕上的那些接触点都是手，别让它们继续滚页
+      touchesRef.current.clear();
       panRef.current = null;
       cancelAnimationFrame(flickRef.current);
     }
+
     // Pencil 出现过之后，手指就专职当翻页手，不再落墨
     if (e.pointerType === 'touch' && penSeenRef.current) {
-      // 已经有一根手指在拖了，后来的不抢
-      if (!panRef.current && isRealFinger(e, lastPenTsRef.current, !!liveRef.current)) beginPan(e);
+      touchesRef.current.set(e.pointerId, e.clientY);
+      // 笔正压着说明是写字时的手掌，等笔抬起来再说
+      if (liveRef.current) return;
+      if (touchesRef.current.size === 2) {
+        cancelAnimationFrame(flickRef.current); // 滑动中再按下：先刹住
+        panRef.current = {
+          host: scrollHost(canvasRef.current),
+          y: avgTouchY(),
+          t: performance.now(),
+          v: 0,
+        };
+      }
       return;
     }
+
     e.preventDefault();
     // 上一笔要是已经拖出了选区，先清掉，否则那个蓝块和弹出菜单会一直盖在题干上
     try { window.getSelection()?.removeAllRanges(); } catch { /* 无关紧要 */ }
@@ -244,23 +258,25 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
 
   const onPointerMove = (e) => {
     if (!active) return;
-    if (e.pointerType === 'pen') lastPenTsRef.current = Date.now();
 
-    const pan = panRef.current;
-    if (pan && e.pointerId === pan.id) {
-      // 手指往上推 → 内容往上走 → scrollTop 变大
-      const dy = pan.y - e.clientY;
+    if (e.pointerType === 'touch' && touchesRef.current.has(e.pointerId)) {
+      touchesRef.current.set(e.pointerId, e.clientY);
+      const pan = panRef.current;
+      if (!pan || touchesRef.current.size < 2) return;
+      // 取所有接触点的平均位置：中途多搭上一根手指也不会让页面跳一下
+      const y = avgTouchY();
+      const dy = pan.y - y; // 手指往上推 → 内容往上走 → scrollTop 变大
       scrollHostBy(pan.host, dy);
       const now = performance.now();
       const dt = now - pan.t;
       if (dt > 0) pan.v = dy / dt;
-      pan.y = e.clientY;
+      pan.y = y;
       pan.t = now;
       return;
     }
 
     const live = liveRef.current;
-    if (!live || (e.pointerType === 'touch' && penSeenRef.current)) return;
+    if (!live || e.pointerType === 'touch') return;
     e.preventDefault();
     const pt = pointOf(e);
     const prev = live.pts[live.pts.length - 1];
@@ -284,17 +300,11 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
 
   const onPointerUp = (e) => {
     if (!active) return;
-    const pan = panRef.current;
-    if (pan && e.pointerId === pan.id) {
-      panRef.current = null;
-      try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch { /* 同上 */ }
-      // 停顿超过 100ms 再抬手说明是"拖到位"，不该再滑
-      if (Math.abs(pan.v) > FLICK_MIN_V && performance.now() - pan.t < 100) {
-        startFlick(pan.host, pan.v);
-      }
+    if (e.pointerType === 'touch') {
+      touchesRef.current.delete(e.pointerId);
+      if (panRef.current && touchesRef.current.size < 2) endPan();
       return;
     }
-    if (e.pointerType === 'touch' && penSeenRef.current) return;
     e.preventDefault();
     endStroke(e);
   };

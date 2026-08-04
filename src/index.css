@@ -45,3 +45,16 @@ body,
 .animate-slideIn {
   animation: slideInRight 200ms ease-out;
 }
+
+/* 批注模式：整页禁掉文字选择与长按菜单。
+   iPadOS 会把 Pencil 的拖拽当成选中文字，手掌搭在屏幕上不动则等同长按，
+   两者都会在底下的元素上弹出"拷贝/搜索/翻译"那排菜单，字就写不下去了。
+   这类手势在网页拿到事件之前就判定完了，preventDefault 拦不住，只能让整页
+   没有可选中的东西。挂在 body 上而不是题目层上：菜单会挑任何够得着的文字，
+   工具栏、提示行都算。退出批注时这个类会摘掉，答题时照常能选词。 */
+body.draft-annotating,
+body.draft-annotating * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
