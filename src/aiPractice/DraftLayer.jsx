@@ -14,7 +14,8 @@
 //   - 横竖屏切换 / 内容重排后还能贴着题目走；
 //   - 撤销就是 pop 一笔，不用记快照。
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { scrollHost, scrollHostBy } from './scrollHost.js';
 
 const PEN_MIN_W = 1.4;
 const PEN_MAX_W = 4.2;
@@ -22,6 +23,43 @@ const HL_W = 16;
 const ERASER_W = 28;
 const HL_ALPHA = 0.32;
 const HL_COLOR = '#fbc02d';
+
+// "这台设备在用 Pencil" 记在本地：组件重挂载、页面刷新之后还得算数，
+// 否则回到题目第一次用手指滚动会先画出一道杠来。
+const PEN_FLAG_KEY = 'draft_pen_seen_v1';
+const loadPenSeen = () => {
+  try {
+    return localStorage.getItem(PEN_FLAG_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+const savePenSeen = () => {
+  try {
+    localStorage.setItem(PEN_FLAG_KEY, '1');
+  } catch {
+    /* 无痕模式写不进去就算了，本次会话内的 ref 仍然有效 */
+  }
+};
+
+// ---- 手指翻页 ----
+// 批注模式下 canvas 必须 touch-action: none，不能只关横向：iPadOS 的 touch-action
+// 对 Apple Pencil 和手指一视同仁，只要留着 pan-y，竖着写的那一笔就会被判成滚页
+// （横着划反而画得出来，所以症状是"写不了字，一写页面就跑"）。手势一旦交给合成器，
+// preventDefault 也拽不回来。于是浏览器手势全部关掉，手指滚动这件事自己做。
+const PALM_MAX_PX = 40; // 接触面比这大的当手掌，不是指尖
+const PEN_COOLDOWN_MS = 500; // 刚落过笔的这段时间里，任何触摸都按手掌处理
+const FLICK_DECAY = 0.94; // 每帧衰减，甩一下有点惯性才像原生滚动
+const FLICK_MIN_V = 0.02; // px/ms，低于这个速度就停
+
+// 这一下触摸是不是"想翻页的手指"。写字时手掌压上来、笔画间隙的误碰都要挡掉。
+const isRealFinger = (e, lastPenTs, drawing) => {
+  if (drawing) return false;
+  if (Date.now() - lastPenTs < PEN_COOLDOWN_MS) return false;
+  // Safari 对触摸不一定给得出接触面尺寸，给不出时这条自然失效，不影响上面两条
+  if (e.width > PALM_MAX_PX || e.height > PALM_MAX_PX) return false;
+  return true;
+};
 
 const strokeWidth = (kind, pressure) => {
   if (kind === 'hl') return HL_W;
@@ -83,11 +121,44 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   const ctxRef = useRef(null);
   const sizeRef = useRef({ w: 0, h: 0 });
   const liveRef = useRef(null);
-  // Apple Pencil 出现过之后就把手指当误触（写字时手掌搭在屏幕上不该画出线），
-  // 同时把 touch-action 放开成 pan-y，这样手指还能滚页面看下面的演算区。
-  // ref 给同一次手势内的判断用，state 只是为了让 touch-action 重新渲染。
-  const penSeenRef = useRef(false);
-  const [penSeen, setPenSeen] = useState(false);
+  // Apple Pencil 一出现，手指就换个职责：不再落墨，改为翻页。
+  // 写字时手掌搭在屏幕上也走这条路，再由 isRealFinger 挡掉。
+  const penSeenRef = useRef(loadPenSeen());
+
+  // 手指平移的现场：按下的那根手指、上一帧位置、用于惯性的瞬时速度
+  const panRef = useRef(null);
+  const lastPenTsRef = useRef(0);
+  const flickRef = useRef(0);
+
+  // 手指松开后按当时的速度滑一段，不然长题干只能一寸一寸拖，很难受
+  const startFlick = useCallback((host, v0) => {
+    cancelAnimationFrame(flickRef.current);
+    let v = v0;
+    let last = performance.now();
+    const step = (now) => {
+      const dt = now - last;
+      last = now;
+      scrollHostBy(host, v * dt);
+      v *= FLICK_DECAY ** (dt / 16.7);
+      if (Math.abs(v) > FLICK_MIN_V) flickRef.current = requestAnimationFrame(step);
+    };
+    flickRef.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(() => () => cancelAnimationFrame(flickRef.current), []);
+
+  const beginPan = (e) => {
+    cancelAnimationFrame(flickRef.current); // 滑动中再按下：先刹住
+    // 拖到画布外也要能收到事件，否则 pointerup 掉在别处，panRef 就死在那里了
+    try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 同下 */ }
+    panRef.current = {
+      id: e.pointerId,
+      host: scrollHost(canvasRef.current),
+      y: e.clientY,
+      t: performance.now(),
+      v: 0,
+    };
+  };
 
   const redraw = useCallback(() => {
     const ctx = ctxRef.current;
@@ -141,15 +212,24 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     return [(e.clientX - rect.left) / w, (e.clientY - rect.top) / w, Number(pressure.toFixed(2))];
   };
 
-  const ignore = (e) => e.pointerType === 'touch' && penSeenRef.current;
-
   const onPointerDown = (e) => {
     if (!active) return;
-    if (e.pointerType === 'pen' && !penSeenRef.current) {
-      penSeenRef.current = true;
-      setPenSeen(true);
+    if (e.pointerType === 'pen') {
+      lastPenTsRef.current = Date.now();
+      if (!penSeenRef.current) {
+        penSeenRef.current = true;
+        savePenSeen();
+      }
+      // 笔落下去的那一刻，先前那个“手指”就能确定是先搭上来的手掌
+      panRef.current = null;
+      cancelAnimationFrame(flickRef.current);
     }
-    if (ignore(e)) return;
+    // Pencil 出现过之后，手指就专职当翻页手，不再落墨
+    if (e.pointerType === 'touch' && penSeenRef.current) {
+      // 已经有一根手指在拖了，后来的不抢
+      if (!panRef.current && isRealFinger(e, lastPenTsRef.current, !!liveRef.current)) beginPan(e);
+      return;
+    }
     e.preventDefault();
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 拿不到捕获就算了 */ }
 
@@ -161,8 +241,24 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   };
 
   const onPointerMove = (e) => {
+    if (!active) return;
+    if (e.pointerType === 'pen') lastPenTsRef.current = Date.now();
+
+    const pan = panRef.current;
+    if (pan && e.pointerId === pan.id) {
+      // 手指往上推 → 内容往上走 → scrollTop 变大
+      const dy = pan.y - e.clientY;
+      scrollHostBy(pan.host, dy);
+      const now = performance.now();
+      const dt = now - pan.t;
+      if (dt > 0) pan.v = dy / dt;
+      pan.y = e.clientY;
+      pan.t = now;
+      return;
+    }
+
     const live = liveRef.current;
-    if (!active || !live || ignore(e)) return;
+    if (!live || (e.pointerType === 'touch' && penSeenRef.current)) return;
     e.preventDefault();
     const pt = pointOf(e);
     const prev = live.pts[live.pts.length - 1];
@@ -185,7 +281,18 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   };
 
   const onPointerUp = (e) => {
-    if (!active || ignore(e)) return;
+    if (!active) return;
+    const pan = panRef.current;
+    if (pan && e.pointerId === pan.id) {
+      panRef.current = null;
+      try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch { /* 同上 */ }
+      // 停顿超过 100ms 再抬手说明是"拖到位"，不该再滑
+      if (Math.abs(pan.v) > FLICK_MIN_V && performance.now() - pan.t < 100) {
+        startFlick(pan.host, pan.v);
+      }
+      return;
+    }
+    if (e.pointerType === 'touch' && penSeenRef.current) return;
     e.preventDefault();
     endStroke(e);
   };
@@ -203,9 +310,10 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       style={{
         // 关掉草稿纸就把笔迹收起来（截图存档不受影响，见 captureNode 的 onclone）
         opacity: visible ? 1 : 0,
-        // 批注模式下必须吃掉浏览器手势，否则画一笔就变成滚动/缩放；
-        // 一旦确认在用 Pencil，就把单指纵向滚动放回去（笔画笔，手指翻页）
-        touchAction: active ? (penSeen ? 'pan-y' : 'none') : 'auto',
+        // 批注模式下把浏览器手势全吃掉。不能退而求其次用 pan-y：
+        // touch-action 对 Apple Pencil 一视同仁，留着纵向平移，竖着写的那一笔
+        // 就会被当成滚页。手指翻页改成自己接管（见上面的手指平移）。
+        touchAction: active ? 'none' : 'auto',
         cursor: active ? (tool === 'eraser' ? 'cell' : 'crosshair') : 'auto',
       }}
     />

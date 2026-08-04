@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { api, getToken } from '../api.js';
 import DraftLayer from './DraftLayer.jsx';
+import { scrollHost } from './scrollHost.js';
 import { captureNode, warmUpCapture } from './captureNode.js';
 
 // 笔色。放在这儿而不是 DraftLayer 里：工具栏是这边画的，
@@ -44,18 +45,6 @@ const normalizeJudgeOptions = (options) =>
 
 const optionsOf = (q) =>
   q?.question_type === 'judge' ? normalizeJudgeOptions(q.options) : q?.options || [];
-
-// 页面不是 window 在滚，而是 App 里那个 overflow-y-auto 的内容区在滚。
-// 批注模式下 canvas 吃掉了触摸手势，翻页按钮得找到真正滚动的那个祖先。
-const scrollHost = (el) => {
-  let node = el?.parentElement;
-  while (node) {
-    const oy = getComputedStyle(node).overflowY;
-    if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 4) return node;
-    node = node.parentElement;
-  }
-  return null;
-};
 
 const scrollPage = (from, ratio) => {
   const host = scrollHost(from);
