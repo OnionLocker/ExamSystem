@@ -17,20 +17,43 @@ HERMES_DB = os.path.expanduser("~/.hermes/state.db")
 EXAM_DB = "/home/ubuntu/ExamSystem/data/exam.db"
 REPORTS_DIR = "/home/ubuntu/ExamSystem/data/reports"
 
-# 凭据只从环境变量读，不写进仓库。
+# 评委模型的凭据不写进仓库，也不再单独维护一份。
 #
-# 之前这里是硬编码的 URL + key，随 a843437 推到了公开仓库，任何人都能匿名取到
-# 并拿它打同一个配额池——Hermes 用的是同一把 key，被打爆后 429 会连带把主模型
-# 打进 1 小时冷却。轮换 key 时只改 ~/.hermes/.env，不要再写回源码。
+# 最早这里硬编码了 URL + key，随 a843437 推到公开仓库，任何人都能匿名取到，
+# 而 Hermes 用的是同一把 key，被打爆后 429 会连带把主模型打进 1 小时冷却。
+# 改成读环境变量之后又出了第二个问题：Hermes 换成本地代理，这边没人同步，
+# 脚本连着三天拿 401，而失败只落在 cron 日志里，热力图就静悄悄断了。
 #
-# CLIPROXY_API_KEY 这个名字是刻意选的：cron 执行脚本前会过
-# _sanitize_subprocess_env()，它按 provider 注册表剥掉 DEEPSEEK_API_KEY 之类的
-# 标准名，自定义名才能活着传进来（已实测确认）。
-CLIPROXY_URL = os.environ.get(
-    "CLIPROXY_URL", "http://107.173.214.139:8317/v1/chat/completions"
-)
-CLIPROXY_KEY = os.environ.get("CLIPROXY_API_KEY", "")
+# 现在直接读 Hermes 的 config.yaml：它自己能跑通，评委就一定能跑通。
+HERMES_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
 MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.5-flash-low")
+
+
+def load_judge_endpoint():
+    """评委模型复用 Hermes 自己那条通道。
+
+    以前这里单独存一份 URL + key：Hermes 换成本地代理之后没人同步这边，
+    脚本连着好几天拿 401，可失败只落在 cron 日志里，热力图就这么静悄悄断了。
+    改成直接读 Hermes 的 config.yaml —— 它自己能跑通，评委就一定能跑通。
+    环境变量只在配置里读不到时兜底。
+    """
+    url = os.environ.get("CLIPROXY_URL", "")
+    key = os.environ.get("CLIPROXY_API_KEY", "")
+    try:
+        import yaml
+
+        with open(HERMES_CONFIG, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        prov = (cfg.get("providers") or {}).get("cliproxy") or {}
+        base = str(prov.get("base_url") or "").rstrip("/")
+        if base:
+            url = base + "/chat/completions"
+        if prov.get("api_key"):
+            key = str(prov["api_key"])
+    except Exception as e:
+        print(f"读取 Hermes 配置失败，回退到环境变量: {e}", file=sys.stderr)
+    return url, key
+
 
 TZ = timezone(timedelta(hours=8))
 MAX_MSG_CHARS = 1200
@@ -138,9 +161,10 @@ def query_gemini_evaluation(messages):
 }}
 """
 
-    if not CLIPROXY_KEY:
+    url, key = load_judge_endpoint()
+    if not key:
         print(
-            "CLIPROXY_API_KEY not set — refusing to call the judge.\n"
+            "judge endpoint has no api_key — refusing to call the judge.\n"
             "  Put it in ~/.hermes/.env as CLIPROXY_API_KEY=<key> (chmod 600).",
             file=sys.stderr,
         )
@@ -153,11 +177,11 @@ def query_gemini_evaluation(messages):
     }
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
-        CLIPROXY_URL,
+        url,
         data=body,
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {CLIPROXY_KEY}",
+            "Authorization": f"Bearer {key}",
         },
         method="POST",
     )
@@ -358,7 +382,15 @@ def main():
 
     eval_result = query_gemini_evaluation(messages)
     if not eval_result:
-        print("Failed to get evaluation from Gemini.", file=sys.stderr)
+        # 评委叫不通时也要留下痕迹：之前这里直接 return 1，报告不写、热力不动，
+        # 结果连着三天没人发现评委的 key 已经废了。
+        save_report(
+            date_str,
+            f"# {date_str} 导师评估\n\n"
+            "- 评估失败：评委模型没能给出结果（看 cron 日志里的具体报错）\n"
+            "- 今日热力未改动，既没加也没清\n",
+        )
+        print("Failed to get evaluation from the judge model.", file=sys.stderr)
         return 1
 
     eval_result = normalize_eval(eval_result)

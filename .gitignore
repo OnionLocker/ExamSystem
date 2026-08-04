@@ -46,3 +46,7 @@ batches/*/_raw/
 *.njsproj
 *.sln
 *.sw?
+
+# Python 字节码（跑 scripts/ 里的脚本时生成）
+__pycache__/
+*.pyc
