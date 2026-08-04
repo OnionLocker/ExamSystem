@@ -228,6 +228,34 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     redraw();
   }, [strokes, redraw]);
 
+  // 当前这一笔是哪支笔按下的、什么时候按下的。快速抬笔又立刻落笔时，上一笔的
+  // pointerup / pointercancel / pointerleave 完全可能排在这一笔的 pointerdown 后面
+  // 才送到。收笔事件要是不认笔，这条迟到的尾巴就会把刚起头的新笔画掐掉，之后整笔
+  // 的 pointermove 全被 liveRef 为空挡掉 —— 症状正是"抬笔马上落笔写不出，停一下才行"。
+  const liveIdRef = useRef(null);
+  const liveTsRef = useRef(0);
+
+  // 这个事件是不是上一笔留下的尾巴
+  const isStale = (e) => {
+    if (!e) return false;
+    if (e.pointerId !== liveIdRef.current) return true;
+    // iPadOS 会复用 pointerId，同号时再比时刻：早于本笔落笔的一定不是本笔的
+    return e.timeStamp > 0 && liveTsRef.current > 0 && e.timeStamp < liveTsRef.current;
+  };
+
+  const endStroke = () => {
+    const live = liveRef.current;
+    const id = liveIdRef.current;
+    liveRef.current = null;
+    liveIdRef.current = null;
+    liveTsRef.current = 0;
+    committedRef.current = live;
+    if (id !== null) {
+      try { canvasRef.current?.releasePointerCapture(id); } catch { /* 同上 */ }
+    }
+    if (live) onStrokeEnd?.(live);
+  };
+
   const kindOf = () => (tool === 'eraser' ? 'er' : tool === 'highlighter' ? 'hl' : 'pen');
 
   const pointOf = (e) => {
@@ -235,6 +263,23 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     const w = rect.width || 1;
     const pressure = e.pressure > 0 && e.pressure < 1 ? e.pressure : 0.5;
     return [(e.clientX - rect.left) / w, (e.clientY - rect.top) / w, Number(pressure.toFixed(2))];
+  };
+
+  // 落笔：pointerdown 走这里，笔已经压着却没有笔画时也走这里（见 onPointerMove）
+  const startStroke = (e) => {
+    // 上一笔要是已经拖出了选区，先清掉，否则那个蓝块和弹出菜单会一直盖在题干上
+    try { window.getSelection()?.removeAllRanges(); } catch { /* 无关紧要 */ }
+    try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 拿不到捕获就算了 */ }
+    // 上一笔的收笔事件要是丢了，先把它落袋，别被这一笔顶掉
+    if (liveRef.current) endStroke();
+    liveIdRef.current = e.pointerId;
+    liveTsRef.current = e.timeStamp || 0;
+
+    const kind = kindOf();
+    liveRef.current = { k: kind, c: kind === 'hl' ? HL_COLOR : color, pts: [pointOf(e)] };
+    // 单点也要留个墨点，不然轻点一下什么都没有
+    const ctx = ctxRef.current;
+    if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w);
   };
 
   const onPointerDown = (e) => {
@@ -268,15 +313,7 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     }
 
     e.preventDefault();
-    // 上一笔要是已经拖出了选区，先清掉，否则那个蓝块和弹出菜单会一直盖在题干上
-    try { window.getSelection()?.removeAllRanges(); } catch { /* 无关紧要 */ }
-    try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 拿不到捕获就算了 */ }
-
-    const kind = kindOf();
-    liveRef.current = { k: kind, c: kind === 'hl' ? HL_COLOR : color, pts: [pointOf(e)] };
-    // 单点也要留个墨点，不然轻点一下什么都没有
-    const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w);
+    startStroke(e);
   };
 
   // 把一个采样点接到当前笔画上并补画那一小段
@@ -313,7 +350,19 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       return;
     }
 
-    if (!liveRef.current || e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch') return;
+
+    // 笔压着屏幕却没有正在写的笔画：要么这一笔的落笔丢了，要么上一笔迟到的收笔事件
+    // 把它掐掉了（抬笔立刻落笔时，浏览器完全可能先送新笔的 down 再送旧笔的 up，而且
+    // iPadOS 常给两次落笔同一个 pointerId，光比笔号认不出来）。这时按当前位置续一笔，
+    // 最坏只丢开头一小段，不会整笔写不出来。
+    if (!liveRef.current) {
+      if (e.pointerType !== 'pen' || !(e.buttons > 0)) return;
+      e.preventDefault();
+      startStroke(e);
+      return;
+    }
+    if (isStale(e)) return;
     e.preventDefault();
 
     // Pencil 是 120Hz 采样，而 pointermove 最多一帧一个：浏览器会把这一帧里的
@@ -330,16 +379,6 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     }
   };
 
-  const endStroke = (e) => {
-    const live = liveRef.current;
-    liveRef.current = null;
-    committedRef.current = live;
-    if (e) {
-      try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch { /* 同上 */ }
-    }
-    if (live) onStrokeEnd?.(live);
-  };
-
   const onPointerUp = (e) => {
     if (!active) return;
     if (e.pointerType === 'touch') {
@@ -347,8 +386,9 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       if (panRef.current && touchesRef.current.size < 2) endPan();
       return;
     }
+    if (isStale(e)) return; // 上一笔迟到的尾巴，不能拿它收这一笔
     e.preventDefault();
-    endStroke(e);
+    endStroke();
   };
 
   return (
@@ -358,7 +398,7 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onPointerLeave={(e) => { if (active && liveRef.current) endStroke(e); }}
+      onPointerLeave={(e) => { if (active && liveRef.current && !isStale(e)) endStroke(); }}
       data-capture-reveal="1"
       className={`absolute inset-0 w-full h-full z-20 transition-opacity duration-150 ${active ? '' : 'pointer-events-none'}`}
       style={{
