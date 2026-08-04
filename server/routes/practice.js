@@ -371,20 +371,4 @@ router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
   });
 });
 
-// ───────────────────────────────────────────────────────────────
-// POST /api/practice/sessions/:id/finish
-//   body: { duration_sec }
-//   → { ok }
-// ───────────────────────────────────────────────────────────────
-router.post('/sessions/:id/finish', (req, res) => {
-  const sessionId = Number(req.params.id);
-  const { duration_sec = 0 } = req.body || {};
-  db.prepare(
-    `UPDATE practice_sessions
-     SET duration_sec = ?, ended_at = datetime('now')
-     WHERE id = ?`,
-  ).run(Number(duration_sec), sessionId);
-  res.json({ ok: true });
-});
-
 export default router;
