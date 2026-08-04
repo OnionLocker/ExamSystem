@@ -162,6 +162,8 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     }
   };
 
+  const redrawRef = useRef(null);
+
   const redraw = useCallback(() => {
     const ctx = ctxRef.current;
     const canvas = canvasRef.current;
@@ -178,6 +180,10 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     // 表现成"快写就写不出，得停一下才行"。
     if (liveRef.current) paintStroke(ctx, liveRef.current, w);
   }, [strokes]);
+
+  useEffect(() => {
+    redrawRef.current = redraw;
+  }, [redraw]);
 
   // 尺寸跟随容器：iPad 是 2x 屏，位图不乘 DPR 线条会发虚
   useEffect(() => {
@@ -198,14 +204,16 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctxRef.current = ctx;
-      redraw();
+      redrawRef.current();
     };
 
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(canvas);
     return () => ro.disconnect();
-  }, [redraw]);
+    // 只在挂载时装一次：redraw 的身份每提交一笔就变，跟着它走的话
+    // 每写一笔都要拆装一次 ResizeObserver，白花销。重绘改走 ref 取最新的。
+  }, []);
 
   // 刚提交的那一笔是边写边落在画布上的，画面已经是对的，没必要清屏重来一遍 ——
   // 而那次重绘偏偏发生在用户已经起下一笔的时刻，纯属添乱。撤销、清空、换题
@@ -271,6 +279,21 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w);
   };
 
+  // 把一个采样点接到当前笔画上并补画那一小段
+  const appendPoint = (src) => {
+    const live = liveRef.current;
+    if (!live) return;
+    const pt = pointOf(src);
+    const prev = live.pts[live.pts.length - 1];
+    // 抽掉挤在一起的采样点：高刷屏会塞进大量几乎重复的坐标
+    const w = sizeRef.current.w || 1;
+    if (Math.hypot((pt[0] - prev[0]) * w, (pt[1] - prev[1]) * w) < 0.7) return;
+    live.pts.push(pt);
+    // 只补最新那一段，整层重绘留给撤销/换题
+    const ctx = ctxRef.current;
+    if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w);
+  };
+
   const onPointerMove = (e) => {
     if (!active) return;
 
@@ -290,18 +313,21 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
       return;
     }
 
-    const live = liveRef.current;
-    if (!live || e.pointerType === 'touch') return;
+    if (!liveRef.current || e.pointerType === 'touch') return;
     e.preventDefault();
-    const pt = pointOf(e);
-    const prev = live.pts[live.pts.length - 1];
-    // 抽掉挤在一起的采样点：高刷屏的 pointermove 会塞进大量几乎重复的坐标
-    const w = sizeRef.current.w || 1;
-    if (Math.hypot((pt[0] - prev[0]) * w, (pt[1] - prev[1]) * w) < 0.7) return;
-    live.pts.push(pt);
-    // 只补最新那一段，整层重绘留给撤销/换题
-    const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w);
+
+    // Pencil 是 120Hz 采样，而 pointermove 最多一帧一个：浏览器会把这一帧里的
+    // 若干采样合并成一个事件交上来，主线程越忙合并得越狠。只用事件本身等于把中间
+    // 的采样全丢掉，慢慢写看不出来，一连笔就缺胳膊少腿。这些点都在 getCoalescedEvents
+    // 里，取出来逐个补上，笔迹才跟手。
+    const nat = e.nativeEvent;
+    const merged =
+      typeof nat?.getCoalescedEvents === 'function' ? nat.getCoalescedEvents() : null;
+    if (merged && merged.length > 1) {
+      for (const m of merged) appendPoint(m);
+    } else {
+      appendPoint(e);
+    }
   };
 
   const endStroke = (e) => {
