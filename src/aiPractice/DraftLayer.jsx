@@ -173,6 +173,10 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     for (const s of strokes || []) paintStroke(ctx, s, w);
+    // 正在写的那一笔也要补回来：重绘是抬笔后 setState 引发的，等它真正执行时，
+    // 写得快的人早就落下了下一笔 —— 少了这一句，清屏就把新笔画擦掉半截，
+    // 表现成"快写就写不出，得停一下才行"。
+    if (liveRef.current) paintStroke(ctx, liveRef.current, w);
   }, [strokes]);
 
   // 尺寸跟随容器：iPad 是 2x 屏，位图不乘 DPR 线条会发虚
@@ -203,7 +207,18 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     return () => ro.disconnect();
   }, [redraw]);
 
-  useEffect(() => { redraw(); }, [redraw]);
+  // 刚提交的那一笔是边写边落在画布上的，画面已经是对的，没必要清屏重来一遍 ——
+  // 而那次重绘偏偏发生在用户已经起下一笔的时刻，纯属添乱。撤销、清空、换题
+  // 这些情况下末尾对不上，照常整层重绘。
+  const committedRef = useRef(null);
+  useEffect(() => {
+    const list = strokes || [];
+    if (committedRef.current && list[list.length - 1] === committedRef.current) {
+      committedRef.current = null;
+      return;
+    }
+    redraw();
+  }, [strokes, redraw]);
 
   const kindOf = () => (tool === 'eraser' ? 'er' : tool === 'highlighter' ? 'hl' : 'pen');
 
@@ -292,6 +307,7 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
   const endStroke = (e) => {
     const live = liveRef.current;
     liveRef.current = null;
+    committedRef.current = live;
     if (e) {
       try { canvasRef.current?.releasePointerCapture(e.pointerId); } catch { /* 同上 */ }
     }
