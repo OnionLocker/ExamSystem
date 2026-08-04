@@ -9,6 +9,7 @@
     "dev:server": "nodemon --watch server --ext js,json --exec \"node --env-file=.env server/index.js\"",
     "start:server": "node --env-file=.env server/index.js",
     "start:hermes": "node --env-file=.env scripts/start-hermes.mjs",
+    "db:checkpoint": "node -e \"new (require('better-sqlite3'))('data/exam.db').pragma('wal_checkpoint(TRUNCATE)')\"",
     "prod": "vite build && concurrently -k -n API,WEB,HERMES -c blue,green,magenta \"npm:start:server\" \"node server/prod.js\" \"npm:start:hermes\"",
     "build": "vite build",
     "lint": "eslint .",
