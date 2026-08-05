@@ -107,6 +107,15 @@ const AppInner = () => {
     return () => window.removeEventListener('study-log-change', onChange);
   }, []);
 
+  // After hydrate (login / boot): reload local study log + refetch practice heat.
+  // Calendar heatmap mounts even on the login screen; without this bump it stays empty
+  // while DashboardTodayCard (mounted after auth) looks correct.
+  useEffect(() => {
+    const onHydrated = () => bumpStudy();
+    window.addEventListener('cloud-hydrated', onHydrated);
+    return () => window.removeEventListener('cloud-hydrated', onHydrated);
+  }, []);
+
   const [viewMonth, setViewMonth] = useState(() => {
     const t = new Date();
     return { year: t.getFullYear(), month: t.getMonth() };

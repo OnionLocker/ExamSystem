@@ -32,12 +32,12 @@ export const useServerHeat = (version = 0) => {
   const [heat, setHeat] = useState(null);
   useEffect(() => {
     let alive = true;
+    // 登录页也会挂这个 hook：没 token 时别把 {} 钉死，否则登录后 version
+    // 不变就再也不拉了，日历热力整片空白，概览卡片却是对的（它登录后才挂载）。
     api('/api/practice/heat')
-      .then((d) => alive && setHeat(d || {}))
-      .catch(() => alive && setHeat({})); // 拿不到就只显示本地日志，不挡渲染
-    return () => {
-      alive = false;
-    };
+      .then((d) => { if (alive) setHeat(d || {}); })
+      .catch(() => { if (alive) setHeat({}); });
+    return () => { alive = false; };
   }, [version]);
   return heat;
 };
