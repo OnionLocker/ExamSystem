@@ -127,7 +127,6 @@ const Uploads = () => {
   };
 
   const removeFolder = async (name) => {
-    if (!window.confirm(`删除空文件夹「${name}」？`)) return;
     try {
       const q = new URLSearchParams({ name }).toString();
       const res = await fetch(`/api/uploads/exam/folders?${q}`, {
@@ -208,7 +207,6 @@ const Uploads = () => {
 
   const removeDaily = useCallback(
     async (date, t, name) => {
-      if (!window.confirm(`确认删除 ${name} ？`)) return;
       try {
         const q = new URLSearchParams({ date, type: t, name }).toString();
         const res = await fetch(`/api/uploads/file?${q}`, {
@@ -246,7 +244,6 @@ const Uploads = () => {
 
   const removeExam = useCallback(
     async (folderName, name) => {
-      if (!window.confirm(`确认删除 ${name} ？`)) return;
       try {
         const q = new URLSearchParams({ folder: folderName, name }).toString();
         const res = await fetch(`/api/uploads/exam/file?${q}`, {
