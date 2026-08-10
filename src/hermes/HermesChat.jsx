@@ -43,6 +43,14 @@ const extractEmbeddedImages = (text) => text.match(EMBEDDED_IMAGE_RE) || [];
 const stripEmbeddedImages = (text) =>
   text.replace(new RegExp(`\\n*${EMBEDDED_IMAGE_RE.source}`, 'g'), '').trim();
 
+// hermes 运行时会把「后台子任务完成」这类通知以 user 角色写进历史（见
+// hermes-agent/tools/process_registry.py 的 _format_async_delegation），
+// 模型需要读到它才能拿到子任务结果，但那不是用户说的话。
+// 不过滤的话，换浏览器触发 session.resume 时这整段会当成用户消息冒出来。
+// 用行首锚定的方括号标记来判断，避免误伤用户正常引用这些词的消息。
+const SYSTEM_NOTICE_RE = /^\s*\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]/;
+const isSystemInjectedNotice = (text) => SYSTEM_NOTICE_RE.test(String(text || ''));
+
 // 会话列表拉取上限。gateway 侧 session.list 会给每条会话跑一次 preview 子查询
 // （50 条约 77ms，全量 124 条 200ms+），条数直接决定首屏等待时间。
 // 40 条足够覆盖最近的对话，再往前翻的需求很少。
@@ -349,6 +357,9 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
       const hydrated = (res.messages || [])
         // tool 角色的历史条目没有可读文本，跳过；只还原对话本身
         .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.text)
+        // 系统注入的运行时通知（后台子任务完成回灌等）以 user 角色进历史，
+        // 但那不是用户说的话，换浏览器 resume 时会整段冒出来。模型需要它，界面不需要。
+        .filter((m) => !isSystemInjectedNotice(m.text))
         .map((m) => {
           const raw = String(m.text);
           const images = extractEmbeddedImages(raw);

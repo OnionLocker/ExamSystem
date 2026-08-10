@@ -60,11 +60,20 @@ MAX_MSG_CHARS = 1200
 MAX_LOG_CHARS = 28000
 
 
+def get_day_time_range(date_str: str | None = None):
+    """返回某日 [00:00, 23:59:59] 的 unix 时间戳。date_str 缺省为今天（北京时区）。"""
+    if date_str:
+        day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=TZ)
+    else:
+        now = datetime.now(TZ)
+        day = datetime(now.year, now.month, now.day, tzinfo=TZ)
+    start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = day.replace(hour=23, minute=59, second=59, microsecond=0)
+    return start.timestamp(), end.timestamp(), start.strftime("%Y-%m-%d")
+
+
 def get_today_time_range():
-    now = datetime.now(TZ)
-    start = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=TZ)
-    end = datetime(now.year, now.month, now.day, 23, 59, 59, tzinfo=TZ)
-    return start.timestamp(), end.timestamp(), now.strftime("%Y-%m-%d")
+    return get_day_time_range(None)
 
 
 def _clip(text: str, limit: int = MAX_MSG_CHARS) -> str:
@@ -288,13 +297,18 @@ def update_study_log(date_str, summary, score, minutes, topics=None):
         log_list = _load_log(cursor)
         new_log_list, _ = _strip_today_chat(log_list, date_str)
 
-        now_ms = int(time.time() * 1000)
+        # ts 必须落在 date_str 当天；补跑历史日时不能用「现在」，
+        # 否则热力图会按 ts 把分记到今天。
+        day_end = datetime.strptime(date_str, "%Y-%m-%d").replace(
+            hour=23, minute=50, second=0, tzinfo=TZ
+        )
+        ts_ms = int(day_end.timestamp() * 1000)
         topic_hint = ""
         if topics:
             topic_hint = " · " + "/".join(str(t) for t in topics[:4])
         new_entry = {
-            "id": now_ms + int(time.time() % 100),
-            "ts": now_ms,
+            "id": ts_ms + int(time.time() % 100),
+            "ts": ts_ms,
             "type": "chat",
             "module": f"导师辅导: {summary}{topic_hint}",
             "score": score,
@@ -360,8 +374,22 @@ def normalize_eval(result: dict) -> dict:
     return result
 
 
-def main():
-    start_ts, end_ts, date_str = get_today_time_range()
+def main(argv: list[str] | None = None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    date_arg = None
+    if "--date" in argv:
+        i = argv.index("--date")
+        if i + 1 >= len(argv):
+            print("usage: daily_mentor_eval.py [--date YYYY-MM-DD]", file=sys.stderr)
+            return 2
+        date_arg = argv[i + 1]
+        try:
+            datetime.strptime(date_arg, "%Y-%m-%d")
+        except ValueError:
+            print(f"invalid --date: {date_arg}", file=sys.stderr)
+            return 2
+
+    start_ts, end_ts, date_str = get_day_time_range(date_arg)
     print(f"Running mentor eval for {date_str}...", file=sys.stderr)
 
     messages = fetch_today_messages(start_ts, end_ts)
