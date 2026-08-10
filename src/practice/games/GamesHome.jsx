@@ -97,6 +97,10 @@ const GamesHome = ({ onBack }) => {
       <p className="text-sm font-medium text-slate-400">
         在紧张的刷题之间调剂一下，用小游戏锻炼“数字敏感度 / 专注度”。
       </p>
+      <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-[#fbc02d]">练习区 · 补数与滚加</span>
+        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-[#fbc02d]">练习区 · 秒杀定性</span>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {GAMES.map((g) => {

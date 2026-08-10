@@ -883,6 +883,147 @@ export const generators = {
     }
     return { prompt, answer, tolerance: 0.15 };
   },
+  // ======================================================================
+  // 补数与滚加（speedOps）—— 行测实战心算路径
+  // ======================================================================
+  // 100 以内补数闪电：给 X∈[11,99]，答 100−X
+  complement100: () => {
+    const x = rand(11, 99);
+    return {
+      prompt: `${x} 的百补数（100 − ${x}）=`,
+      answer: 100 - x,
+    };
+  },
+  // 三位数凑整多减加回：强制产生退位感的减法，解析给补数路径
+  subComplement3: () => {
+    // 被减数；减数凑到「整百」后需加回补数
+    const minuend = rand(320, 980);
+    const roundTo = Math.ceil(minuend / 100) * 100; // 不小于被减数的下一整百，可能 =minuend
+    // 减数取「个位≥5 或 十位偏大」的三位数，且 < 被减数
+    let subtrahend;
+    let rounded;
+    let complement;
+    do {
+      const hundreds = rand(1, Math.floor((minuend - 30) / 100));
+      const tens = rand(5, 9);
+      const ones = rand(5, 9);
+      subtrahend = hundreds * 100 + tens * 10 + ones;
+      rounded = Math.ceil(subtrahend / 100) * 100; // 向上凑整百
+      complement = rounded - subtrahend; // 多减了就要加回
+    } while (subtrahend >= minuend || complement === 0 || rounded - minuend > 200);
+
+    const answer = minuend - subtrahend;
+    // 路径：A − B = A − round(B) + (round(B)−B)
+    const path = `${minuend} − ${rounded} + ${complement} = ${answer}`;
+    return {
+      prompt: `${minuend} − ${subtrahend} =`,
+      answer,
+      displayAnswer: () => `${answer}（凑整：${path}）`,
+      hint: `凑整：${path}`,
+    };
+  },
+  // 高位滚加：2~3 个三位数，提示从高位往低位加；答案正常读数输入即可
+  rollingAdd3: () => {
+    const n = pick([2, 3]);
+    const nums = Array.from({ length: n }, () => rand(108, 897));
+    return {
+      prompt: `${nums.join(' + ')} =（高位→低位滚加）`,
+      answer: nums.reduce((a, b) => a + b, 0),
+    };
+  },
+
+  // ======================================================================
+  // 资料分析·实战秒杀定性（dataKill）
+  // 选项一律回填 1~4；对错看 answer 数字
+  // ======================================================================
+  // 增量比重 vs 现期比重：结论只看 a ? b
+  growthShareEst: () => {
+    const share = round1(rand(80, 750) / 10); // 现期比重 %
+    let a = round1(rand(5, 350) / 10);
+    let b = round1(rand(5, 350) / 10);
+    // 偶尔相等，多数不相等
+    if (rand(1, 10) === 1) b = a;
+    else if (Math.abs(a - b) < 0.5) b = round1(a + pick([1.5, -1.5, 2.2, -2.2]));
+
+    let rel; // 1更大 2更小 3相等
+    if (a > b) rel = 1;
+    else if (a < b) rel = 2;
+    else rel = 3;
+
+    const labels = ['更大', '更小', '相等', '无法判定'];
+    return {
+      prompt:
+        `现期比重 ${share}%，部分增速 a=${a}%，整体增速 b=${b}%\n` +
+        `增量比重 ΔA/ΔB 相对现期比重？\n` +
+        `1)更大  2)更小  3)相等  4)无法判定`,
+      answer: rel,
+      displayAnswer: () =>
+        `${rel}（${labels[rel - 1]}；口诀：a>b 则增量比重更大，a<b 更小，a=b 相等）`,
+    };
+  },
+  // 两期比重差：升降看 a?b；|差| 必然 < |a−b| 个百分点
+  twoPeriodRatioDiff: () => {
+    let a = round1(rand(20, 400) / 10);
+    let b = round1(rand(20, 400) / 10);
+    if (Math.abs(a - b) < 1) b = round1(a + pick([2, -2, 3.5, -3.5]));
+    const gap = round1(Math.abs(a - b));
+    const rise = a > b;
+    // 4 选项：升降 ×（差<gap / 差可能≥gap）
+    // 正确永远是「正确升降 AND 差 < |a-b|」
+    const options = rise
+      ? [
+          `上升，且差值 < ${gap} 个百分点`,
+          `上升，且差值可能 ≥ ${gap} 个百分点`,
+          `下降，且差值 < ${gap} 个百分点`,
+          `下降，且差值可能 ≥ ${gap} 个百分点`,
+        ]
+      : [
+          `下降，且差值 < ${gap} 个百分点`,
+          `下降，且差值可能 ≥ ${gap} 个百分点`,
+          `上升，且差值 < ${gap} 个百分点`,
+          `上升，且差值可能 ≥ ${gap} 个百分点`,
+        ];
+    const answer = 1; // 选项 1 恒为正确表述
+    return {
+      prompt:
+        `部分增速 a=${a}%，整体增速 b=${b}%\n` +
+        `两期比重差（现期−基期）如何判定？\n` +
+        options.map((t, i) => `${i + 1})${t}`).join('  '),
+      answer,
+      displayAnswer: () =>
+        `1（${options[0]}；升降看 a?b，|差| 必然 < |a−b|=${gap} 个百分点）`,
+    };
+  },
+  // 混合增长率线段法：部分 A 增速相对整体，定性另一部分 B
+  mixtureRateEstimate: () => {
+    const total = rand(200, 900) * 10; // 总量
+    const shareA = rand(25, 75); // A 占总量 %
+    const amtA = Math.round((total * shareA) / 100);
+    const amtB = total - amtA;
+    const r = round1(rand(20, 250) / 10); // 整体增速
+    // A 增速刻意偏离整体，便于定性
+    const delta = round1(pick([2, 3, 4, 5, 6, 8, 10]) * pick([1, -1]));
+    const a = round1(Math.max(0.5, r + delta));
+    // 线段法：A 在 r 一侧，则 B 必在另一侧
+    let relB; // 1 B>r  2 B<r  3 B=r  4 无法判定
+    if (a > r) relB = 2;
+    else if (a < r) relB = 1;
+    else relB = 3;
+
+    // 精确 b 供解析（不要求学员算出）
+    const bExact = round1((r * total - a * amtA) / amtB);
+
+    const labels = ['大于整体', '小于整体', '等于整体', '无法判定'];
+    return {
+      prompt:
+        `总量 ${total}（增速 ${r}%），其中 A=${amtA}（增速 ${a}%），其余为 B\n` +
+        `B 的增速相对整体？\n` +
+        `1)大于整体  2)小于整体  3)等于整体  4)无法判定`,
+      answer: relB,
+      displayAnswer: () =>
+        `${relB}（${labels[relB - 1]}；线段法：A 在整体${a > r ? '上方' : a < r ? '下方' : '重合'}，则 B 在另一侧。B≈${bExact}%）`,
+    };
+  },
 };
 
 // 动态生成 mulByN（避免重复代码）
@@ -940,6 +1081,32 @@ export const CATEGORIES = [
       { id: 'fracToPct', name: '分化百固定', gen: 'fracToPct', weight: 4 },
       { id: 'pctToFracEst', name: '百化分估算', gen: 'pctToFracEst', weight: 4 },
       { id: 'square', name: '常见平方数', gen: 'square', weight: 3 },
+    ],
+  },
+  {
+    id: 'speedOps',
+    name: '补数与滚加',
+    desc: '【补数与滚加】消灭借位：百补数闪电、凑整多减加回、高位滚加',
+    available: true,
+    weight: 12,
+    tag: '补数与滚加',
+    subs: [
+      { id: 'complement100', name: '100以内补数闪电', gen: 'complement100', weight: 5 },
+      { id: 'subComplement3', name: '三位数凑整多减加回', gen: 'subComplement3', weight: 5 },
+      { id: 'rollingAdd3', name: '高位滚加（2~3个数）', gen: 'rollingAdd3', weight: 4 },
+    ],
+  },
+  {
+    id: 'dataKill',
+    name: '秒杀定性',
+    desc: '【秒杀定性】资料分析实战口诀：增量比重、两期比重差、混合增速线段法',
+    available: true,
+    weight: 18,
+    tag: '秒杀定性',
+    subs: [
+      { id: 'growthShareEst', name: '增量比重放缩定性', gen: 'growthShareEst', weight: 5 },
+      { id: 'twoPeriodRatioDiff', name: '两期比重差秒判定', gen: 'twoPeriodRatioDiff', weight: 5 },
+      { id: 'mixtureRateEstimate', name: '混合增长率定性线段', gen: 'mixtureRateEstimate', weight: 5 },
     ],
   },
   {
@@ -1013,6 +1180,7 @@ export const CATEGORIES = [
       { id: 'percentagePoint', name: '百分点辨析', gen: 'percentagePoint', weight: 4 },
     ],
   },
+
 ];
 
 export const getCategory = (id) => CATEGORIES.find((c) => c.id === id);

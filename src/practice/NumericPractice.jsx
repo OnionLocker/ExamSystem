@@ -16,6 +16,9 @@ import {
   PictureInPicture2,
   BookOpen,
   Gamepad2,
+  Zap,
+  Crosshair,
+  Binary,
 } from 'lucide-react';
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
@@ -44,7 +47,10 @@ const categoryIcons = {
   basic: Calculator,
   aux: Wrench,
   quant: BrainCircuit,
+  numReason: Binary,
   data: BarChart3,
+  speedOps: Zap,
+  dataKill: Crosshair,
 };
 
 const fmtMs = (ms) => {
@@ -288,7 +294,16 @@ const HomeView = ({ onPick, onOpenGames }) => {
                   </span>
                 )}
               </div>
-              <h3 className="text-xl font-black italic mb-2">{cat.name}</h3>
+              <h3 className="text-xl font-black italic mb-2 flex items-center gap-2 flex-wrap">
+                <span>{cat.name}</span>
+                {cat.tag && (
+                  <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full not-italic ${
+                    disabled ? 'bg-[#f2f0e9] text-slate-400' : 'bg-[#fbc02d] text-black'
+                  }`}>
+                    {cat.tag}
+                  </span>
+                )}
+              </h3>
               <p
                 className={`text-sm font-medium ${
                   disabled ? 'text-slate-400' : 'opacity-60'
@@ -831,7 +846,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       timeMs,
     };
     const newRecords = [...records, rec];
-    scheduleAdvance(newRecords, { ok: isCorrect, skipped: false, answer: current.answer });
+    scheduleAdvance(newRecords, { ok: isCorrect, skipped: false, answer: typeof current.displayAnswer === 'function' ? current.displayAnswer(current.answer) : current.answer });
   };
 
   function skip() {
@@ -846,7 +861,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       timeMs,
     };
     const newRecords = [...records, rec];
-    scheduleAdvance(newRecords, { ok: false, skipped: true, answer: current.answer });
+    scheduleAdvance(newRecords, { ok: false, skipped: true, answer: typeof current.displayAnswer === 'function' ? current.displayAnswer(current.answer) : current.answer });
   };
 
   const totalStr = total === Infinity ? '∞' : String(total);

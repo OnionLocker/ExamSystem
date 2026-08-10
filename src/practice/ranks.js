@@ -122,6 +122,14 @@ export const SUB_BASE_MS = {
   mixedGrowth:  11000,
   multipleOf:    5000,
   percentagePoint: 6000,
+  // speedOps 补数与滚加
+  complement100:      1000,  // 目标 ~1s 闪电
+  subComplement3:     5500,
+  rollingAdd3:        6500,
+  // dataKill 秒杀定性（读题+口诀判定，几乎不算）
+  growthShareEst:       5000,
+  twoPeriodRatioDiff:   5500,
+  mixtureRateEstimate:  6000,
 };
 
 export const getBaseMs = (subId) => SUB_BASE_MS[subId] || 15000;

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, X, SkipForward, RotateCcw, Eye, EyeOff, Timer, BookOpen } from 'lucide-react';
+import { Check, X, SkipForward, RotateCcw, Eye, EyeOff, Timer, BookOpen, ChevronLeft } from 'lucide-react';
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
+import { recordPromotionResult, getRank } from './ranks.js';
+import RankBadge from './RankBadge.jsx';
+import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
+import { cloudGet, cloudSet } from '../cloudStorage.js';
+
 
 // 小窗练习组件
 // 两种启动途径：
@@ -12,6 +17,10 @@ import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } 
 const FEEDBACK_CORRECT_MS = 120;
 const FEEDBACK_WRONG_MS = 600;
 const FEEDBACK_SKIP_MS = 300;
+
+const HISTORY_KEY = 'numeric_practice_history_v1';
+const RACE_SIZE_DEFAULT = 10;
+const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 
 const readParams = () => {
   const p = new URLSearchParams(window.location.search);
@@ -41,14 +50,34 @@ const fmtDuration = (ms) => {
 };
 
 const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false } = {}) => {
-  // 参数来源：props 优先（PiP 模式），否则读 URL
-  const { catId, subId } = useMemo(() => {
-    if (pCat || pSub) return { catId: pCat || 'basic', subId: pSub || '', mode: pMode || 'train' };
+  // 参数来源：props 优先（PiP 模式），否则读 URL；之后可在小窗内换模块
+  const init = useMemo(() => {
+    if (pCat || pSub) {
+      return {
+        catId: pCat || 'basic',
+        subId: pSub || '',
+        mode: pMode === 'race' ? 'race' : 'train',
+      };
+    }
     return readParams();
   }, [pCat, pSub, pMode]);
 
+  const [catId, setCatId] = useState(init.catId);
+  const [subId, setSubId] = useState(init.subId);
+  const [mode, setMode] = useState(init.mode === 'race' ? 'race' : 'train');
+  const [raceSize, setRaceSize] = useState(RACE_SIZE_DEFAULT);
+  const [raceDone, setRaceDone] = useState(null); // 晋升结束小结
+  // picking: null | 'cat' | 'sub' | 'mode'
+  const [picking, setPicking] = useState(null);
+  const [pickCatId, setPickCatId] = useState(null);
+  const [draftCatId, setDraftCatId] = useState(null);
+  const [draftSubId, setDraftSubId] = useState(null);
+  const [draftMode, setDraftMode] = useState('train');
+  const [draftRaceSize, setDraftRaceSize] = useState(RACE_SIZE_DEFAULT);
+
   const cat = CATEGORIES.find((c) => c.id === catId);
   const sub = getSub(catId, subId) || cat?.subs?.[0];
+  const availableCats = useMemo(() => CATEGORIES.filter((c) => c.available), []);
 
   // stealth: 伪装模式（低调主题、可隐藏题目内容）
   const [stealth, setStealth] = useState(false);
@@ -123,8 +152,8 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   };
   const backspace = () => setInput((s) => s.slice(0, -1));
 
-  const scheduleAdvance = (fb) => {
-    pendingRef.current = true;
+  const scheduleAdvance = (fb, nextStats) => {
+    pendingRef.current = { stats: nextStats };
     setFeedback(fb);
     const delay = fb.skipped
       ? FEEDBACK_SKIP_MS
@@ -139,44 +168,162 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       timerRef.current = null;
     }
     if (!pendingRef.current) return;
+    const snap = pendingRef.current;
     pendingRef.current = null;
     setFeedback(null);
+    if (mode === 'race' && snap && typeof snap === 'object' && snap.stats) {
+      const answered = snap.stats.correct + snap.stats.wrong + snap.stats.skipped;
+      if (answered >= raceSize) {
+        finishRaceSession(snap.stats);
+        return;
+      }
+    }
     nextQuestion();
   };
 
   const submit = () => {
-    if (feedback || !question) return;
+    if (feedback || !question || raceDone) return;
     if (input === '' || input === '-' || input === '.') return;
     const timeMs = Date.now() - qStartedAt;
     const isCorrect = judge(question, input);
-    setStats((s) => ({
-      ...s,
-      correct: s.correct + (isCorrect ? 1 : 0),
-      wrong: s.wrong + (isCorrect ? 0 : 1),
-      totalMs: s.totalMs + timeMs,
+    const nextStats = {
+      ...stats,
+      correct: stats.correct + (isCorrect ? 1 : 0),
+      wrong: stats.wrong + (isCorrect ? 0 : 1),
+      totalMs: stats.totalMs + timeMs,
       bestMs: isCorrect
-        ? s.bestMs == null
+        ? stats.bestMs == null
           ? timeMs
-          : Math.min(s.bestMs, timeMs)
-        : s.bestMs,
-    }));
-    scheduleAdvance({ ok: isCorrect, skipped: false, answer: question.answer });
+          : Math.min(stats.bestMs, timeMs)
+        : stats.bestMs,
+    };
+    setStats(nextStats);
+    scheduleAdvance({ ok: isCorrect, skipped: false, answer: typeof question.displayAnswer === 'function' ? question.displayAnswer(question.answer) : question.answer }, nextStats);
   };
   const skip = () => {
-    if (feedback || !question) return;
+    if (feedback || !question || raceDone) return;
     const timeMs = Date.now() - qStartedAt;
-    setStats((s) => ({
-      ...s,
-      skipped: s.skipped + 1,
-      totalMs: s.totalMs + timeMs,
-    }));
-    scheduleAdvance({ ok: false, skipped: true, answer: question.answer });
+    const nextStats = {
+      ...stats,
+      skipped: stats.skipped + 1,
+      totalMs: stats.totalMs + timeMs,
+    };
+    setStats(nextStats);
+    scheduleAdvance({ ok: false, skipped: true, answer: typeof question.displayAnswer === 'function' ? question.displayAnswer(question.answer) : question.answer }, nextStats);
   };
   const resetStats = () => {
     setStats({ correct: 0, wrong: 0, skipped: 0, totalMs: 0, bestMs: null });
     setSessionStartedAt(Date.now());
     if (feedback) flushAdvance();
     nextQuestion();
+  };
+
+  const openModulePicker = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingRef.current = null;
+    setFeedback(null);
+    setShowTable(false);
+    setRaceDone(null);
+    setPickCatId(catId);
+    setDraftCatId(catId);
+    setDraftSubId(subId);
+    setDraftMode(mode);
+    setDraftRaceSize(raceSize);
+    setPicking('cat');
+  };
+
+  const pickCategory = (id) => {
+    setPickCatId(id);
+    setDraftCatId(id);
+    setPicking('sub');
+  };
+
+  const pickSub = (nextCatId, nextSubId) => {
+    if (!getSub(nextCatId, nextSubId)) return;
+    setDraftCatId(nextCatId);
+    setDraftSubId(nextSubId);
+    setDraftMode(mode);
+    setDraftRaceSize(raceSize);
+    setPicking('mode');
+  };
+
+  const beginSession = (nextCatId, nextSubId, nextMode, nextSize) => {
+    const nextSub = getSub(nextCatId, nextSubId);
+    if (!nextSub) return;
+    const modeNext = nextMode === 'race' ? 'race' : 'train';
+    const sizeNext = Math.max(1, Math.min(200, Number(nextSize) || RACE_SIZE_DEFAULT));
+    setCatId(nextCatId);
+    setSubId(nextSubId);
+    setMode(modeNext);
+    setRaceSize(sizeNext);
+    setPicking(null);
+    setPickCatId(null);
+    setRaceDone(null);
+    setInput('');
+    setFeedback(null);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    pendingRef.current = null;
+    setStats({ correct: 0, wrong: 0, skipped: 0, totalMs: 0, bestMs: null });
+    setSessionStartedAt(Date.now());
+    setQStartedAt(Date.now());
+    setQuestion(generate(nextSub.gen));
+  };
+
+  const startFromPicker = () => {
+    beginSession(
+      draftCatId || pickCatId || catId,
+      draftSubId || subId,
+      draftMode,
+      draftRaceSize,
+    );
+  };
+
+  // 再来一局：沿用当前题型 / 模式 / 题数，直接开打
+  const retrySameRace = () => {
+    beginSession(catId, subId, mode, raceSize);
+  };
+
+  const finishRaceSession = (finalStats) => {
+    const total = finalStats.correct + finalStats.wrong + finalStats.skipped;
+    const totalMs = finalStats.totalMs;
+    const rankChange = recordPromotionResult({
+      subId,
+      total,
+      correct: finalStats.correct,
+      totalMs,
+    });
+    const result = {
+      id: Date.now(),
+      catId,
+      subId,
+      subName: sub?.name || subId,
+      mode: 'race',
+      completedAt: new Date().toISOString(),
+      total,
+      correct: finalStats.correct,
+      wrong: finalStats.wrong,
+      skipped: finalStats.skipped,
+      totalMs,
+      avgMs: total > 0 ? Math.round(totalMs / total) : 0,
+      rankChange,
+    };
+    const list = cloudGet(HISTORY_KEY, []);
+    list.unshift(result);
+    cloudSet(HISTORY_KEY, list.slice(0, 100));
+    addStudyEntry({
+      type: 'numeric',
+      module: result.subName,
+      count: result.total,
+      correct: result.correct,
+      score: scoreNumeric(result.total, result.correct),
+    });
+    setRaceDone(result);
   };
 
   // 键盘监听：绑定到组件 DOM 真正所属的 window。
@@ -189,6 +336,23 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       (typeof window !== 'undefined' ? window : null);
     if (!win) return;
     const onKey = (e) => {
+      if (picking) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          if (picking === 'mode') setPicking('sub');
+          else if (picking === 'sub') setPicking('cat');
+          else setPicking(null);
+        }
+        return;
+      }
+      if (raceDone) {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+          e.preventDefault();
+          setRaceDone(null);
+          openModulePicker();
+        }
+        return;
+      }
       // 对照表打开时，只处理 ESC 关闭
       if (showTable) {
         if (e.key === 'Escape') {
@@ -232,12 +396,56 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     win.addEventListener('keydown', onKey);
     return () => win.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedback, input, question, qStartedAt, showTable]);
+  }, [feedback, input, question, qStartedAt, showTable, picking, raceDone, mode, raceSize, stats]);
 
-  if (!sub || !question) {
+  if ((!sub || !question) && !picking) {
     return (
-      <div className="popup-root min-h-screen flex items-center justify-center bg-white text-slate-500 text-sm font-medium p-6 text-center">
-        未找到题型，请从主窗口重新打开小窗。
+      <div className="popup-root min-h-screen flex flex-col items-center justify-center bg-white text-slate-500 text-sm font-medium p-6 text-center gap-3">
+        <span>未找到题型</span>
+        <button
+          type="button"
+          onClick={openModulePicker}
+          className="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-[#fbc02d] text-xs font-black"
+        >
+          选择练习模块
+        </button>
+      </div>
+    );
+  }
+
+  if (picking && (!sub || !question)) {
+    return (
+      <div
+        ref={rootRef}
+        tabIndex={-1}
+        className={`popup-root relative h-full min-h-full flex flex-col ${stealth ? 'bg-[#fafafa] text-slate-700' : 'bg-[#1a1a1a] text-white'} select-none overflow-hidden focus:outline-none`}
+      >
+        <PopupModulePicker
+          stealth={stealth}
+          step={picking}
+          cats={availableCats}
+          pickCatId={pickCatId || availableCats[0]?.id}
+          currentCatId={catId}
+          currentSubId={subId}
+          draftSubId={draftSubId}
+          draftMode={draftMode}
+          draftRaceSize={draftRaceSize}
+          onBack={() => {
+            if (picking === 'mode') setPicking('sub');
+            else if (picking === 'sub') setPicking('cat');
+            else setPicking(null);
+          }}
+          onPickCat={pickCategory}
+          onPickSub={pickSub}
+          onDraftMode={setDraftMode}
+          onDraftRaceSize={setDraftRaceSize}
+          onStart={startFromPicker}
+        />
+        <style>{`
+          html, body, #root { height: 100%; }
+          body { margin: 0; overflow: hidden; }
+          @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        `}</style>
       </div>
     );
   }
@@ -301,8 +509,30 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       <div
         className={`flex items-center justify-between px-3 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-widest ${stealth ? 'text-slate-400' : 'text-white/50'}`}
       >
-        <div className="flex items-center space-x-2 min-w-0">
-          <span className="truncate">{stealth ? '文档 · 草稿' : sub.name}</span>
+        <div className="flex items-center space-x-1.5 min-w-0">
+          <button
+            type="button"
+            onClick={openModulePicker}
+            title="返回选模块"
+            className={`flex items-center gap-0.5 shrink-0 rounded-md px-1 py-0.5 transition-colors ${
+              stealth
+                ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                : 'text-[#fbc02d] hover:bg-white/10'
+            }`}
+          >
+            <ChevronLeft size={14} />
+            <span className="normal-case tracking-normal">模块</span>
+          </button>
+          <button
+            type="button"
+            onClick={openModulePicker}
+            title="切换练习模块"
+            className={`truncate text-left min-w-0 hover:opacity-100 opacity-90 ${stealth ? 'hover:text-slate-700' : 'hover:text-white'}`}
+          >
+            {stealth
+              ? '文档 · 草稿'
+              : `${sub?.name || '选模块'} · ${mode === 'race' ? '晋升' : '训练'}`}
+          </button>
           <span className={`flex items-center space-x-1 ${theme.accent} normal-case tracking-normal`}>
             <Timer size={11} />
             <span className="font-mono tabular-nums text-[11px]">{fmtMs(currentMs)}</span>
@@ -403,6 +633,14 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
         className={`px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-between ${stealth ? 'text-slate-400' : 'text-white/45'}`}
       >
         <div className="flex items-center space-x-2">
+          {mode === 'race' && (
+            <>
+              <span className={`${theme.accent} text-[11px] normal-case tracking-normal`}>
+                {Math.min(total, raceSize)}/{raceSize}
+              </span>
+              <span className="opacity-40">·</span>
+            </>
+          )}
           <span className={`${theme.accent} text-[11px]`}>{accuracy}%</span>
           <span className="opacity-40">·</span>
           <span className="normal-case tracking-normal font-semibold">
@@ -452,12 +690,275 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
         .popup-root ::-webkit-scrollbar { display: none; }
       `}</style>
 
-      {showTable && sub.id === 'square' && (
+      {raceDone && (
+        <PopupRaceResult
+          stealth={stealth}
+          result={raceDone}
+          onRetry={retrySameRace}
+          onPickModule={() => {
+            setRaceDone(null);
+            openModulePicker();
+          }}
+        />
+      )}
+
+      {picking && (
+        <PopupModulePicker
+          stealth={stealth}
+          step={picking}
+          cats={availableCats}
+          pickCatId={pickCatId}
+          currentCatId={catId}
+          currentSubId={subId}
+          draftSubId={draftSubId}
+          draftMode={draftMode}
+          draftRaceSize={draftRaceSize}
+          onBack={() => {
+            if (picking === 'mode') setPicking('sub');
+            else if (picking === 'sub') setPicking('cat');
+            else setPicking(null);
+          }}
+          onPickCat={pickCategory}
+          onPickSub={pickSub}
+          onDraftMode={setDraftMode}
+          onDraftRaceSize={setDraftRaceSize}
+          onStart={startFromPicker}
+        />
+      )}
+
+      {showTable && sub?.id === 'square' && (
         <PopupSquareTable stealth={stealth} onClose={() => setShowTable(false)} />
       )}
-      {showTable && sub.id === 'pctToFrac' && (
+      {showTable && sub?.id === 'pctToFrac' && (
         <PopupBaiHuaFenTable stealth={stealth} onClose={() => setShowTable(false)} />
       )}
+    </div>
+  );
+};
+
+const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
+  const lp = result?.rankChange?.lp;
+  const before = lp ? getRank(lp.rankBefore) : null;
+  const after = lp ? getRank(lp.rankAfter) : null;
+  const delta = lp?.lpDelta ?? 0;
+  const promoted = !!lp?.promoted;
+  const demoted = !!lp?.demoted;
+  const kept = !!lp && !promoted && !demoted;
+  const deltaCls = delta > 0
+    ? (stealth ? 'text-emerald-600' : 'text-emerald-400')
+    : delta < 0
+      ? (stealth ? 'text-rose-600' : 'text-[#ff6b6b]')
+      : (stealth ? 'text-slate-500' : 'text-white/50');
+  const status = promoted
+    ? { text: '升段！', cls: stealth ? 'text-amber-600' : 'text-[#fbc02d]' }
+    : demoted
+      ? { text: '掉段', cls: stealth ? 'text-rose-600' : 'text-[#ff6b6b]' }
+      : lp?.protected
+        ? { text: '保留段位 · 实力保护', cls: stealth ? 'text-emerald-600' : 'text-emerald-400' }
+        : { text: '保留段位', cls: stealth ? 'text-slate-600' : 'text-white/70' };
+
+  return (
+    <div className={`absolute inset-0 z-30 flex flex-col ${stealth ? 'bg-[#fafafa] text-slate-800' : 'bg-[#1a1a1a] text-white'}`}>
+      <div className="flex-1 flex flex-col items-center justify-center px-3 text-center gap-1.5 min-h-0 overflow-y-auto py-2">
+        <p className="text-[10px] font-black uppercase tracking-widest opacity-60">晋升完成</p>
+        <p className={`text-2xl font-black tabular-nums ${stealth ? '' : 'text-[#fbc02d]'}`}>
+          {result.correct}/{result.total}
+        </p>
+        <p className="text-[11px] font-bold opacity-70">
+          用时 {fmtDuration(result.totalMs)} · 均 {fmtMs(result.avgMs)}
+        </p>
+
+        {lp && (
+          <div className={`w-full mt-2 rounded-2xl border px-3 py-2.5 ${
+            stealth ? 'border-slate-200 bg-white' : 'border-white/10 bg-white/[0.04]'
+          }`}>
+            <p className={`text-3xl font-black italic tabular-nums leading-none ${deltaCls}`}
+              style={{ animation: 'pop 280ms ease-out' }}>
+              {delta > 0 ? `+${delta}` : delta} LP
+            </p>
+            <p className={`text-xs font-black mt-1.5 ${status.cls}`}>{status.text}</p>
+
+            <div className="flex items-center justify-center gap-3 mt-2.5">
+              <div className="text-center opacity-55">
+                <RankBadge rankId={before.id} size={36} />
+                <p className="text-[9px] font-black mt-1 opacity-80">{before.label}</p>
+                <p className="text-[9px] font-mono tabular-nums opacity-50">{lp.lpBefore}</p>
+              </div>
+              <span className={`text-lg font-black ${
+                promoted ? (stealth ? 'text-amber-500' : 'text-[#fbc02d]')
+                  : demoted ? (stealth ? 'text-rose-500' : 'text-[#ff6b6b]')
+                    : 'opacity-40'
+              }`}>
+                {promoted ? '⬆' : demoted ? '⬇' : '→'}
+              </span>
+              <div className="text-center">
+                <RankBadge rankId={after.id} size={44} />
+                <p className="text-[10px] font-black mt-1" style={{ color: after.color }}>{after.label}</p>
+                <p className="text-[9px] font-mono tabular-nums opacity-70">
+                  {after.id === 'king' ? 'MAX' : `${lp.lpAfter}/100`}
+                </p>
+              </div>
+            </div>
+
+            {kept && after.id !== 'king' && (
+              <div className={`mt-2 h-1.5 rounded-full overflow-hidden ${stealth ? 'bg-slate-100' : 'bg-white/10'}`}>
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.max(0, Math.min(100, lp.lpAfter))}%`,
+                    backgroundColor: after.color,
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="px-3 pb-3 flex gap-2 shrink-0">
+        <button type="button" onClick={onRetry}
+          className="flex-1 py-2 rounded-xl bg-[#fbc02d] text-black text-xs font-black">
+          再来一局
+        </button>
+        <button type="button" onClick={onPickModule}
+          className={`flex-1 py-2 rounded-xl border text-xs font-black ${stealth ? 'border-slate-300' : 'border-white/20'}`}>
+          选模块
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const PopupModulePicker = ({
+  stealth,
+  step,
+  cats,
+  pickCatId,
+  currentCatId,
+  currentSubId,
+  draftSubId,
+  draftMode,
+  draftRaceSize,
+  onBack,
+  onPickCat,
+  onPickSub,
+  onDraftMode,
+  onDraftRaceSize,
+  onStart,
+}) => {
+  const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
+  const muted = stealth ? 'text-slate-500' : 'text-white/60';
+  const titleCls = stealth ? 'text-slate-800' : 'text-white';
+  const cell = stealth
+    ? 'bg-white border-slate-200 text-slate-800 hover:border-slate-400'
+    : 'bg-white/[0.06] border-white/10 text-white hover:border-[#fbc02d]/50 hover:bg-white/[0.1]';
+  const active = stealth
+    ? 'bg-slate-800 text-white border-slate-800'
+    : 'bg-[#fbc02d] text-black border-[#fbc02d]';
+  const pickCat = cats.find((c) => c.id === pickCatId) || cats[0];
+  const draftSub = getSub(pickCat?.id || pickCatId, draftSubId);
+  const head =
+    step === 'mode'
+      ? (draftSub?.name || '选择模式')
+      : step === 'sub'
+        ? (pickCat?.name || '子项')
+        : '选择模块';
+  const backLabel = step === 'mode' ? '题型' : step === 'sub' ? '模块' : '练习中';
+
+  return (
+    <div className={`absolute inset-0 ${bg} flex flex-col z-20`} style={{ animation: 'fade-in 120ms ease-out' }}>
+      <div className={`flex items-center justify-between px-2.5 py-2 text-[11px] font-bold uppercase tracking-widest ${muted}`}>
+        <button type="button" onClick={onBack} className={`flex items-center gap-0.5 ${titleCls}`}>
+          <ChevronLeft size={14} />
+          <span>{backLabel}</span>
+        </button>
+        <span className={`normal-case tracking-normal truncate max-w-[55%] ${titleCls}`}>{head}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1.5">
+        {step === 'cat' &&
+          cats.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => onPickCat(c.id)}
+              className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
+                c.id === currentCatId ? active : cell
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate">{c.name}</span>
+                <span className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${c.id === currentCatId ? '' : muted}`}>
+                  {c.subs.length} 项
+                </span>
+              </div>
+            </button>
+          ))}
+        {step === 'sub' &&
+          (pickCat?.subs || []).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPickSub(pickCat.id, s.id)}
+              className={`w-full text-left px-3 py-2 rounded-xl border text-sm font-bold transition-colors ${
+                s.id === draftSubId || (pickCat.id === currentCatId && s.id === currentSubId && !draftSubId)
+                  ? active
+                  : cell
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        {step === 'mode' && (
+          <>
+            <button
+              type="button"
+              onClick={() => onDraftMode('train')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
+                draftMode === 'train' ? active : cell
+              }`}
+            >
+              <div>训练模式</div>
+              <div className={`text-[10px] font-medium mt-0.5 normal-case tracking-normal ${draftMode === 'train' ? 'opacity-80' : muted}`}>
+                不限题数，不计段位
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDraftMode('race')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
+                draftMode === 'race' ? active : cell
+              }`}
+            >
+              <div>晋升模式</div>
+              <div className={`text-[10px] font-medium mt-0.5 normal-case tracking-normal ${draftMode === 'race' ? 'opacity-80' : muted}`}>
+                限题挑战，计入段位
+              </div>
+            </button>
+            {draftMode === 'race' && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {RACE_SIZE_PRESETS.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => onDraftRaceSize(n)}
+                    className={`px-2.5 py-1 rounded-lg border text-xs font-black ${
+                      Number(draftRaceSize) === n ? active : cell
+                    }`}
+                  >
+                    {n} 题
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onStart}
+              className="w-full mt-2 px-3 py-2.5 rounded-xl bg-[#fbc02d] text-black text-sm font-black"
+            >
+              开始{draftMode === 'race' ? `晋升 · ${draftRaceSize}题` : '训练'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
