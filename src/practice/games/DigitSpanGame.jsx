@@ -44,7 +44,7 @@ const MODES = [
     label: '倒序回忆',
     desc: '看完后倒着敲（推荐）',
     icon: ArrowUpFromLine,
-    color: '#fbc02d',
+    color: '#8d7348',
   },
 ];
 
@@ -276,14 +276,14 @@ const DigitSpanGame = ({ onBack }) => {
             <span className="text-xs font-black uppercase tracking-widest">返回</span>
           </button>
           <div className="flex items-center space-x-2">
-            <Layers size={18} className="text-[#fbc02d]" />
+            <Layers size={18} className="text-[#6b5428]" />
             <h2 className="text-xl sm:text-2xl font-black italic">数字记忆广度</h2>
           </div>
           <span className="w-14" />
         </div>
 
         <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-7">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#fbc02d]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6b5428]">
             训练目标
           </p>
           <h3 className="text-lg sm:text-xl font-black italic mt-2">
@@ -291,7 +291,7 @@ const DigitSpanGame = ({ onBack }) => {
           </h3>
           <p className="text-xs sm:text-sm font-medium opacity-70 mt-3 leading-relaxed">
             屏幕会按 0.8s 间隔依次闪 N 个数字，消失后让你
-            <span className="text-[#fbc02d] font-black mx-1">倒序</span>
+            <span className="text-[#6b5428] font-black mx-1">倒序</span>
             敲出来。倒序模式比顺序难一倍，但正是练"边记新的、边动旧的"。
             连对 2 次自动 +1 位，连错 2 次 -1 位，每场 {TRIALS_PER_SESSION} 轮。
           </p>
@@ -314,7 +314,7 @@ const DigitSpanGame = ({ onBack }) => {
                   className={`p-4 sm:p-5 rounded-2xl text-left transition-all border ${
                     active
                       ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg shadow-black/10'
-                      : 'bg-white border-[#f2f0e9] hover:border-[#1a1a1a]'
+                      : 'bg-white border-[#e8d5b0] hover:border-[#1a1a1a]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -361,8 +361,8 @@ const DigitSpanGame = ({ onBack }) => {
                   onClick={() => setStartLen(n)}
                   className={`px-5 py-2.5 rounded-xl text-sm font-black transition-all border ${
                     active
-                      ? 'bg-[#1a1a1a] text-[#fbc02d] border-[#1a1a1a]'
-                      : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-[#1a1a1a]'
+                      ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                      : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-[#1a1a1a]'
                   }`}
                 >
                   {n} 位
@@ -377,14 +377,14 @@ const DigitSpanGame = ({ onBack }) => {
 
         <button
           onClick={startSession}
-          className="w-full bg-[#1a1a1a] text-white font-black py-4 sm:py-5 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center space-x-2"
+          className="w-full bg-[#1a1a1a] text-white font-black py-4 sm:py-5 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center space-x-2"
         >
           <Play size={16} />
           <span>开始训练</span>
         </button>
 
         {(stats.plays > 0 || stats.bestSpan != null) && (
-          <div className="bg-white rounded-2xl border border-[#f2f0e9] p-4 sm:p-5 grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-2xl border border-[#e8d5b0] p-4 sm:p-5 grid grid-cols-2 gap-3">
             <div className="text-center">
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                 累计场次
@@ -413,7 +413,7 @@ const DigitSpanGame = ({ onBack }) => {
     return (
       <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 space-y-5">
         <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] p-6 sm:p-10 text-center">
-          <Trophy size={42} className="mx-auto text-[#fbc02d]" />
+          <Trophy size={42} className="mx-auto text-[#6b5428]" />
           <h2 className="text-3xl sm:text-4xl font-black italic mt-4">完成！</h2>
           <p className="text-xs font-medium opacity-60 mt-2">
             {mode.label} · {TRIALS_PER_SESSION} 轮
@@ -451,14 +451,14 @@ const DigitSpanGame = ({ onBack }) => {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={startSession}
-            className="bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+            className="bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
           >
             <RotateCcw size={14} />
             <span>再来一场</span>
           </button>
           <button
             onClick={() => setPhase('idle')}
-            className="bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black py-4 rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+            className="bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black py-4 rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
           >
             换设置
           </button>
@@ -494,7 +494,7 @@ const DigitSpanGame = ({ onBack }) => {
         <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] aspect-video flex flex-col items-center justify-center select-none">
           {phase === 'countdown' && (
             <>
-              <Eye size={48} className="text-[#fbc02d]" />
+              <Eye size={48} className="text-[#6b5428]" />
               <p className="text-3xl sm:text-4xl font-black italic mt-4">看好了…</p>
               <p className="text-xs font-medium opacity-50 mt-3">
                 {modeId === 'backward' ? '记下 → 倒着敲' : '记下 → 顺序敲'}
@@ -521,9 +521,9 @@ const DigitSpanGame = ({ onBack }) => {
               style={{
                 backgroundColor:
                   phase === 'flash' && i < flashIdx
-                    ? '#fbc02d'
+                    ? '#8d7348'
                     : phase === 'flash' && i === flashIdx
-                      ? '#fbc02d'
+                      ? '#8d7348'
                       : 'rgba(15,23,42,0.2)',
                 transform:
                   phase === 'flash' && i === flashIdx ? 'scale(1.6)' : 'scale(1)',
@@ -568,7 +568,7 @@ const DigitSpanGame = ({ onBack }) => {
       </div>
 
       <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-8">
-        <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-[#fbc02d]">
+        <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-[#6b5428]">
           {phase === 'recall'
             ? modeId === 'backward'
               ? '请倒着敲'
@@ -595,7 +595,7 @@ const DigitSpanGame = ({ onBack }) => {
                 key={i}
                 className={`w-11 sm:w-14 h-14 sm:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center text-2xl sm:text-4xl font-black tabular-nums transition-all ${
                   cur
-                    ? 'bg-white text-[#1a1a1a] ring-2 ring-[#fbc02d]'
+                    ? 'bg-white text-[#1a1a1a] ring-2 ring-[#6b5428]'
                     : got != null
                       ? isWrongDigit
                         ? 'bg-[#ff6b6b]/30 text-white'
@@ -628,7 +628,7 @@ const DigitSpanGame = ({ onBack }) => {
             key={d}
             disabled={phase !== 'recall'}
             onClick={() => addDigit(d)}
-            className="bg-white border border-[#f2f0e9] hover:border-[#1a1a1a] active:bg-[#fbc02d] active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
+            className="bg-white border border-[#e8d5b0] hover:border-[#1a1a1a] active:bg-[#2c261c] active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
           >
             {d}
           </button>
@@ -636,14 +636,14 @@ const DigitSpanGame = ({ onBack }) => {
         <button
           disabled={phase !== 'recall'}
           onClick={removeDigit}
-          className="bg-white border border-[#f2f0e9] hover:border-[#1a1a1a] active:bg-slate-200 active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-sm font-black uppercase tracking-widest tabular-nums transition-all select-none"
+          className="bg-white border border-[#e8d5b0] hover:border-[#1a1a1a] active:bg-slate-200 active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-sm font-black uppercase tracking-widest tabular-nums transition-all select-none"
         >
           删除
         </button>
         <button
           disabled={phase !== 'recall'}
           onClick={() => addDigit(0)}
-          className="bg-white border border-[#f2f0e9] hover:border-[#1a1a1a] active:bg-[#fbc02d] active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
+          className="bg-white border border-[#e8d5b0] hover:border-[#1a1a1a] active:bg-[#2c261c] active:scale-95 disabled:opacity-30 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
         >
           0
         </button>
@@ -656,7 +656,7 @@ const DigitSpanGame = ({ onBack }) => {
 const StatCard = ({ label, value, highlight }) => (
   <div
     className={`rounded-2xl p-3 sm:p-4 ${
-      highlight ? 'bg-[#fbc02d] text-[#1a1a1a]' : 'bg-white/10'
+      highlight ? 'bg-[#2c261c] text-white' : 'bg-white/10'
     }`}
   >
     <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{label}</p>

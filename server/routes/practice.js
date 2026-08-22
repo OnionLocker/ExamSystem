@@ -8,6 +8,19 @@ import db from '../db.js';
 
 const router = Router();
 
+// 错题连对几次才算掌握、退出错题本
+const MISTAKE_CLEAR = 2;
+
+const parseTags = (raw) => {
+  if (!raw) return [];
+  try {
+    const v = JSON.parse(raw);
+    return Array.isArray(v) ? v.filter((t) => typeof t === 'string' && t.trim()) : [];
+  } catch {
+    return [];
+  }
+};
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const draftDir = path.join(__dirname, '..', '..', 'data', 'draft-images');
 if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
@@ -168,11 +181,53 @@ router.post('/sessions/:id/submit', (req, res) => {
     return res.status(400).json({ error: 'answers required' });
   }
 
-  const getQ = db.prepare('SELECT id, correct_answer FROM questions WHERE id = ?');
+  const getQ = db.prepare(
+    'SELECT id, correct_answer, category, sub_category, tags FROM questions WHERE id = ?',
+  );
   const insertAnswer = db.prepare(
     `INSERT INTO practice_answers
        (session_id, question_id, user_answer, is_correct, time_spent_sec, answered_at)
      VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+  );
+
+  // 错题本：答错自动入本，不用手动收集。连对 MISTAKE_CLEAR 次才算掌握 ——
+  // 一次蒙对不等于会了，这跟数资那边错题池的清偿规矩是同一套。
+  const addMistake = db.prepare(
+    `INSERT INTO mistakes (question_id, wrong_count, correct_streak, last_wrong_at, mastered)
+     VALUES (?, 1, 0, datetime('now'), 0)
+     ON CONFLICT(question_id) DO UPDATE SET
+       wrong_count    = wrong_count + 1,
+       correct_streak = 0,
+       last_wrong_at  = datetime('now'),
+       mastered       = 0`,
+  );
+  const clearMistake = db.prepare(
+    `UPDATE mistakes
+        SET correct_streak = correct_streak + 1,
+            mastered = CASE WHEN correct_streak + 1 >= ${MISTAKE_CLEAR} THEN 1 ELSE 0 END
+      WHERE question_id = ? AND mastered = 0`,
+  );
+
+  // 考点画像：把 questions.tags 里的每个知识点单独记账，
+  // 这样能查到"哪个考点老是错"，而不是只知道"判断推理错得多"。
+  const addKdEvent = db.prepare(
+    `INSERT INTO kaodian_events (kaodian, question_id, is_correct, elapsed_ms)
+     VALUES (?, ?, ?, ?)`,
+  );
+  const upsertKd = db.prepare(
+    `INSERT INTO kaodian_profile
+       (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak)
+     VALUES (@kaodian, @module, @subtype, 1, @ok, @ms, date('now'),
+             CASE WHEN @ok = 1 THEN 1 ELSE -1 END)
+     ON CONFLICT(kaodian) DO UPDATE SET
+       attempts   = attempts + 1,
+       correct    = correct + @ok,
+       total_ms   = total_ms + @ms,
+       last_seen  = date('now'),
+       streak     = CASE WHEN @ok = 1 THEN MAX(streak, 0) + 1 ELSE MIN(streak, 0) - 1 END,
+       module     = excluded.module,
+       subtype    = excluded.subtype,
+       updated_at = datetime('now')`,
   );
 
   const grade = db.transaction((list) => {
@@ -189,6 +244,23 @@ router.post('/sessions/:id/submit', (req, res) => {
       if (isCorrect) correct += 1;
 
       insertAnswer.run(sessionId, q.id, userAnswer, isCorrect ? 1 : 0, timeSpent);
+
+      // 跳过的题不进错题本也不算考点样本：它反映的是没时间，不是不会
+      if (!skipped) {
+        if (isCorrect) clearMistake.run(q.id);
+        else addMistake.run(q.id);
+
+        for (const kd of parseTags(q.tags)) {
+          addKdEvent.run(kd, q.id, isCorrect ? 1 : 0, timeSpent * 1000);
+          upsertKd.run({
+            kaodian: kd,
+            module: q.category || '未分类',
+            subtype: q.sub_category || null,
+            ok: isCorrect ? 1 : 0,
+            ms: timeSpent * 1000,
+          });
+        }
+      }
 
       results.push({
         question_id: q.id,
@@ -427,6 +499,29 @@ router.get('/heat', (_req, res) => {
       count: r.answered,
       correct: r.correct,
       score,
+    });
+  }
+
+  // 真题复盘：一场模考按实际时长折算热力，跟番茄钟同口径（1 分钟 1 分）
+  const reviews = db
+    .prepare(
+      `SELECT id, title, exam_date, duration_sec,
+              strftime('%s', updated_at) AS ts
+         FROM exam_analyses
+        WHERE status = 'done' AND exam_date IS NOT NULL`,
+    )
+    .all();
+  for (const r of reviews) {
+    const minutes = Math.round((r.duration_sec || 0) / 60);
+    if (minutes <= 0) continue;
+    if (!out[r.exam_date]) out[r.exam_date] = { score: 0, entries: [] };
+    out[r.exam_date].score += minutes;
+    out[r.exam_date].entries.push({
+      type: 'examReview',
+      ts: Number(r.ts) * 1000,
+      module: r.title,
+      minutes,
+      score: minutes,
     });
   }
 

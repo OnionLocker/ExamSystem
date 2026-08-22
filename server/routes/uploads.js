@@ -103,6 +103,10 @@ const storage = multer.diskStorage({
   filename(req, file, cb) {
     let original = decodeOriginal(file.originalname);
     let name = safeName(original) || `file-${Date.now()}`;
+    if (!ALLOWED_EXT.includes(path.extname(name).toLowerCase())) {
+      const byMime = Object.entries(MIME_BY_EXT).find(([, mime]) => mime === file.mimetype);
+      if (byMime) name += byMime[0];
+    }
     const dir = path.join(UPLOAD_ROOT, req._uploadDateKey, req._uploadType);
     cb(null, uniqueFilename(dir, name));
   },
@@ -112,7 +116,8 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter(_req, file, cb) {
-    const ok = ALLOWED_EXT.includes(path.extname(file.originalname).toLowerCase());
+    const ext = path.extname(decodeOriginal(file.originalname)).toLowerCase();
+    const ok = ALLOWED_EXT.includes(ext) || Object.values(MIME_BY_EXT).includes(file.mimetype);
     cb(ok ? null : new Error('仅支持上传 PDF / Word 文件'), ok);
   },
 });
@@ -136,6 +141,10 @@ const examStorage = multer.diskStorage({
   filename(req, file, cb) {
     let original = decodeOriginal(file.originalname);
     let name = safeName(original) || `file-${Date.now()}`;
+    if (!ALLOWED_EXT.includes(path.extname(name).toLowerCase())) {
+      const byMime = Object.entries(MIME_BY_EXT).find(([, mime]) => mime === file.mimetype);
+      if (byMime) name += byMime[0];
+    }
     const dir = path.join(EXAM_ROOT, req._examFolder);
     cb(null, uniqueFilename(dir, name));
   },
@@ -145,7 +154,8 @@ const examUpload = multer({
   storage: examStorage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter(_req, file, cb) {
-    const ok = ALLOWED_EXT.includes(path.extname(file.originalname).toLowerCase());
+    const ext = path.extname(decodeOriginal(file.originalname)).toLowerCase();
+    const ok = ALLOWED_EXT.includes(ext) || Object.values(MIME_BY_EXT).includes(file.mimetype);
     cb(ok ? null : new Error('仅支持上传 PDF / Word 文件'), ok);
   },
 });

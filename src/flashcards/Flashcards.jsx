@@ -58,16 +58,16 @@ const DeckList = ({ onSelect }) => {
     <div className="space-y-8">
       {/* 头部 */}
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full blur-[80px] bg-[#fbc02d] opacity-30 pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full blur-[80px] bg-[#2c261c] opacity-30 pointer-events-none" />
         <div className="relative">
           <div className="flex items-center space-x-3 mb-1">
-            <Layers size={20} className="text-[#fbc02d]" />
+            <Layers size={20} className="text-[#6b5428]" />
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
               Spaced Repetition
             </p>
           </div>
           <h2 className="text-3xl font-black italic mt-1">
-            今日待复习 <span className="text-[#fbc02d]">{totalDue}</span> 张
+            今日待复习 <span className="text-[#6b5428]">{totalDue}</span> 张
           </h2>
           <p className="text-xs font-bold text-white/50 mt-2 max-w-xl leading-relaxed">
             每张卡按 SM-2 算法自动安排：会的拉长间隔，不会的频繁回头。地铁上 10 分钟过 50 张卡，记住的远超死记硬背。
@@ -100,7 +100,7 @@ const DeckList = ({ onSelect }) => {
             <p className="text-xs text-slate-500 font-medium mb-4 leading-relaxed">{d.desc}</p>
 
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-[#f2f0e9]/40 rounded-xl py-2.5">
+              <div className="bg-[#e8d5b0]/40 rounded-xl py-2.5">
                 <p className="text-2xl font-black tabular-nums" style={{ color: d.color }}>
                   {d.dueCount}
                 </p>
@@ -108,7 +108,7 @@ const DeckList = ({ onSelect }) => {
                   待复习
                 </p>
               </div>
-              <div className="bg-[#f2f0e9]/40 rounded-xl py-2.5">
+              <div className="bg-[#e8d5b0]/40 rounded-xl py-2.5">
                 <p className="text-2xl font-black tabular-nums text-slate-700">
                   {d.newCount}
                 </p>
@@ -116,7 +116,7 @@ const DeckList = ({ onSelect }) => {
                   待新学
                 </p>
               </div>
-              <div className="bg-[#f2f0e9]/40 rounded-xl py-2.5">
+              <div className="bg-[#e8d5b0]/40 rounded-xl py-2.5">
                 <p className="text-2xl font-black tabular-nums text-slate-700">
                   {d.learnedCount}
                 </p>
@@ -126,7 +126,7 @@ const DeckList = ({ onSelect }) => {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-end text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-[#fbc02d] transition-colors">
+            <div className="mt-4 flex items-center justify-end text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-white transition-colors">
               <span>开始</span>
               <ChevronRight size={14} className="ml-1" />
             </div>
@@ -135,7 +135,7 @@ const DeckList = ({ onSelect }) => {
       </div>
 
       {/* 评分说明 */}
-      <div className="bg-[#fef3c7] border border-[#fbc02d]/40 rounded-2xl p-5">
+      <div className="bg-[#fef3c7] border border-[#6b5428]/40 rounded-2xl p-5">
         <p className="text-xs font-black text-[#7c2d12] mb-2 uppercase tracking-widest">
           💡 评分规则
         </p>
@@ -237,7 +237,7 @@ const ReviewSession = ({ deck, onExit }) => {
       </div>
 
       {/* 进度条 */}
-      <div className="h-1 bg-[#f2f0e9] rounded-full overflow-hidden">
+      <div className="h-1 bg-[#e8d5b0] rounded-full overflow-hidden">
         <div
           className="h-full transition-all duration-300"
           style={{ width: `${progressPct}%`, backgroundColor: deck.color }}
@@ -277,7 +277,7 @@ const ReviewSession = ({ deck, onExit }) => {
       ) : (
         <button
           onClick={() => setFlipped(true)}
-          className="w-full bg-[#1a1a1a] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#fbc02d] hover:text-[#1a1a1a] transition-all flex items-center justify-center space-x-2"
+          className="w-full bg-[#1a1a1a] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all flex items-center justify-center space-x-2"
         >
           <Eye size={14} />
           <span>查看释义</span>
@@ -298,7 +298,7 @@ const RateBtn = ({ label, sub, color, key1, onClick }) => (
     </p>
     <p className="text-[10px] font-bold text-slate-400 mt-0.5">{sub}</p>
     <span
-      className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#f2f0e9] text-slate-400 text-[10px] font-black flex items-center justify-center"
+      className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#e8d5b0] text-slate-400 text-[10px] font-black flex items-center justify-center"
       title={`快捷键 ${key1}`}
     >
       {key1}
@@ -309,7 +309,7 @@ const RateBtn = ({ label, sub, color, key1, onClick }) => (
 // ============== 完成页 ==============
 const SessionDone = ({ deck, stats, onExit }) => (
   <div className="space-y-6 text-center py-12">
-    <div className="inline-flex w-20 h-20 rounded-3xl bg-[#fbc02d] text-[#1a1a1a] items-center justify-center">
+    <div className="inline-flex w-20 h-20 rounded-3xl bg-[#2c261c] text-white items-center justify-center">
       <Sparkles size={32} strokeWidth={2.4} />
     </div>
     <div>
@@ -327,7 +327,7 @@ const SessionDone = ({ deck, stats, onExit }) => (
 
     <button
       onClick={onExit}
-      className="bg-[#1a1a1a] text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#fbc02d] hover:text-[#1a1a1a] transition-all"
+      className="bg-[#1a1a1a] text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all"
     >
       返回卡组
     </button>

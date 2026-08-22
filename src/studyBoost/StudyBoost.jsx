@@ -9,6 +9,7 @@ import {
 import {
   ALL_WORDS,
   QUIZ_POOL,
+  lookupWord,
   QUESTION_KINDS,
   MASTERY_STREAK,
   PACK_DIAGNOSTICS,
@@ -19,6 +20,14 @@ import {
 } from './vocabQuiz.js';
 
 const MASTERED_KEY = 'vocab_mastered_ids_v1';
+
+// 真题包里的词带着「真题N次」标签，这是它们区别于书本词表的价值所在：
+// 不是编者觉得该背，而是近 6 年真题选项里真的反复出现过。
+const ZHENTI_CAT = '__zhenti';
+const zhentiHits = (w) => {
+  const t = (w.tags || []).find((x) => /^真题\d+次$/.test(x));
+  return t ? Number(t.match(/\d+/)[0]) : 0;
+};
 const STATS_KEY = 'vocab_stats_v1';
 const KINDS_KEY = 'vocab_enabled_kinds_v1';
 
@@ -52,8 +61,10 @@ export default function StudyBoost() {
   const categories = useMemo(() => {
     const counts = new Map();
     for (const w of ALL_WORDS) counts.set(w.category, (counts.get(w.category) || 0) + 1);
+    const zhentiCount = ALL_WORDS.filter((w) => zhentiHits(w) > 0).length;
     return [
       { id: 'all', name: '全部积累', count: ALL_WORDS.length },
+      ...(zhentiCount ? [{ id: ZHENTI_CAT, name: '真题高频', count: zhentiCount }] : []),
       ...[...counts.entries()]
         .filter(([name]) => name)
         .sort((a, b) => b[1] - a[1])
@@ -63,17 +74,25 @@ export default function StudyBoost() {
 
   // 过滤词汇列表（浏览用，含无法出题的条目）
   const filteredWords = useMemo(() => {
-    return ALL_WORDS.filter(w => {
-      const matchCat = selectedCat === 'all' || w.category === selectedCat;
+    const list = ALL_WORDS.filter(w => {
+      const matchCat = selectedCat === 'all'
+        || (selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
       const q = searchQuery.trim();
       const matchSearch = !q || w.word.includes(q) || (w.explanation || '').includes(q);
       return matchCat && matchSearch;
     });
+    // 真题视图按考频降序，先背考得最多的
+    return selectedCat === ZHENTI_CAT
+      ? [...list].sort((a, b) => zhentiHits(b) - zhentiHits(a))
+      : list;
   }, [selectedCat, searchQuery]);
 
   // 出题池：只用可出题的词条，并跟随分类筛选
   const quizPool = useMemo(() => {
-    const p = selectedCat === 'all' ? QUIZ_POOL : QUIZ_POOL.filter(w => w.category === selectedCat);
+    const p = selectedCat === 'all'
+      ? QUIZ_POOL
+      : QUIZ_POOL.filter(w =>
+          selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
     // 某个分类词太少凑不出 4 个选项时，回落到全库
     return p.length >= 4 ? p : QUIZ_POOL;
   }, [selectedCat]);
@@ -172,11 +191,11 @@ export default function StudyBoost() {
   return (
     <div className="space-y-8 pb-12">
       {/* 子模块切换导航 */}
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-[#f2f0e9] w-fit">
+      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-[#e8d5b0] w-fit">
         <button
           onClick={() => setActiveSubTab('vocab')}
           className={`px-6 py-3 rounded-xl text-xs font-black transition-all flex items-center space-x-2 ${
-            activeSubTab === 'vocab' ? 'bg-[#1a1a1a] text-white shadow-md' : 'text-slate-500 hover:bg-[#f2f0e9]'
+            activeSubTab === 'vocab' ? 'bg-[#1a1a1a] text-white shadow-md' : 'text-slate-500 hover:bg-[#e8d5b0]'
           }`}
         >
           <BookOpen size={16} />
@@ -211,10 +230,14 @@ export default function StudyBoost() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
               <div>
                 <div className="flex items-center space-x-3 mb-2">
-                  <span className="px-3 py-1 rounded-full bg-[#fbc02d]/20 text-[#fbc02d] text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
-                    <Zap size={14} /> 三种考法 · 形近词强干扰
+                  <span className="px-3 py-1 rounded-full bg-[#2c261c]/10 text-[#6b5428] text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
+                    <Zap size={14} /> {availability.length} 种考法 · 形近词强干扰
                   </span>
-                  <span className="text-xs font-bold text-white/50">释义→选词 / 词→选释义 / 语境填空</span>
+                  {/* 考法是数据驱动的：词条补齐 usage/trap/examples 后会自动解锁，
+                      这里跟着 availability 走，别写死数字 */}
+                  <span className="text-xs font-bold text-white/50">
+                    {availability.map((k) => k.label).join(' / ')}
+                  </span>
                 </div>
                 <h2 className="text-3xl font-black italic tracking-tight">言语理解 · 词语高频考点库</h2>
                 <p className="text-sm font-medium text-white/60 mt-2 max-w-2xl">
@@ -227,7 +250,7 @@ export default function StudyBoost() {
                 <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 flex items-center gap-4">
                   <div className="text-center">
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/60">真掌握</p>
-                    <p className="text-2xl font-black italic text-[#fbc02d] tabular-nums">{progress.mastered}</p>
+                    <p className="text-2xl font-black italic text-[#6b5428] tabular-nums">{progress.mastered}</p>
                   </div>
                   <div className="w-px h-8 bg-white/15" />
                   <div className="text-center">
@@ -243,7 +266,7 @@ export default function StudyBoost() {
                 <button
                   onClick={() => (testMode ? setTestMode(false) : startTest())}
                   className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 shadow-lg ${
-                    testMode ? 'bg-white text-black hover:bg-slate-200' : 'bg-[#fbc02d] text-black hover:brightness-110 shadow-[#fbc02d]/20'
+                    testMode ? 'bg-white text-black hover:bg-slate-200' : 'bg-[#2c261c] text-white hover:brightness-110 shadow-black/10'
                   }`}
                 >
                   {testMode ? <BookOpen size={16} /> : <Trophy size={16} />}
@@ -255,10 +278,10 @@ export default function StudyBoost() {
 
           {/* 模式一：考场真题秒杀模式 */}
           {testMode ? (
-            <div className="bg-white rounded-[2.5rem] border border-[#f2f0e9] p-8 space-y-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#f2f0e9] pb-4">
+            <div className="bg-white rounded-[2.5rem] border border-[#e8d5b0] p-8 space-y-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8d5b0] pb-4">
                 <div className="flex items-center space-x-3">
-                  <span className="w-3 h-3 rounded-full bg-[#fbc02d]" />
+                  <span className="w-3 h-3 rounded-full bg-[#2c261c]" />
                   <h3 className="text-lg font-black italic">考场黑魔法速练 · 第 {round.asked + (showExplanation ? 0 : 1)} 题</h3>
                   {question && (
                     <span className="text-[10px] font-black px-2 py-1 rounded-md bg-[#1a1a1a] text-white">
@@ -268,7 +291,7 @@ export default function StudyBoost() {
                 </div>
                 <div className="flex items-center gap-2">
                   {/* 题型开关：来自注册表，词库补了新字段就会自动多出选项 */}
-                  <div className="flex items-center gap-1 bg-[#f9f8f6] p-1 rounded-xl border border-[#f2f0e9]">
+                  <div className="flex items-center gap-1 bg-[#f9f8f6] p-1 rounded-xl border border-[#e8d5b0]">
                     {availability.map(({ id, label, count }) => (
                       <button
                         key={id}
@@ -304,7 +327,7 @@ export default function StudyBoost() {
               <>
               {/* 题目展示 */}
               <div className="space-y-4">
-                <div className="bg-[#f9f8f6] p-6 rounded-2xl border border-[#f2f0e9]">
+                <div className="bg-[#f9f8f6] p-6 rounded-2xl border border-[#e8d5b0]">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                     {question.promptLabel}
                   </span>
@@ -330,12 +353,12 @@ export default function StudyBoost() {
                   {question.options.map((opt, i) => {
                     const isSelected = userChoice && userChoice.id === opt.id;
                     const isCorrect = opt.correct;
-                    let btnStyle = 'border-[#f2f0e9] bg-white hover:border-slate-300 text-[#1a1a1a]';
+                    let btnStyle = 'border-[#e8d5b0] bg-white hover:border-slate-300 text-[#1a1a1a]';
 
                     if (showExplanation) {
                       if (isCorrect) btnStyle = 'border-emerald-500 bg-emerald-50 text-emerald-900 font-black';
                       else if (isSelected) btnStyle = 'border-rose-500 bg-rose-50 text-rose-900 font-black';
-                      else btnStyle = 'border-[#f2f0e9] bg-white text-slate-400';
+                      else btnStyle = 'border-[#e8d5b0] bg-white text-slate-400';
                     }
 
                     return (
@@ -390,7 +413,7 @@ export default function StudyBoost() {
                     <button
                       onClick={nextQuestion}
                       autoFocus
-                      className="px-5 py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-black hover:bg-[#fbc02d] hover:text-black transition-colors flex items-center space-x-1.5"
+                      className="px-5 py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-black hover:bg-[#2c261c] hover:text-white transition-colors flex items-center space-x-1.5"
                     >
                       <span>下一题</span>
                       <ArrowRight size={14} />
@@ -412,7 +435,7 @@ export default function StudyBoost() {
                               ? 'border-emerald-200 bg-emerald-50/70'
                               : userChoice?.id === opt.id
                                 ? 'border-rose-200 bg-rose-50/70'
-                                : 'border-[#f2f0e9] bg-[#f9f8f6]'
+                                : 'border-[#e8d5b0] bg-[#f9f8f6]'
                           }`}
                         >
                           <span className="font-black text-[#1a1a1a]">{w.word}</span>
@@ -473,16 +496,16 @@ export default function StudyBoost() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="搜索词语或释义..."
-                    className="w-full bg-white border border-[#f2f0e9] rounded-2xl pl-11 pr-4 py-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+                    className="w-full bg-white border border-[#e8d5b0] rounded-2xl pl-11 pr-4 py-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
                   />
                 </div>
 
                 {/* 掌握度进度：以「答对才算」的真掌握为准 */}
-                <div className="flex items-center space-x-3 bg-white px-5 py-3 rounded-2xl border border-[#f2f0e9]">
+                <div className="flex items-center space-x-3 bg-white px-5 py-3 rounded-2xl border border-[#e8d5b0]">
                   <span className="text-xs font-black text-slate-400">真掌握进度:</span>
-                  <div className="w-32 h-2.5 bg-[#f2f0e9] rounded-full overflow-hidden">
+                  <div className="w-32 h-2.5 bg-[#e8d5b0] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-[#fbc02d] to-[#ff6b6b] transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-[#8d7348] to-[#ff6b6b] transition-all duration-500"
                       style={{ width: `${masteredRate}%` }}
                     />
                   </div>
@@ -508,11 +531,11 @@ export default function StudyBoost() {
                     className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center space-x-1.5 ${
                       selectedCat === c.id
                         ? 'bg-[#1a1a1a] text-white shadow-md'
-                        : 'bg-white border border-[#f2f0e9] text-slate-600 hover:border-slate-300'
+                        : 'bg-white border border-[#e8d5b0] text-slate-600 hover:border-slate-300'
                     }`}
                   >
                     <span>{c.name}</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedCat === c.id ? 'bg-white/20 text-white' : 'bg-[#f2f0e9] text-slate-500'}`}>
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedCat === c.id ? 'bg-white/20 text-white' : 'bg-[#e8d5b0] text-slate-500'}`}>
                       {c.count}
                     </span>
                   </button>
@@ -520,7 +543,7 @@ export default function StudyBoost() {
               </div>
 
               {/* 词语列表 Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
                 {filteredWords.map((item) => {
                   const isMastered = masteredIds.includes(item.id);
                   const isExpanded = expandedWordId === item.id;
@@ -531,14 +554,22 @@ export default function StudyBoost() {
                     <div
                       key={item.id}
                       className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-white hover:border-slate-300 ${
-                        trulyMastered || isMastered ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#f2f0e9]'
-                      }`}
+                        trulyMastered || isMastered ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#e8d5b0]'
+                      } ${isExpanded ? 'ring-2 ring-[#6b5428]/40 shadow-lg shadow-black/[0.04]' : ''}`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-[#1a1a1a]/5 text-slate-500">
+                          <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#1a1a1a]/5 text-slate-500">
                             {item.category}
                           </span>
+                          {zhentiHits(item) > 0 && (
+                            <span
+                              className="ml-1.5 text-[11px] font-black px-1.5 py-0.5 rounded-md bg-[#2c261c]/10 text-[#8a6000]"
+                              title="近 6 年国考/省考真题逻辑填空选项中出现的次数"
+                            >
+                              真题 {zhentiHits(item)} 次
+                            </span>
+                          )}
                           <div className="flex items-center gap-1">
                             {st && (st.right > 0 || st.wrong > 0) && (
                               <span
@@ -560,15 +591,29 @@ export default function StudyBoost() {
                           </div>
                         </div>
 
-                        <h4 className="text-xl font-black text-[#1a1a1a] tracking-tight">
+                        <h4 className="text-2xl font-black text-[#1a1a1a] tracking-tight">
                           {item.word}
                           {item.variants && item.variants.length > 0 && (
                             <span className="ml-1.5 text-xs font-bold text-slate-400">[{item.variants.join('/')}]</span>
                           )}
                         </h4>
-                        <p className="text-xs font-medium text-slate-600 mt-2 leading-relaxed bg-[#f9f8f6] p-3 rounded-xl border border-[#f2f0e9]">
+                        <p className="text-sm font-semibold text-slate-700 mt-2 leading-relaxed bg-[#f9f8f6] p-3 rounded-xl border border-[#e8d5b0]">
                           <strong>【释义】：</strong>{item.explanation}
                         </p>
+
+                        {/* 坑点直接摆在正面：翻词库的时候要一眼看到这词会怎么坑你，
+                            而不是逐个点开才发现。展开后是完整版。 */}
+                        {item.trap && (
+                          <p
+                            className={`text-[13px] font-semibold leading-relaxed mt-2 px-3 py-2 rounded-xl bg-rose-50/70 border border-rose-100 text-rose-900 ${
+                              isExpanded ? '' : 'line-clamp-2'
+                            }`}
+                          >
+                            <ShieldAlert size={11} className="inline mr-1 -mt-0.5" />
+                            <strong className="font-black">坑点：</strong>
+                            {item.trap}
+                          </p>
+                        )}
 
                         {/* 展开：词条上有的信息都展示。
                             pack 补的 trap/usage/examples 会自动出现在这里，无需改 UI。 */}
@@ -577,7 +622,7 @@ export default function StudyBoost() {
                           <div className="mt-3 space-y-2">
                             <button
                               onClick={() => setExpandedWordId(isExpanded ? null : item.id)}
-                              className="w-full flex items-center justify-between text-[11px] font-black text-amber-700 bg-amber-50 px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors"
+                              className="w-full flex items-center justify-between text-[13px] font-black text-amber-700 bg-amber-50 px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors"
                             >
                               <span className="flex items-center gap-1.5">
                                 <Sparkles size={13} /> 易混辨析与例句
@@ -586,19 +631,25 @@ export default function StudyBoost() {
                             </button>
 
                             {isExpanded && (
-                              <div className="space-y-2.5 p-3 rounded-xl bg-amber-50/40 border border-amber-200/60 text-[11px] leading-relaxed animate-fadeIn">
+                              <div className="space-y-2.5 p-3 rounded-xl bg-amber-50/40 border border-amber-200/60 text-[13px] font-medium leading-relaxed animate-fadeIn">
                                 {rivals.length > 0 && (
                                   <div className="space-y-1">
                                     <p className="font-black text-rose-600 flex items-center gap-1">
                                       <ShieldAlert size={12} /> 【易混词 · 考场最爱挖的坑】
                                     </p>
-                                    <p className="text-slate-700">
-                                      {rivals.map((r) => (
-                                        <span key={r} className="inline-block mr-2 px-1.5 py-0.5 rounded bg-white border border-rose-200 font-black">
-                                          {r}
-                                        </span>
-                                      ))}
-                                    </p>
+                                    <div className="space-y-1">
+                                      {rivals.map((r) => {
+                                        const rw = lookupWord(r);
+                                        return (
+                                          <div key={r} className="px-2 py-1.5 rounded-lg bg-white border border-rose-200">
+                                            <span className="font-black text-[#1a1a1a]">{r}</span>
+                                            {rw?.explanation
+                                              ? <span className="text-slate-600">：{rw.explanation}</span>
+                                              : <span className="text-slate-400">（库内暂无释义）</span>}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 )}
 
@@ -659,7 +710,7 @@ export default function StudyBoost() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-[#f2f0e9] flex items-center justify-between text-[10px] font-bold text-slate-400">
+                      <div className="pt-2 border-t border-[#e8d5b0] flex items-center justify-between text-[10px] font-bold text-slate-400">
                         <span>原书 P{item.page}</span>
                         <span className="italic">
                           {trulyMastered ? `✓ 真掌握（连对${MASTERY_STREAK}次）` : st ? '待巩固' : '未接触'}

@@ -16,7 +16,7 @@ const constantTimeEq = (a, b) => {
   return crypto.timingSafeEqual(ba, bb);
 };
 
-// 中间件：白名单֮外的 /api/* 都需Ҫ token
+// 中间件：白名单之外的 /api/* 都需要 token
 export const authMiddleware = (req, res, next) => {
   const open = req.path === '/health' || req.path.startsWith('/auth/');
   if (open) return next();
@@ -39,7 +39,7 @@ export const authRouter = Router();
 // POST /api/auth/login  { password }
 authRouter.post('/login', (req, res) => {
   const { password } = req.body || {};
-  if (!PASSWORD) return res.status(500).json({ error: '服务端δ配置密码' });
+  if (!PASSWORD) return res.status(500).json({ error: '服务端未配置密码' });
   if (!password || !constantTimeEq(password, PASSWORD)) {
     return res.status(401).json({ error: '密码错误' });
   }
@@ -56,7 +56,7 @@ authRouter.post('/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-// GET /api/auth/check  У验当ǰ token 是否有Ч
+// GET /api/auth/check  校验当前 token 是否有效
 authRouter.get('/check', (req, res) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';

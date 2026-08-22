@@ -166,7 +166,85 @@ CREATE TABLE IF NOT EXISTS review_images (
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_images_module ON review_images(module_id);
+
+-- 错题本：交卷时自动入本，不用手动收集。
+-- 连对 correct_streak 次才算掌握，跟数资那边的错题池一个规矩：
+-- 一次蒙对不等于会了。
+CREATE TABLE IF NOT EXISTS mistakes (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id    INTEGER NOT NULL UNIQUE,
+  wrong_count    INTEGER DEFAULT 1,
+  correct_streak INTEGER DEFAULT 0,
+  last_wrong_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+  mastered       INTEGER DEFAULT 0,
+  note           TEXT,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_mistakes_open ON mistakes(mastered, last_wrong_at);
+
+-- 考点画像：questions.tags 里的每个 knowledge_point 单独记账，
+-- 这样"哪个考点老是错"能直接查出来，而不是只知道"判断推理错得多"。
+CREATE TABLE IF NOT EXISTS kaodian_profile (
+  kaodian      TEXT PRIMARY KEY,
+  module       TEXT NOT NULL,
+  subtype      TEXT,
+  attempts     INTEGER NOT NULL DEFAULT 0,
+  correct      INTEGER NOT NULL DEFAULT 0,
+  total_ms     INTEGER NOT NULL DEFAULT 0,
+  last_seen    TEXT,
+  streak       INTEGER NOT NULL DEFAULT 0,   -- 正数=连对，负数=连错
+  note         TEXT,
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_kp_module   ON kaodian_profile(module);
+CREATE INDEX IF NOT EXISTS idx_kp_lastseen ON kaodian_profile(last_seen);
+
+CREATE TABLE IF NOT EXISTS kaodian_events (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  kaodian     TEXT NOT NULL,
+  question_id INTEGER,
+  is_correct  INTEGER NOT NULL,
+  elapsed_ms  INTEGER,
+  answered_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at);
+
+-- 真题复盘：一次模考的录屏 + 答案 PDF，后台跑完存下行为画像。
+-- 录屏原件几个 GB，磁盘存不下也没必要留：转码成小样本后原件立刻删，
+-- 小样本用完也能手动删，库里只留分析结果。
+CREATE TABLE IF NOT EXISTS exam_analyses (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  title         TEXT    NOT NULL,
+  exam_date     TEXT,                       -- YYYY-MM-DD，挂热力图用
+  status        TEXT    NOT NULL DEFAULT 'queued',  -- queued/running/done/failed
+  stage         TEXT,                       -- 当前步骤的人话描述
+  progress      INTEGER DEFAULT 0,          -- 0~100
+  video_file    TEXT,                       -- 转码后的小样本文件名
+  video_bytes   INTEGER DEFAULT 0,
+  video_deleted INTEGER DEFAULT 0,
+  raw_bytes     INTEGER DEFAULT 0,          -- 原始录屏大小，只做展示
+  duration_sec  INTEGER DEFAULT 0,          -- 原始时长
+  speed         INTEGER DEFAULT 3,          -- 转码倍速，还原时间轴要用
+  pdf_file      TEXT,
+  pdf_chars     INTEGER DEFAULT 0,
+  segments      TEXT,                       -- JSON: 每段的原始分析
+  result        TEXT,                       -- JSON: 汇总画像与建议
+  error         TEXT,
+  created_at    TEXT    DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TEXT    DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_analyses_date ON exam_analyses(exam_date);
 `);
+
+// mistakes 表在 Python 侧先建过，缺 correct_streak，这里补齐
+const mCols = new Set(db.prepare('PRAGMA table_info(mistakes)').all().map((r) => r.name));
+if (!mCols.has('correct_streak')) {
+  db.exec('ALTER TABLE mistakes ADD COLUMN correct_streak INTEGER DEFAULT 0');
+}
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------
 const { count } = db.prepare('SELECT COUNT(*) AS count FROM questions').get();

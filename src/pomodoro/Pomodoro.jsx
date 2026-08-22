@@ -54,10 +54,8 @@ const Pomodoro = () => {
   const progress = total > 0 ? ((total - remaining) / total) * 100 : 0;
   const phaseColor =
     phase === 'break' || phase === 'longBreak'
-      ? '#22c55e'
-      : phase === 'paused'
-        ? '#fbc02d'
-        : '#1a1a1a';
+      ? '#3d8f5a'
+      : '#e8d5b0';
 
   // 今日/本周统计
   const stats = useMemo(() => {
@@ -100,7 +98,7 @@ const Pomodoro = () => {
       <div>
         <h2 className="text-4xl font-black tracking-tighter italic uppercase">番茄钟</h2>
         <p className="text-sm font-medium text-slate-400 mt-2">
-          专注 {Math.round(settings.workMs / 60000)} 分钟 · 休息 {Math.round(settings.breakMs / 60000)} 分钟，张弛有度。
+          专注 {Math.round(settings.workMs / 60000)} 分钟 · {settings.breakMs ? `休息 ${Math.round(settings.breakMs / 60000)} 分钟` : '不休息'}，张弛有度。
         </p>
       </div>
 
@@ -145,7 +143,7 @@ const Pomodoro = () => {
                 <CtrlBtn onClick={stop} icon={Square} label="停止" />
               </>
             )}
-            {!isActive && !isPaused && (
+            {!isActive && !isPaused && settings.breakMs > 0 && (
               <CtrlBtn onClick={() => startBreak(false)} icon={Coffee} label="直接休息" subtle />
             )}
           </div>
@@ -158,7 +156,7 @@ const Pomodoro = () => {
                 key={i}
                 className={`w-2.5 h-2.5 rounded-full ${
                   i < state.roundsCompleted % settings.roundsBeforeLongBreak
-                    ? 'bg-[#fbc02d]'
+                    ? 'bg-[#e8d5b0]'
                     : 'bg-white/15'
                 }`}
               />
@@ -184,7 +182,7 @@ const Pomodoro = () => {
 
       {/* 上次专注 × 做题 */}
       {lastPracticeStats && (
-        <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-6">
+        <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-6">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
             最近一次专注期间的练习
           </p>
@@ -231,7 +229,7 @@ const CtrlBtn = ({ icon: Icon, label, onClick, primary, subtle }) => (
     onClick={onClick}
     className={`px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all flex items-center space-x-2 ${
       primary
-        ? 'bg-[#fbc02d] text-black hover:scale-105'
+        ? 'bg-white text-[#1a1a1a] hover:scale-105'
         : subtle
           ? 'bg-white/5 text-white/70 hover:bg-white/10'
           : 'bg-white/10 text-white hover:bg-white/20'
@@ -243,7 +241,7 @@ const CtrlBtn = ({ icon: Icon, label, onClick, primary, subtle }) => (
 );
 
 const StatCard = ({ icon: Icon, label, value, unit }) => (
-  <div className="bg-white rounded-2xl border border-[#f2f0e9] p-5">
+  <div className="bg-white rounded-2xl border border-[#e8d5b0] p-5">
     <div className="flex items-center justify-between mb-2">
       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
         {label}
@@ -260,8 +258,9 @@ const StatCard = ({ icon: Icon, label, value, unit }) => (
 const SettingsBlock = ({ settings, updateSettings }) => {
   const [open, setOpen] = useState(false);
   const minInput = (v) => Math.max(1, Math.min(180, Number(v) || 1));
+  const breakInput = (v) => Math.max(0, Math.min(180, Number(v) || 0));
   return (
-    <div className="bg-white rounded-[2rem] border border-[#f2f0e9]">
+    <div className="bg-white rounded-[2rem] border border-[#e8d5b0]">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between p-5 text-left"
@@ -276,7 +275,7 @@ const SettingsBlock = ({ settings, updateSettings }) => {
         </span>
       </button>
       {open && (
-        <div className="px-5 pb-6 space-y-5 border-t border-[#f2f0e9] pt-5">
+        <div className="px-5 pb-6 space-y-5 border-t border-[#e8d5b0] pt-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <DurationInput
               label="工作时长（分钟）"
@@ -284,9 +283,10 @@ const SettingsBlock = ({ settings, updateSettings }) => {
               onChange={(v) => updateSettings({ workMs: minInput(v) * 60000 })}
             />
             <DurationInput
-              label="休息时长（分钟）"
+              label="休息时长（分钟，0=不休息）"
+              min={0}
               value={Math.round(settings.breakMs / 60000)}
-              onChange={(v) => updateSettings({ breakMs: minInput(v) * 60000 })}
+              onChange={(v) => updateSettings({ breakMs: breakInput(v) * 60000 })}
             />
             <DurationInput
               label="长休时长（分钟）"
@@ -329,18 +329,18 @@ const SettingsBlock = ({ settings, updateSettings }) => {
   );
 };
 
-const DurationInput = ({ label, value, onChange }) => (
+const DurationInput = ({ label, value, onChange, min = 1 }) => (
   <label className="block">
     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
       {label}
     </span>
     <input
       type="number"
-      min={1}
+      min={min}
       max={180}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="mt-1 w-full bg-[#f2f0e9]/60 border border-transparent rounded-xl py-3 px-4 text-sm font-black tabular-nums focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+      className="mt-1 w-full bg-[#e8d5b0]/60 border border-transparent rounded-xl py-3 px-4 text-sm font-black tabular-nums focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
     />
   </label>
 );
@@ -351,7 +351,7 @@ const ToggleRow = ({ icon: Icon, label, checked, onChange }) => (
     className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
       checked
         ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-        : 'bg-white text-slate-500 border-[#f2f0e9] hover:border-slate-300'
+        : 'bg-white text-slate-500 border-[#e8d5b0] hover:border-slate-300'
     }`}
   >
     <span className="flex items-center space-x-2">
@@ -359,7 +359,7 @@ const ToggleRow = ({ icon: Icon, label, checked, onChange }) => (
       <span className="text-xs font-black uppercase tracking-widest">{label}</span>
     </span>
     <span
-      className={`w-9 h-5 rounded-full p-0.5 transition-all ${checked ? 'bg-[#fbc02d]' : 'bg-slate-200'}`}
+      className={`w-9 h-5 rounded-full p-0.5 transition-all ${checked ? 'bg-[#2c261c]' : 'bg-slate-200'}`}
     >
       <span
         className={`block w-4 h-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : ''}`}
@@ -372,7 +372,7 @@ const HistoryBlock = ({ history, onClear }) => {
   const [expanded, setExpanded] = useState(false);
   const show = expanded ? history : history.slice(0, 5);
   return (
-    <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-6">
+    <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-6">
       <div className="flex items-center justify-between mb-4">
         <span className="text-xs font-black uppercase tracking-widest text-slate-500">
           最近记录
@@ -399,7 +399,7 @@ const HistoryBlock = ({ history, onClear }) => {
             {show.map((r) => (
               <div
                 key={r.id}
-                className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#f2f0e9]/40"
+                className="flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#e8d5b0]/40"
               >
                 <div className="flex items-center space-x-3">
                   <CheckCircle2 size={14} className="text-emerald-500" />
@@ -464,7 +464,7 @@ const BGMBlock = ({ settings, updateSettings, toggleBGM }) => {
   };
 
   return (
-    <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-6 space-y-5">
+    <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-6 space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-black italic">背景白噪音</p>
@@ -476,8 +476,8 @@ const BGMBlock = ({ settings, updateSettings, toggleBGM }) => {
           onClick={onToggleEnabled}
           className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
             enabled
-              ? 'bg-[#1a1a1a] text-[#fbc02d]'
-              : 'bg-[#f2f0e9] text-slate-500 hover:bg-slate-200'
+              ? 'bg-[#1a1a1a] text-white'
+              : 'bg-[#e8d5b0] text-slate-500 hover:bg-slate-200'
           }`}
         >
           {enabled ? '已开启' : '未开启'}
@@ -496,11 +496,11 @@ const BGMBlock = ({ settings, updateSettings, toggleBGM }) => {
               className={`p-3 rounded-xl text-left transition-all border ${
                 active
                   ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
-                  : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-slate-300'
+                  : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-slate-300'
               }`}
             >
               <div className="flex items-center space-x-2 mb-1">
-                <Icon size={14} className={active ? 'text-[#fbc02d]' : 'text-slate-400'} />
+                <Icon size={14} className={active ? 'text-white' : 'text-slate-400'} />
                 <span className="text-sm font-black">{t.name}</span>
               </div>
               <p

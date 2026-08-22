@@ -252,15 +252,17 @@ export const generators = {
       tolerance: 0.3,
     };
   },
-  // 百化分估算：给任意 % 数（不在表里），估算到最近的常见分数（只答分母）
+  // 百化分估算：给任意 % 数（不在表里），估算到最近的整数分母
   pctToFracEst: () => {
-    // 取常见分数对应的百分比，加个 ±2% 扰动
+    // 取单位分数百分比再加 ±2% 扰动；答案必须按扰动后的 pct 重算，
+    // 不能仍用种子分母（否则会像 9.2% 误标成 12，正确应为 11）
     const f = pick(FRAC_TABLE.filter((x) => x.num === 1));
     const noise = rand(-20, 20) / 10; // ±2%
-    const pct = round1(f.pct + noise);
+    const pct = Math.max(0.1, round1(f.pct + noise));
+    const den = Math.max(2, Math.round(100 / pct));
     return {
       prompt: `${pct}% ≈ 1/?（填最接近的整数分母）`,
-      answer: f.den,
+      answer: den,
     };
   },
   // 常见平方数：11~29（与对照表一致）

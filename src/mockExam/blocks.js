@@ -9,7 +9,7 @@ export const DEFAULT_BLOCKS = [
   { id: 'verbal',      name: '言语理解', minutes: 13, color: '#22c55e' },
   { id: 'numReason',   name: '数字推理', minutes: 6,  color: '#3b82f6' },
   { id: 'judgment',    name: '判断推理', minutes: 25, color: '#f97316' },
-  { id: 'data',        name: '资料分析', minutes: 22, color: '#fbc02d' },
+  { id: 'data',        name: '资料分析', minutes: 22, color: '#8d7348' },
   { id: 'numCalc',     name: '数量关系', minutes: 13, color: '#ef4444' },
   { id: 'review',      name: '检查涂卡', minutes: 3,  color: '#94a3b8' },
 ];

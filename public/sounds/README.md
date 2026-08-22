@@ -19,20 +19,22 @@ public/sounds/
 
 ## 底层 loop（10 个场景）
 
-| 文件 | 时长 | 大小 | 来源 |
-|---|---:|---:|---:|
-| `rain.mp3`         | 60s | 938K | Mixkit 2392 |
-| `thunderstorm.mp3` | 46s | 720K | Mixkit 2415 |
-| `ocean.mp3`        | 60s | 938K | Mixkit 1208 |
-| `stream.mp3`       | 60s | 938K | Mixkit 2456 |
-| `forest.mp3`       | 60s | 938K | Mixkit 1210 |
-| `fire.mp3`         | 21s | 330K | Mixkit 1330 |
-| `wind.mp3`         | 59s | 921K | Mixkit 2658 |
-| `night.mp3`        | 60s | 938K | Mixkit 2482 |
-| `cafe.mp3`         | 60s | 938K | Mixkit  444 |
-| `keyboard.mp3`     | 23s | 366K | Mixkit 1386 |
+播放时由 `SoundEngine` 做 **0.8s 等功率交叉淡化** 再 `loop`，文件本身不再做首尾淡化（否则每圈会掉一截音量）。
 
-规格：mp3 / 44.1 kHz / 单声道 / 128 kbps，首尾 0.4s 淡化。
+规格：mp3 / **48 kHz / 立体声 / 192 kbps**，多数截到 120s。
+
+| 文件 | 时长 | 大小 | 来源（许可） |
+|---|---:|---:|---|
+| `rain.mp3`         | 120s | 2.8M | Freesound [549909](https://freesound.org/people/deadrobotmusic/sounds/549909/) deadrobotmusic · CC0 |
+| `thunderstorm.mp3` | 120s | 2.8M | Freesound [738091](https://freesound.org/people/soundofsong/sounds/738091/) soundofsong · CC0 |
+| `ocean.mp3`        | 120s | 2.8M | Freesound [578524](https://freesound.org/people/SamsterBirdies/sounds/578524/) SamsterBirdies · CC0 |
+| `stream.mp3`       | 120s | 2.8M | Freesound [621107](https://freesound.org/people/hargissssound/sounds/621107/) hargissssound · CC0 |
+| `forest.mp3`       | 64s  | 1.5M | Freesound [850507](https://freesound.org/people/GammaGool/sounds/850507/) GammaGool · CC0 |
+| `fire.mp3`         | 120s | 2.8M | Freesound [729396](https://freesound.org/people/HECKFRICKER/sounds/729396/) HECKFRICKER · CC0 |
+| `wind.mp3`         | 62s  | 1.5M | Mixkit 2658（立体声预览） |
+| `night.mp3`        | 51s  | 1.2M | Freesound [436528](https://freesound.org/people/KikeVilaplana/sounds/436528/) KikeVilaplana · CC0 |
+| `cafe.mp3`         | 120s | 2.8M | Freesound [746428](https://freesound.org/people/douglasbruce@look.ca/sounds/746428/) · CC0 |
+| `keyboard.mp3`     | 120s | 2.8M | Freesound [661435](https://freesound.org/people/Brazilio123/sounds/661435/) Brazilio123 · CC0 |
 
 ## 随机事件音
 
@@ -71,7 +73,12 @@ const SCENE_EVENTS = {
 
 ## 来源 & 许可证
 
-全部来自 **[Mixkit](https://mixkit.co/free-sound-effects/)**，使用 **[Mixkit License](https://mixkit.co/license/)**：
+底层 loop 以 **Freesound CC0** 实采为主（公有领域，无需署名）；`wind.mp3` 仍用 Mixkit 立体声预览。事件音仍来自 Mixkit。
+
+Freesound CC0：https://creativecommons.org/publicdomain/zero/1.0/
+Mixkit 音效许可：https://mixkit.co/license/
+
+Mixkit License 要点：
 - ✅ 商用 / 非商用免费
 - ✅ 无需署名
 - ❌ 不能把素材本身打包二次销售（嵌入应用使用是允许的）
@@ -87,10 +94,10 @@ https://mixkit.co/free-sound-effects/<category>/
 
 直链格式：`https://assets.mixkit.co/active_storage/sfx/<ID>/<ID>-preview.mp3`
 
-底层 loop 处理（60s 单声道 mp3）：
+底层 loop 处理（立体声 192k，不要首尾淡化）：
 ```bash
-ffmpeg -y -ss 2 -i raw.mp3 -t 60 -ac 1 -ar 44100 -b:a 128k \
-  -af "afade=t=in:st=0:d=0.4,afade=t=out:st=59.6:d=0.4" \
+ffmpeg -y -t 120 -i raw.mp3 -ac 2 -ar 48000 -b:a 192k \
+  -af "highpass=f=50" \
   public/sounds/<scene>.mp3
 ```
 

@@ -78,7 +78,7 @@ const ImageList = ({ images }) => {
     <div className="mt-3 space-y-2">
       {images.map((src, i) => (
         <img key={i} src={src} alt="" loading="lazy"
-          className="max-w-full rounded-xl border border-[#f2f0e9] bg-white" />
+          className="max-w-full rounded-xl border border-[#e8d5b0] bg-white" />
       ))}
     </div>
   );
@@ -86,15 +86,15 @@ const ImageList = ({ images }) => {
 
 const OptionRow = ({ option, state, onClick, disabled }) => {
   const stateCls = {
-    idle: 'bg-white border-[#f2f0e9]',
-    selected: 'bg-[#fffdf5] border-[#fbc02d] shadow-sm',
+    idle: 'bg-white border-[#e8d5b0]',
+    selected: 'bg-[#f4e6c8] border-[#6b5428] shadow-sm',
     correct: 'bg-[#f1f8f2] border-[#4caf50]',
     wrong: 'bg-[#fdf1f1] border-[#ef5350]',
     missed: 'bg-[#f1f8f2] border-[#a5d6a7] border-dashed',
   }[state] || '';
   const badgeCls = {
-    idle: 'bg-[#f2f0e9] text-[#1a1a1a]',
-    selected: 'bg-[#fbc02d] text-black',
+    idle: 'bg-[#e8d5b0] text-[#1a1a1a]',
+    selected: 'bg-[#2c261c] text-white',
     correct: 'bg-[#4caf50] text-white',
     wrong: 'bg-[#ef5350] text-white',
     missed: 'bg-[#a5d6a7] text-white',
@@ -122,11 +122,14 @@ const OptionRow = ({ option, state, onClick, disabled }) => {
 };
 
 // 演算区：草稿纸的空白部分。题干在上面能圈划，式子列在这儿。
-const ScratchPad = ({ rows, onAddRow }) => {
+const ScratchPad = ({ rows, onAddRow, fill }) => {
   if (rows <= 0) return null;
+  const height = fill
+    ? `max(${rows * 300}px, calc(100dvh - 11rem))`
+    : rows * 300;
   return (
-    <div className="mt-4 rounded-[1.5rem] border-2 border-dashed border-[#eae6d8] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-2.5 bg-[#fffdf8] border-b border-[#f2efe4]">
+    <div className="mt-4 rounded-[1.5rem] border-2 border-dashed border-[#dcc89a] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-[#f2e4c4] border-b border-[#ead9b0]">
         <span className="text-[10px] font-black uppercase tracking-widest text-[#c3bda8]">演算区</span>
         <button
           type="button"
@@ -140,9 +143,9 @@ const ScratchPad = ({ rows, onAddRow }) => {
       </div>
       <div
         style={{
-          height: rows * 300,
-          background: '#fffdf8',
-          backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 31px, #f2efe2 31px 32px)',
+          height,
+          background: '#f2e4c4',
+          backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 31px, #e0cd9a 31px 32px)',
         }}
       />
     </div>
@@ -164,7 +167,7 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
       className="relative w-[min(22rem,88vw)] h-full bg-white shadow-2xl flex flex-col animate-slideIn"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#f2f0e9]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8d5b0]">
         <span className="text-xs font-black uppercase tracking-widest text-[#999]">答题卡</span>
         <button onClick={onClose} className="p-2 -m-2 rounded-xl text-[#bbb] hover:text-[#1a1a1a]">
           <XIcon size={18} />
@@ -180,11 +183,11 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
                 onClick={() => { onJump(i); onClose(); }}
                 className={`relative h-11 rounded-xl border-2 text-sm font-black tabular-nums transition-colors ${
                   done ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-[#bbb] border-[#eee]'
-                } ${i === index ? 'ring-2 ring-[#fbc02d] ring-offset-2' : ''}`}
+                } ${i === index ? 'ring-2 ring-[#6b5428] ring-offset-2' : ''}`}
               >
                 {i + 1}
                 {flags.has(q.id) && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#fbc02d] border border-white" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#2c261c] border border-white" />
                 )}
               </button>
             );
@@ -193,7 +196,7 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
         <div className="mt-6 space-y-1.5 text-[11px] font-bold text-[#999]">
           <p className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-[#1a1a1a]" />已作答</p>
           <p className="flex items-center gap-2"><span className="w-3 h-3 rounded border-2 border-[#eee]" />还没做</p>
-          <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#fbc02d]" />做了标记</p>
+          <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#2c261c]" />做了标记</p>
         </div>
       </div>
     </div>
@@ -205,9 +208,9 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
 
 const ScoreCard = ({ title, result }) => (
   <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden">
-    <div className="absolute top-6 right-6 w-32 h-32 bg-[#fbc02d] rounded-full blur-[40px] opacity-60" />
+    <div className="absolute top-6 right-6 w-32 h-32 bg-[#2c261c] rounded-full blur-[40px] opacity-60" />
     <div className="relative z-10">
-      <div className="w-14 h-14 rounded-2xl bg-[#fbc02d] text-black flex items-center justify-center mb-5">
+      <div className="w-14 h-14 rounded-2xl bg-[#2c261c] text-white flex items-center justify-center mb-5">
         <Trophy size={26} />
       </div>
       <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{title || 'AI 练题'}</p>
@@ -244,13 +247,13 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
   };
 
   return (
-    <div className="bg-white rounded-[1.75rem] border border-[#f2f0e9] overflow-hidden">
+    <div className="bg-white rounded-[1.75rem] border border-[#e8d5b0] overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[#fffdf8] transition-colors"
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-[#f2e4c4] transition-colors"
       >
         <span className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black ${
-          item.skipped ? 'bg-[#f2f0e9] text-[#bbb]'
+          item.skipped ? 'bg-[#e8d5b0] text-[#bbb]'
             : item.is_correct ? 'bg-[#e8f5e9] text-[#2e7d32]' : 'bg-[#fdecea] text-[#c62828]'
         }`}>
           {no}
@@ -281,9 +284,9 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
             ))}
           </div>
 
-          <div className="rounded-2xl bg-[#fffdf5] border border-[#f7e9b8] p-5">
+          <div className="rounded-2xl bg-[#f4e6c8] border border-[#f7e9b8] p-5">
             <div className="flex items-center gap-2 mb-2">
-              <Lightbulb size={15} className="text-[#fbc02d]" />
+              <Lightbulb size={15} className="text-[#6b5428]" />
               <span className="text-[10px] font-black uppercase tracking-widest text-[#a8935a]">解析</span>
             </div>
             {item.explanation ? (
@@ -295,7 +298,7 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
           </div>
 
           {item.draft_url && (
-            <div className="rounded-2xl border border-[#f2f0e9] overflow-hidden">
+            <div className="rounded-2xl border border-[#e8d5b0] overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-2.5 bg-[#faf9f5]">
                 <PenTool size={13} className="text-[#999]" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#999]">
@@ -526,7 +529,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   const goTo = useCallback((nextIndex) => {
     if (nextIndex < 0 || nextIndex >= total || nextIndex === index) return;
     settle(enter);
-    setDraftMode(false);
     persistDraft(current?.id);
     setIndex(nextIndex);
     setEnter({ qid: questions[nextIndex].id, at: Date.now() });
@@ -646,20 +648,20 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   // ── 各种非做题状态 ──
   if (phase === 'loading') {
     return (
-      <div className="max-w-2xl mx-auto py-24 text-center">
-        <Loader2 size={26} className="mx-auto text-[#fbc02d] animate-spin mb-3" />
+      <div className="h-full flex flex-col items-center justify-center">
+        <Loader2 size={26} className="text-[#6b5428] animate-spin mb-3" />
         <p className="text-sm font-black uppercase tracking-widest text-[#bbb]">加载题目中…</p>
       </div>
     );
   }
   if (phase === 'empty' || phase === 'error') {
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className={`bg-white rounded-[2rem] p-10 text-center shadow-sm border ${
-          phase === 'error' ? 'border-red-200' : 'border-[#f2f0e9]'
+      <div className="h-full flex items-center justify-center p-6">
+        <div className={`bg-white rounded-[2rem] p-10 text-center shadow-sm border max-w-md w-full ${
+          phase === 'error' ? 'border-red-200' : 'border-[#e8d5b0]'
         }`}>
           <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 ${
-            phase === 'error' ? 'bg-red-100 text-red-500' : 'bg-[#f2f0e9] text-[#bbb]'
+            phase === 'error' ? 'bg-red-100 text-red-500' : 'bg-[#e8d5b0] text-[#bbb]'
           }`}>
             <AlertTriangle size={24} />
           </div>
@@ -668,7 +670,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           </h3>
           <p className="text-sm text-[#999] mb-6">{phase === 'error' ? errMsg : title}</p>
           <button onClick={onExit}
-            className="bg-[#1a1a1a] text-white font-black px-8 py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs">
+            className="bg-[#1a1a1a] text-white font-black px-8 py-3 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs">
             返回
           </button>
         </div>
@@ -681,6 +683,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     const items = report?.items || [];
     const hasWrong = items.some((it) => !it.is_correct);
     return (
+      <div className="h-full overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-6">
       <div className="max-w-3xl mx-auto space-y-5 pb-10">
         <ScoreCard title={reviewing ? `${title} · 复盘` : title} result={result} />
 
@@ -690,13 +693,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             <RotateCcw size={16} /><span>{reviewing ? '重做这套' : '再刷一遍'}</span>
           </button>
           {onAnalyzeWithHermes && hasWrong && (
-            <button onClick={() => onAnalyzeWithHermes(sessionId)}
-              className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] text-[#fbc02d] font-black px-6 py-4 rounded-2xl hover:opacity-90 transition-all uppercase tracking-widest text-xs">
+            <button onClick={() => { onAnalyzeWithHermes(sessionId); onExit(); }}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] text-white font-black px-6 py-4 rounded-2xl hover:opacity-90 transition-all uppercase tracking-widest text-xs">
               <Send size={16} /><span>让 Hermes 复盘错题</span>
             </button>
           )}
           <button onClick={onExit}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#fbc02d] text-black font-black px-6 py-4 rounded-2xl hover:bg-[#1a1a1a] hover:text-white transition-all uppercase tracking-widest text-xs">
+            className="flex-1 flex items-center justify-center gap-2 bg-[#2c261c] text-white font-black px-6 py-4 rounded-2xl hover:bg-[#1a1a1a] hover:text-white transition-all uppercase tracking-widest text-xs">
             <span>返回批次</span><ArrowRight size={16} />
           </button>
         </div>
@@ -725,6 +728,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           ))}
         </div>
       </div>
+      </div>
     );
   }
 
@@ -736,14 +740,21 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   const grading = phase === 'grading';
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div
+      className="h-full min-h-0 flex flex-col bg-white"
+      style={{
+        paddingTop: window.matchMedia('(pointer: coarse)').matches
+          ? 'max(2rem, env(safe-area-inset-top, 0px))'
+          : undefined,
+      }}
+    >
       {/* 顶栏 */}
       <div
-        className="flex items-center justify-between gap-2 bg-white rounded-2xl p-2.5 shadow-sm border border-[#f2f0e9] sticky top-0 z-30"
+        className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 border-b border-[#e8d5b0]"
         data-capture-ignore="1"
       >
         <button onClick={exitQuiz}
-          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[#999] hover:bg-[#f2f0e9] hover:text-[#1a1a1a] transition-colors">
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-[#999] hover:bg-[#e8d5b0] hover:text-[#1a1a1a] transition-colors">
           <ArrowLeft size={18} />
           <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">退出</span>
         </button>
@@ -758,7 +769,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           </span>
           <button
             onClick={() => setShowSheet(true)}
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black text-[#999] hover:bg-[#f2f0e9] hover:text-[#1a1a1a] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black text-[#999] hover:bg-[#e8d5b0] hover:text-[#1a1a1a] transition-colors"
           >
             <Grid3x3 size={15} />
             <span className="hidden sm:inline">答题卡</span>
@@ -766,13 +777,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         </div>
       </div>
 
-      <div className="h-1.5 bg-[#f2f0e9] rounded-full overflow-hidden my-4">
-        <div className="h-full bg-[#fbc02d] transition-all duration-300"
+      <div className="shrink-0 h-1 bg-[#e8d5b0]">
+        <div className="h-full bg-[#2c261c] transition-all duration-300"
           style={{ width: `${total > 0 ? (answeredCount / total) * 100 : 0}%` }} />
       </div>
 
       {errMsg && (
-        <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex justify-between">
+        <div className="shrink-0 mx-4 mt-3 px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex justify-between">
           <span>{errMsg}</span>
           <button onClick={() => setErrMsg('')} className="ml-3 text-red-400 hover:text-red-700">
             <XIcon size={13} />
@@ -781,9 +792,10 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       )}
 
       {/* 草稿纸范围：题干、选项、演算区都在这一层里，批注层盖在最上面 */}
-      <div ref={paperRef} className="relative">
-        <div className={`bg-white rounded-[2rem] p-5 sm:p-8 shadow-sm border-2 transition-colors ${
-          draftMode ? 'border-[#fbc02d]' : 'border-[#f2f0e9]'
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3">
+      <div ref={paperRef} className={`relative ${draftMode ? 'min-h-full' : ''}`}>
+        <div className={`bg-white rounded-[1.5rem] p-5 sm:p-8 border-2 transition-colors ${
+          draftMode ? 'border-[#6b5428]' : 'border-[#e8d5b0]'
         }`}>
           <div className="flex items-center justify-between gap-2 mb-5">
             <div className="flex items-center gap-2 flex-wrap">
@@ -803,12 +815,12 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                     </span>
               )}
               {flags.has(current?.id) && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#fff8e1] text-[#8a5400]">已标记</span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#f3e0a8] text-[#8a5400]">已标记</span>
               )}
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
               <span className="text-[10px] font-black tabular-nums text-[#bbb]">
-                本题 <span className="text-[#fbc02d]">{fmtDuration(currentElapsed)}</span>
+                本题 <span className="text-[#6b5428]">{fmtDuration(currentElapsed)}</span>
               </span>
               <span className="text-sm font-mono tabular-nums font-black text-[#bbb]">
                 {index + 1}/{total}
@@ -822,7 +834,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           <ImageList images={current?.stem_images} />
 
           {current?.question_type === 'multi' && (
-            <p className="mt-4 text-xs font-black uppercase tracking-widest text-[#fbc02d]">
+            <p className="mt-4 text-xs font-black uppercase tracking-widest text-[#6b5428]">
               多选题 · 至少选两项，答错不得分
             </p>
           )}
@@ -839,7 +851,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           </div>
         </div>
 
-        <ScratchPad rows={scratchRows} onAddRow={() => setScratchRows((r) => r + 1)} />
+        <ScratchPad rows={scratchRows} fill={draftMode} onAddRow={() => setScratchRows((r) => r + 1)} />
 
         <DraftLayer
           active={draftMode}
@@ -850,24 +862,22 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           onStrokeEnd={pushStroke}
         />
       </div>
+      </div>
 
-      {/* 底部操作条：答题模式 / 批注模式换一套按钮。
-          sticky 而不是 fixed —— 页面是内容区在滚，且 <main> 的 backdrop-blur
-          会让 fixed 贴到 main 而不是视口上。 */}
       <div
-        className="sticky bottom-0 z-40 mt-4 pt-3 bg-gradient-to-t from-white via-white/90 to-transparent"
+        className="shrink-0 px-3 pt-2 border-t border-[#e8d5b0] bg-white"
         style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         data-capture-ignore="1"
       >
         {draftMode ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-white rounded-2xl p-2 shadow-lg border border-[#f2f0e9] overflow-x-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-white rounded-2xl p-2 shadow-lg border border-[#e8d5b0] overflow-x-auto">
             {PEN_COLORS.map((c) => (
               <button
                 key={c}
                 onClick={() => { setTool('pen'); setColor(c); }}
                 title="笔"
                 className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                  tool === 'pen' && color === c ? 'bg-[#f2f0e9] ring-2 ring-[#fbc02d]' : 'hover:bg-black/5'
+                  tool === 'pen' && color === c ? 'bg-[#e8d5b0] ring-2 ring-[#6b5428]' : 'hover:bg-black/5'
                 }`}
               >
                 <span className="w-5 h-5 rounded-full" style={{ background: c }} />
@@ -877,7 +887,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               onClick={() => setTool('highlighter')}
               title="荧光笔（圈划题干）"
               className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                tool === 'highlighter' ? 'bg-[#fbc02d] text-black' : 'text-[#999] hover:bg-black/5'
+                tool === 'highlighter' ? 'bg-[#2c261c] text-white' : 'text-[#999] hover:bg-black/5'
               }`}
             >
               <Highlighter size={17} />
@@ -892,7 +902,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               <Eraser size={17} />
             </button>
 
-            <span className="shrink-0 w-px h-7 bg-[#f2f0e9] mx-0.5" />
+            <span className="shrink-0 w-px h-7 bg-[#e8d5b0] mx-0.5" />
 
             <button onClick={() => mutateStrokes((s) => s.slice(0, -1))}
               disabled={!hasDraft} title="撤销一笔"
@@ -909,7 +919,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               <Plus size={17} />
             </button>
 
-            <span className="shrink-0 w-px h-7 bg-[#f2f0e9] mx-0.5" />
+            <span className="shrink-0 w-px h-7 bg-[#e8d5b0] mx-0.5" />
 
             {/* 批注时 canvas 吃掉了触摸手势，翻页得给按钮 */}
             <button onClick={() => scrollPage(paperRef.current, -0.7)} title="上翻"
@@ -920,13 +930,32 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5">
               <ChevronDown size={17} />
             </button>
+            <button
+              onClick={() => goTo(index - 1)}
+              disabled={index === 0}
+              title="上一题"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 disabled:opacity-30"
+            >
+              <ArrowLeft size={17} />
+            </button>
+            <button
+              onClick={() => goTo(index + 1)}
+              disabled={isLast}
+              title="下一题"
+              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 disabled:opacity-30"
+            >
+              <ArrowRight size={17} />
+            </button>
 
             <button
-              onClick={() => setDraftMode(false)}
-              className="ml-auto shrink-0 flex items-center gap-1.5 bg-[#1a1a1a] text-[#fbc02d] px-4 h-11 rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
+              onClick={() => {
+                persistDraft(current?.id);
+                setDraftMode(false);
+              }}
+              className="ml-auto shrink-0 flex items-center gap-1.5 bg-[#1a1a1a] text-white px-4 h-11 rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
             >
               <Check size={15} />
-              <span>回到答题</span>
+              <span>保留草稿</span>
             </button>
           </div>
         ) : (
@@ -935,7 +964,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               onClick={() => goTo(index - 1)}
               disabled={index === 0}
               title="上一题"
-              className="shrink-0 h-14 px-4 rounded-2xl bg-white border-2 border-[#f2f0e9] text-[#999] font-black flex items-center gap-1.5 hover:border-[#1a1a1a] hover:text-[#1a1a1a] disabled:opacity-40 transition-colors"
+              className="shrink-0 h-14 px-4 rounded-2xl bg-white border-2 border-[#e8d5b0] text-[#999] font-black flex items-center gap-1.5 hover:border-[#1a1a1a] hover:text-[#1a1a1a] disabled:opacity-40 transition-colors"
             >
               <ArrowLeft size={17} />
               <span className="text-xs uppercase tracking-widest hidden sm:inline">上一题</span>
@@ -946,22 +975,22 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               title="标记本题，回头再看"
               className={`shrink-0 h-14 w-14 rounded-2xl border-2 flex items-center justify-center transition-colors ${
                 flags.has(current?.id)
-                  ? 'bg-[#fff8e1] border-[#fbc02d] text-[#8a5400]'
-                  : 'bg-white border-[#f2f0e9] text-[#bbb] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
+                  ? 'bg-[#f3e0a8] border-[#6b5428] text-[#8a5400]'
+                  : 'bg-white border-[#e8d5b0] text-[#bbb] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
               }`}
             >
               <Bookmark size={18} />
             </button>
 
             <button
-              onClick={() => { setDraftMode(true); setScratchRows((r) => (r === 0 ? 1 : r)); }}
+              onClick={() => { setDraftMode(true); setScratchRows((r) => Math.max(r, 1)); }}
               title={hasDraft
                 ? '草稿纸：这题留了草稿，打开就能看到'
                 : '草稿纸：在题目上圈划、在下面演算'}
               className={`shrink-0 h-14 px-4 rounded-2xl border-2 flex items-center gap-1.5 font-black transition-colors ${
                 hasDraft
-                  ? 'bg-[#fbc02d] border-[#fbc02d] text-black'
-                  : 'bg-white border-[#f2f0e9] text-[#999] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
+                  ? 'bg-[#2c261c] border-[#6b5428] text-white'
+                  : 'bg-white border-[#e8d5b0] text-[#999] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
               }`}
             >
               <PenTool size={17} />
@@ -972,7 +1001,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               <button
                 onClick={submitAll}
                 disabled={grading}
-                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#fbc02d] hover:text-black disabled:opacity-60 transition-all shadow-lg"
+                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#2c261c] hover:text-white disabled:opacity-60 transition-all shadow-lg"
               >
                 {grading
                   ? (<><Loader2 size={17} className="animate-spin" /><span>判分中…</span></>)
@@ -981,7 +1010,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             ) : (
               <button
                 onClick={() => goTo(index + 1)}
-                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#fbc02d] hover:text-black disabled:opacity-60 transition-all shadow-lg"
+                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#2c261c] hover:text-white disabled:opacity-60 transition-all shadow-lg"
               >
                 <span>下一题</span>
                 <ArrowRight size={17} />
@@ -992,7 +1021,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
         <p className="mt-2 text-center text-[10px] font-black uppercase tracking-widest text-[#ccc]">
           {draftMode
-            ? 'Apple Pencil 画笔迹 · 双指翻页 · Esc 退出批注'
+            ? 'Apple Pencil 画笔迹 · 双指翻页 · 保留草稿后可再打开'
             : 'A/B/C/D 选择 · ← → 翻题 · 最后一题交卷'}
           {savingDraft && (
             <span className="text-[#ddd]"> · 草稿保存中</span>

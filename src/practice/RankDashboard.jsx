@@ -73,7 +73,7 @@ const RankDashboard = ({ onClickCategory }) => {
                 ) : (
                   <>
                     累计 {totalPlays} 场 · {totalCount} 题 · 段位分{' '}
-                    <span className="font-black text-[#fbc02d] tabular-nums">
+                    <span className="font-black text-[#6b5428] tabular-nums">
                       {overall.totalScore}
                     </span>
                   </>
@@ -137,7 +137,7 @@ const RankDashboard = ({ onClickCategory }) => {
           </div>
           <button
             onClick={() => setShowInfo(true)}
-            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#fbc02d] text-[#1a1a1a] hover:brightness-110 text-[10px] font-black uppercase tracking-widest transition-all"
+            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#2c261c] text-white hover:brightness-110 text-[10px] font-black uppercase tracking-widest transition-all"
           >
             <Trophy size={12} strokeWidth={2.5} />
             <span>段位图谱</span>
@@ -209,7 +209,7 @@ const SubRow = ({ sub, stat, ev }) => {
   const accPct = Math.round((ev.accuracy || 0) * 100);
   const avgMs = Math.round(ev.avgMs || 0);
   return (
-    <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#f2f0e9]/40 hover:bg-[#f2f0e9]">
+    <div className="flex items-center justify-between py-3 px-4 rounded-xl bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]">
       <div className="flex items-center space-x-3 min-w-0">
         <RankBadge rankId={ev.rankId} size={32} />
         <div className="min-w-0">

@@ -35,9 +35,9 @@ const RankInfo = ({ onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题栏 */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-[#f2f0e9]">
+        <div className="flex items-center justify-between px-8 py-6 border-b border-[#e8d5b0]">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-[#fbc02d] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
               <Trophy size={18} />
             </div>
             <div>
@@ -49,7 +49,7 @@ const RankInfo = ({ onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-[#f2f0e9] hover:bg-[#e8e6dd] flex items-center justify-center"
+            className="w-9 h-9 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center"
           >
             <X size={16} />
           </button>
@@ -82,8 +82,8 @@ const TabBtn = ({ id, tab, setTab, IconCmp, children }) => (
     onClick={() => setTab(id)}
     className={`flex items-center space-x-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
       tab === id
-        ? 'bg-[#1a1a1a] text-[#fbc02d]'
-        : 'bg-[#f2f0e9]/60 text-slate-500 hover:bg-[#f2f0e9]'
+        ? 'bg-[#1a1a1a] text-white'
+        : 'bg-[#e8d5b0]/60 text-slate-500 hover:bg-[#e8d5b0]'
     }`}
   >
     <IconCmp size={13} />
@@ -144,7 +144,7 @@ const ThresholdsPanel = () => (
       </p>
     </div>
 
-    <div className="overflow-hidden rounded-2xl border border-[#f2f0e9]">
+    <div className="overflow-hidden rounded-2xl border border-[#e8d5b0]">
       <table className="w-full text-sm">
         <thead className="bg-[#1a1a1a] text-white">
           <tr>
@@ -160,7 +160,7 @@ const ThresholdsPanel = () => (
             return (
               <tr
                 key={id}
-                className="border-t border-[#f2f0e9] hover:bg-[#f2f0e9]/30"
+                className="border-t border-[#e8d5b0] hover:bg-[#e8d5b0]/30"
               >
                 <td className="px-5 py-3">
                   <div className="flex items-center space-x-3">
@@ -182,7 +182,7 @@ const ThresholdsPanel = () => (
               </tr>
             );
           })}
-          <tr className="border-t border-[#f2f0e9] bg-[#a17b5d]/5">
+          <tr className="border-t border-[#e8d5b0] bg-[#a17b5d]/5">
             <td className="px-5 py-3">
               <div className="flex items-center space-x-3">
                 <RankBadge rankId="bronze" size={32} />
@@ -193,7 +193,7 @@ const ThresholdsPanel = () => (
               达不到白银的兜底（已答 ≥ {MIN_COUNT} 题但速度或准度不达标）
             </td>
           </tr>
-          <tr className="border-t border-[#f2f0e9] bg-slate-50">
+          <tr className="border-t border-[#e8d5b0] bg-slate-50">
             <td className="px-5 py-3">
               <div className="flex items-center space-x-3">
                 <RankBadge rankId="unranked" size={32} />
@@ -208,7 +208,7 @@ const ThresholdsPanel = () => (
       </table>
     </div>
 
-    <div className="bg-[#fef3c7] border border-[#fbc02d]/40 rounded-2xl p-5">
+    <div className="bg-[#fef3c7] border border-[#6b5428]/40 rounded-2xl p-5">
       <p className="text-xs font-black text-[#7c2d12] mb-2 uppercase tracking-widest">
         ⚠️ 为什么是 AND 不是平均？
       </p>
@@ -246,14 +246,14 @@ const LpPanel = () => {
         </p>
       </div>
 
-      <div className="bg-white border border-[#f2f0e9] rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#f2f0e9]">
+      <div className="bg-white border border-[#e8d5b0] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#e8d5b0]">
           <p className="text-sm font-black">各段位的合格线</p>
           <p className="text-[10px] text-slate-400 font-bold mt-0.5">
             比本段合格线打得好就涨、差就跌 —— 段位越高标准越严，所以不会一直涨
           </p>
         </div>
-        <div className="divide-y divide-[#f2f0e9]">
+        <div className="divide-y divide-[#e8d5b0]">
           {ranked.map((r) => (
             <div key={r.id} className="flex items-center justify-between px-5 py-2.5">
               <div className="flex items-center space-x-3">
@@ -270,14 +270,14 @@ const LpPanel = () => {
         </div>
       </div>
 
-      <div className="bg-white border border-[#f2f0e9] rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-[#f2f0e9]">
+      <div className="bg-white border border-[#e8d5b0] rounded-2xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-[#e8d5b0]">
           <p className="text-sm font-black">准度奖惩</p>
           <p className="text-[10px] text-slate-400 font-bold mt-0.5">
             在 perf 之外直接加减 LP，低于 85% 就开始扣
           </p>
         </div>
-        <div className="divide-y divide-[#f2f0e9]">
+        <div className="divide-y divide-[#e8d5b0]">
           {ACC_BONUS_TIERS.map(([min, bonus], i) => {
             const upper = i === 0 ? null : ACC_BONUS_TIERS[i - 1][0];
             const label =
@@ -301,7 +301,7 @@ const LpPanel = () => {
         </div>
       </div>
 
-      <div className="bg-[#fef3c7] border border-[#fbc02d]/40 rounded-2xl p-5 space-y-3">
+      <div className="bg-[#fef3c7] border border-[#6b5428]/40 rounded-2xl p-5 space-y-3">
         <div>
           <p className="text-xs font-black text-[#7c2d12] mb-1.5 uppercase tracking-widest">
             为什么速度要封顶
@@ -335,29 +335,29 @@ const AggregationPanel = () => (
       </p>
       <div className="space-y-3 text-sm font-medium">
         <div className="flex items-center space-x-3">
-          <span className="w-6 h-6 rounded-full bg-[#fbc02d] text-[#1a1a1a] flex items-center justify-center text-[10px] font-black">1</span>
+          <span className="w-6 h-6 rounded-full bg-[#2c261c] text-white flex items-center justify-center text-[10px] font-black">1</span>
           <span>
             <span className="font-black">子项段位</span> = 该子项累计数据 → 速度 × 准度阈值
           </span>
         </div>
         <div className="flex items-center space-x-3">
-          <span className="w-6 h-6 rounded-full bg-[#fbc02d] text-[#1a1a1a] flex items-center justify-center text-[10px] font-black">2</span>
+          <span className="w-6 h-6 rounded-full bg-[#2c261c] text-white flex items-center justify-center text-[10px] font-black">2</span>
           <span>
-            <span className="font-black">分类段位</span> = Σ(子项段位×<span className="text-[#fbc02d]">出题频率权重</span>) / Σ(权重)
+            <span className="font-black">分类段位</span> = Σ(子项段位×<span className="text-[#6b5428]">出题频率权重</span>) / Σ(权重)
           </span>
         </div>
         <div className="flex items-center space-x-3">
-          <span className="w-6 h-6 rounded-full bg-[#fbc02d] text-[#1a1a1a] flex items-center justify-center text-[10px] font-black">3</span>
+          <span className="w-6 h-6 rounded-full bg-[#2c261c] text-white flex items-center justify-center text-[10px] font-black">3</span>
           <span>
-            <span className="font-black">整体段位</span> = Σ(分类段位×<span className="text-[#fbc02d]">分类分值权重</span>) / Σ(权重)
+            <span className="font-black">整体段位</span> = Σ(分类段位×<span className="text-[#6b5428]">分类分值权重</span>) / Σ(权重)
           </span>
         </div>
       </div>
     </div>
 
     {/* 分类间权重 */}
-    <div className="bg-white border border-[#f2f0e9] rounded-2xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-[#f2f0e9]">
+    <div className="bg-white border border-[#e8d5b0] rounded-2xl overflow-hidden">
+      <div className="px-5 py-3 border-b border-[#e8d5b0]">
         <p className="text-sm font-black">四大类的分值权重</p>
         <p className="text-[10px] text-slate-400 font-bold mt-0.5">
           基于真实省考行测的分值占比
@@ -365,17 +365,17 @@ const AggregationPanel = () => (
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4">
         {CATEGORIES.map((c) => (
-          <div key={c.id} className="px-5 py-4 border-r border-[#f2f0e9] last:border-r-0">
+          <div key={c.id} className="px-5 py-4 border-r border-[#e8d5b0] last:border-r-0">
             <p className="text-xs font-black truncate">{c.name}</p>
             <div className="mt-2 flex items-baseline space-x-1">
-              <span className="text-2xl font-black tabular-nums text-[#fbc02d]">
+              <span className="text-2xl font-black tabular-nums text-[#6b5428]">
                 {c.weight}
               </span>
               <span className="text-[10px] font-bold text-slate-400">%</span>
             </div>
-            <div className="mt-2 h-1.5 bg-[#f2f0e9] rounded-full overflow-hidden">
+            <div className="mt-2 h-1.5 bg-[#e8d5b0] rounded-full overflow-hidden">
               <div
-                className="h-full bg-[#fbc02d]"
+                className="h-full bg-[#2c261c]"
                 style={{ width: `${c.weight}%` }}
               />
             </div>
@@ -385,7 +385,7 @@ const AggregationPanel = () => (
     </div>
 
     {/* 子项频率权重示例 */}
-    <div className="bg-[#fef3c7] border border-[#fbc02d]/40 rounded-2xl p-5">
+    <div className="bg-[#fef3c7] border border-[#6b5428]/40 rounded-2xl p-5">
       <p className="text-xs font-black text-[#7c2d12] mb-2 uppercase tracking-widest">
         💡 子项频率权重（1-5 星）
       </p>
@@ -401,7 +401,7 @@ const AggregationPanel = () => (
       </p>
     </div>
 
-    <div className="bg-white border border-[#f2f0e9] rounded-2xl p-6">
+    <div className="bg-white border border-[#e8d5b0] rounded-2xl p-6">
       <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
         加权举例
       </p>
@@ -434,18 +434,18 @@ const BaselinesPanel = () => (
 
     <div className="space-y-4">
       {CATEGORIES.map((cat) => (
-        <div key={cat.id} className="border border-[#f2f0e9] rounded-2xl overflow-hidden">
-          <div className="bg-[#f2f0e9]/40 px-5 py-3 flex items-center justify-between">
+        <div key={cat.id} className="border border-[#e8d5b0] rounded-2xl overflow-hidden">
+          <div className="bg-[#e8d5b0]/40 px-5 py-3 flex items-center justify-between">
             <div>
               <p className="font-black text-sm">{cat.name}</p>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5">{cat.desc}</p>
             </div>
             <div className="text-right">
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">分值权重</p>
-              <p className="text-base font-black tabular-nums text-[#fbc02d]">{cat.weight}%</p>
+              <p className="text-base font-black tabular-nums text-[#6b5428]">{cat.weight}%</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#f2f0e9]">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#e8d5b0]">
             {cat.subs.map((s) => {
               const ms = SUB_BASE_MS[s.id];
               const w = s.weight ?? 1;
@@ -457,7 +457,7 @@ const BaselinesPanel = () => (
                       {'★'.repeat(w)}{'☆'.repeat(5 - w)}
                     </p>
                   </div>
-                  <span className="text-[11px] font-black tabular-nums text-[#fbc02d] flex-shrink-0">
+                  <span className="text-[11px] font-black tabular-nums text-[#6b5428] flex-shrink-0">
                     {ms ? (ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${(ms / 1000).toFixed(0)}s`) : '?'}
                   </span>
                 </div>

@@ -21,6 +21,7 @@ export const SYNCED_KEYS = new Set([
   'study_log_v1',                    // 学习日志
   'numeric_practice_history_v1',     // 数资历史
   'numeric_rank_stats_v1',           // 数资段位
+  'numeric_wrong_pool_v1',           // 数资错题池（待重出的题）
   'exam_calendar_events',            // 重要日子倒计时
   'flashcards_progress_v1',          // 闪卡 SM2 进度
   'numeric_games_number_grid_v1',    // 点数字
@@ -30,6 +31,7 @@ export const SYNCED_KEYS = new Set([
   'mockexam_blocks_v2',              // 模考块次设置
   'pomodoro_history_v1',             // 番茄钟完成历史(学习数据,跨设备)
   'vocab_mastered_ids_v1',           // 言语词汇掌握进度
+  'study_digest_v1',                 // 每日学习明细（AI 总结写入）
   // 不同步:pomodoro_state_v1 (当前计时进行中,跟设备走)
   //         pomodoro_settings_v1 (工作时长/白噪音偏好,跟设备走)
 ]);

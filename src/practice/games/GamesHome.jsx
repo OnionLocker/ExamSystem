@@ -21,7 +21,7 @@ const GAMES = [
     name: '点数字',
     desc: '5×5 / 6×6 / 7×7 / 8×8 / 9×9 / 10×10 随机数字表，从 1 顺序点到末尾。锻炼找数能力与专注度。',
     icon: Grid3x3,
-    color: '#fbc02d',
+    color: '#8d7348',
     available: true,
   },
   {
@@ -88,7 +88,7 @@ const GamesHome = ({ onBack }) => {
           <span className="text-xs font-black uppercase tracking-widest">返回</span>
         </button>
         <div className="flex items-center space-x-2">
-          <Gamepad2 size={18} className="text-[#fbc02d]" />
+          <Gamepad2 size={18} className="text-[#6b5428]" />
           <h2 className="text-2xl font-black italic">小游戏</h2>
         </div>
         <span className="w-14" />
@@ -98,8 +98,8 @@ const GamesHome = ({ onBack }) => {
         在紧张的刷题之间调剂一下，用小游戏锻炼“数字敏感度 / 专注度”。
       </p>
       <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
-        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-[#fbc02d]">练习区 · 补数与滚加</span>
-        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-[#fbc02d]">练习区 · 秒杀定性</span>
+        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-white">练习区 · 补数与滚加</span>
+        <span className="px-2.5 py-1 rounded-full bg-[#1a1a1a] text-white">练习区 · 秒杀定性</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,7 +113,7 @@ const GamesHome = ({ onBack }) => {
               disabled={disabled}
               className={`group text-left rounded-[2rem] p-7 transition-all border ${
                 disabled
-                  ? 'bg-white border-[#f2f0e9] opacity-60 cursor-not-allowed'
+                  ? 'bg-white border-[#e8d5b0] opacity-60 cursor-not-allowed'
                   : 'bg-[#1a1a1a] text-white border-[#1a1a1a] hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10'
               }`}
             >
@@ -121,7 +121,7 @@ const GamesHome = ({ onBack }) => {
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center"
                   style={{
-                    backgroundColor: disabled ? '#f2f0e9' : g.color,
+                    backgroundColor: disabled ? '#e8d5b0' : g.color,
                     color: disabled ? '#94a3b8' : '#1a1a1a',
                   }}
                 >

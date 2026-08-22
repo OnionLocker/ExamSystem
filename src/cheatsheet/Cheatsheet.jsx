@@ -28,7 +28,7 @@ const Cheatsheet = () => {
       {/* 悬浮触发按钮 */}
       <button
         onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-[#1a1a1a] text-[#fbc02d] shadow-2xl shadow-black/30 flex items-center justify-center hover:scale-105 hover:bg-[#fbc02d] hover:text-[#1a1a1a] transition-all ${
+        className={`fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-[#1a1a1a] text-white shadow-2xl shadow-black/30 flex items-center justify-center hover:scale-105 hover:bg-[#2c261c] hover:text-white transition-all ${
           open ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         title="公式速查"
@@ -50,9 +50,9 @@ const Cheatsheet = () => {
             onClick={(e) => e.stopPropagation()}
           >
             {/* 标题栏 */}
-            <div className="px-6 py-5 border-b border-[#f2f0e9] flex items-center justify-between flex-shrink-0">
+            <div className="px-6 py-5 border-b border-[#e8d5b0] flex items-center justify-between flex-shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-[#1a1a1a] text-[#fbc02d] flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
                   <BookOpen size={16} />
                 </div>
                 <div>
@@ -64,7 +64,7 @@ const Cheatsheet = () => {
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#f2f0e9] hover:bg-[#e8e6dd] flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center"
               >
                 <X size={14} />
               </button>
@@ -82,7 +82,7 @@ const Cheatsheet = () => {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="搜公式名 / 适用场景"
-                  className="w-full bg-[#f2f0e9]/60 border border-transparent rounded-full pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+                  className="w-full bg-[#e8d5b0]/60 border border-transparent rounded-full pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
                 />
               </div>
             </div>
@@ -99,7 +99,7 @@ const Cheatsheet = () => {
                       className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-black tracking-tight transition-all ${
                         active
                           ? 'bg-[#1a1a1a] text-white'
-                          : 'bg-[#f2f0e9]/60 text-slate-500 hover:bg-[#f2f0e9]'
+                          : 'bg-[#e8d5b0]/60 text-slate-500 hover:bg-[#e8d5b0]'
                       }`}
                       style={
                         active ? { backgroundColor: g.color, color: '#1a1a1a' } : undefined
@@ -194,7 +194,7 @@ const FormulaList = ({ groupId, query, setActiveGroup }) => {
 };
 
 const FormulaCard = ({ formula, tag, tagColor, accentColor, onTagClick }) => (
-  <div className="bg-[#f2f0e9]/40 hover:bg-[#f2f0e9]/70 rounded-2xl p-4 transition-colors">
+  <div className="bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]/70 rounded-2xl p-4 transition-colors">
     <div className="flex items-start justify-between gap-3 mb-2">
       <p className="font-black text-sm tracking-tight">{formula.name}</p>
       {tag && (

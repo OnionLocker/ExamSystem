@@ -22,6 +22,9 @@
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 
 const LOG_KEY = 'study_log_v1';
+const DIGEST_KEY = 'study_digest_v1';
+
+export const loadDigest = () => cloudGet(DIGEST_KEY, {});
 
 export const MODULES = [
   { id: 'yanyu', name: '言语理解', defaultSize: 40, color: '#3b82f6' },
@@ -37,9 +40,10 @@ export const MODULES = [
 // 加新来源时只改这里，两处 UI 自动跟上。
 export const ENTRY_TYPES = {
   pomodoro: { label: '番茄钟', color: '#ff6b6b' },
-  numeric: { label: '数资练习', color: '#fbc02d' },
+  numeric: { label: '数资练习', color: '#8d7348' },
   aiquiz: { label: 'AI 练题', color: '#e0a800' },
   mock: { label: '全卷模考', color: '#0ea5e9' },
+  examReview: { label: '真题复盘', color: '#06b6d4' },
   import: { label: '导入套题', color: '#3b82f6' },
   review: { label: '错题复盘', color: '#22c55e' },
   reviewBrowse: { label: '复习浏览', color: '#14b8a6' },
@@ -168,6 +172,69 @@ export const aggregateByDay = (log = loadLog()) => {
     d.entries.push(r);
   }
   return m;
+};
+
+// 某天学了啥：导师总结里的科目 + 系统活动按科目合并。
+// 84 场「2 的乘法」会收成一行，而不是 84 条。
+export const chatTopics = (e) => {
+  if (Array.isArray(e?.topics) && e.topics.length) {
+    return e.topics.map((t) => String(t).trim()).filter(Boolean);
+  }
+  const mod = String(e?.module || '');
+  const splitAt = mod.indexOf(' · ');
+  if (splitAt >= 0) {
+    return mod
+      .slice(splitAt + 3)
+      .split('/')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  const summary = mod.replace(/^导师辅导:\s*/, '').trim();
+  return summary ? [summary] : [];
+};
+
+export const digestDay = (entries = []) => {
+  const lines = [];
+  const seen = new Set();
+  const groups = new Map();
+
+  const push = (text) => {
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    lines.push(text);
+  };
+
+  for (const e of entries) {
+    if (e.type === 'chat') {
+      const topics = chatTopics(e);
+      if (topics.length) topics.forEach(push);
+      else push('导师辅导');
+      continue;
+    }
+    const title = e.module || ENTRY_TYPES[e.type]?.label || e.type;
+    if (!title) continue;
+    if (!groups.has(title)) {
+      groups.set(title, { title, count: 0, correct: 0, hasCorrect: false, minutes: 0 });
+    }
+    const g = groups.get(title);
+    g.count += e.count || 0;
+    if (e.correct != null) {
+      g.correct += e.correct;
+      g.hasCorrect = true;
+    }
+    g.minutes += e.minutes || 0;
+  }
+
+  for (const g of groups.values()) {
+    let s = g.title;
+    if (g.count) {
+      s += g.hasCorrect ? ` · ${g.correct}/${g.count}题` : ` · ${g.count}题`;
+    } else if (g.minutes) {
+      s += ` · ${g.minutes}分钟`;
+    }
+    push(s);
+  }
+  return lines;
 };
 
 // AI 练题的分数不在这份日志里，而是服务端按 practice_sessions 现算的

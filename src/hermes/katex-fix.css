@@ -57,3 +57,9 @@
   word-break: break-all;
   font-size: 0.9em;
 }
+
+/* github 高亮主题自带纯白底，盖掉以免代码块一块冷白 */
+.hljs {
+  background: transparent !important;
+  color: inherit;
+}

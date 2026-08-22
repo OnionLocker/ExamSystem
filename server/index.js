@@ -8,6 +8,9 @@ import uploadsRouter from './routes/uploads.js';
 import reviewModulesRouter from './routes/reviewModules.js';
 import questionsRouter from './routes/questions.js';
 import practiceRouter from './routes/practice.js';
+import quotaRouter from './routes/quota.js';
+import examAnalysesRouter from './routes/examAnalyses.js';
+import { resumePending } from './examWorker.js';
 import { attachHermesWs } from './routes/hermesChat.js';
 
 const app = express();
@@ -30,6 +33,8 @@ app.use('/api/uploads',        uploadsRouter);
 app.use('/api/review-modules', reviewModulesRouter);
 app.use('/api/questions',      questionsRouter);
 app.use('/api/practice',       practiceRouter);
+app.use('/api/quota',          quotaRouter);
+app.use('/api/exam-analyses',   examAnalysesRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);
@@ -44,4 +49,6 @@ attachHermesWs(server);
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[api] listening on http://localhost:${PORT}`);
+  // 进程重启前没跑完的复盘任务接着跑
+  resumePending();
 });

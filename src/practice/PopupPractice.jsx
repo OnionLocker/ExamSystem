@@ -4,7 +4,7 @@ import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } 
 import { recordPromotionResult, getRank } from './ranks.js';
 import RankBadge from './RankBadge.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
-import { cloudGet, cloudSet } from '../cloudStorage.js';
+import { loadHistory, saveHistory } from './history.js';
 
 
 // 小窗练习组件
@@ -18,7 +18,6 @@ const FEEDBACK_CORRECT_MS = 120;
 const FEEDBACK_WRONG_MS = 600;
 const FEEDBACK_SKIP_MS = 300;
 
-const HISTORY_KEY = 'numeric_practice_history_v1';
 const RACE_SIZE_DEFAULT = 10;
 const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 
@@ -218,7 +217,8 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     nextQuestion();
   };
 
-  const openModulePicker = () => {
+  // level: 'mode'（默认，回训练/晋升）| 'cat'（换大类）| 'sub'
+  const openModulePicker = (level = 'mode') => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -227,17 +227,31 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     setFeedback(null);
     setShowTable(false);
     setRaceDone(null);
-    setPickCatId(catId);
-    setDraftCatId(catId);
-    setDraftSubId(subId);
+    // 纠正空 subId：界面可能正用 cat.subs[0] 出题，但 state 还是 ''
+    const effectiveSub = getSub(catId, subId) || cat?.subs?.[0] || null;
+    const effectiveSubId = effectiveSub?.id || '';
+    const effectiveCatId = catId || effectiveSub && CATEGORIES.find((c) => c.subs.some((s) => s.id === effectiveSubId))?.id || 'basic';
+    if (effectiveSubId && effectiveSubId !== subId) setSubId(effectiveSubId);
+    if (effectiveCatId && effectiveCatId !== catId) setCatId(effectiveCatId);
+    setPickCatId(effectiveCatId);
+    setDraftCatId(effectiveCatId);
+    setDraftSubId(effectiveSubId);
     setDraftMode(mode);
     setDraftRaceSize(raceSize);
-    setPicking('cat');
+    if (!effectiveSub) {
+      setPicking('cat');
+      return;
+    }
+    setPicking(level === 'cat' || level === 'sub' ? level : 'mode');
   };
 
   const pickCategory = (id) => {
     setPickCatId(id);
     setDraftCatId(id);
+    const nextCat = CATEGORIES.find((c) => c.id === id);
+    // 换大类时：若当前 draft 子项不属于该类，落到该类第一项
+    const keep = draftSubId && getSub(id, draftSubId);
+    setDraftSubId(keep ? draftSubId : (nextCat?.subs?.[0]?.id || ''));
     setPicking('sub');
   };
 
@@ -313,9 +327,9 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       avgMs: total > 0 ? Math.round(totalMs / total) : 0,
       rankChange,
     };
-    const list = cloudGet(HISTORY_KEY, []);
+    const list = loadHistory();
     list.unshift(result);
-    cloudSet(HISTORY_KEY, list.slice(0, 100));
+    saveHistory(list);
     addStudyEntry({
       type: 'numeric',
       module: result.subName,
@@ -405,7 +419,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
         <button
           type="button"
           onClick={openModulePicker}
-          className="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-[#fbc02d] text-xs font-black"
+          className="px-3 py-1.5 rounded-lg bg-[#1a1a1a] text-white text-xs font-black"
         >
           选择练习模块
         </button>
@@ -427,6 +441,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
           pickCatId={pickCatId || availableCats[0]?.id}
           currentCatId={catId}
           currentSubId={subId}
+          draftCatId={draftCatId}
           draftSubId={draftSubId}
           draftMode={draftMode}
           draftRaceSize={draftRaceSize}
@@ -470,8 +485,8 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
         card: 'bg-white/[0.04] border border-white/10 backdrop-blur',
         prompt: 'text-white',
         hint: 'text-white/35',
-        accent: 'text-[#fbc02d]',
-        answer: 'text-[#fbc02d]',
+        accent: 'text-[#6b5428]',
+        answer: 'text-[#6b5428]',
         inputBg: 'bg-black/30 border border-white/5',
         fbOk: 'bg-emerald-500/15 ring-1 ring-emerald-400/60',
         fbWrong: 'bg-[#ff6b6b]/15 ring-1 ring-[#ff6b6b]/60',
@@ -513,15 +528,15 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
           <button
             type="button"
             onClick={openModulePicker}
-            title="返回选模块"
+            title="返回选模式（训练/晋升）"
             className={`flex items-center gap-0.5 shrink-0 rounded-md px-1 py-0.5 transition-colors ${
               stealth
                 ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
-                : 'text-[#fbc02d] hover:bg-white/10'
+                : 'text-[#6b5428] hover:bg-white/10'
             }`}
           >
             <ChevronLeft size={14} />
-            <span className="normal-case tracking-normal">模块</span>
+            <span className="normal-case tracking-normal">返回</span>
           </button>
           <button
             type="button"
@@ -697,7 +712,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
           onRetry={retrySameRace}
           onPickModule={() => {
             setRaceDone(null);
-            openModulePicker();
+            openModulePicker('mode'); // 一层一层退：练习 → 模式 → 题型 → 大类
           }}
         />
       )}
@@ -710,6 +725,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
           pickCatId={pickCatId}
           currentCatId={catId}
           currentSubId={subId}
+          draftCatId={draftCatId}
           draftSubId={draftSubId}
           draftMode={draftMode}
           draftRaceSize={draftRaceSize}
@@ -750,7 +766,7 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
       ? (stealth ? 'text-rose-600' : 'text-[#ff6b6b]')
       : (stealth ? 'text-slate-500' : 'text-white/50');
   const status = promoted
-    ? { text: '升段！', cls: stealth ? 'text-amber-600' : 'text-[#fbc02d]' }
+    ? { text: '升段！', cls: stealth ? 'text-amber-600' : 'text-[#6b5428]' }
     : demoted
       ? { text: '掉段', cls: stealth ? 'text-rose-600' : 'text-[#ff6b6b]' }
       : lp?.protected
@@ -761,7 +777,7 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
     <div className={`absolute inset-0 z-30 flex flex-col ${stealth ? 'bg-[#fafafa] text-slate-800' : 'bg-[#1a1a1a] text-white'}`}>
       <div className="flex-1 flex flex-col items-center justify-center px-3 text-center gap-1.5 min-h-0 overflow-y-auto py-2">
         <p className="text-[10px] font-black uppercase tracking-widest opacity-60">晋升完成</p>
-        <p className={`text-2xl font-black tabular-nums ${stealth ? '' : 'text-[#fbc02d]'}`}>
+        <p className={`text-2xl font-black tabular-nums ${stealth ? '' : 'text-[#6b5428]'}`}>
           {result.correct}/{result.total}
         </p>
         <p className="text-[11px] font-bold opacity-70">
@@ -785,7 +801,7 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
                 <p className="text-[9px] font-mono tabular-nums opacity-50">{lp.lpBefore}</p>
               </div>
               <span className={`text-lg font-black ${
-                promoted ? (stealth ? 'text-amber-500' : 'text-[#fbc02d]')
+                promoted ? (stealth ? 'text-amber-500' : 'text-[#6b5428]')
                   : demoted ? (stealth ? 'text-rose-500' : 'text-[#ff6b6b]')
                     : 'opacity-40'
               }`}>
@@ -816,12 +832,12 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
       </div>
       <div className="px-3 pb-3 flex gap-2 shrink-0">
         <button type="button" onClick={onRetry}
-          className="flex-1 py-2 rounded-xl bg-[#fbc02d] text-black text-xs font-black">
+          className="flex-1 py-2 rounded-xl bg-[#2c261c] text-white text-xs font-black">
           再来一局
         </button>
         <button type="button" onClick={onPickModule}
           className={`flex-1 py-2 rounded-xl border text-xs font-black ${stealth ? 'border-slate-300' : 'border-white/20'}`}>
-          选模块
+          返回
         </button>
       </div>
     </div>
@@ -835,6 +851,7 @@ const PopupModulePicker = ({
   pickCatId,
   currentCatId,
   currentSubId,
+  draftCatId,
   draftSubId,
   draftMode,
   draftRaceSize,
@@ -850,12 +867,15 @@ const PopupModulePicker = ({
   const titleCls = stealth ? 'text-slate-800' : 'text-white';
   const cell = stealth
     ? 'bg-white border-slate-200 text-slate-800 hover:border-slate-400'
-    : 'bg-white/[0.06] border-white/10 text-white hover:border-[#fbc02d]/50 hover:bg-white/[0.1]';
+    : 'bg-white/[0.06] border-white/10 text-white hover:border-[#6b5428]/50 hover:bg-white/[0.1]';
   const active = stealth
     ? 'bg-slate-800 text-white border-slate-800'
-    : 'bg-[#fbc02d] text-black border-[#fbc02d]';
-  const pickCat = cats.find((c) => c.id === pickCatId) || cats[0];
-  const draftSub = getSub(pickCat?.id || pickCatId, draftSubId);
+    : 'bg-[#2c261c] text-white border-[#6b5428]';
+  // 高亮跟「当前浏览」走，不要静默掉回 cats[0]/cats[1]
+  const selectedCatId = pickCatId || draftCatId || currentCatId;
+  const pickCat = cats.find((c) => c.id === selectedCatId) || null;
+  const selectedSubId = draftSubId || (pickCat?.id === currentCatId ? currentSubId : '') || pickCat?.subs?.[0]?.id || '';
+  const draftSub = getSub(pickCat?.id, selectedSubId);
   const head =
     step === 'mode'
       ? (draftSub?.name || '选择模式')
@@ -881,12 +901,12 @@ const PopupModulePicker = ({
               type="button"
               onClick={() => onPickCat(c.id)}
               className={`w-full text-left px-3 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
-                c.id === currentCatId ? active : cell
+                c.id === selectedCatId ? active : cell
               }`}
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate">{c.name}</span>
-                <span className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${c.id === currentCatId ? '' : muted}`}>
+                <span className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${c.id === selectedCatId ? '' : muted}`}>
                   {c.subs.length} 项
                 </span>
               </div>
@@ -897,11 +917,9 @@ const PopupModulePicker = ({
             <button
               key={s.id}
               type="button"
-              onClick={() => onPickSub(pickCat.id, s.id)}
+              onClick={() => pickCat && onPickSub(pickCat.id, s.id)}
               className={`w-full text-left px-3 py-2 rounded-xl border text-sm font-bold transition-colors ${
-                s.id === draftSubId || (pickCat.id === currentCatId && s.id === currentSubId && !draftSubId)
-                  ? active
-                  : cell
+                s.id === selectedSubId ? active : cell
               }`}
             >
               {s.name}
@@ -952,7 +970,7 @@ const PopupModulePicker = ({
             <button
               type="button"
               onClick={onStart}
-              className="w-full mt-2 px-3 py-2.5 rounded-xl bg-[#fbc02d] text-black text-sm font-black"
+              className="w-full mt-2 px-3 py-2.5 rounded-xl bg-[#2c261c] text-white text-sm font-black"
             >
               开始{draftMode === 'race' ? `晋升 · ${draftRaceSize}题` : '训练'}
             </button>
@@ -982,7 +1000,6 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
   const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
   const cellBg = stealth ? 'bg-white border-slate-200' : 'bg-white/[0.06] border-white/10';
   const text = stealth ? 'text-slate-800' : 'text-white';
-  const accent = stealth ? 'text-slate-500' : 'text-[#fbc02d]';
 
   return (
     <div
@@ -1008,14 +1025,9 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
               className={`flex items-center justify-between px-2.5 py-2 rounded-lg border ${cellBg}`}
             >
               <span className={`font-black text-base ${text}`}>1/{f.den}</span>
-              <div className="text-right leading-tight">
-                <div className={`text-sm font-black tabular-nums ${text}`}>
-                  {f.dec.toFixed(2)}
-                </div>
-                <div className={`text-[11px] font-bold tabular-nums ${accent} mt-0.5`}>
-                  {f.pct.toFixed(2)}%
-                </div>
-              </div>
+              <span className={`text-sm font-black tabular-nums ${text}`}>
+                {f.pct}%
+              </span>
             </div>
           ))}
         </div>

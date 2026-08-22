@@ -46,7 +46,7 @@ const StudyLogPanel = ({ version, onChange }) => {
         />
         <SummaryCard
           icon={Trophy}
-          accent="#fbc02d"
+          accent="#8d7348"
           label="今日得分"
           value={stats.today.score}
           unit="分"
@@ -68,17 +68,17 @@ const StudyLogPanel = ({ version, onChange }) => {
       </div>
 
       {/* 快速录入：大按钮 + 可折叠面板 */}
-      <div className="bg-white rounded-[2rem] border border-[#f2f0e9] overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-[#e8d5b0] overflow-hidden">
         <button
           onClick={() => setImportOpen((v) => !v)}
           className={`w-full flex items-center justify-between p-5 transition-colors ${
-            importOpen ? 'bg-[#1a1a1a] text-white' : 'hover:bg-[#f2f0e9]/50'
+            importOpen ? 'bg-[#1a1a1a] text-white' : 'hover:bg-[#e8d5b0]/50'
           }`}
         >
           <div className="flex items-center space-x-3">
             <span
               className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                importOpen ? 'bg-[#fbc02d] text-black' : 'bg-[#1a1a1a] text-[#fbc02d]'
+                importOpen ? 'bg-[#2c261c] text-white' : 'bg-[#1a1a1a] text-white'
               }`}
             >
               <Plus size={20} />
@@ -96,11 +96,11 @@ const StudyLogPanel = ({ version, onChange }) => {
           </div>
           <ChevronDown
             size={18}
-            className={`transition-transform ${importOpen ? 'rotate-180 text-[#fbc02d]' : 'text-slate-400'}`}
+            className={`transition-transform ${importOpen ? 'rotate-180 text-[#6b5428]' : 'text-slate-400'}`}
           />
         </button>
         {importOpen && (
-          <div className="p-5 border-t border-[#f2f0e9] bg-[#f2f0e9]/20">
+          <div className="p-5 border-t border-[#e8d5b0] bg-[#e8d5b0]/20">
             <ImportGrid onAdded={bump} />
           </div>
         )}
@@ -119,7 +119,7 @@ const StudyLogPanel = ({ version, onChange }) => {
 };
 
 const SummaryCard = ({ icon: Icon, accent, label, value, unit }) => (
-  <div className="bg-white rounded-2xl border border-[#f2f0e9] p-5">
+  <div className="bg-white rounded-2xl border border-[#e8d5b0] p-5">
     <div className="flex items-center justify-between mb-2">
       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
         {label}
@@ -181,7 +181,7 @@ const ModuleRow = ({ module, onSubmit }) => {
   };
 
   return (
-    <div className="flex flex-col p-3 rounded-2xl border border-[#f2f0e9] bg-white hover:border-slate-300 transition-all">
+    <div className="flex flex-col p-3 rounded-2xl border border-[#e8d5b0] bg-white hover:border-slate-300 transition-all">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
           <span
@@ -203,12 +203,12 @@ const ModuleRow = ({ module, onSubmit }) => {
             value={correct}
             onChange={(e) => setCorrect(e.target.value)}
             placeholder="对"
-            className="w-14 bg-white border border-[#f2f0e9] rounded-lg py-1.5 px-2 text-xs font-bold tabular-nums focus:outline-none focus:ring-1 focus:ring-[#fbc02d] text-center"
+            className="w-14 bg-white border border-[#e8d5b0] rounded-lg py-1.5 px-2 text-xs font-bold tabular-nums focus:outline-none focus:ring-1 focus:ring-[#6b5428] text-center"
           />
         )}
         <button
           onClick={add}
-          className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#1a1a1a] text-[#fbc02d] hover:bg-[#fbc02d] hover:text-black flex items-center justify-center transition-colors"
+          className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#1a1a1a] text-white hover:bg-[#2c261c] hover:text-white flex items-center justify-center transition-colors"
           title="添加记录"
         >
           <Plus size={14} />
@@ -221,7 +221,7 @@ const ModuleRow = ({ module, onSubmit }) => {
 const ReviewRow = ({ onSubmit }) => {
   const [count, setCount] = useState(10);
   return (
-    <div className="flex flex-col p-3 rounded-2xl border border-[#f2f0e9] bg-white hover:border-slate-300 transition-all">
+    <div className="flex flex-col p-3 rounded-2xl border border-[#e8d5b0] bg-white hover:border-slate-300 transition-all">
       <div className="flex items-center space-x-2 mb-2">
         <span className="w-2 h-2 rounded-full bg-slate-400" />
         <span className="text-sm font-black">错题复盘</span>
@@ -237,7 +237,7 @@ const ReviewRow = ({ onSubmit }) => {
             onSubmit(count);
             setCount(10);
           }}
-          className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#1a1a1a] text-[#fbc02d] hover:bg-[#fbc02d] hover:text-black flex items-center justify-center"
+          className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#1a1a1a] text-white hover:bg-[#2c261c] hover:text-white flex items-center justify-center"
         >
           <Plus size={14} />
         </button>
@@ -247,10 +247,10 @@ const ReviewRow = ({ onSubmit }) => {
 };
 
 const NumberStepper = ({ value, onChange, suffix }) => (
-  <div className="flex items-center flex-1 min-w-0 bg-white border border-[#f2f0e9] rounded-lg overflow-hidden">
+  <div className="flex items-center flex-1 min-w-0 bg-white border border-[#e8d5b0] rounded-lg overflow-hidden">
     <button
       onClick={() => onChange(Number(value) - 1)}
-      className="w-7 h-8 flex items-center justify-center hover:bg-[#f2f0e9] text-slate-400"
+      className="w-7 h-8 flex items-center justify-center hover:bg-[#e8d5b0] text-slate-400"
     >
       <Minus size={12} />
     </button>
@@ -263,7 +263,7 @@ const NumberStepper = ({ value, onChange, suffix }) => (
     <span className="px-2 text-[10px] font-black text-slate-400 select-none">{suffix}</span>
     <button
       onClick={() => onChange(Number(value) + 1)}
-      className="w-7 h-8 flex items-center justify-center hover:bg-[#f2f0e9] text-slate-400"
+      className="w-7 h-8 flex items-center justify-center hover:bg-[#e8d5b0] text-slate-400"
     >
       <Plus size={12} />
     </button>
@@ -275,7 +275,7 @@ const NumberStepper = ({ value, onChange, suffix }) => (
 const TodayDetailBlock = ({ today, onRemove }) => {
   if (!today.entries.length) {
     return (
-      <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-8 text-center">
+      <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-8 text-center">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400">
           今日明细
         </p>
@@ -286,7 +286,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
     );
   }
   return (
-    <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-6">
+    <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-6">
       <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">
         今日明细（{today.entries.length}）
       </p>
@@ -296,7 +296,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
           return (
             <div
               key={e.id}
-              className="group flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#f2f0e9]/40 hover:bg-[#f2f0e9]"
+              className="group flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]"
             >
               <div className="flex items-center space-x-3 min-w-0">
                 <span
@@ -311,7 +311,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
                 </span>
               </div>
               <div className="flex items-center space-x-3 flex-shrink-0">
-                <span className="text-sm font-black tabular-nums text-[#fbc02d]">
+                <span className="text-sm font-black tabular-nums text-[#6b5428]">
                   +{e.score}
                 </span>
                 <span className="text-[10px] font-black text-slate-400 tabular-nums">

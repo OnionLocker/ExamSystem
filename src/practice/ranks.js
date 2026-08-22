@@ -17,7 +17,7 @@ export const RANKS = [
   { id: 'unranked', label: '未评级', short: 'UR', value: 0, color: '#94a3b8', bg: '#e2e8f0', glow: null },
   { id: 'bronze',   label: '青铜',   short: 'B',  value: 1, color: '#a17b5d', bg: '#3b2a1f', glow: null },
   { id: 'silver',   label: '白银',   short: 'S',  value: 2, color: '#c0c7d1', bg: '#2c3340', glow: null },
-  { id: 'gold',     label: '黄金',   short: 'G',  value: 3, color: '#fbc02d', bg: '#3d2f0a', glow: null },
+  { id: 'gold',     label: '黄金',   short: 'G',  value: 3, color: '#8d7348', bg: '#3d2f0a', glow: null },
   { id: 'platinum', label: '铂金',   short: 'P',  value: 4, color: '#4fd1c5', bg: '#0f2e2b', glow: null },
   { id: 'diamond',  label: '钻石',   short: 'D',  value: 5, color: '#60a5fa', bg: '#16264a', glow: '#60a5fa' },
   { id: 'master',   label: '大师',   short: 'M',  value: 6, color: '#a855f7', bg: '#2a143f', glow: '#a855f7' },
@@ -259,7 +259,7 @@ const rankDown = (id) => {
  *   prevStat   - 该子项的上一次保存值（包含 lp/ladderRank，可能为 undefined 字段）
  *   raceResult - { total, correct, totalMs }
  *   subId
- *   cumulRankId - 累计 evaluate() 计算出的"真实段位"，用于下限保护
+ *   cumulRankId - 累计 evaluate() 的真实段位，只用于掉段下限保护，不作 ladder 起点
  * 输出：
  *   { lpDelta, lpBefore, lpAfter, rankBefore, rankAfter, promoted, demoted, perf, std, protected }
  */
@@ -272,11 +272,11 @@ export const computeRaceLpChange = (prevStat, raceResult, subId, cumulRankId) =>
   // >1 = 比基线快；封顶之后再快也不换分，把胜负交回准度
   const speedRatio = avgMs > 0 ? Math.min(base / avgMs, SPEED_RATIO_CAP) : 0;
 
-  // 当前段位（首次进入：用累计 evaluate 的结果或 bronze 兜底）
+  // 当前段位：有 ladder 用 ladder；首场没有则从青铜爬，绝不用「本场之后」的累计评定当起点
+  // （否则一场 50 题高准高速会直接 seed 成王者）
+  // cumulRankId 只用于下面的掉段下限保护
   const lpBefore = Number.isFinite(prevStat?.lp) ? prevStat.lp : 50;
-  const rankBefore =
-    prevStat?.ladderRank ||
-    (cumulRankId !== 'unranked' ? cumulRankId : 'bronze');
+  const rankBefore = prevStat?.ladderRank || 'bronze';
 
   const std = PERF_STD[rankBefore] ?? PERF_STD.bronze;
   const perf = speedRatio * accuracy;
@@ -310,8 +310,9 @@ export const computeRaceLpChange = (prevStat, raceResult, subId, cumulRankId) =>
     lpAfter = Math.max(0, Math.min(100, lpAfter));
   }
 
-  // 累计下限保护：rankAfter 不能比累计段位低 PROTECT_GAP 阶以上
-  if (cumulRankId && cumulRankId !== 'unranked') {
+  // 累计下限保护：仅在「本场已经掉段」时托底，绝不把 LP 结算结果往上抬
+  // （否则累计 evaluate 一场变王者后，保护会把人从青铜直接拽到钻石）
+  if (demoted && cumulRankId && cumulRankId !== 'unranked') {
     const cumulV = getRank(cumulRankId).value;
     const afterV = getRank(rankAfter).value;
     const minAllowedV = Math.max(1, cumulV - PROTECT_GAP);

@@ -111,7 +111,7 @@ export const DECKS = [
     id: 'gd',
     name: '广东省情',
     desc: '广东省考常识必备 20 条（地理 / 经济 / 文化）',
-    color: '#fbc02d',
+    color: '#8d7348',
     cards: [
       { id: 'gd_ds', front: '广东省会 / 简称', back: '省会：广州；简称：粤；下辖 21 个地级市' },
       { id: 'gd_pop', front: '广东人口规模', back: '常住人口 1.27 亿（2024 年），全国第一' },

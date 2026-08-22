@@ -53,7 +53,7 @@ const LEVELS = [
     desc: '三位数加法，治进位',
     op: '+',
     digits: 3,
-    color: '#fbc02d',
+    color: '#8d7348',
     icon: Plus,
   },
   {
@@ -127,7 +127,7 @@ const expectedDigitCount = (q) => {
 };
 
 const POS_NAMES = ['个位', '十位', '百位', '千位'];
-const POS_COLORS = ['#fbc02d', '#22c55e', '#3b82f6', '#a855f7'];
+const POS_COLORS = ['#8d7348', '#22c55e', '#3b82f6', '#a855f7'];
 
 // ============================================================
 // 主组件
@@ -323,21 +323,21 @@ const MentalCarryGame = ({ onBack }) => {
             <span className="text-xs font-black uppercase tracking-widest">返回</span>
           </button>
           <div className="flex items-center space-x-2">
-            <Brain size={18} className="text-[#fbc02d]" />
+            <Brain size={18} className="text-[#6b5428]" />
             <h2 className="text-xl sm:text-2xl font-black italic">移位加减</h2>
           </div>
           <span className="w-14" />
         </div>
 
         <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] p-5 sm:p-7">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#fbc02d]">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6b5428]">
             训练目标
           </p>
           <h3 className="text-lg sm:text-xl font-black italic mt-2">
             治"记十位忘百位"的工作记忆瓶颈
           </h3>
           <p className="text-xs sm:text-sm font-medium opacity-70 mt-3 leading-relaxed">
-            题目要求按 <span className="text-[#fbc02d] font-black">个位 → 十位 → 百位</span>{' '}
+            题目要求按 <span className="text-[#6b5428] font-black">个位 → 十位 → 百位</span>{' '}
             的顺序逐位输入答案。每一步只用持有"当前位 + 进位（或借位）"，把整体记忆负担从 4-6
             位数压缩到 2 个 chunk。坚持训练 2 周，资料分析里的多数大幅提升肉眼可见。
           </p>
@@ -360,7 +360,7 @@ const MentalCarryGame = ({ onBack }) => {
                   className={`group p-4 sm:p-5 rounded-2xl text-left transition-all border ${
                     active
                       ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg shadow-black/10'
-                      : 'bg-white border-[#f2f0e9] hover:border-[#1a1a1a]'
+                      : 'bg-white border-[#e8d5b0] hover:border-[#1a1a1a]'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -407,8 +407,8 @@ const MentalCarryGame = ({ onBack }) => {
                   onClick={() => setSessionSize(n)}
                   className={`px-5 py-2.5 rounded-xl text-sm font-black transition-all border ${
                     active
-                      ? 'bg-[#1a1a1a] text-[#fbc02d] border-[#1a1a1a]'
-                      : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-[#1a1a1a]'
+                      ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                      : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-[#1a1a1a]'
                   }`}
                 >
                   {n} 题
@@ -421,7 +421,7 @@ const MentalCarryGame = ({ onBack }) => {
         {/* 开始 */}
         <button
           onClick={startSession}
-          className="w-full bg-[#1a1a1a] text-white font-black py-4 sm:py-5 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center space-x-2"
+          className="w-full bg-[#1a1a1a] text-white font-black py-4 sm:py-5 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs sm:text-sm flex items-center justify-center space-x-2"
         >
           <Play size={16} />
           <span>开始训练</span>
@@ -429,7 +429,7 @@ const MentalCarryGame = ({ onBack }) => {
 
         {/* 历史成绩简表 */}
         {(stats.plays > 0 || stats.bestAvgMs) && (
-          <div className="bg-white rounded-2xl border border-[#f2f0e9] p-4 sm:p-5 grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-[#e8d5b0] p-4 sm:p-5 grid grid-cols-3 gap-3">
             <SummaryStat label="累计场次" value={stats.plays || 0} />
             <SummaryStat
               label="最佳平均/题"
@@ -455,7 +455,7 @@ const MentalCarryGame = ({ onBack }) => {
     return (
       <div className="w-full max-w-2xl mx-auto px-2 sm:px-4 space-y-5">
         <div className="bg-[#1a1a1a] text-white rounded-[1.5rem] sm:rounded-[2rem] p-6 sm:p-10 text-center">
-          <Trophy size={42} className="mx-auto text-[#fbc02d]" />
+          <Trophy size={42} className="mx-auto text-[#6b5428]" />
           <h2 className="text-3xl sm:text-4xl font-black italic mt-4">完成！</h2>
           <p className="text-xs font-medium opacity-60 mt-2">
             {level.label} · {lastSummary.total} 题
@@ -476,7 +476,7 @@ const MentalCarryGame = ({ onBack }) => {
           </div>
 
           {(lastSummary.isNewBestSpeed || lastSummary.isNewBestAcc) && (
-            <p className="text-[#fbc02d] text-sm font-black italic mt-5">
+            <p className="text-[#6b5428] text-sm font-black italic mt-5">
               ✨ 新纪录！
             </p>
           )}
@@ -490,14 +490,14 @@ const MentalCarryGame = ({ onBack }) => {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={startSession}
-            className="bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+            className="bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
           >
             <RotateCcw size={14} />
             <span>再来一组</span>
           </button>
           <button
             onClick={() => setPhase('idle')}
-            className="bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black py-4 rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+            className="bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black py-4 rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
           >
             换难度
           </button>
@@ -554,7 +554,7 @@ const MentalCarryGame = ({ onBack }) => {
         {/* 公式 */}
         <p className="text-center text-3xl sm:text-5xl font-black tracking-tight tabular-nums leading-tight">
           <span>{question.a}</span>
-          <span className="mx-3 sm:mx-4 text-[#fbc02d]">{question.op}</span>
+          <span className="mx-3 sm:mx-4 text-[#6b5428]">{question.op}</span>
           <span>{question.b}</span>
           <span className="mx-3 sm:mx-4 opacity-50">=</span>
         </p>
@@ -566,7 +566,7 @@ const MentalCarryGame = ({ onBack }) => {
             const isCurrent = digitIndex === posIndex;
             const value = enteredDigits[digitIndex];
             const posLabel = POS_NAMES[digitIndex] || `第${digitIndex + 1}位`;
-            const posColor = POS_COLORS[digitIndex] || '#fbc02d';
+            const posColor = POS_COLORS[digitIndex] || '#8d7348';
             return (
               <div key={digitIndex} className="flex flex-col items-center">
                 <span
@@ -581,7 +581,7 @@ const MentalCarryGame = ({ onBack }) => {
                 <div
                   className={`w-12 sm:w-16 h-14 sm:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center text-3xl sm:text-5xl font-black tabular-nums transition-all ${
                     isCurrent
-                      ? 'bg-white text-[#1a1a1a] ring-2 ring-[#fbc02d]'
+                      ? 'bg-white text-[#1a1a1a] ring-2 ring-[#6b5428]'
                       : filled
                         ? 'bg-emerald-500/20 text-white'
                         : 'bg-white/10 text-white/30'
@@ -631,7 +631,7 @@ const MentalCarryGame = ({ onBack }) => {
           <button
             key={d}
             onClick={() => submitDigit(d)}
-            className="bg-white border border-[#f2f0e9] hover:border-[#1a1a1a] active:bg-[#fbc02d] active:scale-95 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
+            className="bg-white border border-[#e8d5b0] hover:border-[#1a1a1a] active:bg-[#2c261c] active:scale-95 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
           >
             {d}
           </button>
@@ -639,7 +639,7 @@ const MentalCarryGame = ({ onBack }) => {
         <span />
         <button
           onClick={() => submitDigit(0)}
-          className="bg-white border border-[#f2f0e9] hover:border-[#1a1a1a] active:bg-[#fbc02d] active:scale-95 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
+          className="bg-white border border-[#e8d5b0] hover:border-[#1a1a1a] active:bg-[#2c261c] active:scale-95 rounded-xl sm:rounded-2xl py-4 sm:py-5 text-2xl sm:text-3xl font-black tabular-nums transition-all select-none"
         >
           0
         </button>
@@ -670,7 +670,7 @@ const SummaryStat = ({ label, value }) => (
 const StatCard = ({ label, value, highlight }) => (
   <div
     className={`rounded-2xl p-3 sm:p-4 ${
-      highlight ? 'bg-[#fbc02d] text-[#1a1a1a]' : 'bg-white/10'
+      highlight ? 'bg-[#2c261c] text-white' : 'bg-white/10'
     }`}
   >
     <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{label}</p>

@@ -3,6 +3,7 @@
 // 展示 Hermes 出完题并 import 进库的所有批次，含历史做题数据。
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Target, RefreshCw, ChevronRight, BookOpen, Loader2, Sparkles, Clock, Trash2 } from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
@@ -24,7 +25,7 @@ const relTime = (iso) => {
 // 正确率文字颜色
 const accColor = (rate) => {
   if (rate >= 0.8) return 'text-green-600';
-  if (rate >= 0.6) return 'text-[#fbc02d]';
+  if (rate >= 0.6) return 'text-[#6b5428]';
   return 'text-red-500';
 };
 
@@ -91,14 +92,20 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
   };
 
   if (active) {
-    return (
-      <AIQuizSession
-        batchId={active.batchId}
-        batchName={nameOf(batches.find((b) => b.batch_id === active.batchId) || { batch_id: active.batchId })}
-        reviewSessionId={active.reviewSessionId}
-        onExit={() => { setActive(null); reload(); }}
-        onAnalyzeWithHermes={onAnalyzeWithHermes}
-      />
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[80] bg-white overflow-hidden overscroll-none"
+        style={{ height: '100dvh' }}
+      >
+        <AIQuizSession
+          batchId={active.batchId}
+          batchName={nameOf(batches.find((b) => b.batch_id === active.batchId) || { batch_id: active.batchId })}
+          reviewSessionId={active.reviewSessionId}
+          onExit={() => { setActive(null); reload(); }}
+          onAnalyzeWithHermes={onAnalyzeWithHermes}
+        />
+      </div>,
+      document.body,
     );
   }
 
@@ -107,7 +114,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
       {/* 页头 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-[#fbc02d] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
             <Target size={18} />
           </div>
           <div>
@@ -137,25 +144,25 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
 
       {/* 批次列表 */}
       {loading && batches.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#f2f0e9]">
-          <Loader2 size={24} className="mx-auto text-[#fbc02d] animate-spin mb-3" />
+        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#e8d5b0]">
+          <Loader2 size={24} className="mx-auto text-[#6b5428] animate-spin mb-3" />
           <p className="text-sm font-black uppercase tracking-widest text-slate-400">加载中…</p>
         </div>
       ) : batches.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#f2f0e9]">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#f2f0e9] text-slate-400 flex items-center justify-center mb-4">
+        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#e8d5b0]">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#e8d5b0] text-slate-400 flex items-center justify-center mb-4">
             <Sparkles size={24} />
           </div>
           <h3 className="text-lg font-black italic mb-2">还没有 AI 出题批次</h3>
           <p className="text-sm text-slate-500 leading-relaxed mb-5 max-w-xs mx-auto">
             去 <strong>Hermes</strong> 对话框，输入你想练习的知识点，Hermes 会自动出题、验证并入库。
           </p>
-          <div className="bg-[#f2f0e9] rounded-2xl p-4 text-left text-xs font-mono text-slate-600 mb-5">
+          <div className="bg-[#e8d5b0] rounded-2xl p-4 text-left text-xs font-mono text-slate-600 mb-5">
             <p className="font-black text-[#1a1a1a] mb-1">示例指令（在 Hermes 里输入）：</p>
             <p>/quiz-pipeline 出5道翻译推理题，题集名 20260803_翻译推理强化一</p>
           </div>
           <button onClick={reload}
-            className="bg-[#1a1a1a] text-white font-black px-6 py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs">
+            className="bg-[#1a1a1a] text-white font-black px-6 py-3 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs">
             刷新检查
           </button>
         </div>
@@ -186,14 +193,14 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
                     setActive(open);
                   }
                 }}
-                className={`w-full text-left bg-white rounded-[1.75rem] p-6 shadow-sm border border-[#f2f0e9] transition-all group cursor-pointer focus:outline-none focus-visible:border-[#fbc02d] focus-visible:ring-2 focus-visible:ring-[#fbc02d]/40 ${
-                  isDeleting ? 'opacity-40 pointer-events-none' : 'hover:border-[#fbc02d] hover:shadow-md'
+                className={`w-full text-left bg-white rounded-[1.75rem] p-6 shadow-sm border border-[#e8d5b0] transition-all group cursor-pointer focus:outline-none focus-visible:border-[#6b5428] focus-visible:ring-2 focus-visible:ring-[#6b5428]/40 ${
+                  isDeleting ? 'opacity-40 pointer-events-none' : 'hover:border-[#6b5428] hover:shadow-md'
                 }`}
               >
                 {/* 上行：图标 + 名称 + 删除 + 箭头 */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[#f2f0e9] group-hover:bg-[#fbc02d] text-[#1a1a1a] flex items-center justify-center transition-colors flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#e8d5b0] group-hover:bg-[#2c261c] group-hover:text-white text-[#1a1a1a] flex items-center justify-center transition-colors flex-shrink-0">
                       <BookOpen size={16} />
                     </div>
                     <div className="min-w-0">
@@ -220,9 +227,9 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
                 </div>
 
                 {/* 进度条 */}
-                <div className="h-1 bg-[#f2f0e9] rounded-full overflow-hidden mb-3">
+                <div className="h-1 bg-[#e8d5b0] rounded-full overflow-hidden mb-3">
                   <div
-                    className="h-full bg-[#fbc02d] rounded-full transition-all"
+                    className="h-full bg-[#2c261c] rounded-full transition-all"
                     style={{ width: `${progress * 100}%` }}
                   />
                 </div>

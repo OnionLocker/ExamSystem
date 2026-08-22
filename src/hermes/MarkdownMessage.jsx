@@ -63,7 +63,7 @@ const CodeBlock = ({ language, code }) => {
   };
 
   return (
-    <div className="relative group my-3 rounded-2xl overflow-hidden border border-black/10 bg-[#fafaf7]">
+    <div className="relative group my-3 rounded-2xl overflow-hidden border border-black/10 bg-[#efe0bc]">
       <div className="flex items-center justify-between px-4 py-2 bg-black/[0.03] border-b border-black/5">
         <span className="text-[10px] font-black uppercase tracking-widest text-[#999]">
           {language || 'code'}
@@ -136,7 +136,7 @@ const components = {
     return <td className="px-3 py-2 border-b border-black/5 align-top">{children}</td>;
   },
   ul({ children }) {
-    return <ul className="my-2 pl-5 space-y-1 list-disc marker:text-[#fbc02d]">{children}</ul>;
+    return <ul className="my-2 pl-5 space-y-1 list-disc marker:text-[#6b5428]">{children}</ul>;
   },
   ol({ children }) {
     return <ol className="my-2 pl-5 space-y-1 list-decimal marker:text-[#999] marker:font-bold">{children}</ol>;
@@ -161,7 +161,7 @@ const components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-3 pl-4 border-l-[3px] border-[#fbc02d] text-[#555] italic">
+      <blockquote className="my-3 pl-4 border-l-[3px] border-[#6b5428] text-[#555] italic">
         {children}
       </blockquote>
     );

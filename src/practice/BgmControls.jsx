@@ -76,7 +76,7 @@ const BgmControls = ({ position = 'top-right', className = '' }) => {
             else setBgmEnabled(!enabled);
           }}
           title={enabled ? '点击静音' : '点击开启 BGM'}
-          className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[#fbc02d] hover:scale-110 transition-transform"
+          className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[#6b5428] hover:scale-110 transition-transform"
         >
           <Icon size={15} strokeWidth={2.4} />
         </button>
@@ -85,7 +85,7 @@ const BgmControls = ({ position = 'top-right', className = '' }) => {
           <>
             <div className="flex flex-col items-stretch min-w-[140px]">
               <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/70 leading-none mb-1.5">
-                <Music size={10} className="text-[#fbc02d]" />
+                <Music size={10} className="text-[#6b5428]" />
                 <span className="truncate">
                   {trackInfo
                     ? state.loadFailed
@@ -106,7 +106,7 @@ const BgmControls = ({ position = 'top-right', className = '' }) => {
                   setBgmVolume(v);
                   if (!enabled && v > 0) setBgmEnabled(true);
                 }}
-                className="w-full h-1 accent-[#fbc02d] cursor-pointer"
+                className="w-full h-1 accent-[#2c261c] cursor-pointer"
               />
             </div>
             <span className="text-[10px] font-black tabular-nums text-white/80 w-7 text-right">

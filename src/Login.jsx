@@ -24,10 +24,10 @@ export default function Login({ onAuthed }) {
   };
 
   return (
-    <div className="h-screen w-screen bg-[#f2f0e9] flex items-center justify-center p-6 font-sans text-[#1a1a1a]">
+    <div className="h-screen w-screen bg-[#e8d5b0] flex items-center justify-center p-6 font-sans text-[#1a1a1a]">
       <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-black/5 border border-white p-10">
         <div className="flex items-center space-x-3 mb-8">
-          <div className="w-12 h-12 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-[#fbc02d] font-black text-lg">
+          <div className="w-12 h-12 bg-[#1a1a1a] rounded-2xl flex items-center justify-center text-white font-black text-lg">
             学
           </div>
           <div>
@@ -50,7 +50,7 @@ export default function Login({ onAuthed }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="访问密码"
-              className="w-full bg-[#f2f0e9]/60 border border-transparent rounded-2xl py-4 pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+              className="w-full bg-[#e8d5b0]/60 border border-transparent rounded-2xl py-4 pl-12 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
             />
           </div>
 
@@ -63,7 +63,7 @@ export default function Login({ onAuthed }) {
           <button
             type="submit"
             disabled={loading || !password}
-            className="w-full flex items-center justify-center space-x-2 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center space-x-2 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <LogIn size={16} />
             <span>{loading ? '校验中...' : '进入系统'}</span>

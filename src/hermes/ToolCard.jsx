@@ -51,7 +51,7 @@ const ToolCard = ({ tool }) => {
         {open ? <ChevronDown size={14} className="text-[#999] shrink-0" />
               : <ChevronRight size={14} className="text-[#999] shrink-0" />}
 
-        {running && <Loader2 size={13} className="text-[#fbc02d] animate-spin shrink-0" />}
+        {running && <Loader2 size={13} className="text-[#6b5428] animate-spin shrink-0" />}
         {!running && !failed && <Check size={13} className="text-[#4caf50] shrink-0" />}
         {failed && <AlertCircle size={13} className="text-[#ef5350] shrink-0" />}
 

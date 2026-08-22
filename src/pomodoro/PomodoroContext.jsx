@@ -103,16 +103,16 @@ const playBeep = () => {
 // ------------------------------------------------------------
 
 const SCENE_SOUNDS = {
-  rain: '/sounds/rain.mp3',
-  thunderstorm: '/sounds/thunderstorm.mp3',
-  ocean: '/sounds/ocean.mp3',
-  stream: '/sounds/stream.mp3',
-  forest: '/sounds/forest.mp3',
-  fire: '/sounds/fire.mp3',
-  wind: '/sounds/wind.mp3',
-  night: '/sounds/night.mp3',
-  cafe: '/sounds/cafe.mp3',
-  keyboard: '/sounds/keyboard.mp3',
+  rain: '/sounds/rain.mp3?v=2',
+  thunderstorm: '/sounds/thunderstorm.mp3?v=2',
+  ocean: '/sounds/ocean.mp3?v=2',
+  stream: '/sounds/stream.mp3?v=2',
+  forest: '/sounds/forest.mp3?v=2',
+  fire: '/sounds/fire.mp3?v=2',
+  wind: '/sounds/wind.mp3?v=2',
+  night: '/sounds/night.mp3?v=2',
+  cafe: '/sounds/cafe.mp3?v=2',
+  keyboard: '/sounds/keyboard.mp3?v=2',
 };
 
 // 场景的随机事件配置：
@@ -171,6 +171,7 @@ class SoundEngine {
     this.type = null;
     this.volume = 0.4;
     this.bufferCache = new Map(); // url -> AudioBuffer | null
+    this.seamlessMap = new WeakMap(); // AudioBuffer -> 交叉淡化后的循环 buffer
     this.gen = 0;             // 代次号，作废过期的异步流程
   }
 
@@ -208,9 +209,36 @@ class SoundEngine {
   }
 
   // ---------- 底层 loop 播放 ----------
+  // 把结尾叠进开头做等功率交叉淡化，硬 loop 时接点不再掉一截。
+  _makeSeamless(buf, overlapSec = 0.8) {
+    const sr = buf.sampleRate;
+    const n = buf.length;
+    const overlap = Math.min(Math.floor(overlapSec * sr), Math.floor(n / 5));
+    if (overlap < Math.floor(sr * 0.2)) return buf;
+    const outLen = n - overlap;
+    const out = this.ctx.createBuffer(buf.numberOfChannels, outLen, sr);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch);
+      const dst = out.getChannelData(ch);
+      dst.set(src.subarray(0, outLen));
+      for (let i = 0; i < overlap; i++) {
+        const x = i / overlap;
+        const fadeIn = Math.sin((Math.PI / 2) * x);
+        const fadeOut = Math.cos((Math.PI / 2) * x);
+        dst[i] = src[i] * fadeIn + src[n - overlap + i] * fadeOut;
+      }
+    }
+    return out;
+  }
+
   _playBaseLoop(buf) {
+    let loopBuf = this.seamlessMap.get(buf);
+    if (!loopBuf) {
+      loopBuf = this._makeSeamless(buf);
+      this.seamlessMap.set(buf, loopBuf);
+    }
     const src = this.ctx.createBufferSource();
-    src.buffer = buf;
+    src.buffer = loopBuf;
     src.loop = true;
     src.connect(this.master);
     src.start();
@@ -272,23 +300,24 @@ class SoundEngine {
     this.type = sceneType;
     this.volume = volume;
 
-    const master = this.ctx.createGain();
-    master.gain.value = 0;
-    master.connect(this.ctx.destination);
-    this.master = master;
+    const startGraph = () => {
+      if (myGen !== this.gen) return;
+      const master = this.ctx.createGain();
+      master.gain.value = 0;
+      master.connect(this.ctx.destination);
+      this.master = master;
+      const now = this.ctx.currentTime;
+      master.gain.linearRampToValueAtTime(volume, now + 1.2);
+      this._loadSample(SCENE_SOUNDS[sceneType]).then((buf) => {
+        if (myGen !== this.gen || !this.master) return;
+        if (buf) this._playBaseLoop(buf);
+      });
+      this._scheduleEvents(sceneType, myGen);
+    };
 
-    // 1.2s 淡入
-    const now = this.ctx.currentTime;
-    master.gain.linearRampToValueAtTime(volume, now + 1.2);
-
-    // 加载并播放底层 loop
-    this._loadSample(SCENE_SOUNDS[sceneType]).then((buf) => {
-      if (myGen !== this.gen || !this.master) return;
-      if (buf) this._playBaseLoop(buf);
-    });
-
-    // 启动事件层（如果有配置）
-    this._scheduleEvents(sceneType, myGen);
+    // 必须等 running 再排淡入：挂起时 currentTime 冻结，ramp 会停在音量 0
+    if (this.ctx.state === 'running') startGraph();
+    else this.ctx.resume().then(startGraph).catch(() => {});
   }
 
   setVolume(v) {
@@ -457,9 +486,10 @@ export const PomodoroProvider = ({ children }) => {
     }
 
     // 通知/提示音
+    const skipBreak = !settings.breakMs;
     const msg =
       finishedPhase === 'work'
-        ? '工作完成，休息一下 ☕'
+        ? (skipBreak ? '工作完成' : '工作完成，休息一下 ☕')
         : '休息结束，开始专注 🎯';
     if (settings.soundEnabled) playBeep();
     if (settings.notificationEnabled) notify('番茄钟', msg);
@@ -471,7 +501,7 @@ export const PomodoroProvider = ({ children }) => {
         const isLong = newRounds % settings.roundsBeforeLongBreak === 0;
         const nextPhase = isLong ? 'longBreak' : 'break';
         const nextDur = isLong ? settings.longBreakMs : settings.breakMs;
-        if (settings.autoStartBreak) {
+        if (settings.autoStartBreak && !skipBreak) {
           return {
             ...s,
             phase: nextPhase,
@@ -512,7 +542,8 @@ export const PomodoroProvider = ({ children }) => {
   }, [state, settings, getRemaining]);
 
   // ------- 背景白噪音 -------
-  // 根据 phase + settings 自动控制播放
+  // idle 不抢试听（点雨声要马上有声）。暂停 / 休息且未勾选 / 关掉才停。
+  // 真正开播放在 startWork 点击里，否则会落到 effect，被浏览器自动播放策略静音。
   useEffect(() => {
     const noise = noiseEngine;
     if (!noise) return;
@@ -529,17 +560,12 @@ export const PomodoroProvider = ({ children }) => {
       } else {
         noise.setVolume(bgmVolume);
       }
-    } else {
+    } else if (!bgmEnabled || phase === 'paused' || phase === 'break' || phase === 'longBreak') {
       if (noise.isPlaying) noise.stop();
+    } else if (noise.isPlaying) {
+      noise.setVolume(bgmVolume);
     }
   }, [state.phase, settings, noiseEngine]);
-
-  // 卸载时停掉
-  useEffect(() => {
-    return () => {
-      if (noiseEngine) noiseEngine.stop();
-    };
-  }, [noiseEngine]);
 
   // 手动开关 BGM（即使不在工作/休息阶段也能试听）
   // overrides: { type, volume } 可选，用于立即切换而不等 settings 更新
@@ -571,6 +597,13 @@ export const PomodoroProvider = ({ children }) => {
         durationMs: dur,
         pausedRemainingMs: null,
       }));
+      if (settings.bgmEnabled && settings.bgmAutoStart && noiseEngine) {
+        if (!noiseEngine.isPlaying || noiseEngine.type !== settings.bgmType) {
+          noiseEngine.play(settings.bgmType, settings.bgmVolume);
+        } else {
+          noiseEngine._ensureCtx();
+        }
+      }
       // 申请通知权限
       if (
         settings.notificationEnabled &&
@@ -580,12 +613,13 @@ export const PomodoroProvider = ({ children }) => {
         Notification.requestPermission().catch(() => {});
       }
     },
-    [settings],
+    [settings, noiseEngine],
   );
 
   const startBreak = useCallback(
     (long = false) => {
       const dur = long ? settings.longBreakMs : settings.breakMs;
+      if (!dur) return;
       setState((s) => ({
         ...s,
         phase: long ? 'longBreak' : 'break',
@@ -612,6 +646,7 @@ export const PomodoroProvider = ({ children }) => {
   }, []);
 
   const resume = useCallback(() => {
+    const nextPhase = state._resumePhase || 'work';
     setState((s) => {
       if (s.phase !== 'paused') return s;
       const remaining = s.pausedRemainingMs ?? 0;
@@ -622,9 +657,21 @@ export const PomodoroProvider = ({ children }) => {
         pausedRemainingMs: null,
       };
     });
-  }, []);
+    const should =
+      settings.bgmEnabled &&
+      ((nextPhase === 'work' && settings.bgmAutoStart) ||
+        ((nextPhase === 'break' || nextPhase === 'longBreak') && settings.bgmPlayInBreak));
+    if (should && noiseEngine) {
+      if (!noiseEngine.isPlaying || noiseEngine.type !== settings.bgmType) {
+        noiseEngine.play(settings.bgmType, settings.bgmVolume);
+      } else {
+        noiseEngine._ensureCtx();
+      }
+    }
+  }, [state, settings, noiseEngine]);
 
   const stop = useCallback(() => {
+    noiseEngine?.stop();
     setState((s) => ({
       ...s,
       phase: 'idle',
@@ -632,7 +679,7 @@ export const PomodoroProvider = ({ children }) => {
       durationMs: 0,
       pausedRemainingMs: null,
     }));
-  }, []);
+  }, [noiseEngine]);
 
   const resetRounds = useCallback(() => {
     setState((s) => ({ ...s, roundsCompleted: 0 }));

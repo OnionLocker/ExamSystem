@@ -17,6 +17,9 @@ import {
   Zap,
   MessageSquare,
   Target,
+  Layers,
+  ScanSearch,
+  GraduationCap,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -25,7 +28,7 @@ import TopBarTimer from './pomodoro/TopBarTimer.jsx';
 import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
 import StudyLogPanel from './studyLog/StudyLogPanel.jsx';
 import { useStudyHeatmap, useServerHeat, LEVEL_COLORS } from './studyLog/heatmap.js';
-import { loadLog, summarize, ENTRY_TYPES } from './studyLog/studyLog.js';
+import { loadLog, summarize, ENTRY_TYPES, digestDay, loadDigest } from './studyLog/studyLog.js';
 import Mixer from './mixer/Mixer.jsx';
 import MockExam from './mockExam/MockExam.jsx';
 import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
@@ -36,6 +39,8 @@ import StudyBoost from './studyBoost/StudyBoost.jsx';
 import Uploads from './uploads/Uploads.jsx';
 import HermesChat from './hermes/HermesChat.jsx';
 import AIQuizHome from './aiPractice/AIQuizHome.jsx';
+import ExamReview from './examReview/ExamReview.jsx';
+import Knowledge from './knowledge/Knowledge.jsx';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
@@ -63,6 +68,16 @@ const monthNames = [
 const weekdayShort = ['一', '二', '三', '四', '五', '六', '日'];
 const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EVENTS_KEY = 'exam_calendar_events';
+const HERMES_FS_KEY = 'hermes.fullscreen';
+const readHermesFs = () => {
+  try {
+    const v = localStorage.getItem(HERMES_FS_KEY);
+    if (v === '1') return true;
+    if (v === '0') return false;
+  } catch { /* 隐私模式 */ }
+  // iPad / 触控 / 小屏默认全屏，桌面宽屏保持原布局
+  return window.matchMedia('(pointer: coarse), (max-width: 1440px)').matches;
+};
 
 // 侧边栏导航项。定义在组件外层：如果写在 AppInner 内部，每次渲染都会得到一个
 // 新的组件类型，React 会把所有导航按钮卸载重建（丢失焦点、动画重放）。
@@ -72,7 +87,7 @@ const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
     title={label}
     className={`w-full flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 lg:py-3.5 rounded-2xl transition-all duration-300 flex-shrink-0 ${
       activeTab === id
-        ? 'bg-[#1a1a1a] text-[#fbc02d] shadow-lg shadow-black/10'
+        ? 'bg-[#1a1a1a] text-white shadow-lg shadow-black/10'
         : 'text-[#666] hover:bg-black/5 hover:text-black'
     }`}
   >
@@ -98,6 +113,17 @@ const AppInner = () => {
     setHermesSeed({ sessionId, nonce: Date.now() });
     setActiveTab('hermes');
   };
+  const seedHermesUpload = (file) => {
+    setHermesSeed({ upload: file, nonce: Date.now() });
+    setActiveTab('hermes');
+  };
+  const [hermesFullscreen, setHermesFullscreen] = useState(readHermesFs);
+  const hermesFs = activeTab === 'hermes' && hermesFullscreen;
+
+  useEffect(() => {
+    try { localStorage.setItem(HERMES_FS_KEY, hermesFullscreen ? '1' : '0'); }
+    catch { /* ignore */ }
+  }, [hermesFullscreen]);
   const { getDay: getStudyDay } = useStudyHeatmap(studyVersion);
 
   // 监听学习日志变更事件（番茄钟完成、数资冲刺完成、导入、删除均会派发）
@@ -207,7 +233,7 @@ const AppInner = () => {
     setViewMonth((v) => (v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 }));
   const goToday = () => setViewMonth({ year: today.getFullYear(), month: today.getMonth() });
 
-  const openEditor = (key) => {
+  const openDay = (key) => {
     setEditingKey(key);
     setEditingLabel(events[key] || '');
   };
@@ -248,7 +274,7 @@ const AppInner = () => {
 
   if (!bootChecked) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#f2f0e9] text-sm font-bold text-slate-400">
+      <div className="h-screen w-screen flex items-center justify-center bg-[#e8d5b0] text-sm font-bold text-slate-400">
         正在加载...
       </div>
     );
@@ -298,7 +324,7 @@ const AppInner = () => {
             </button>
             <button
               onClick={goToday}
-              className="px-3 py-1 rounded-full text-xs font-bold bg-[#fbc02d] text-black hover:brightness-110 transition-all"
+              className="px-3 py-1 rounded-full text-xs font-bold bg-[#2c261c] text-white hover:brightness-110 transition-all"
               title="回到今天"
             >
               {year}年 {monthNames[month]}
@@ -345,13 +371,13 @@ const AppInner = () => {
 
             if (isToday) {
               // 今日：细琥珀描边 + 背景根据是否学习分两种
-              cls += 'ring-1 ring-[#fbc02d] ';
+              cls += 'ring-1 ring-[#6b5428] ';
               if (study) {
                 style.backgroundColor = study.color;
                 numberCls += study.level >= 6 ? 'text-[#1a1a1a] font-black' : 'text-white font-black';
               } else {
                 cls += 'bg-white/[0.04] ';
-                numberCls += 'text-[#fbc02d] font-black';
+                numberCls += 'text-[#6b5428] font-black';
               }
             } else if (study) {
               style.backgroundColor = study.color;
@@ -367,13 +393,14 @@ const AppInner = () => {
               cls += 'bg-white/[0.04] hover:bg-white/[0.08] ';
               numberCls += 'text-white/50 font-bold';
             }
+            if (editingKey === key) cls += 'ring-2 ring-white z-[1] ';
 
             return (
               <div
                 key={`cell-${i}`}
                 className={cls + numberCls}
                 style={style}
-                onClick={() => openEditor(key)}
+                onClick={() => openDay(key)}
                 title={
                   (hasEvent ? `${label}` : '') +
                   (study ? ` · 学习 ${study.score} 分 / ${study.minutes} 分钟` : '')
@@ -382,7 +409,7 @@ const AppInner = () => {
                 <span className="relative z-10">{day}</span>
                 {/* 事件标签：右上角小点 */}
                 {hasEvent && (
-                  <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-[#fbc02d]" />
+                  <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-[#2c261c]" />
                 )}
               </div>
             );
@@ -416,10 +443,10 @@ const AppInner = () => {
   const renderCountdowns = () => {
     if (upcomingEvents.length === 0) return null;
     return (
-      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#f2f0e9]">
+      <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-[#e8d5b0]">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-[#fbc02d] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
               <Calendar size={18} />
             </div>
             <h3 className="text-lg font-bold">重要日子倒计时</h3>
@@ -436,9 +463,9 @@ const AppInner = () => {
             const ringColor = urgent
               ? 'ring-[#ff6b6b]'
               : soon
-                ? 'ring-[#fbc02d]'
+                ? 'ring-[#6b5428]'
                 : 'ring-[#1a1a1a]/20';
-            const badgeColor = urgent ? 'text-[#ff6b6b]' : soon ? 'text-[#fbc02d]' : 'text-[#1a1a1a]';
+            const badgeColor = urgent ? 'text-[#ff6b6b]' : soon ? 'text-[#6b5428]' : 'text-[#1a1a1a]';
             return (
               <div
                 key={key}
@@ -472,70 +499,100 @@ const AppInner = () => {
     const current = events[editingKey];
     const d = parseKey(editingKey);
     const weekdayCN = weekdayFull[d.getDay()];
+    const study = getStudyDay(editingKey);
+    const derived = digestDay(study?.entries || []);
+    const stored = loadDigest()[editingKey];
+    // 今天还在学，用实时明细；过去的日子优先用每日总结写下的清单
+    const items =
+      editingKey < todayKey && Array.isArray(stored) && stored.length
+        ? stored
+        : derived;
     return (
       <div
         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6"
         onClick={closeEditor}
       >
         <div
-          className="bg-white rounded-[2rem] p-8 w-full max-w-sm shadow-2xl"
+          className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl max-h-[80vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">设置事件</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">当日学习</p>
               <p className="text-xl font-black italic">
                 {editingKey} · {weekdayCN}
               </p>
             </div>
             <button
               onClick={closeEditor}
-              className="w-8 h-8 rounded-full bg-[#f2f0e9] hover:bg-[#e8e6dd] flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center"
             >
               <X size={16} />
             </button>
           </div>
 
-          <label className="text-xs font-bold text-slate-400 block mb-2">事件名称</label>
-          <input
-            type="text"
-            autoFocus
-            value={editingLabel}
-            onChange={(e) => setEditingLabel(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') saveEvent();
-              if (e.key === 'Escape') closeEditor();
-            }}
-            placeholder="例如：广东省考"
-            maxLength={30}
-            className="w-full bg-[#f2f0e9]/60 border border-transparent rounded-2xl py-4 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fbc02d] mb-6"
-          />
+          {items.length === 0 ? (
+            <p className="text-sm font-bold text-slate-400 mb-6">这天还没有学习记录</p>
+          ) : (
+            <ol className="space-y-2.5 mb-5">
+              {items.map((t, i) => (
+                <li key={i} className="flex gap-3 text-sm font-bold text-[#1a1a1a] leading-snug">
+                  <span className="text-[#6b5428] tabular-nums w-6 flex-shrink-0">{i + 1}.</span>
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ol>
+          )}
 
-          <div className="flex space-x-3">
-            <button
-              onClick={saveEvent}
-              className="flex-1 bg-[#1a1a1a] text-white font-black py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs"
-            >
-              保存
-            </button>
-            {current && (
+          {study?.score > 0 && (
+            <p className="text-xs font-bold text-slate-400 mb-6 tabular-nums">
+              {study.score} 分
+              {study.minutes ? ` · ${study.minutes} 分钟` : ''}
+            </p>
+          )}
+
+          <details className="group border-t border-[#e8d5b0] pt-4">
+            <summary className="text-xs font-black uppercase tracking-widest text-slate-400 cursor-pointer list-none flex items-center justify-between [&::-webkit-details-marker]:hidden">
+              标记重要日子
+              {current && (
+                <span className="normal-case tracking-normal font-bold text-[#1a1a1a] truncate max-w-[10rem]">
+                  {current}
+                </span>
+              )}
+            </summary>
+            <label className="text-xs font-bold text-slate-400 block mt-4 mb-2">事件名称</label>
+            <input
+              type="text"
+              value={editingLabel}
+              onChange={(e) => setEditingLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') saveEvent();
+                if (e.key === 'Escape') closeEditor();
+              }}
+              placeholder="例如：广东省考"
+              maxLength={30}
+              className="w-full bg-[#e8d5b0]/60 border border-transparent rounded-2xl py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428] mb-4"
+            />
+            <div className="flex space-x-3">
               <button
-                onClick={() => {
-                  deleteEvent(editingKey);
-                  closeEditor();
-                }}
-                className="px-5 py-3 rounded-2xl text-[#ff6b6b] hover:bg-[#ff6b6b]/10 font-black text-xs uppercase tracking-widest"
+                onClick={saveEvent}
+                className="flex-1 bg-[#1a1a1a] text-white font-black py-3 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs"
               >
-                删除
+                保存
               </button>
-            )}
-            <button
-              onClick={closeEditor}
-              className="px-5 py-3 rounded-2xl text-slate-400 hover:bg-[#f2f0e9] font-black text-xs uppercase tracking-widest"
-            >
-              取消
-            </button>
-          </div>
+              {current && (
+                <button
+                  onClick={() => {
+                    deleteEvent(editingKey);
+                    closeEditor();
+                  }}
+                  className="px-5 py-3 rounded-2xl text-[#ff6b6b] hover:bg-[#ff6b6b]/10 font-black text-xs uppercase tracking-widest"
+                >
+                  删除
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </div>
     );
@@ -545,12 +602,20 @@ const AppInner = () => {
     // iOS Safari 的 100vh 比可视区域高（地址栏/工具栏不计入），会把侧栏底部顶到
     // 屏幕外。100dvh 跟随动态视口；不支持的浏览器忽略 inline style，退回 h-screen。
     <div
-      className="flex h-screen bg-[#f2f0e9] text-[#1a1a1a] font-sans overflow-hidden p-4"
-      style={{ height: '100dvh' }}
+      className={`flex h-screen text-[#1a1a1a] font-sans overflow-hidden overscroll-none ${
+        hermesFs ? 'bg-white p-0' : 'bg-[#e8d5b0] p-4'
+      }`}
+      style={{
+        height: '100dvh',
+        // 只给 iPad/触控留空：状态栏会盖住全屏顶栏。Windows 全屏不要这段空隙，顶栏贴顶。
+        paddingTop: hermesFs && window.matchMedia('(pointer: coarse)').matches
+          ? 'max(2rem, env(safe-area-inset-top, 0px))'
+          : undefined,
+      }}
     >
-      <aside className="w-24 lg:w-64 flex flex-col p-4 space-y-4 lg:space-y-6 min-h-0">
+      <aside className={`${hermesFs ? 'hidden' : ''} w-24 lg:w-64 flex flex-col p-4 space-y-4 lg:space-y-6 min-h-0`}>
         <div className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-2 flex-shrink-0">
-          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-[#fbc02d] font-black flex-shrink-0">
+          <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">
             学
           </div>
           <h1 className="text-xl font-black tracking-tighter hidden lg:block uppercase">STUDY!</h1>
@@ -561,11 +626,14 @@ const AppInner = () => {
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 lg:space-y-2.5 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="knowledge" icon={GraduationCap} label="知识点" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="copybook" icon={PenTool} label="字帖练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="review" icon={BookMarked} label="复习" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="flashcards" icon={Layers} label="抽认卡" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="examReview" icon={ScanSearch} label="真题复盘" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
@@ -593,17 +661,23 @@ const AppInner = () => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50">
-        <header className="h-24 flex items-center justify-between px-10">
+      <main className={`flex-1 flex flex-col overflow-hidden ${
+        hermesFs
+          ? 'bg-white'
+          : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
+      }`}>
+        <header className={`${hermesFs ? 'hidden' : ''} h-24 flex items-center justify-between px-10`}>
           <div>
             <h2 className="text-2xl font-black tracking-tight">
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
               {activeTab === 'studyBoost' && '学习提升 · 言语高频考点库'}
+              {activeTab === 'knowledge' && '知识点 · 广东省考老师口径'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
+              {activeTab === 'examReview' && '真题复盘 · 录屏行为分析'}
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
@@ -618,12 +692,14 @@ const AppInner = () => {
         <div
           className={
             activeTab === 'hermes'
-              ? 'flex-1 overflow-hidden px-10 pb-6 pt-2'
-              : 'flex-1 overflow-y-auto p-10 pt-4 space-y-10'
+              ? (hermesFs ? 'flex-1 overflow-hidden' : 'flex-1 overflow-hidden px-10 pb-6 pt-2')
+              : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
           }
         >
           {activeTab === 'dashboard' && (
             <div className="space-y-10">
+              {renderCountdowns()}
+
               <StudyLogPanel version={studyVersion} onChange={bumpStudy} />
 
               {/* 今日概览 + 日历热力图 */}
@@ -631,12 +707,12 @@ const AppInner = () => {
                 <DashboardTodayCard studyVersion={studyVersion} />
                 {renderCalendar()}
               </div>
-
-              {renderCountdowns()}
             </div>
           )}
 
           {activeTab === 'studyBoost' && <StudyBoost />}
+
+          {activeTab === 'knowledge' && <Knowledge />}
 
           {activeTab === 'copybook' && <Copybook />}
 
@@ -650,10 +726,18 @@ const AppInner = () => {
 
           {activeTab === 'mockexam' && <MockExam />}
 
-          {activeTab === 'uploads' && <Uploads />}
+          {activeTab === 'examReview' && <ExamReview />}
+
+          {activeTab === 'uploads' && <Uploads onReviewWithHermes={seedHermesUpload} />}
 
           {activeTab === 'hermes' && (
-            <HermesChat seed={hermesSeed} onSeedConsumed={() => setHermesSeed(null)} />
+            <HermesChat
+              seed={hermesSeed}
+              onSeedConsumed={() => setHermesSeed(null)}
+              fullscreen={hermesFs}
+              onToggleFullscreen={() => setHermesFullscreen((v) => !v)}
+              headerExtra={<TopBarTimer onOpen={() => setActiveTab('pomodoro')} />}
+            />
           )}
 
           {activeTab === 'aiPractice' && <AIQuizHome onAnalyzeWithHermes={seedHermes} />}
@@ -663,7 +747,7 @@ const AppInner = () => {
       </main>
 
       {renderEditor()}
-      <Cheatsheet />
+      {activeTab !== 'hermes' && <Cheatsheet />}
     </div>
   );
 };
@@ -709,7 +793,7 @@ const DashboardTodayCard = ({ studyVersion }) => {
         </p>
       </div>
 
-      <div className="absolute top-10 right-10 w-48 h-48 bg-[#fbc02d] rounded-full blur-[40px] opacity-60 animate-pulse" />
+      <div className="absolute top-10 right-10 w-48 h-48 bg-[#2c261c] rounded-full blur-[40px] opacity-60 animate-pulse" />
       <div className="absolute bottom-10 right-40 w-32 h-32 bg-[#ff6b6b] rounded-full blur-[35px] opacity-40" />
 
       <div className="relative z-10 mt-10 flex items-center space-x-12">

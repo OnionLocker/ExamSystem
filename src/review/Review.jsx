@@ -232,17 +232,17 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
   return (
     <div className="space-y-8">
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full blur-[80px] bg-[#fbc02d] opacity-30 pointer-events-none" />
+        <div className="absolute -top-10 -right-10 w-56 h-56 rounded-full blur-[80px] bg-[#2c261c] opacity-30 pointer-events-none" />
         <div className="absolute bottom-0 left-1/3 w-40 h-40 rounded-full blur-[70px] bg-[#60a5fa] opacity-20 pointer-events-none" />
         <div className="relative">
           <div className="flex items-center space-x-3 mb-1">
-            <BookMarked size={20} className="text-[#fbc02d]" />
+            <BookMarked size={20} className="text-[#6b5428]" />
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
               Knowledge Review
             </p>
           </div>
           <h2 className="text-3xl font-black italic mt-1">
-            复习模块 <span className="text-[#fbc02d]">{modules.length}</span>
+            复习模块 <span className="text-[#6b5428]">{modules.length}</span>
           </h2>
           <p className="text-xs font-bold text-white/50 mt-2 max-w-xl leading-relaxed">
             按知识点建模块，上传笔记/截图，进入后左右翻阅巩固记忆。共 {totalImages} 张图片。
@@ -254,7 +254,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
         <p className="text-xs font-black uppercase tracking-widest text-slate-400">我的模块</p>
         <button
           onClick={() => setCreating(true)}
-          className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-[#fbc02d] px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#fbc02d] hover:text-black transition-all"
+          className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all"
         >
           <Plus size={16} />
           <span>新增模块</span>
@@ -276,8 +276,8 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
           <span className="text-sm font-bold">加载中...</span>
         </div>
       ) : modules.length === 0 ? (
-        <div className="bg-white rounded-[2.5rem] border border-[#f2f0e9] p-16 text-center">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#f2f0e9] flex items-center justify-center text-slate-400 mb-4">
+        <div className="bg-white rounded-[2.5rem] border border-[#e8d5b0] p-16 text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#e8d5b0] flex items-center justify-center text-slate-400 mb-4">
             <BookMarked size={28} />
           </div>
           <p className="text-lg font-black">还没有复习模块</p>
@@ -286,7 +286,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
           </p>
           <button
             onClick={() => setCreating(true)}
-            className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#fbc02d] hover:text-black transition-all"
+            className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all"
           >
             <Plus size={16} />
             <span>创建第一个模块</span>
@@ -306,9 +306,9 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                   onSelect(m);
                 }
               }}
-              className="group relative bg-white rounded-3xl p-6 text-left hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border border-transparent hover:border-[#fbc02d]/30"
+              className="group relative bg-white rounded-3xl p-6 text-left hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border border-transparent hover:border-[#6b5428]/30"
             >
-              <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl bg-gradient-to-r from-[#fbc02d] to-[#60a5fa]" />
+              <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl bg-gradient-to-r from-[#8d7348] to-[#60a5fa]" />
 
               <div className="flex items-start justify-between mb-3 gap-2">
                 {editingId === m.id ? (
@@ -325,12 +325,12 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                         setEditName('');
                       }
                     }}
-                    className="flex-1 bg-[#f2f0e9]/60 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+                    className="flex-1 bg-[#e8d5b0]/60 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
                   />
                 ) : (
                   <p className="text-base font-black tracking-tight">{m.name}</p>
                 )}
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#fbc02d]/15 text-[#b8860b] flex-shrink-0">
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#2c261c]/10 text-[#b8860b] flex-shrink-0">
                   {m.image_count || 0} 张
                 </span>
               </div>
@@ -344,7 +344,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                   <>
                     <button
                       onClick={() => renameModule(m.id)}
-                      className="flex-1 py-2 rounded-xl bg-[#1a1a1a] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#fbc02d] hover:text-black transition-all"
+                      className="flex-1 py-2 rounded-xl bg-[#1a1a1a] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all"
                     >
                       保存
                     </button>
@@ -353,7 +353,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                         setEditingId(null);
                         setEditName('');
                       }}
-                      className="px-3 py-2 rounded-xl text-slate-400 hover:bg-[#f2f0e9] text-[10px] font-black"
+                      className="px-3 py-2 rounded-xl text-slate-400 hover:bg-[#e8d5b0] text-[10px] font-black"
                     >
                       取消
                     </button>
@@ -362,7 +362,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                   <>
                     <button
                       onClick={() => onSelect(m)}
-                      className="flex-1 py-2.5 rounded-xl bg-[#f2f0e9] text-[#1a1a1a] text-[10px] font-black uppercase tracking-widest group-hover:bg-[#1a1a1a] group-hover:text-[#fbc02d] transition-all"
+                      className="flex-1 py-2.5 rounded-xl bg-[#e8d5b0] text-[#1a1a1a] text-[10px] font-black uppercase tracking-widest group-hover:bg-[#1a1a1a] group-hover:text-white transition-all"
                     >
                       进入复习
                     </button>
@@ -371,7 +371,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
                         setEditingId(m.id);
                         setEditName(m.name);
                       }}
-                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-[#f2f0e9] hover:text-black transition-colors"
+                      className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:bg-[#e8d5b0] hover:text-black transition-colors"
                       title="重命名"
                     >
                       <Pencil size={14} />
@@ -409,7 +409,7 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
               </div>
               <button
                 onClick={() => setCreating(false)}
-                className="w-8 h-8 rounded-full bg-[#f2f0e9] hover:bg-[#e8e6dd] flex items-center justify-center"
+                className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center"
               >
                 <X size={16} />
               </button>
@@ -426,12 +426,12 @@ const ModuleList = ({ modules, loading, error, onRefresh, onSelect, onModulesCha
               }}
               placeholder="例如：资料分析公式"
               maxLength={80}
-              className="w-full bg-[#f2f0e9]/60 border border-transparent rounded-2xl py-4 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#fbc02d] mb-6"
+              className="w-full bg-[#e8d5b0]/60 border border-transparent rounded-2xl py-4 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428] mb-6"
             />
             <button
               onClick={createModule}
               disabled={!newName.trim() || busy}
-              className="w-full bg-[#1a1a1a] text-white font-black py-3 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs disabled:opacity-40"
+              className="w-full bg-[#1a1a1a] text-white font-black py-3 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs disabled:opacity-40"
             >
               {busy ? '创建中...' : '创建'}
             </button>
@@ -764,7 +764,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
         <div className="flex items-center space-x-3 min-w-0">
           <button
             onClick={onBack}
-            className="w-10 h-10 rounded-2xl bg-[#f2f0e9] hover:bg-[#e8e6dd] flex items-center justify-center flex-shrink-0"
+            className="w-10 h-10 rounded-2xl bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center flex-shrink-0"
             title="返回模块列表"
           >
             <ArrowLeft size={18} />
@@ -789,7 +789,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
           <button
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-[#fbc02d] px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#fbc02d] hover:text-black transition-all disabled:opacity-50"
+            className="inline-flex items-center space-x-2 bg-[#1a1a1a] text-white px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all disabled:opacity-50"
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
             <span>{uploading ? `上传 ${uploadProgress}` : '上传图片'}</span>
@@ -798,7 +798,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
             <>
               <button
                 onClick={() => setLightboxOpen(true)}
-                className="inline-flex items-center space-x-2 bg-[#f2f0e9] text-[#1a1a1a] px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#1a1a1a] hover:text-[#fbc02d] transition-all"
+                className="inline-flex items-center space-x-2 bg-[#e8d5b0] text-[#1a1a1a] px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#1a1a1a] hover:text-white transition-all"
                 title="放大镜预览"
               >
                 <Search size={14} />
@@ -819,7 +819,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
       {/* 主查看区（同时是拖拽放置区） */}
       <div
         className={`flex-1 min-h-[420px] bg-[#1a1a1a] rounded-[2.5rem] relative overflow-hidden flex flex-col select-none transition-all ${
-          dragOver ? 'ring-4 ring-[#fbc02d] ring-offset-2 ring-offset-[#f2f0e9]' : ''
+          dragOver ? 'ring-4 ring-[#6b5428] ring-offset-2 ring-offset-[#e8d5b0]' : ''
         }`}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -839,12 +839,12 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
           else go(1);
         }}
       >
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full blur-[100px] bg-[#fbc02d] opacity-20 pointer-events-none" />
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full blur-[100px] bg-[#2c261c] opacity-20 pointer-events-none" />
 
         {/* 拖拽悬浮提示：盖住整个查看区，pointer-events-none 保证 drop 事件仍落在父容器 */}
         {dragOver && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#1a1a1a]/85 backdrop-blur-sm pointer-events-none">
-            <div className="w-20 h-20 rounded-3xl bg-[#fbc02d] flex items-center justify-center text-black mb-4">
+            <div className="w-20 h-20 rounded-3xl bg-[#2c261c] flex items-center justify-center text-white mb-4">
               <Upload size={36} />
             </div>
             <p className="text-white text-lg font-black">松手即上传</p>
@@ -864,13 +864,13 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
             </div>
             <p className="text-white text-lg font-black">还没有图片</p>
             <p className="text-white/40 text-sm font-medium mt-2 mb-6 max-w-sm">
-              把图片<span className="text-[#fbc02d] font-bold">拖到这里</span>，或 Ctrl+V 粘贴截图，
+              把图片<span className="text-[#6b5428] font-bold">拖到这里</span>，或 Ctrl+V 粘贴截图，
               也可以点下面的按钮选文件。用左右键翻阅复习
             </p>
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="inline-flex items-center space-x-2 bg-[#fbc02d] text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 transition-all"
+              className="inline-flex items-center space-x-2 bg-[#2c261c] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 transition-all"
             >
               <Upload size={14} />
               <span>上传第一张</span>
@@ -882,7 +882,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
             <div className="flex-1 flex items-center justify-center p-6 md:p-10 relative min-h-0">
               <button
                 onClick={() => go(-1)}
-                className="absolute left-3 md:left-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#fbc02d] hover:text-black text-white flex items-center justify-center transition-all backdrop-blur-sm"
+                className="absolute left-3 md:left-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#2c261c] hover:text-white text-white flex items-center justify-center transition-all backdrop-blur-sm"
                 title="上一张 ←"
               >
                 <ChevronLeft size={22} />
@@ -891,7 +891,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
               <button
                 type="button"
                 onClick={() => setLightboxOpen(true)}
-                className="relative group max-w-full max-h-[min(62vh,640px)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+                className="relative group max-w-full max-h-[min(62vh,640px)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
                 title="点击进入放大预览"
               >
                 <CachedReviewImg
@@ -909,7 +909,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
 
               <button
                 onClick={() => go(1)}
-                className="absolute right-3 md:right-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#fbc02d] hover:text-black text-white flex items-center justify-center transition-all backdrop-blur-sm"
+                className="absolute right-3 md:right-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#2c261c] hover:text-white text-white flex items-center justify-center transition-all backdrop-blur-sm"
                 title="下一张 →"
               >
                 <ChevronRight size={22} />
@@ -942,13 +942,13 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
                       }}
                       maxLength={200}
                       disabled={renaming}
-                      className="flex-1 min-w-0 bg-white/10 border border-[#fbc02d]/40 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#fbc02d]"
+                      className="flex-1 min-w-0 bg-white/10 border border-[#6b5428]/40 rounded-xl px-3 py-2 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
                       placeholder="输入图片名称"
                     />
                     <button
                       onClick={saveRename}
                       disabled={renaming || !nameDraft.trim()}
-                      className="px-3 py-2 rounded-xl bg-[#fbc02d] text-black text-[10px] font-black uppercase tracking-widest hover:brightness-110 disabled:opacity-40"
+                      className="px-3 py-2 rounded-xl bg-[#2c261c] text-white text-[10px] font-black uppercase tracking-widest hover:brightness-110 disabled:opacity-40"
                     >
                       {renaming ? '...' : '保存'}
                     </button>
@@ -964,7 +964,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
                   <button
                     type="button"
                     onClick={startRename}
-                    className="group flex items-center gap-2 min-w-0 max-w-[70%] text-left hover:text-[#fbc02d] transition-colors"
+                    className="group flex items-center gap-2 min-w-0 max-w-[70%] text-left hover:text-[#6b5428] transition-colors"
                     title="点击修改名称"
                   >
                     <span className="truncate">
@@ -976,14 +976,14 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
                     />
                   </button>
                 )}
-                <span className="tabular-nums text-[#fbc02d] font-black flex-shrink-0">
+                <span className="tabular-nums text-[#6b5428] font-black flex-shrink-0">
                   {index + 1} / {images.length}
                 </span>
               </div>
 
               <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <div
-                  className="h-full bg-[#fbc02d] transition-all duration-300"
+                  className="h-full bg-[#2c261c] transition-all duration-300"
                   style={{ width: `${((index + 1) / images.length) * 100}%` }}
                 />
               </div>
@@ -995,7 +995,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
                     onClick={() => setIndex(i)}
                     className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-all ${
                       i === index
-                        ? 'border-[#fbc02d] ring-2 ring-[#fbc02d]/30 scale-105'
+                        ? 'border-[#6b5428] ring-2 ring-[#6b5428]/30 scale-105'
                         : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
@@ -1245,7 +1245,7 @@ const ImageLightbox = ({ url, title, index, total, onClose, onPrev, onNext }) =>
           <button
             type="button"
             onClick={resetView}
-            className="min-w-[3.25rem] h-9 px-2 rounded-xl bg-white/10 text-[#fbc02d] text-xs font-black tabular-nums hover:bg-white/15"
+            className="min-w-[3.25rem] h-9 px-2 rounded-xl bg-white/10 text-[#6b5428] text-xs font-black tabular-nums hover:bg-white/15"
             title="适应窗口 (0)"
           >
             {pct}%
@@ -1314,7 +1314,7 @@ const ImageLightbox = ({ url, title, index, total, onClose, onPrev, onNext }) =>
                 e.stopPropagation();
                 onPrev();
               }}
-              className="absolute left-3 md:left-5 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#fbc02d] hover:text-black text-white flex items-center justify-center backdrop-blur-sm"
+              className="absolute left-3 md:left-5 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#2c261c] hover:text-white text-white flex items-center justify-center backdrop-blur-sm"
               title="上一张 ←"
             >
               <ChevronLeft size={22} />
@@ -1325,7 +1325,7 @@ const ImageLightbox = ({ url, title, index, total, onClose, onPrev, onNext }) =>
                 e.stopPropagation();
                 onNext();
               }}
-              className="absolute right-3 md:right-5 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#fbc02d] hover:text-black text-white flex items-center justify-center backdrop-blur-sm"
+              className="absolute right-3 md:right-5 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-[#2c261c] hover:text-white text-white flex items-center justify-center backdrop-blur-sm"
               title="下一张 →"
             >
               <ChevronRight size={22} />

@@ -8,13 +8,13 @@ import { createPortal } from 'react-dom';
 import {
   Send, Square, Plus, MessageSquare, Loader2, RefreshCw,
   Brain, Smartphone, CalendarClock, Terminal, X, Image as ImageIcon, Trash2,
-  PenTool, Target, ChevronRight,
-} from 'lucide-react';
+  PenTool, Target, ChevronRight, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink } from 'lucide-react';
 
 import { api } from '../api.js';
 import HermesGateway from './gateway.js';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
+import QuotaBar from './QuotaBar.jsx';
 
 // 会话来源 → 展示分组
 const SOURCE_META = {
@@ -51,6 +51,24 @@ const stripEmbeddedImages = (text) =>
 const SYSTEM_NOTICE_RE = /^\s*\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]/;
 const isSystemInjectedNotice = (text) => SYSTEM_NOTICE_RE.test(String(text || ''));
 
+const hydrateHistory = (raw) =>
+  (raw || [])
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .filter((m) => !isSystemInjectedNotice(m.text))
+    .map((m) => {
+      const rawText = String(m.text || '');
+      const images = extractEmbeddedImages(rawText);
+      return {
+        id: uid(), role: m.role,
+        content: images.length > 0 ? stripEmbeddedImages(rawText) : rawText,
+        streaming: false, tools: [], thinking: '', images,
+      };
+    })
+    // 纯图/空正文的用户气泡也要留着，否则「我发过」在刷新后会消失
+    .filter((m) => m.content || (m.images?.length ?? 0) > 0);
+
+const eventText = (ev) => ev?.payload?.text || ev?.payload?.rendered || '';
+
 // 会话列表拉取上限。gateway 侧 session.list 会给每条会话跑一次 preview 子查询
 // （50 条约 77ms，全量 124 条 200ms+），条数直接决定首屏等待时间。
 // 40 条足够覆盖最近的对话，再往前翻的需求很少。
@@ -81,6 +99,26 @@ const writeCachedSessions = (list) => {
 // 带太多会把 prompt 撑爆，也会让模型的注意力散掉。
 const MAX_DRAFT_ATTACH = 4;
 
+const IS_STANDALONE =
+  typeof window !== 'undefined' &&
+  (window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches
+    || window.navigator.standalone === true);
+
+const osFullscreenEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+const requestOsFullscreen = () => {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!req) return Promise.reject(new Error('no api'));
+  return Promise.resolve(req.call(el, { navigationUI: 'hide' }));
+};
+
+const exitOsFullscreen = () => {
+  const exit = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!exit || !osFullscreenEl()) return Promise.resolve();
+  return Promise.resolve(exit.call(document));
+};
+
 const fmtSec = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -91,7 +129,19 @@ const clip = (text, max) => {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 };
 
-const HermesChat = ({ seed, onSeedConsumed }) => {
+// 只放大对话正文（表格/Markdown），不动顶栏和浏览器缩放。
+// 整数百分比，避开 1.15 这类浮点对不上 localStorage 读回来的问题。
+const FONT_KEY = 'hermes.fontScale';
+const FONT_STEPS = [85, 100, 115, 130, 150, 175];
+const readFontScale = () => {
+  try {
+    const v = Number(localStorage.getItem(FONT_KEY));
+    if (FONT_STEPS.includes(v)) return v;
+  } catch { /* 隐私模式 */ }
+  return 100;
+};
+
+const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscreen, headerExtra }) => {
   const gwRef = useRef(null);
   const [connState, setConnState] = useState('idle');
   const [sessions, setSessions] = useState(() => readCachedSessions());
@@ -106,13 +156,22 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
   const [banner, setBanner] = useState('');
   const [showThinking, setShowThinking] = useState(false);
   const [pendingImages, setPendingImages] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1440);
   const [dragOver, setDragOver] = useState(false);
+  const [osFs, setOsFs] = useState(() => !!osFullscreenEl());
+  const [fontScale, setFontScale] = useState(readFontScale);
   // 「带上错题 + 草稿纸」用的：practiceRuns 是最近交过卷的几场练习
   const [showPicker, setShowPicker] = useState(false);
   const [practiceRuns, setPracticeRuns] = useState([]);
+  // 「带上真题复盘」：把某场模考的录屏行为报告塞进输入框，接着追问
+  const [showReview, setShowReview] = useState(false);
+  const [examReviews, setExamReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
   const [runsLoading, setRunsLoading] = useState(false);
   const [attaching, setAttaching] = useState(false);
+  const [showUploads, setShowUploads] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState([]);
+  const [uploadsLoading, setUploadsLoading] = useState(false);
 
   const scrollRef = useRef(null);
   const stickToBottom = useRef(true);
@@ -123,9 +182,17 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
   // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
+  useEffect(() => {
+    try { localStorage.setItem(FONT_KEY, String(fontScale)); }
+    catch { /* 隐私模式 */ }
+  }, [fontScale]);
   // busy 是 state，setBusy 要等下一次渲染才拦得住第二次点击。
   // 图片上传是 await，中间那几秒只能靠同步的 ref 挡住连点
   const sendingRef = useRef(false);
+  // 用来区分「第一次连上」和「断线重连」。重连后必须再 resume，
+  // 否则 Hermes 的事件还绑在已经死掉的那条 WS 上，界面就会一直「思考中」。
+  const openedOnceRef = useRef(false);
+  const [waitSec, setWaitSec] = useState(0);
 
   // ---------- 消息辅助 ----------
   const appendAssistantDelta = useCallback((text) => {
@@ -175,14 +242,23 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     });
   }, []);
 
-  const finishStreaming = useCallback(() => {
+  const finishStreaming = useCallback((finalText = '') => {
     setMessages((prev) => {
       const last = prev[prev.length - 1];
-      if (!last || !last.streaming) return prev;
+      if (!last || !last.streaming) {
+        // 流式 delta 全程没到、只来了一条 complete（长上下文卡流时很常见）
+        if (finalText) {
+          return [...prev, {
+            id: uid(), role: 'assistant', content: finalText,
+            streaming: false, tools: [], thinking: '',
+          }];
+        }
+        return prev;
+      }
       const copy = prev.slice(0, -1);
       // 把仍标记为运行中的工具收尾，避免一直转圈
       const tools = (last.tools || []).map((t) => (t.done ? t : { ...t, done: true }));
-      copy.push({ ...last, streaming: false, tools });
+      copy.push({ ...last, content: last.content || finalText, streaming: false, tools });
       return copy;
     });
     setBusy(false);
@@ -213,16 +289,28 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
         const t = ev.payload?.text;
         if (t) appendAssistantDelta(t);
       }),
+      // thinking.delta 是转圈状态文案，不是推理过程（官方 desktop 直接忽略）
       gw.on('thinking.delta', (ev) => {
         const t = ev.payload?.text;
-        if (t) appendThinking(t);
+        if (t) setStatus(String(t));
       }),
       gw.on('reasoning.delta', (ev) => {
         const t = ev.payload?.text;
         if (t) appendThinking(t);
       }),
-      gw.on('message.start', () => setStatus('生成中')),
-      gw.on('message.complete', finishStreaming),
+      gw.on('message.start', () => {
+        setBusy(true);
+        setStatus('生成中');
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'assistant' && last.streaming) return prev;
+          return [...prev, {
+            id: uid(), role: 'assistant', content: '',
+            streaming: true, tools: [], thinking: '',
+          }];
+        });
+      }),
+      gw.on('message.complete', (ev) => finishStreaming(eventText(ev))),
 
       gw.on('tool.start', (ev) => {
         const p = ev.payload || {};
@@ -292,6 +380,16 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!busy) {
+      setWaitSec(0);
+      return undefined;
+    }
+    const t0 = Date.now();
+    const id = setInterval(() => setWaitSec(Math.floor((Date.now() - t0) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
+
   // ---------- 会话列表 ----------
   const deleteSession = useCallback(async (e, sessionId) => {
     e.stopPropagation();
@@ -344,6 +442,71 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     return [...groups.values()].sort((a, b) => a.meta.order - b.meta.order);
   }, [sessions]);
 
+  const applyResume = useCallback((res, storedId) => {
+    sidRef.current = res.session_id;
+    setSid(res.session_id);
+    if (storedId) setActiveStoredId(storedId);
+    const hydrated = hydrateHistory(res.messages);
+    const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
+    const inflightUser = String(res.inflight?.user || '').trim();
+
+    // 回合还在跑时，当前这句用户话只在 inflight 里，还没写进 history。
+    // 重连若直接用 history 覆盖，会把本地刚发出去的气泡抹掉。
+    setMessages((prev) => {
+      const lastLocalUser = [...prev].reverse().find((m) => m.role === 'user');
+      const pending = inflightUser
+        || (lastLocalUser && lastLocalUser.content !== lastHydratedUser?.content
+          ? lastLocalUser.content
+          : '');
+      const next = [...hydrated];
+      if (pending && pending !== lastHydratedUser?.content) {
+        next.push({
+          id: lastLocalUser?.id || uid(),
+          role: 'user',
+          content: pending,
+          streaming: false, tools: [], thinking: '',
+          images: lastLocalUser?.images || [],
+        });
+      }
+      if (res.running) {
+        const last = next[next.length - 1];
+        if (!(last && last.role === 'assistant' && last.streaming)) {
+          next.push({
+            id: uid(), role: 'assistant',
+            content: res.inflight?.assistant || '',
+            streaming: true, tools: [], thinking: '',
+          });
+        }
+      }
+      return next;
+    });
+    if (res.running) {
+      setBusy(true);
+      setStatus('生成中');
+    } else {
+      setBusy(false);
+      setStatus('');
+    }
+    stickToBottom.current = true;
+  }, []);
+
+  // WS 断过再连上：必须把当前存档 resume 回去，事件才会重新绑到这条连接。
+  // 第一次 open 由上面的 connect() 处理，这里只接重连。
+  useEffect(() => {
+    if (connState !== 'open') return;
+    if (!openedOnceRef.current) {
+      openedOnceRef.current = true;
+      return;
+    }
+    const gw = gwRef.current;
+    const stored = activeStoredIdRef.current;
+    if (!gw || !stored) return;
+    setStatus('重连会话');
+    gw.request('session.resume', { session_id: stored, cols: 100 })
+      .then((res) => applyResume(res, stored))
+      .catch((err) => setBanner(`重连会话失败：${err.message}`));
+  }, [connState, applyResume]);
+
   const openSession = useCallback(async (stored) => {
     const gw = gwRef.current;
     if (!gw || busy) return;
@@ -351,32 +514,12 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     setStatus('载入会话');
     try {
       const res = await gw.request('session.resume', { session_id: stored.id, cols: 100 });
-      sidRef.current = res.session_id;
-      setSid(res.session_id);
-      setActiveStoredId(stored.id);
-      const hydrated = (res.messages || [])
-        // tool 角色的历史条目没有可读文本，跳过；只还原对话本身
-        .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.text)
-        // 系统注入的运行时通知（后台子任务完成回灌等）以 user 角色进历史，
-        // 但那不是用户说的话，换浏览器 resume 时会整段冒出来。模型需要它，界面不需要。
-        .filter((m) => !isSystemInjectedNotice(m.text))
-        .map((m) => {
-          const raw = String(m.text);
-          const images = extractEmbeddedImages(raw);
-          return {
-            id: uid(), role: m.role,
-            content: images.length > 0 ? stripEmbeddedImages(raw) : raw,
-            streaming: false, tools: [], thinking: '', images,
-          };
-        });
-      setMessages(hydrated);
-      stickToBottom.current = true;
+      applyResume(res, stored.id);
     } catch (err) {
       setBanner(`打开会话失败：${err.message}`);
-    } finally {
       setStatus('');
     }
-  }, [busy]);
+  }, [busy, applyResume]);
 
   const newSession = useCallback(async () => {
     const gw = gwRef.current;
@@ -619,15 +762,123 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     }
   }, []);
 
-  // AI 练题交卷后点「让 Hermes 复盘错题」会把 sessionId 递过来，进页面就装好上下文
+  // ---------- 带上某场真题复盘 ----------
+  const loadExamReviews = useCallback(async () => {
+    setReviewsLoading(true);
+    try {
+      const list = await api('/api/exam-analyses');
+      setExamReviews((Array.isArray(list) ? list : []).filter((r) => r.status === 'done'));
+    } catch (err) {
+      setBanner(`拉取复盘记录失败：${err.message}`);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, []);
+
+  const openReviewPicker = useCallback(() => {
+    setShowReview(true);
+    loadExamReviews();
+  }, [loadExamReviews]);
+
+  const attachExamReview = useCallback(async (id) => {
+    setAttaching(true);
+    setBanner('');
+    try {
+      const d = await api(`/api/exam-analyses/${id}`);
+      const md = d?.result?.markdown;
+      if (!md) {
+        setBanner('这场复盘还没有生成报告');
+        return;
+      }
+      const st = d.result?.stats || {};
+      const prompt = [
+        `下面是我 ${d.exam_date || ''} 那场《${d.title}》模考的录屏行为复盘，全程 ${Math.round((d.duration_sec || 0) / 60)} 分钟。`,
+        st.questions ? `录屏里识别到 ${st.questions} 道题，其中 ${st.changed || 0} 题改过答案，有 ${st.idle_count || 0} 处明显停滞。` : '',
+        '',
+        '=== 复盘报告开始 ===',
+        md,
+        '=== 复盘报告结束 ===',
+        '',
+        '请基于这份报告跟我深入聊，不要复述报告里已经写过的内容。我想知道：',
+        '1. 这些毛病里哪一个对分数的影响最大，为什么。',
+        '2. 针对那个毛病，接下来一周我每天该做什么具体训练。',
+      ].filter(Boolean).join('\n');
+      setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
+      setShowReview(false);
+      stickToBottom.current = true;
+      setTimeout(() => taRef.current?.focus(), 0);
+    } catch (err) {
+      setBanner(`带复盘失败：${err.message}`);
+    } finally {
+      setAttaching(false);
+    }
+  }, []);
+
+  const UPLOAD_ROOT = '/home/ubuntu/ExamSystem/data/uploads';
+
+  const attachUpload = useCallback((file) => {
+    const date = file?.date;
+    const typ = file?.type || 'pdf';
+    const name = file?.name;
+    if (!date || !name) return;
+    const abs = `${UPLOAD_ROOT}/${date}/${typ}/${name}`;
+    const prompt = [
+      `复盘这份资料上传的练习卷：${name}`,
+      '',
+      '绝对路径已经写死，直接打开，禁止 search_files，禁止 ls 其他目录，禁止猜 exam-hermes / exam-system / gongkao_training。',
+      abs,
+      '',
+      '立刻用 python3 + fitz 抽文字，按「你的答案：」「正确答案：」对答案。',
+      "先 skill_view('gd-gongkao-coach') 和 skill_view('exam-coaching-gd-provincial')，按里面的三段式逐题复盘。",
+      '复盘完用 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py 的 record() 写入 /home/ubuntu/ExamSystem/data/exam.db。',
+    ].join('\n');
+    setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
+    setShowUploads(false);
+    stickToBottom.current = true;
+    setTimeout(() => taRef.current?.focus(), 0);
+  }, []);
+
+  const loadUploads = useCallback(async () => {
+    setUploadsLoading(true);
+    try {
+      const data = await api('/api/uploads');
+      const items = [];
+      for (const d of data?.dates || []) {
+        for (const t of ['pdf', '解析']) {
+          for (const f of d[t] || []) {
+            items.push({ date: d.date, type: t, name: f.name, size: f.size, mtime: f.mtime });
+          }
+        }
+      }
+      items.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+      setUploadFiles(items.slice(0, 20));
+    } catch (err) {
+      setBanner(`拉取上传资料失败：${err.message}`);
+    } finally {
+      setUploadsLoading(false);
+    }
+  }, []);
+
+  const openUploadPicker = useCallback(() => {
+    setShowUploads(true);
+    loadUploads();
+  }, [loadUploads]);
+
+  // AI 练题交卷后点「让 Hermes 复盘错题」、资料上传点「让 Hermes 复盘」会把上下文递过来
   const seededRef = useRef(null);
   useEffect(() => {
-    const key = seed?.sessionId ? `${seed.sessionId}:${seed.nonce}` : null;
+    if (!seed?.nonce) return;
+    const key = seed.sessionId
+      ? `p:${seed.sessionId}:${seed.nonce}`
+      : seed.upload
+        ? `u:${seed.upload.date}:${seed.upload.name}:${seed.nonce}`
+        : null;
     if (!key || seededRef.current === key) return;
     seededRef.current = key;
     onSeedConsumed?.();
-    attachPractice(seed.sessionId);
-  }, [seed, attachPractice, onSeedConsumed]);
+    if (seed.sessionId) attachPractice(seed.sessionId);
+    else if (seed.upload) attachUpload(seed.upload);
+  }, [seed, attachPractice, attachUpload, onSeedConsumed]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -702,6 +953,32 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
   }, [messages, status]);
 
+  useEffect(() => {
+    const sync = () => setOsFs(!!osFullscreenEl());
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
+    };
+  }, []);
+
+  const toggleOsFullscreen = () => {
+    if (IS_STANDALONE) return;
+    if (osFullscreenEl()) {
+      exitOsFullscreen().catch(() => {});
+      return;
+    }
+    const enabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+    if (!enabled) {
+      setBanner('iOS Edge 网页关不掉地址栏。请用 Safari 打开本站 → 点分享 → 添加到主屏幕，从桌面图标进就没有顶栏。');
+      return;
+    }
+    requestOsFullscreen().catch(() => {
+      setBanner('浏览器拒绝了全屏。请用 Safari 打开 → 分享 → 添加到主屏幕。');
+    });
+  };
+
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -716,10 +993,21 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
   }[connState] || 'bg-[#bbb]';
 
   return (
-    <div className="flex h-full gap-4 animate-fadeIn overflow-hidden">
+    <div className={`flex h-full overflow-hidden ${fullscreen ? 'relative gap-0' : 'gap-4 animate-fadeIn'}`}>
       {/* ── 会话列表 ── */}
+      {sidebarOpen && fullscreen && (
+        <button
+          type="button"
+          aria-label="关闭会话列表"
+          onClick={() => setSidebarOpen(false)}
+          className="absolute inset-0 z-10 bg-black/25"
+        />
+      )}
       {sidebarOpen && (
-        <div className="w-64 shrink-0 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden">
+        <div className={fullscreen
+          ? 'absolute z-20 inset-y-0 left-0 w-72 flex flex-col bg-white border-r border-black/10 shadow-2xl overflow-hidden'
+          : 'w-64 shrink-0 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden'}
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-black/5">
             <span className="text-[10px] font-black uppercase tracking-widest text-[#999]">会话</span>
             <div className="flex items-center space-x-1">
@@ -735,7 +1023,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
               <button
                 onClick={() => setSidebarOpen(false)}
                 title="收起"
-                className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors lg:hidden"
+                className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
               >
                 <X size={13} />
               </button>
@@ -743,9 +1031,12 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
           </div>
 
           <button
-            onClick={newSession}
+            onClick={() => {
+              newSession();
+              if (fullscreen) setSidebarOpen(false);
+            }}
             disabled={busy}
-            className="mx-3 mt-3 flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-[#1a1a1a] text-[#fbc02d] font-bold text-xs disabled:opacity-40 hover:opacity-90 transition-opacity"
+            className="mx-3 mt-3 flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-[#1a1a1a] text-white font-bold text-xs disabled:opacity-40 hover:opacity-90 transition-opacity"
           >
             <Plus size={14} />
             <span>新建会话</span>
@@ -773,18 +1064,21 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                         key={s.id}
                         className={`group relative flex items-center rounded-xl transition-colors ${
                           activeStoredId === s.id
-                            ? 'bg-[#1a1a1a] text-[#fbc02d]'
+                            ? 'bg-[#1a1a1a] text-white'
                             : 'hover:bg-black/5 text-[#444]'
                         } ${busy ? 'opacity-50 pointer-events-none' : ''}`}
                       >
                         <button
-                          onClick={() => openSession(s)}
+                          onClick={() => {
+                            openSession(s);
+                            if (fullscreen) setSidebarOpen(false);
+                          }}
                           disabled={busy}
                           title={s.title || s.id}
                           className="flex-1 min-w-0 text-left px-2.5 py-2"
                         >
                           <div className="text-xs font-bold truncate pr-5">{s.title || '(无标题)'}</div>
-                          <div className={`text-[10px] font-bold ${activeStoredId === s.id ? 'text-[#fbc02d]/60' : 'text-[#bbb]'}`}>
+                          <div className={`text-[10px] font-bold ${activeStoredId === s.id ? 'text-white/60' : 'text-[#bbb]'}`}>
                             {s.message_count} 条
                           </div>
                         </button>
@@ -793,7 +1087,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                           title="删除会话"
                           className={`absolute right-1.5 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${
                             activeStoredId === s.id
-                              ? 'text-[#fbc02d]/60 hover:text-[#fbc02d]'
+                              ? 'text-white/60 hover:text-white'
                               : 'text-[#bbb] hover:text-[#ef5350]'
                           }`}
                         >
@@ -814,7 +1108,9 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className="flex-1 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden min-w-0"
+        className={`flex-1 flex flex-col overflow-hidden min-w-0 ${
+          fullscreen ? 'rounded-none border-0 bg-white' : 'rounded-3xl bg-white/70 border border-black/5'
+        }`}
       >
         <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">
           <div className="flex items-center space-x-2 min-w-0">
@@ -827,19 +1123,45 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                 <MessageSquare size={14} />
               </button>
             )}
+            {onToggleFullscreen && (
+              <button
+                onClick={onToggleFullscreen}
+                title={fullscreen ? '退出全屏，显示导航' : '全屏阅读'}
+                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors shrink-0 ${
+                  fullscreen ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]'
+                }`}
+              >
+                {fullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                <span>{fullscreen ? '退出全屏' : '全屏'}</span>
+              </button>
+            )}
+            {!IS_STANDALONE && (
+              <button
+                onClick={toggleOsFullscreen}
+                title={osFs ? '退出浏览器全屏' : '隐藏浏览器地址栏'}
+                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors shrink-0 ${
+                  osFs ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]'
+                }`}
+              >
+                {osFs ? <Shrink size={11} /> : <Expand size={11} />}
+                <span>{osFs ? '退出顶栏' : '隐藏顶栏'}</span>
+              </button>
+            )}
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${connColor}`} />
             <span className="text-[10px] font-black uppercase tracking-widest text-[#999] shrink-0">
               {connLabel}
             </span>
             {status && (
-              <span className="flex items-center space-x-1.5 text-[10px] font-bold text-[#fbc02d] truncate">
+              <span className="flex items-center space-x-1.5 text-[10px] font-bold text-[#6b5428] truncate">
                 <Loader2 size={10} className="animate-spin shrink-0" />
                 <span className="truncate">{status}</span>
               </span>
             )}
           </div>
 
-          <div className="flex items-center space-x-2 shrink-0">
+          <div className="flex items-center space-x-1.5 shrink-0 overflow-x-auto [scrollbar-width:none]">
+            {headerExtra}
+            <QuotaBar />
             <button
               onClick={openPicker}
               disabled={attaching}
@@ -849,17 +1171,53 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
               {attaching
                 ? <Loader2 size={11} className="animate-spin" />
                 : <PenTool size={11} />}
-              <span>错题草稿</span>
+              <span className={fullscreen ? 'hidden' : ''}>错题草稿</span>
             </button>
+            <button
+              onClick={openUploadPicker}
+              disabled={attaching}
+              title="带上资料上传里的练习卷"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+            >
+              <Upload size={11} />
+              <span className={fullscreen ? 'hidden' : ''}>资料上传</span>
+            </button>
+            <button
+              onClick={openReviewPicker}
+              disabled={attaching}
+              title="带上某场模考的录屏行为复盘"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+            >
+              <ScanSearch size={11} />
+              <span className={fullscreen ? 'hidden' : ''}>真题复盘</span>
+            </button>
+            <div className="flex items-center rounded-lg overflow-hidden">
+              <button
+                onClick={() => setFontScale((v) => FONT_STEPS[Math.max(0, FONT_STEPS.indexOf(v) - 1)])}
+                disabled={fontScale === FONT_STEPS[0]}
+                title={`缩小正文（现在 ${fontScale}%）`}
+                className="px-1.5 py-1 rounded-lg text-[10px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
+              >
+                A-
+              </button>
+              <button
+                onClick={() => setFontScale((v) => FONT_STEPS[Math.min(FONT_STEPS.length - 1, FONT_STEPS.indexOf(v) + 1)])}
+                disabled={fontScale === FONT_STEPS[FONT_STEPS.length - 1]}
+                title={`放大正文（现在 ${fontScale}%）`}
+                className="px-1.5 py-1 rounded-lg text-[12px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
+              >
+                A+
+              </button>
+            </div>
             <button
               onClick={() => setShowThinking((v) => !v)}
               title="显示/隐藏思考过程"
               className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
-                showThinking ? 'bg-[#1a1a1a] text-[#fbc02d]' : 'text-[#999] hover:bg-black/5'
+                showThinking ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5'
               }`}
             >
               <Brain size={11} />
-              <span>思考</span>
+              <span className={fullscreen ? 'hidden' : ''}>思考</span>
             </button>
           </div>
         </div>
@@ -873,10 +1231,11 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
           </div>
         )}
 
-        <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
+          <div className="px-5 py-4 space-y-4" style={{ zoom: fontScale / 100 }}>
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
-              <div className="w-12 h-12 rounded-2xl bg-[#1a1a1a] flex items-center justify-center text-[#fbc02d] mb-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#1a1a1a] flex items-center justify-center text-white mb-3">
                 <MessageSquare size={20} />
               </div>
               <p className="text-sm font-black tracking-tight text-[#1a1a1a]">跟 Hermes 聊</p>
@@ -902,7 +1261,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
               ) : (
                 <div className="max-w-[92%]">
                   <div className="flex items-center space-x-1.5 mb-1.5">
-                    <div className="w-4 h-4 rounded-md bg-[#fbc02d] flex items-center justify-center text-[9px] font-black text-[#1a1a1a]">
+                    <div className="w-4 h-4 rounded-md bg-[#2c261c] flex items-center justify-center text-[9px] font-black text-white">
                       ⚕
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#bbb]">Hermes</span>
@@ -927,19 +1286,29 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                   {m.streaming && !m.content && (m.tools?.length ?? 0) === 0 && (
                     <div className="flex items-center space-x-2 text-[11px] text-[#999]">
                       <Loader2 size={11} className="animate-spin" />
-                      <span>思考中…</span>
+                      <span>
+                        {waitSec >= 90
+                          ? `还在等模型，已 ${fmtSec(waitSec)}。上下文很大时可能几分钟才开始吐字`
+                          : waitSec >= 15
+                            ? `思考中… ${fmtSec(waitSec)}`
+                            : '思考中…'}
+                      </span>
                     </div>
                   )}
                 </div>
               )}
             </div>
           ))}
+          </div>
         </div>
 
         {/* ── 输入区 ── */}
-        <div className={`px-5 py-3 border-t transition-colors ${
-          dragOver ? 'border-[#fbc02d] bg-[#fbc02d]/10' : 'border-black/5'
-        }`}>
+        <div
+          className={`px-5 py-3 border-t transition-colors ${
+            dragOver ? 'border-[#6b5428] bg-[#2c261c]/10' : 'border-black/5'
+          }`}
+          style={fullscreen ? { paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' } : undefined}
+        >
           {pendingImages.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingImages.map((img) => (
@@ -967,7 +1336,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
               placeholder={connState === 'open'
                 ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，Shift+Enter 换行，图片可粘贴或拖入')
                 : '连接中…先写，连上了再发'}
-              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#fbc02d] transition-colors"
+              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
             />
             {busy ? (
               <button
@@ -982,21 +1351,135 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                 onClick={send}
                 disabled={connState !== 'open' || (!input.trim() && pendingImages.length === 0)}
                 title="发送"
-                className="p-3 rounded-2xl bg-[#1a1a1a] text-[#fbc02d] disabled:opacity-30 hover:opacity-90 transition-opacity shrink-0"
+                className="p-3 rounded-2xl bg-[#1a1a1a] text-white disabled:opacity-30 hover:opacity-90 transition-opacity shrink-0"
               >
                 <Send size={18} />
               </button>
             )}
           </div>
 
-          <p className="mt-1.5 px-1 text-[10px] text-[#ccc] flex items-center space-x-1">
-            <ImageIcon size={9} />
-            <span>Hermes 拥有终端与文件权限，请谨慎发送指令</span>
-          </p>
+          {!fullscreen && (
+            <p className="mt-1.5 px-1 text-[10px] text-[#ccc] flex items-center space-x-1">
+              <ImageIcon size={9} />
+              <span>Hermes 拥有终端与文件权限，请谨慎发送指令</span>
+            </p>
+          )}
         </div>
       </div>
       {/* 练习记录选择器。portal 到 body：外层 <main> 带 backdrop-blur，
           在它内部写 fixed inset-0 只能铺满 main、铺不满屏幕 */}
+      {showReview && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={() => setShowReview(false)}
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+              <div className="flex items-center space-x-2">
+                <ScanSearch size={15} className="text-[#6b5428]" />
+                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
+                  挑一场模考复盘
+                </span>
+              </div>
+              <button
+                onClick={() => setShowReview(false)}
+                className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {reviewsLoading && examReviews.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
+              )}
+              {!reviewsLoading && examReviews.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
+                  还没有处理完的复盘。<br />去「真题复盘」传一场模考的录屏和答案 PDF。
+                </p>
+              )}
+              {examReviews.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => attachExamReview(r.id)}
+                  disabled={attaching}
+                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group disabled:opacity-50"
+                >
+                  <div className="text-xs font-black italic truncate">{r.title}</div>
+                  <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
+                    {r.exam_date} · {Math.round((r.duration_sec || 0) / 60)} 分钟
+                    {r.stats?.questions ? ` · ${r.stats.questions} 题` : ''}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-black/5">
+              <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
+                会把整份复盘报告装进输入框，你可以再补一句想问的再发。
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
+      {showUploads && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={() => setShowUploads(false)}
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+              <div className="flex items-center space-x-2">
+                <Upload size={15} className="text-[#6b5428]" />
+                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
+                  挑一份上传资料复盘
+                </span>
+              </div>
+              <button
+                onClick={() => setShowUploads(false)}
+                className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {uploadsLoading && uploadFiles.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
+              )}
+              {!uploadsLoading && uploadFiles.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
+                  还没有上传资料。<br />去「资料上传」丢一份练习 PDF。
+                </p>
+              )}
+              {uploadFiles.map((f) => (
+                <button
+                  key={`${f.date}/${f.type}/${f.name}`}
+                  onClick={() => attachUpload(f)}
+                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group"
+                >
+                  <div className="text-xs font-black italic truncate">{f.name}</div>
+                  <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
+                    {f.date} · {f.type}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-black/5">
+              <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
+                会把这份文件的绝对路径装进输入框，Hermes 直接打开，不再满盘搜索。
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
       {showPicker && createPortal(
         <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
           <button
@@ -1008,7 +1491,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
           <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
               <div className="flex items-center space-x-2">
-                <Target size={15} className="text-[#fbc02d]" />
+                <Target size={15} className="text-[#6b5428]" />
                 <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
                   挑一场练习来复盘
                 </span>
@@ -1046,7 +1529,7 @@ const HermesChat = ({ seed, onSeedConsumed }) => {
                   key={r.id}
                   onClick={() => attachPractice(r.id)}
                   disabled={attaching}
-                  className="w-full text-left px-4 py-3 rounded-2xl border border-black/5 hover:border-[#fbc02d] hover:bg-[#fffdf5] transition-colors flex items-center gap-3 disabled:opacity-50"
+                  className="w-full text-left px-4 py-3 rounded-2xl border border-black/5 hover:border-[#6b5428] hover:bg-[#f4e6c8] transition-colors flex items-center gap-3 disabled:opacity-50"
                 >
                   <span className="flex-1 min-w-0">
                     <span className="block text-xs font-black truncate">{r.category || '未命名批次'}</span>

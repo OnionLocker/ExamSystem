@@ -5,7 +5,7 @@ export const FORMULA_GROUPS = [
   {
     id: 'data',
     name: '资料分析',
-    color: '#fbc02d',
+    color: '#8d7348',
     sections: [
       {
         title: '基期量',

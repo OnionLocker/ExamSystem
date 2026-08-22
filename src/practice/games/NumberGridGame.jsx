@@ -15,7 +15,7 @@ const STORAGE_KEY = 'numeric_games_number_grid_v1';
 const PENALTY_MS = 1000; // 点错惩罚 1 秒
 
 const SIZES = [
-  { n: 5, label: '5 × 5', desc: '标准训练', hintColor: '#fbc02d' },
+  { n: 5, label: '5 × 5', desc: '标准训练', hintColor: '#8d7348' },
   { n: 6, label: '6 × 6', desc: '高压挑战', hintColor: '#ff6b6b' },
   { n: 7, label: '7 × 7', desc: '进阶压缩', hintColor: '#a855f7' },
   { n: 8, label: '8 × 8', desc: '快速搜索', hintColor: '#3b82f6' },
@@ -163,7 +163,7 @@ const NumberGridGame = ({ onBack }) => {
       </div>
 
       {/* 规格选择 */}
-      <div className="bg-white rounded-[2rem] p-5 border border-[#f2f0e9]">
+      <div className="bg-white rounded-[2rem] p-5 border border-[#e8d5b0]">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-3">
           选择规格
         </p>
@@ -183,7 +183,7 @@ const NumberGridGame = ({ onBack }) => {
                 className={`p-3 rounded-2xl border-2 transition-all text-left ${
                   active
                     ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-                    : 'border-[#f2f0e9] bg-white hover:border-slate-300'
+                    : 'border-[#e8d5b0] bg-white hover:border-slate-300'
                 } ${state === 'playing' ? 'opacity-40 cursor-not-allowed' : ''}`}
               >
                 <p className="text-sm font-black italic">{s.label}</p>
@@ -196,7 +196,7 @@ const NumberGridGame = ({ onBack }) => {
                 </p>
                 <p
                   className={`text-[10px] font-black tabular-nums mt-2 ${
-                    active ? 'text-[#fbc02d]' : 'text-slate-400'
+                    active ? 'text-white' : 'text-slate-400'
                   }`}
                 >
                   最佳 {fmtTime(st?.best)}
@@ -209,7 +209,7 @@ const NumberGridGame = ({ onBack }) => {
 
       {/* 游戏区 */}
       <div className="relative isolate px-1 py-3 md:px-4 md:py-5">
-        <div className="absolute left-8 top-6 h-32 w-32 rounded-full bg-[#fbc02d]/20 blur-3xl pointer-events-none" />
+        <div className="absolute left-8 top-6 h-32 w-32 rounded-full bg-[#2c261c]/10 blur-3xl pointer-events-none" />
         <div className="absolute right-8 bottom-8 h-32 w-32 rounded-full bg-[#60a5fa]/18 blur-3xl pointer-events-none" />
         <div className="absolute inset-0 rounded-[3rem] bg-white/55 backdrop-blur-2xl border border-white/70 shadow-[0_20px_80px_rgba(15,23,42,0.08)]" />
 
@@ -218,13 +218,13 @@ const NumberGridGame = ({ onBack }) => {
 
           <div className="relative">
             {/* 信息栏 */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center space-x-5">
+            <div className="flex items-center justify-between mb-5 gap-3">
+              <div className="flex items-center space-x-5 min-w-0">
                 <InfoCell
                   icon={Zap}
                   label="下一个"
                   value={state === 'playing' ? next : '—'}
-                  accent="#fbc02d"
+                  accent="#8d7348"
                   big
                 />
                 <InfoCell
@@ -241,11 +241,32 @@ const NumberGridGame = ({ onBack }) => {
                   />
                 )}
               </div>
-              <div className="text-right">
+              {state === 'playing' && (
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={start}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-[#2c261c] hover:text-white text-white transition-colors"
+                    title="打乱重来，不计本局成绩"
+                  >
+                    <RotateCcw size={14} />
+                    <span className="text-xs font-black tracking-widest">重来</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-[#ff6b6b] hover:text-white text-white transition-colors"
+                    title="结束本局，回到选规格"
+                  >
+                    <span className="text-xs font-black tracking-widest">结束</span>
+                  </button>
+                </div>
+              )}
+              <div className="text-right flex-shrink-0">
                 <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
                   本规格最佳
                 </p>
-                <p className="text-lg font-black text-[#fbc02d] tabular-nums">
+                <p className="text-lg font-black text-[#6b5428] tabular-nums">
                   {fmtTime(statsForSize.best)}
                 </p>
                 <p className="text-[10px] font-black text-white/30 tabular-nums mt-0.5">
@@ -323,7 +344,7 @@ const IdleScreen = ({ size, total, best, onStart }) => (
   <div className="flex flex-col items-center py-16 space-y-6">
     <div
       className="w-20 h-20 rounded-2xl flex items-center justify-center"
-      style={{ backgroundColor: '#fbc02d', color: '#1a1a1a' }}
+      style={{ backgroundColor: '#8d7348', color: '#1a1a1a' }}
     >
       <span className="text-3xl font-black tabular-nums">{size}²</span>
     </div>
@@ -341,7 +362,7 @@ const IdleScreen = ({ size, total, best, onStart }) => (
     )}
     <button
       onClick={onStart}
-      className="bg-[#fbc02d] text-black font-black px-10 py-4 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+      className="bg-[#2c261c] text-white font-black px-10 py-4 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
     >
       <Play size={14} />
       <span>开始</span>
@@ -378,7 +399,7 @@ const Grid = ({ size, numbers, next, wrongIdx, onClick }) => {
             className={`${cellClass.size} ${cellClass.font} rounded-xl font-black tabular-nums transition-all duration-100 ${
               done
                 ? 'bg-white/5 text-white/20 cursor-default'
-                : 'bg-white text-[#1a1a1a] hover:bg-[#fbc02d] active:scale-95 shadow-sm'
+                : 'bg-white text-[#1a1a1a] hover:bg-[#2c261c] active:scale-95 shadow-sm'
             }`}
             style={{
               animation: wrong
@@ -402,7 +423,7 @@ const DoneScreen = ({ result, onRetry, onBack }) => (
   <div className="flex flex-col items-center py-12 space-y-5" style={{ animation: 'doneGlow 0.6s ease-out' }}>
     <div
       className={`w-20 h-20 rounded-2xl flex items-center justify-center ${
-        result.isNewBest ? 'bg-[#fbc02d] text-black' : 'bg-white/10 text-white'
+        result.isNewBest ? 'bg-[#2c261c] text-white' : 'bg-white/10 text-white'
       }`}
     >
       <Trophy size={36} />
@@ -420,7 +441,7 @@ const DoneScreen = ({ result, onRetry, onBack }) => (
       </p>
     </div>
     {result.isNewBest ? (
-      <div className="bg-[#fbc02d] text-black px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest">
+      <div className="bg-[#2c261c] text-white px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest">
         🎉 打破纪录！原 {fmtTime(result.prevBest)}
       </div>
     ) : (
@@ -431,7 +452,7 @@ const DoneScreen = ({ result, onRetry, onBack }) => (
     <div className="flex space-x-3 pt-2">
       <button
         onClick={onRetry}
-        className="bg-[#fbc02d] text-black font-black px-8 py-3 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+        className="bg-[#2c261c] text-white font-black px-8 py-3 rounded-2xl hover:brightness-110 transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
       >
         <RotateCcw size={14} />
         <span>再来一局</span>

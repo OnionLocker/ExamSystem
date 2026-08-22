@@ -72,14 +72,14 @@ const Mixer = () => {
       {/* 顶部状态条 */}
       <div className="bg-[#1a1a1a] rounded-[2.5rem] p-8 text-white flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#fbc02d] text-[#1a1a1a] flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-[#2c261c] text-white flex items-center justify-center">
             <Sliders size={22} strokeWidth={2.5} />
           </div>
           <div>
             <h3 className="text-lg font-black">声音混音器</h3>
             <p className="text-xs font-bold opacity-50 uppercase tracking-widest mt-0.5">
               {activeCount > 0 ? (
-                <>正在播放 <span className="text-[#fbc02d]">{activeCount}</span> 个 / 共 {TOTAL_SOUNDS}</>
+                <>正在播放 <span className="text-[#6b5428]">{activeCount}</span> 个 / 共 {TOTAL_SOUNDS}</>
               ) : (
                 <>共 {TOTAL_SOUNDS} 个声音 · 点卡片开始</>
               )}
@@ -113,7 +113,7 @@ const Mixer = () => {
               onClick={() => setActiveCategory(c.id)}
               className={`relative px-5 py-2.5 rounded-full font-black text-sm tracking-tight transition-all ${
                 active
-                  ? 'bg-[#1a1a1a] text-[#fbc02d] shadow-lg shadow-black/10'
+                  ? 'bg-[#1a1a1a] text-white shadow-lg shadow-black/10'
                   : 'bg-white/60 text-[#666] hover:bg-white/90 hover:text-black'
               }`}
             >
@@ -121,7 +121,7 @@ const Mixer = () => {
               {activeInCat > 0 && (
                 <span
                   className={`ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black tabular-nums ${
-                    active ? 'bg-[#fbc02d] text-[#1a1a1a]' : 'bg-[#fbc02d] text-[#1a1a1a]'
+                    active ? 'bg-[#2c261c] text-white' : 'bg-[#2c261c] text-white'
                   }`}
                 >
                   {activeInCat}
@@ -166,7 +166,7 @@ const SoundCard = ({ sound, mixer }) => {
       onClick={onClick}
       className={`group relative aspect-square rounded-3xl p-5 cursor-pointer transition-all duration-200 select-none ${
         isPlaying
-          ? 'bg-[#fbc02d] text-[#1a1a1a] shadow-lg shadow-[#fbc02d]/30 scale-[1.02]'
+          ? 'bg-[#2c261c] text-white shadow-lg shadow-black/10 scale-[1.02]'
           : 'bg-white/70 text-[#1a1a1a] hover:bg-white hover:shadow-md hover:-translate-y-0.5'
       }`}
     >
@@ -174,7 +174,7 @@ const SoundCard = ({ sound, mixer }) => {
       <div className="flex items-start justify-between">
         <div
           className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
-            isPlaying ? 'bg-[#1a1a1a] text-[#fbc02d]' : 'bg-[#f2f0e9] text-[#1a1a1a]'
+            isPlaying ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] text-[#1a1a1a]'
           }`}
         >
           <Icon size={20} strokeWidth={2.2} />

@@ -218,7 +218,7 @@ const MockExam = () => {
       <div className="bg-[#1a1a1a] rounded-[2.5rem] p-8 text-white relative overflow-hidden">
         <div
           className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px] opacity-30 pointer-events-none"
-          style={{ backgroundColor: currentBlockIdx >= 0 ? blocks[currentBlockIdx].color : '#fbc02d' }}
+          style={{ backgroundColor: currentBlockIdx >= 0 ? blocks[currentBlockIdx].color : '#8d7348' }}
         />
         <div className="relative flex items-start justify-between flex-wrap gap-6">
           <div>
@@ -227,7 +227,7 @@ const MockExam = () => {
             </p>
             <p
               className="text-7xl md:text-8xl font-black italic tabular-nums tracking-tighter mt-2"
-              style={{ color: state.finished ? '#94a3b8' : '#fbc02d' }}
+              style={{ color: state.finished ? '#94a3b8' : '#8d7348' }}
             >
               {formatTime(remainingSec)}
             </p>
@@ -249,7 +249,7 @@ const MockExam = () => {
             {state.finished ? (
               <button
                 onClick={reset}
-                className="bg-[#fbc02d] text-[#1a1a1a] px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
+                className="bg-[#2c261c] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
               >
                 <RotateCcw size={14} strokeWidth={2.5} />
                 <span>新一场</span>
@@ -257,7 +257,7 @@ const MockExam = () => {
             ) : state.startedAt == null ? (
               <button
                 onClick={start}
-                className="bg-[#fbc02d] text-[#1a1a1a] px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
+                className="bg-[#2c261c] text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
               >
                 <Play size={14} strokeWidth={2.5} fill="currentColor" />
                 <span>开始模考</span>
@@ -275,7 +275,7 @@ const MockExam = () => {
                 ) : (
                   <button
                     onClick={resume}
-                    className="bg-[#fbc02d] text-[#1a1a1a] px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
+                    className="bg-[#2c261c] text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:brightness-110 flex items-center space-x-2"
                   >
                     <Play size={14} strokeWidth={2.5} fill="currentColor" />
                     <span>继续</span>
@@ -353,7 +353,7 @@ const MockExam = () => {
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 {isCurrent && (
-                  <span className="text-[9px] font-black bg-[#fbc02d] text-[#1a1a1a] px-1.5 py-0.5 rounded-full">
+                  <span className="text-[9px] font-black bg-[#2c261c] text-white px-1.5 py-0.5 rounded-full">
                     NOW
                   </span>
                 )}
@@ -458,7 +458,7 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
             编辑模块配置
           </p>
           <p className="text-2xl font-black italic mt-0.5">
-            总时长 <span className="text-[#fbc02d] tabular-nums">{total}</span> 分钟
+            总时长 <span className="text-[#6b5428] tabular-nums">{total}</span> 分钟
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -478,7 +478,7 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
           </button>
           <button
             onClick={() => onSave(blocks)}
-            className="bg-[#fbc02d] text-[#1a1a1a] px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center space-x-1.5 hover:brightness-110"
+            className="bg-[#2c261c] text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center space-x-1.5 hover:brightness-110"
           >
             <Check size={12} strokeWidth={3} />
             <span>保存</span>
@@ -500,7 +500,7 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
               draggedIdx === i ? 'opacity-40 scale-[0.98]' : ''
             } ${
               dragOverIdx === i && draggedIdx !== i
-                ? 'ring-2 ring-[#fbc02d]'
+                ? 'ring-2 ring-[#6b5428]'
                 : ''
             }`}
           >
@@ -529,14 +529,14 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
               value={b.name}
               onChange={(e) => setName(i, e.target.value)}
               maxLength={12}
-              className="flex-1 bg-transparent text-sm font-black tracking-tight focus:outline-none focus:bg-[#f2f0e9]/50 rounded-lg px-2 py-1.5"
+              className="flex-1 bg-transparent text-sm font-black tracking-tight focus:outline-none focus:bg-[#e8d5b0]/50 rounded-lg px-2 py-1.5"
             />
 
             {/* 时长 */}
-            <div className="flex items-center bg-[#f2f0e9]/60 rounded-xl flex-shrink-0">
+            <div className="flex items-center bg-[#e8d5b0]/60 rounded-xl flex-shrink-0">
               <button
                 onClick={() => adjMinutes(i, -1)}
-                className="w-8 h-9 text-slate-500 hover:text-black hover:bg-[#f2f0e9] rounded-l-xl font-black text-base transition-colors"
+                className="w-8 h-9 text-slate-500 hover:text-black hover:bg-[#e8d5b0] rounded-l-xl font-black text-base transition-colors"
               >
                 −
               </button>
@@ -550,7 +550,7 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
               />
               <button
                 onClick={() => adjMinutes(i, 1)}
-                className="w-8 h-9 text-slate-500 hover:text-black hover:bg-[#f2f0e9] rounded-r-xl font-black text-base transition-colors"
+                className="w-8 h-9 text-slate-500 hover:text-black hover:bg-[#e8d5b0] rounded-r-xl font-black text-base transition-colors"
               >
                 +
               </button>
@@ -574,7 +574,7 @@ const EditPanel = ({ initial, onSave, onCancel }) => {
       {/* 加新模块 */}
       <button
         onClick={addBlock}
-        className="w-full bg-[#f2f0e9]/40 hover:bg-[#f2f0e9] border-2 border-dashed border-[#dfdbcc] rounded-2xl py-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-black flex items-center justify-center space-x-2 transition-colors"
+        className="w-full bg-[#e8d5b0]/40 hover:bg-[#e8d5b0] border-2 border-dashed border-[#dfdbcc] rounded-2xl py-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-black flex items-center justify-center space-x-2 transition-colors"
       >
         <Plus size={14} />
         <span>添加模块</span>

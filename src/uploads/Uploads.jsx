@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Upload, FileText, Trash2, Download, Folder, FolderPlus, RefreshCw, Plus } from 'lucide-react';
+import { Upload, FileText, Trash2, Download, Folder, FolderPlus, RefreshCw, Plus, MessageSquare } from 'lucide-react';
 import { getToken } from '../api.js';
 
 const TYPES = [
@@ -7,8 +7,44 @@ const TYPES = [
   { key: '解析', label: '解析' },
 ];
 
-const ALLOWED_EXT = ['.pdf', '.doc', '.docx'];
-const hasAllowedExt = (name) => ALLOWED_EXT.some((e) => name.toLowerCase().endsWith(e));
+const EXT_MIME = {
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+const MIME_EXT = Object.fromEntries(Object.entries(EXT_MIME).map(([ext, mime]) => [mime, ext]));
+const FILE_ACCEPT = Object.entries(EXT_MIME).flatMap(([ext, mime]) => [mime, ext]).join(',');
+const isIOS =
+  typeof navigator !== 'undefined' &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+const extOfName = (name) => {
+  const m = String(name || '').toLowerCase().match(/\.(pdf|docx|doc)$/);
+  return m ? `.${m[1]}` : '';
+};
+
+const sniffExt = async (file) => {
+  const named = extOfName(file.name);
+  if (named) return named;
+  if (MIME_EXT[file.type]) return MIME_EXT[file.type];
+  const buf = new Uint8Array(await file.slice(0, 5).arrayBuffer());
+  if (buf[0] === 0x25 && buf[1] === 0x50 && buf[2] === 0x44 && buf[3] === 0x46) return '.pdf';
+  if (buf[0] === 0xd0 && buf[1] === 0xcf && buf[2] === 0x11 && buf[3] === 0xe0) return '.doc';
+  if (buf[0] === 0x50 && buf[1] === 0x4b) return '.docx';
+  return '';
+};
+
+const asNamedFile = async (file) => {
+  const ext = await sniffExt(file);
+  if (!ext) return null;
+  const mime = (file.type && file.type !== 'application/octet-stream') ? file.type : EXT_MIME[ext];
+  if (extOfName(file.name) === ext) {
+    return file.type === mime ? file : new File([file], file.name, { type: mime });
+  }
+  const stem = String(file.name || '微信文件').replace(/\.[^.]*$/, '').trim() || '微信文件';
+  return new File([file], `${stem}${ext}`, { type: mime });
+};
 
 const fmtSize = (n) => {
   if (n < 1024) return `${n} B`;
@@ -21,7 +57,7 @@ const authHeaders = () => {
   return t ? { Authorization: `Bearer ${t}` } : {};
 };
 
-const Uploads = () => {
+const Uploads = ({ onReviewWithHermes }) => {
   const [mode, setMode] = useState('daily'); // daily | exam
   const [today, setToday] = useState('');
   const [dates, setDates] = useState([]);
@@ -144,9 +180,15 @@ const Uploads = () => {
 
   const doUpload = useCallback(
     async (files) => {
-      const list = Array.from(files || []).filter((f) => hasAllowedExt(f.name));
+      const list = [];
+      for (const f of Array.from(files || [])) {
+        const named = await asNamedFile(f);
+        if (named) list.push(named);
+      }
       if (!list.length) {
-        setMsg('请选择 PDF 或 Word 文件');
+        setMsg(isIOS
+          ? '没认到 PDF / Word。请点「浏览」→ 左侧选「微信」，不要走相册。'
+          : '请选择 PDF 或 Word 文件');
         return;
       }
       if (mode === 'exam' && !folder) {
@@ -276,7 +318,7 @@ const Uploads = () => {
             }}
             className={`px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
               mode === m.key
-                ? 'bg-[#1a1a1a] text-[#fbc02d]'
+                ? 'bg-[#1a1a1a] text-white'
                 : 'bg-white border border-black/5 text-slate-500 hover:bg-black/5'
             }`}
           >
@@ -325,8 +367,8 @@ const Uploads = () => {
                 onClick={() => setType(t.key)}
                 className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                   type === t.key
-                    ? 'bg-[#1a1a1a] text-[#fbc02d]'
-                    : 'bg-[#f2f0e9] text-slate-500 hover:bg-black/5'
+                    ? 'bg-[#1a1a1a] text-white'
+                    : 'bg-[#e8d5b0] text-slate-500 hover:bg-black/5'
                 }`}
               >
                 {t.label}
@@ -347,8 +389,8 @@ const Uploads = () => {
                   onClick={() => setFolder(f.name)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black transition-all ${
                     folder === f.name
-                      ? 'bg-[#1a1a1a] text-[#fbc02d]'
-                      : 'bg-[#f2f0e9] text-slate-600 hover:bg-black/5'
+                      ? 'bg-[#1a1a1a] text-white'
+                      : 'bg-[#e8d5b0] text-slate-600 hover:bg-black/5'
                   }`}
                 >
                   <Folder size={14} />
@@ -367,13 +409,13 @@ const Uploads = () => {
                     if (e.key === 'Enter') createFolder();
                   }}
                   placeholder="新文件夹名，如「2023国考」"
-                  className="flex-1 h-10 px-3 rounded-xl bg-[#f2f0e9] text-sm font-bold outline-none focus:ring-2 focus:ring-[#fbc02d]/40"
+                  className="flex-1 h-10 px-3 rounded-xl bg-[#e8d5b0] text-sm font-bold outline-none focus:ring-2 focus:ring-[#6b5428]/40"
                 />
               </div>
               <button
                 onClick={createFolder}
                 disabled={creating}
-                className="h-10 px-4 rounded-xl bg-[#1a1a1a] text-[#fbc02d] text-xs font-black uppercase tracking-widest flex items-center gap-1.5 disabled:opacity-50"
+                className="h-10 px-4 rounded-xl bg-[#1a1a1a] text-white text-xs font-black uppercase tracking-widest flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Plus size={14} />
                 新建
@@ -404,7 +446,7 @@ const Uploads = () => {
             doUpload(e.dataTransfer.files);
           }}
           className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
-            dragOver ? 'border-[#fbc02d] bg-[#fbc02d]/10' : 'border-black/10 hover:border-black/20'
+            dragOver ? 'border-[#6b5428] bg-[#2c261c]/10' : 'border-black/10 hover:border-black/20'
           }`}
         >
           <Upload size={32} className="mx-auto mb-3 text-slate-400" />
@@ -416,12 +458,14 @@ const Uploads = () => {
                 : '点击选择或拖拽 PDF / Word 到此处'}
           </p>
           <p className="text-xs text-slate-400 mt-1">
-            支持 PDF / DOC / DOCX，可多选，单文件最大 100MB
+            {isIOS
+              ? '点选后选「浏览」→ 左侧「微信」，可直接挑聊天里的 PDF / Word'
+              : '支持 PDF / DOC / DOCX，可多选，单文件最大 100MB'}
           </p>
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.doc,.docx"
+            {...(isIOS ? {} : { accept: FILE_ACCEPT })}
             multiple
             className="hidden"
             onChange={(e) => doUpload(e.target.files)}
@@ -440,10 +484,10 @@ const Uploads = () => {
             {dates.map((d) => (
               <div key={d.date} className="bg-white rounded-[2rem] p-6 shadow-sm border border-black/5">
                 <div className="flex items-center gap-2 mb-4">
-                  <Folder size={18} className="text-[#fbc02d]" />
+                  <Folder size={18} className="text-[#6b5428]" />
                   <h4 className="font-black text-base">{d.date}</h4>
                   {d.date === today && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#fbc02d] text-[#1a1a1a] text-[10px] font-black uppercase">
+                    <span className="px-2 py-0.5 rounded-full bg-[#2c261c] text-white text-[10px] font-black uppercase">
                       今天
                     </span>
                   )}
@@ -461,7 +505,7 @@ const Uploads = () => {
                         {(d[t.key] || []).map((f) => (
                           <div
                             key={f.name}
-                            className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#f2f0e9] group"
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#e8d5b0] group"
                           >
                             <FileText size={16} className="text-[#ff6b6b] shrink-0" />
                             <button
@@ -474,6 +518,16 @@ const Uploads = () => {
                             <span className="text-[10px] text-slate-400 font-bold shrink-0">
                               {fmtSize(f.size)}
                             </span>
+                            {onReviewWithHermes && (
+                              <button
+                                onClick={() => onReviewWithHermes({ date: d.date, type: t.key, name: f.name })}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black text-slate-500 hover:text-[#1a1a1a] hover:bg-black/5"
+                                title="把这份文件的路径交给 Hermes 复盘"
+                              >
+                                <MessageSquare size={12} />
+                                复盘
+                              </button>
+                            )}
                             <button
                               onClick={() => openDaily(d.date, t.key, f.name)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-[#1a1a1a] hover:bg-black/5"
@@ -510,11 +564,11 @@ const Uploads = () => {
               <div
                 key={f.name}
                 className={`bg-white rounded-[2rem] p-6 shadow-sm border transition-all ${
-                  folder === f.name ? 'border-[#fbc02d]' : 'border-black/5'
+                  folder === f.name ? 'border-[#6b5428]' : 'border-black/5'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-4">
-                  <Folder size={18} className="text-[#fbc02d]" />
+                  <Folder size={18} className="text-[#6b5428]" />
                   <h4 className="font-black text-base">{f.name}</h4>
                   <span className="text-xs text-slate-400 font-bold">{f.files.length} 个文件</span>
                   <button
@@ -531,7 +585,7 @@ const Uploads = () => {
                   {f.files.map((file) => (
                     <div
                       key={file.name}
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#f2f0e9]"
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl bg-[#e8d5b0]"
                     >
                       <FileText size={16} className="text-[#ff6b6b] shrink-0" />
                       <button

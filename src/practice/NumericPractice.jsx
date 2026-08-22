@@ -29,10 +29,11 @@ import { recordPromotionResult, getRank, getBaseMs, getLadderInfo } from './rank
 import GamesHome from './games/GamesHome.jsx';
 import { playBgm, stopBgm } from './bgm.js';
 import { playCorrect, playWrong } from './sfx.js';
-import { cloudGet, cloudSet } from '../cloudStorage.js';
 import BgmControls from './BgmControls.jsx';
-
-const HISTORY_KEY = 'numeric_practice_history_v1';
+import { pickWrong, recordWrong, recordRecallCorrect } from './wrongPool.js';
+import WeakSpots from './WeakSpots.jsx';
+import ErrorBreakdown from './ErrorBreakdown.jsx';
+import { loadHistory, saveHistory } from './history.js';
 const RACE_SIZE_DEFAULT = 10;
 const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 const RACE_SIZE_MIN = 1;
@@ -68,8 +69,11 @@ const fmtDuration = (ms) => {
   if (h > 0) return `${h}:${pad(m)}:${pad(sec)}`;
   return `${pad(m)}:${pad(sec)}`;
 };
-const loadHistory = () => cloudGet(HISTORY_KEY, []);
-const saveHistory = (list) => cloudSet(HISTORY_KEY, list);
+
+// 出下一题：先问错题池有没有欠着的，没有才现生成一道新的。
+// 传 records 进来是为了不在同一场里把同一道错题连出两次。
+const nextQuestion = (genKey, subId, records = []) =>
+  pickWrong(subId, records.map((r) => r.prompt)) || generate(genKey);
 
 // ---------------- 主组件 ----------------
 const NumericPractice = () => {
@@ -97,6 +101,15 @@ const NumericPractice = () => {
     setMode('train');
     setView('subs');
   };
+  // 从今日处方直接点进某个子项，跳过"先选分类再选子项"这一步
+  const openSub = (catId, subId) => {
+    const cat = CATEGORIES.find((c) => c.id === catId);
+    if (!cat?.available) return;
+    setCurrentCat(cat);
+    setCurrentSubId(subId || cat.subs[0]?.id);
+    setMode('train');
+    setView('subs');
+  };
   const startSession = () => {
     if (!currentCat || !currentSubId) return;
     const sub = getSub(currentCat.id, currentSubId);
@@ -106,7 +119,7 @@ const NumericPractice = () => {
       Math.min(RACE_SIZE_MAX, Number(raceSize) || RACE_SIZE_DEFAULT),
     );
     const total = mode === 'race' ? safeRace : Infinity;
-    const firstQ = generate(sub.gen);
+    const firstQ = nextQuestion(sub.gen, sub.id, []);
     setSession({
       catId: currentCat.id,
       subId: sub.id,
@@ -155,7 +168,7 @@ const NumericPractice = () => {
     };
     const list = loadHistory();
     list.unshift(result);
-    saveHistory(list.slice(0, 100));
+    saveHistory(list);
     // 写入学习日志
     addStudyEntry({
       type: 'numeric',
@@ -169,7 +182,10 @@ const NumericPractice = () => {
   };
   const openHistory = () => setView('history');
 
-  if (view === 'home') return <HomeView onPick={openCategory} onOpenGames={() => setView('games')} />;
+  if (view === 'home')
+    return (
+      <HomeView onPick={openCategory} onPickSub={openSub} onOpenGames={() => setView('games')} />
+    );
   if (view === 'games') return <GamesHome onBack={goHome} />;
   if (view === 'subs')
     return (
@@ -212,11 +228,13 @@ const NumericPractice = () => {
 };
 
 // ---------------- Home ----------------
-const HomeView = ({ onPick, onOpenGames }) => {
+const HomeView = ({ onPick, onPickSub, onOpenGames }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* 段位总览横幅 */}
       <RankDashboard onClickCategory={onPick} />
+
+      <WeakSpots onPickSub={onPickSub} />
 
       <div>
         <h2 className="text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
@@ -229,14 +247,14 @@ const HomeView = ({ onPick, onOpenGames }) => {
         onClick={onOpenGames}
         className="w-full text-left rounded-[2rem] p-6 bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 transition-all group overflow-hidden relative"
       >
-        <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#fbc02d]/15 blur-2xl" />
+        <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#2c261c]/10 blur-2xl" />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
           <div className="flex items-start space-x-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#fbc02d] text-black flex items-center justify-center flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-[#2c261c] text-white flex items-center justify-center flex-shrink-0">
               <Gamepad2 size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#fbc02d]">
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[#6b5428]">
                 小游戏模块
               </p>
               <h3 className="text-2xl font-black italic mt-2">认知训练 · 3 款</h3>
@@ -251,7 +269,7 @@ const HomeView = ({ onPick, onOpenGames }) => {
               <span className="px-2.5 py-1 rounded-full bg-white/10">移位加减</span>
               <span className="px-2.5 py-1 rounded-full bg-white/10">记忆广度</span>
             </div>
-            <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-[#fbc02d] transition-colors">
+            <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-widest text-white/70 group-hover:text-white transition-colors">
               <span>进入小游戏</span>
               <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </div>
@@ -270,14 +288,14 @@ const HomeView = ({ onPick, onOpenGames }) => {
               disabled={disabled}
               className={`text-left rounded-[2rem] p-8 transition-all group ${
                 disabled
-                  ? 'bg-white border border-[#f2f0e9] opacity-60 cursor-not-allowed'
+                  ? 'bg-white border border-[#e8d5b0] opacity-60 cursor-not-allowed'
                   : 'bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10'
               }`}
             >
               <div className="flex items-center justify-between mb-6">
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    disabled ? 'bg-[#f2f0e9] text-[#1a1a1a]' : 'bg-[#fbc02d] text-black'
+                    disabled ? 'bg-[#e8d5b0] text-[#1a1a1a]' : 'bg-[#2c261c] text-white'
                   }`}
                 >
                   <Icon size={22} />
@@ -298,7 +316,7 @@ const HomeView = ({ onPick, onOpenGames }) => {
                 <span>{cat.name}</span>
                 {cat.tag && (
                   <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full not-italic ${
-                    disabled ? 'bg-[#f2f0e9] text-slate-400' : 'bg-[#fbc02d] text-black'
+                    disabled ? 'bg-[#e8d5b0] text-slate-400' : 'bg-[#2c261c] text-white'
                   }`}>
                     {cat.tag}
                   </span>
@@ -471,8 +489,8 @@ const SubsView = ({
               onClick={() => onPickSub(sub.id)}
               className={`py-4 px-3 rounded-2xl font-bold text-sm transition-all border ${
                 active
-                  ? 'bg-[#1a1a1a] text-[#fbc02d] border-[#1a1a1a] shadow-lg shadow-black/10'
-                  : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-[#1a1a1a]'
+                  ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg shadow-black/10'
+                  : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-[#1a1a1a]'
               }`}
             >
               {sub.name}
@@ -481,7 +499,7 @@ const SubsView = ({
         })}
       </div>
 
-      <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9] space-y-3">
+      <div className="bg-white rounded-[2rem] p-6 border border-[#e8d5b0] space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">选择模式</p>
           {subId && <SubRankChip subId={subId} subName={cat.subs.find((s) => s.id === subId)?.name} />}
@@ -498,7 +516,7 @@ const SubsView = ({
           desc={`${raceSize} 题限时挑战，计入段位统计。达到速度 + 准度双标即可晋升。`}
           checked={mode === 'race'}
           onClick={() => onPickMode('race')}
-          color="#fbc02d"
+          color="#8d7348"
           highlight
         />
         {mode === 'race' && (
@@ -509,7 +527,7 @@ const SubsView = ({
       <div className="flex space-x-4">
         <button
           onClick={onStart}
-          className="flex-1 bg-[#1a1a1a] text-white font-black py-5 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+          className="flex-1 bg-[#1a1a1a] text-white font-black py-5 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <Play size={16} />
           <span>开始练习</span>
@@ -517,14 +535,14 @@ const SubsView = ({
         <button
           onClick={openPopup}
           title="悬浮小窗练习（Chrome/Edge 支持无边框悬浮窗）"
-          className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] hover:bg-[#fbc02d] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] hover:bg-[#2c261c] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
         >
           <PictureInPicture2 size={14} />
           <span className="hidden sm:inline">小窗练习</span>
         </button>
         <button
           onClick={onOpenHistory}
-          className="px-8 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+          className="px-8 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
         >
           <HistoryIcon size={14} />
           <span>历史记录</span>
@@ -538,7 +556,7 @@ const ModeOption = ({ label, desc, checked, onClick, color, highlight }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center space-x-4 p-4 rounded-2xl border transition-all text-left relative overflow-hidden ${
-      checked ? 'border-[#1a1a1a] bg-[#f2f0e9]/50' : 'border-[#f2f0e9] hover:border-slate-300'
+      checked ? 'border-[#1a1a1a] bg-[#e8d5b0]/50' : 'border-[#e8d5b0] hover:border-slate-300'
     }`}
   >
     {highlight && (
@@ -616,8 +634,8 @@ const RaceSizePicker = ({ value, onChange }) => {
             onClick={() => onChange(n)}
             className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all border ${
               active
-                ? 'bg-[#1a1a1a] text-[#fbc02d] border-[#1a1a1a]'
-                : 'bg-white text-[#1a1a1a] border-[#f2f0e9] hover:border-[#1a1a1a]'
+                ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-[#1a1a1a]'
             }`}
           >
             {n}
@@ -628,12 +646,12 @@ const RaceSizePicker = ({ value, onChange }) => {
         className={`flex items-center space-x-1 rounded-xl border px-2 py-1 transition-all ${
           !isPreset
             ? 'bg-[#1a1a1a] border-[#1a1a1a]'
-            : 'bg-white border-[#f2f0e9] hover:border-[#1a1a1a]'
+            : 'bg-white border-[#e8d5b0] hover:border-[#1a1a1a]'
         }`}
       >
         <span
           className={`text-[10px] font-black uppercase tracking-widest ${
-            !isPreset ? 'text-[#fbc02d]' : 'text-slate-400'
+            !isPreset ? 'text-[#6b5428]' : 'text-slate-400'
           }`}
         >
           自定义
@@ -655,7 +673,7 @@ const RaceSizePicker = ({ value, onChange }) => {
             else onChange(clamp(n));
           }}
           className={`w-14 bg-transparent text-center text-xs font-black focus:outline-none tabular-nums ${
-            !isPreset ? 'text-[#fbc02d]' : 'text-[#1a1a1a]'
+            !isPreset ? 'text-[#6b5428]' : 'text-[#1a1a1a]'
           }`}
         />
       </div>
@@ -820,7 +838,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       onFinishRace(newRecords, session.catId, session.subId, session.subName);
       return;
     }
-    const nextQ = generate(session.genKey);
+    const nextQ = nextQuestion(session.genKey, session.subId, newRecords);
     setSession({
       ...session,
       index: index + 1,
@@ -844,7 +862,18 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       isCorrect,
       skipped: false,
       timeMs,
+      fromWrongPool: !!current.fromWrongPool,
     };
+    if (isCorrect) {
+      if (current.fromWrongPool) recordRecallCorrect(session.subId, current.prompt);
+    } else {
+      recordWrong(session.subId, {
+        prompt: current.prompt,
+        answer: current.answer,
+        tolerance: current.tolerance,
+        userAnswer: input,
+      });
+    }
     const newRecords = [...records, rec];
     scheduleAdvance(newRecords, { ok: isCorrect, skipped: false, answer: typeof current.displayAnswer === 'function' ? current.displayAnswer(current.answer) : current.answer });
   };
@@ -859,7 +888,14 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       isCorrect: false,
       skipped: true,
       timeMs,
+      fromWrongPool: !!current.fromWrongPool,
     };
+    recordWrong(session.subId, {
+      prompt: current.prompt,
+      answer: current.answer,
+      tolerance: current.tolerance,
+      userAnswer: null,
+    });
     const newRecords = [...records, rec];
     scheduleAdvance(newRecords, { ok: false, skipped: true, answer: typeof current.displayAnswer === 'function' ? current.displayAnswer(current.answer) : current.answer });
   };
@@ -903,7 +939,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
           <button
             onClick={() => setShowTable(true)}
             title={session.subId === 'square' ? '查看常见平方数对照表（背诵用）' : '查看百化分对照表（背诵用）'}
-            className="flex items-center space-x-1.5 text-slate-400 hover:text-[#fbc02d] transition-colors"
+            className="flex items-center space-x-1.5 text-slate-400 hover:text-[#6b5428] transition-colors"
           >
             <BookOpen size={14} />
             <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">对照表</span>
@@ -981,7 +1017,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
                     {!feedback.skipped && (
                       <span className="text-white/40 mr-3 line-through">{input}</span>
                     )}
-                    <span className="text-[#fbc02d]">{feedback.answer}</span>
+                    <span className="text-[#6b5428]">{feedback.answer}</span>
                   </>
                 ) : input === '' ? (
                   <span className="opacity-30 text-2xl">输入答案后按 Enter 提交</span>
@@ -1030,7 +1066,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
             <div
               className="inline-block text-5xl md:text-6xl font-black italic mb-4"
               style={{
-                color: isRace ? '#ff6b6b' : '#fbc02d',
+                color: isRace ? '#ff6b6b' : '#8d7348',
                 animation: 'maskBreath 2.4s ease-in-out infinite',
                 textShadow: isRace ? '0 0 32px rgba(255,107,107,0.5)' : '0 0 32px rgba(251,192,45,0.4)',
               }}
@@ -1123,7 +1159,7 @@ const BossHpBar = ({ correctCount, total }) => {
             width: `${hpPct}%`,
             background: dead
               ? '#94a3b8'
-              : 'linear-gradient(90deg,#ff6b6b 0%,#fbc02d 80%,#facc15 100%)',
+              : 'linear-gradient(90deg,#ff6b6b 0%,#8d7348 80%,#facc15 100%)',
             boxShadow: dead ? 'none' : '0 0 8px rgba(255,107,107,0.5)',
           }}
         />
@@ -1164,7 +1200,7 @@ const BaiHuaFenTableModal = ({ onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-[#f2f0e9] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
+            className="w-9 h-9 rounded-xl bg-[#e8d5b0] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
           >
             <X size={16} />
           </button>
@@ -1174,7 +1210,7 @@ const BaiHuaFenTableModal = ({ onClose }) => {
           {BAI_HUA_FEN_TABLE.map((f) => (
             <div
               key={f.den}
-              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f2f0e9]/60 border border-[#f2f0e9] hover:border-[#1a1a1a] hover:bg-white transition-all"
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#e8d5b0]/60 border border-[#e8d5b0] hover:border-[#1a1a1a] hover:bg-white transition-all"
             >
               <span className="font-black text-xl italic text-[#1a1a1a]">
                 1/{f.den}
@@ -1183,7 +1219,7 @@ const BaiHuaFenTableModal = ({ onClose }) => {
                 <div className="text-lg font-black tabular-nums text-[#1a1a1a]">
                   {f.dec.toFixed(2)}
                 </div>
-                <div className="text-sm font-bold tabular-nums text-[#fbc02d] mt-0.5">
+                <div className="text-sm font-bold tabular-nums text-[#6b5428] mt-0.5">
                   {f.pct.toFixed(2)}%
                 </div>
               </div>
@@ -1230,7 +1266,7 @@ const SquareTableModal = ({ onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-xl bg-[#f2f0e9] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
+            className="w-9 h-9 rounded-xl bg-[#e8d5b0] hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center justify-center"
           >
             <X size={16} />
           </button>
@@ -1240,7 +1276,7 @@ const SquareTableModal = ({ onClose }) => {
           {SQUARE_TABLE.map((s) => (
             <div
               key={s.n}
-              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#f2f0e9]/60 border border-[#f2f0e9] hover:border-[#1a1a1a] hover:bg-white transition-all"
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-[#e8d5b0]/60 border border-[#e8d5b0] hover:border-[#1a1a1a] hover:bg-white transition-all"
             >
               <span className="font-black text-xl italic text-[#1a1a1a]">
                 {s.n}²
@@ -1276,9 +1312,9 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 text-center relative overflow-hidden">
-        <div className="absolute top-8 right-8 w-40 h-40 bg-[#fbc02d] rounded-full blur-[50px] opacity-40" />
+        <div className="absolute top-8 right-8 w-40 h-40 bg-[#2c261c] rounded-full blur-[50px] opacity-40" />
         <div className="relative">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#fbc02d] text-black flex items-center justify-center mb-4">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#2c261c] text-white flex items-center justify-center mb-4">
             <Trophy size={28} />
           </div>
           <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-1">
@@ -1297,10 +1333,12 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
         </div>
       </div>
 
+      <ErrorBreakdown records={result.records} />
+
       {/* 段位评定卡片（基于 ladderRank + LP） */}
       {lpRes && (
-        <div className={`bg-white rounded-[2rem] p-6 border border-[#f2f0e9] relative overflow-hidden ${
-          promoted ? 'ring-2 ring-[#fbc02d]/40' : demoted ? 'ring-2 ring-rose-300' : ''
+        <div className={`bg-white rounded-[2rem] p-6 border border-[#e8d5b0] relative overflow-hidden ${
+          promoted ? 'ring-2 ring-[#6b5428]/40' : demoted ? 'ring-2 ring-rose-300' : ''
         }`}>
           {/* 升段时的金光背景 */}
           {promoted && (
@@ -1314,7 +1352,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           )}
           <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 relative">
             段位评定
-            {promoted && <span className="ml-2 text-[#fbc02d]">· 晋升！</span>}
+            {promoted && <span className="ml-2 text-[#6b5428]">· 晋升！</span>}
             {demoted && <span className="ml-2 text-rose-500">· 段位下滑</span>}
             {isProtected && <span className="ml-2 text-emerald-500">· 累计实力保护</span>}
           </p>
@@ -1386,13 +1424,13 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
         </div>
       )}
 
-      <div className="bg-white rounded-[2rem] p-6 border border-[#f2f0e9]">
+      <div className="bg-white rounded-[2rem] p-6 border border-[#e8d5b0]">
         <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">答题明细</p>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {result.records.map((r, i) => (
             <div
               key={i}
-              className="flex items-center justify-between py-2 border-b border-[#f2f0e9] last:border-0 text-sm"
+              className="flex items-center justify-between py-2 border-b border-[#e8d5b0] last:border-0 text-sm"
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <span className="text-[10px] font-black text-slate-400 w-6">#{i + 1}</span>
@@ -1414,7 +1452,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
                   {r.skipped ? '已跳过' : `你的答案: ${r.userAnswer}`}
                 </span>
                 {!r.isCorrect && (
-                  <span className="text-xs font-black text-[#fbc02d]">= {r.answer}</span>
+                  <span className="text-xs font-black text-[#6b5428]">= {r.answer}</span>
                 )}
                 <span className="text-[10px] font-black text-slate-400 w-12 text-right">
                   {fmtMs(r.timeMs)}
@@ -1428,20 +1466,20 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
       <div className="flex space-x-3">
         <button
           onClick={onRetry}
-          className="flex-1 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#fbc02d] hover:text-black transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+          className="flex-1 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <RotateCcw size={14} />
           <span>再来一组</span>
         </button>
         <button
           onClick={onSubs}
-          className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
           换个题型
         </button>
         <button
           onClick={onHome}
-          className="px-6 bg-white border border-[#f2f0e9] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
           返回
         </button>
@@ -1500,7 +1538,7 @@ const LpBar = ({ lpBefore, lpAfter, delta, color, resetMode }) => {
   return (
     <div className="mt-3 relative">
       <div
-        className="h-2 rounded-full bg-[#f2f0e9] overflow-hidden"
+        className="h-2 rounded-full bg-[#e8d5b0] overflow-hidden"
         style={{ animation: !positive ? 'lpBarShake 0.4s ease-out 0.4s' : undefined }}
       >
         <div
@@ -1567,8 +1605,8 @@ const HistoryView = ({ onBack }) => {
       </div>
 
       {list.length === 0 ? (
-        <div className="bg-white rounded-[2rem] border border-[#f2f0e9] p-16 text-center">
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#f2f0e9] flex items-center justify-center mb-4 text-slate-400">
+        <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-16 text-center">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-[#e8d5b0] flex items-center justify-center mb-4 text-slate-400">
             <HistoryIcon size={28} />
           </div>
           <p className="text-sm font-bold text-slate-400">暂无历史记录</p>
@@ -1581,7 +1619,7 @@ const HistoryView = ({ onBack }) => {
             return (
               <div
                 key={r.id}
-                className="bg-white rounded-2xl border border-[#f2f0e9] p-5 flex items-center justify-between"
+                className="bg-white rounded-2xl border border-[#e8d5b0] p-5 flex items-center justify-between"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-black italic truncate">{r.subName}</p>

@@ -44,7 +44,7 @@ function applyPack(entries, pack, diagnostics) {
         diagnostics.warnings.push(`[${tag}] id 冲突，已跳过: ${inc.id}`);
         continue;
       }
-      const entry = { ...inc, usable: true, source: inc.source || tag };
+      const entry = normalizeEntry({ ...inc, usable: true, source: inc.source || tag });
       out.push(entry);
       byId.set(key, entry);
       appended++;
@@ -79,9 +79,24 @@ function applyPack(entries, pack, diagnostics) {
   return out;
 }
 
+// 原始词库是从 PDF 解析来的，字段名跟题型/UI 约定的那套不一样：
+// misunderstanding=坑点、correct_usage=破局要点、example=例句（单条字符串）。
+// 名字对不上的直接后果是：527 条词里精心写的坑点和破局全都读不到，
+// 卡片只剩一行释义，六种考法里有三种因为 requires 落空而永远出不来。
+// 在这里统一归一化，下游（questionKinds / UI / pack）都按同一套字段名走。
+const normalizeEntry = (w) => {
+  const out = { ...w };
+  if (!out.trap && w.misunderstanding) out.trap = w.misunderstanding;
+  if (!out.usage && w.correct_usage) out.usage = w.correct_usage;
+  if (!out.examples?.length && w.example) {
+    out.examples = Array.isArray(w.example) ? w.example : [w.example];
+  }
+  return out;
+};
+
 function loadWords() {
   const diagnostics = { packs: [], errors: [], warnings: [] };
-  let entries = baseWords;
+  let entries = baseWords.map(normalizeEntry);
   // pack 按文件名排序装载，保证多个 pack 叠加结果稳定可复现
   for (const path of Object.keys(packModules).sort()) {
     const mod = packModules[path];
@@ -106,6 +121,9 @@ for (const w of ALL_WORDS) {
 }
 
 export { QUESTION_KINDS, KIND_BY_ID, availableKinds, entrySupports };
+
+/** 按词名查词条。易混词在数据里只是个名字，配上释义才能真正拿来对比 */
+export const lookupWord = (name) => byWord.get(String(name || '').trim()) || null;
 
 /** 当前词库实际能出的题型 + 各自可出题数，用于 UI 显示与开关 */
 export function kindAvailability(pool = QUIZ_POOL) {

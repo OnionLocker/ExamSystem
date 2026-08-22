@@ -159,7 +159,7 @@ const GoldIcon = ({ size }) => {
   return (
     <g>
       <g transform={`translate(${s * 0.26}, ${s * 0.22})`}>
-        <path d={shieldPath(s * 0.48, s * 0.56)} fill="#fbc02d" stroke="#7a5400" strokeWidth={s * 0.022} />
+        <path d={shieldPath(s * 0.48, s * 0.56)} fill="#8d7348" stroke="#7a5400" strokeWidth={s * 0.022} />
         <path d={shieldPath(s * 0.48, s * 0.56)} fill="url(#goldShine)" opacity="0.55" />
       </g>
       {/* 中心五角星 */}

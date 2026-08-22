@@ -1,11 +1,20 @@
 @import "tailwindcss";
 
+/* 整站护眼暖纸色：bg-white / text-white 都走这个 token。
+   text-white 用在黑底按钮上会变成奶油色，对比仍然够。
+   品牌强调不再用荧光黄 #fbc02d（贴在暖纸上会发颤）：浅底用墨色/墨金，深底用米色。 */
+@theme {
+  --color-white: #f2e4c4;
+}
+
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #e8d5b0;
+  color: #2a2418;
 }
 
 html,
@@ -14,6 +23,9 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background-color: #e8d5b0;
 }
 
 @keyframes fadeIn {

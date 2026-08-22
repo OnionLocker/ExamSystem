@@ -22,7 +22,7 @@ const PEN_MAX_W = 4.2;
 const HL_W = 16;
 const ERASER_W = 28;
 const HL_ALPHA = 0.32;
-const HL_COLOR = '#fbc02d';
+const HL_COLOR = '#8d7348';
 
 // "这台设备在用 Pencil" 记在本地：组件重挂载、页面刷新之后还得算数，
 // 否则回到题目第一次用手指滚动会先画出一道杠来。
