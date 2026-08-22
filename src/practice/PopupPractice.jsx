@@ -183,7 +183,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   const submit = () => {
     if (feedback || !question || raceDone) return;
     if (input === '' || input === '-' || input === '.') return;
-    const timeMs = Date.now() - qStartedAt;
+    const timeMs = now - qStartedAt;
     const isCorrect = judge(question, input);
     const nextStats = {
       ...stats,
@@ -201,7 +201,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   };
   const skip = () => {
     if (feedback || !question || raceDone) return;
-    const timeMs = Date.now() - qStartedAt;
+    const timeMs = now - qStartedAt;
     const nextStats = {
       ...stats,
       skipped: stats.skipped + 1,
@@ -212,7 +212,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   };
   const resetStats = () => {
     setStats({ correct: 0, wrong: 0, skipped: 0, totalMs: 0, bestMs: null });
-    setSessionStartedAt(Date.now());
+    setSessionStartedAt(now);
     if (feedback) flushAdvance();
     nextQuestion();
   };

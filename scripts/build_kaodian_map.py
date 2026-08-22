@@ -152,7 +152,7 @@ def main() -> int:
     W("5. 带图题型（§4）暂不出，或改造成纯文字描述版。")
     W("6. 出题后必须走既有的双重校验闸门（见 quiz-pipeline skill），验证通过才入库。")
     W("")
-    W("原始结构化真题在 `/home/ubuntu/ExamSystem/data/zhenti/*.json`，需要看具体某题的真实问法时直接查那里。")
+    W("原始结构化真题在项目的 `data/zhenti/*.json`，需要看具体某题的真实问法时直接查那里。")
 
     OUT.write_text("\n".join(L), encoding="utf-8")
     print(f"written -> {OUT}")

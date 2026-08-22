@@ -12,10 +12,12 @@ import sqlite3
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-HERMES_DB = os.path.expanduser("~/.hermes/state.db")
-EXAM_DB = "/home/ubuntu/ExamSystem/data/exam.db"
-REPORTS_DIR = "/home/ubuntu/ExamSystem/data/reports"
+PROJECT_ROOT = Path(os.environ.get("EXAMSYSTEM_ROOT", Path(__file__).resolve().parents[1])).resolve()
+HERMES_DB = os.path.expanduser(os.environ.get("HERMES_DB", "~/.hermes/state.db"))
+EXAM_DB = os.environ.get("EXAM_DB", str(PROJECT_ROOT / "data" / "exam.db"))
+REPORTS_DIR = os.environ.get("REPORTS_DIR", str(PROJECT_ROOT / "data" / "reports"))
 
 # 评委模型的凭据不写进仓库，也不再单独维护一份。
 #

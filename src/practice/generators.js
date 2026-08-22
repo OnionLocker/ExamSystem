@@ -900,7 +900,6 @@ export const generators = {
   subComplement3: () => {
     // 被减数；减数凑到「整百」后需加回补数
     const minuend = rand(320, 980);
-    const roundTo = Math.ceil(minuend / 100) * 100; // 不小于被减数的下一整百，可能 =minuend
     // 减数取「个位≥5 或 十位偏大」的三位数，且 < 被减数
     let subtrahend;
     let rounded;

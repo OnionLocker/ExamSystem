@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, Ban, Lightbulb, Target } from 'lucide-react';
 import { TRACKS, XINGCE, SHENLUN } from './canon.js';
 
@@ -92,12 +92,13 @@ export default function Knowledge() {
   const [modId, setModId] = useState(pack.modules[0]?.id || '');
   const [openId, setOpenId] = useState(pack.modules[0]?.types[0]?.id || '');
 
-  useEffect(() => {
-    const next = packOf(track);
+  const selectTrack = (nextTrack) => {
+    const next = packOf(nextTrack);
     const first = next.modules[0];
     setModId(first?.id || '');
     setOpenId(first?.types[0]?.id || '');
-  }, [track]);
+    setTrack(nextTrack);
+  };
 
   const mod = pack.modules.find((m) => m.id === modId) || pack.modules[0];
 
@@ -108,7 +109,7 @@ export default function Knowledge() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setTrack(t.id)}
+            onClick={() => selectTrack(t.id)}
             className={`px-5 py-2.5 rounded-full text-sm font-black transition-all ${
               track === t.id
                 ? 'bg-[#1a1a1a] text-white'

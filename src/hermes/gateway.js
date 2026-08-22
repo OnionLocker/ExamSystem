@@ -6,7 +6,7 @@
 //   const gw = new HermesGateway();
 //   gw.on('message.delta', (ev) => append(ev.payload.text));
 //   await gw.connect();
-//   const { session_id } = await gw.request('session.create', { cwd: '/home/ubuntu' });
+//   const { session_id } = await gw.request('session.create', { cwd: '<project-root>' });
 //   await gw.request('prompt.submit', { session_id, text: '你好' });
 
 import { getToken } from '../api.js';

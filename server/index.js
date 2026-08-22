@@ -11,7 +11,7 @@ import practiceRouter from './routes/practice.js';
 import quotaRouter from './routes/quota.js';
 import examAnalysesRouter from './routes/examAnalyses.js';
 import { resumePending } from './examWorker.js';
-import { attachHermesWs } from './routes/hermesChat.js';
+import { attachHermesWs, hermesRouter } from './routes/hermesChat.js';
 
 const app = express();
 
@@ -35,6 +35,7 @@ app.use('/api/questions',      questionsRouter);
 app.use('/api/practice',       practiceRouter);
 app.use('/api/quota',          quotaRouter);
 app.use('/api/exam-analyses',   examAnalysesRouter);
+app.use('/api/hermes',          hermesRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

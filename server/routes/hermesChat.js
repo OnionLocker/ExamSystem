@@ -9,6 +9,9 @@
 // 浏览器侧用 ExamSystem 现有的 exam_token 鉴权；Hermes 的 session token 只存在于
 // 服务端进程环境里，永远不下发到前端。协议本身不做任何改写，纯透传。
 import { WebSocketServer, WebSocket } from 'ws';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { Router } from 'express';
 
 import { isValidToken } from '../auth.js';
 
@@ -17,6 +20,17 @@ const HERMES_PORT = process.env.HERMES_PORT || '9119';
 const HERMES_TOKEN = process.env.HERMES_SESSION_TOKEN || '';
 
 const WS_PATH = '/api/hermes/ws';
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+// 浏览器只需要知道 Hermes 应该在哪个项目目录工作；绝对路径由服务端决定，
+// 避免把开发机路径写进前端或提示词。
+export const hermesRouter = Router();
+hermesRouter.get('/context', (_req, res) => {
+  res.json({
+    project_root: PROJECT_ROOT,
+    upload_root: path.join(PROJECT_ROOT, 'data', 'uploads'),
+  });
+});
 
 // 上游地址。Hermes 只绑 loopback，故固定 ws:// 明文（不出本机）
 const upstreamUrl = () =>
@@ -134,4 +148,3 @@ function bridge(client) {
     if (upstream.readyState === WebSocket.OPEN) upstream.close(1011, 'client error');
   });
 }
-

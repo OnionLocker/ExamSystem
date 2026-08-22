@@ -3,27 +3,19 @@
 // 走 JSON-RPC over WebSocket 直连 Hermes 的 gateway（经 Express 代理），
 // 与官方 dashboard 的 Chat 用的是同一套协议和同一个 agent，
 // 因此这里能看到并续接微信、cron、CLI 的全部会话。
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Send, Square, Plus, MessageSquare, Loader2, RefreshCw,
-  Brain, Smartphone, CalendarClock, Terminal, X, Image as ImageIcon, Trash2,
-  PenTool, Target, ChevronRight, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink } from 'lucide-react';
+  Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
+  PenTool, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink,
+} from 'lucide-react';
 
 import { api } from '../api.js';
 import HermesGateway from './gateway.js';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
 import QuotaBar from './QuotaBar.jsx';
-
-// 会话来源 → 展示分组
-const SOURCE_META = {
-  weixin:  { label: '微信',     icon: Smartphone,    order: 3 },
-  cron:    { label: '每日计划', icon: CalendarClock, order: 1 },
-  tui:     { label: '本地',     icon: Terminal,      order: 0 },
-  cli:     { label: '本地',     icon: Terminal,      order: 0 },
-};
-const sourceMeta = (s) => SOURCE_META[s] || { label: '其他', icon: MessageSquare, order: 3 };
+import HermesSidebar from './HermesSidebar.jsx';
+import HermesContextPickers from './HermesContextPickers.jsx';
 
 let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
@@ -143,6 +135,8 @@ const readFontScale = () => {
 
 const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscreen, headerExtra }) => {
   const gwRef = useRef(null);
+  const hermesContextRef = useRef(null);
+  const hermesContextPromiseRef = useRef(null);
   const [connState, setConnState] = useState('idle');
   const [sessions, setSessions] = useState(() => readCachedSessions());
   const [sessionsLoading, setSessionsLoading] = useState(false);
@@ -182,6 +176,32 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
+
+  const loadHermesContext = useCallback(() => {
+    if (hermesContextRef.current) return Promise.resolve(hermesContextRef.current);
+    if (!hermesContextPromiseRef.current) {
+      hermesContextPromiseRef.current = api('/api/hermes/context').then((context) => {
+        hermesContextRef.current = context;
+        return context;
+      }).finally(() => {
+        hermesContextPromiseRef.current = null;
+      });
+    }
+    return hermesContextPromiseRef.current;
+  }, []);
+
+  const sessionCreateParams = useCallback(async () => {
+    try {
+      const context = await loadHermesContext();
+      return { cols: 100, ...(context?.project_root ? { cwd: context.project_root } : {}) };
+    } catch {
+      return { cols: 100 };
+    }
+  }, [loadHermesContext]);
+
+  useEffect(() => {
+    loadHermesContext().catch(() => {});
+  }, [loadHermesContext]);
   useEffect(() => {
     try { localStorage.setItem(FONT_KEY, String(fontScale)); }
     catch { /* 隐私模式 */ }
@@ -205,6 +225,15 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       }
       return [...prev, { id: uid(), role: 'assistant', content: text, streaming: true, tools: [], thinking: '' }];
     });
+  }, []);
+
+  const rememberSession = useCallback((res, storedId = res?.stored_session_id || null) => {
+    const liveId = res?.session_id || null;
+    sidRef.current = liveId;
+    setSid(liveId);
+    activeStoredIdRef.current = storedId;
+    setActiveStoredId(storedId);
+    return liveId;
   }, []);
 
   const appendThinking = useCallback((text) => {
@@ -299,6 +328,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         if (t) appendThinking(t);
       }),
       gw.on('message.start', () => {
+        setWaitSec(0);
         setBusy(true);
         setStatus('生成中');
         setMessages((prev) => {
@@ -337,6 +367,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       gw.on('error', (ev) => {
         const msg = ev.payload?.message || '未知错误';
         setBanner(msg);
+        setWaitSec(0);
         setBusy(false);
         setStatus('');
       }),
@@ -382,7 +413,6 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
 
   useEffect(() => {
     if (!busy) {
-      setWaitSec(0);
       return undefined;
     }
     const t0 = Date.now();
@@ -403,9 +433,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       if (liveId) {
         await gw.request('session.close', { session_id: liveId }).catch(() => {});
       }
-      await gw.request('session.delete', { session_id: sessionId });
+      // 空的新会话还没有首条消息，Hermes 尚未写入 DB；关闭后删除会返回
+      // "session not found"，但对用户来说它已经成功从活动列表移除了。
+      await gw.request('session.delete', { session_id: sessionId }).catch((err) => {
+        if (!/session not found/i.test(err?.message || '')) throw err;
+      });
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeStoredIdRef.current === sessionId) {
+        activeStoredIdRef.current = null;
         setActiveStoredId(null);
         setSid(null);
         sidRef.current = null;
@@ -432,20 +467,8 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     }
   }, []);
 
-  const grouped = useMemo(() => {
-    const groups = new Map();
-    for (const s of sessions) {
-      const meta = sourceMeta(s.source);
-      if (!groups.has(meta.label)) groups.set(meta.label, { meta, items: [] });
-      groups.get(meta.label).items.push(s);
-    }
-    return [...groups.values()].sort((a, b) => a.meta.order - b.meta.order);
-  }, [sessions]);
-
   const applyResume = useCallback((res, storedId) => {
-    sidRef.current = res.session_id;
-    setSid(res.session_id);
-    if (storedId) setActiveStoredId(storedId);
+    rememberSession(res, storedId || res.stored_session_id || null);
     const hydrated = hydrateHistory(res.messages);
     const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
     const inflightUser = String(res.inflight?.user || '').trim();
@@ -481,6 +504,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       return next;
     });
     if (res.running) {
+      setWaitSec(0);
       setBusy(true);
       setStatus('生成中');
     } else {
@@ -488,7 +512,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       setStatus('');
     }
     stickToBottom.current = true;
-  }, []);
+  }, [rememberSession]);
 
   // WS 断过再连上：必须把当前存档 resume 回去，事件才会重新绑到这条连接。
   // 第一次 open 由上面的 connect() 处理，这里只接重连。
@@ -526,21 +550,21 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     if (!gw || busy) return;
     setBanner('');
     try {
-      const res = await gw.request('session.create', { cols: 100, cwd: '/home/ubuntu' });
-      sidRef.current = res.session_id;
-      setSid(res.session_id);
-      setActiveStoredId(null);
+      const res = await gw.request('session.create', await sessionCreateParams());
+      rememberSession(res);
       setMessages([]);
       setPendingImages([]);
       // 新建后立刻刷新列表，让左栏出现这条新会话
       try {
         const listRes = await gw.request('session.list', {});
-        setSessions(Array.isArray(listRes?.sessions) ? listRes.sessions : []);
+        const list = Array.isArray(listRes?.sessions) ? listRes.sessions : [];
+        setSessions(list);
+        writeCachedSessions(list);
       } catch { /* 列表刷新失败不影响对话 */ }
     } catch (err) {
       setBanner(`新建会话失败：${err.message}`);
     }
-  }, [busy]);
+  }, [busy, rememberSession, sessionCreateParams]);
 
   // ---------- 发送 ----------
   const send = useCallback(async () => {
@@ -578,6 +602,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     setInput('');
     setPendingImages([]);
     setBusy(true);
+    setWaitSec(0);
     setStatus(images.length > 0 ? '上传图片' : '已发送');
     stickToBottom.current = true;
 
@@ -588,11 +613,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       if (stored) {
         try {
           const res = await gw.request('session.resume', { session_id: stored, cols: 100 });
-          return res.session_id;
-        } catch { /* 存档也 resume 不了就退到新建 */ }
+          return rememberSession(res, stored);
+        } catch (err) {
+          // 只有存档确实被 Hermes 回收时才新建；超时/断线等临时错误应直接交给
+          // 外层恢复输入，避免一次网络抖动悄悄丢掉上下文。
+          if (!/session not found/i.test(err?.message || '')) throw err;
+        }
       }
-      const res = await gw.request('session.create', { cols: 100, cwd: '/home/ubuntu' });
-      return res.session_id;
+      return rememberSession(await gw.request('session.create', await sessionCreateParams()));
     };
 
     // 一次完整的投递：挂图片 + 提交文本。会话失效时整段重放，
@@ -632,6 +660,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     } catch (err) {
       // 没送出去就别把气泡留在那儿冒充已发送，内容还给输入框方便重发
       setBanner(`发送失败：${err.message}`);
+      setWaitSec(0);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       setInput((cur) => cur || text);
       setPendingImages((cur) => (cur.length > 0 ? cur : images));
@@ -640,7 +669,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     } finally {
       sendingRef.current = false;
     }
-  }, [busy, input, pendingImages]);
+  }, [busy, input, pendingImages, rememberSession, sessionCreateParams]);
 
   const interrupt = useCallback(async () => {
     const gw = gwRef.current;
@@ -814,29 +843,40 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     }
   }, []);
 
-  const UPLOAD_ROOT = '/home/ubuntu/ExamSystem/data/uploads';
-
-  const attachUpload = useCallback((file) => {
+  const attachUpload = useCallback(async (file) => {
     const date = file?.date;
     const typ = file?.type || 'pdf';
     const name = file?.name;
     if (!date || !name) return;
-    const abs = `${UPLOAD_ROOT}/${date}/${typ}/${name}`;
+    let context;
+    try {
+      context = await loadHermesContext();
+    } catch (err) {
+      setBanner(`读取项目路径失败：${err.message}`);
+      return;
+    }
+    const uploadRoot = context?.upload_root;
+    const projectRoot = context?.project_root;
+    if (!uploadRoot || !projectRoot) {
+      setBanner('无法读取 ExamSystem 项目路径');
+      return;
+    }
+    const abs = `${uploadRoot.replace(/\/+$/, '')}/${date}/${typ}/${name}`;
     const prompt = [
       `复盘这份资料上传的练习卷：${name}`,
       '',
-      '绝对路径已经写死，直接打开，禁止 search_files，禁止 ls 其他目录，禁止猜 exam-hermes / exam-system / gongkao_training。',
+      '绝对路径已经写好，直接打开，禁止 search_files，禁止 ls 其他目录，禁止猜项目目录。',
       abs,
       '',
       '立刻用 python3 + fitz 抽文字，按「你的答案：」「正确答案：」对答案。',
       "先 skill_view('gd-gongkao-coach') 和 skill_view('exam-coaching-gd-provincial')，按里面的三段式逐题复盘。",
-      '复盘完用 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py 的 record() 写入 /home/ubuntu/ExamSystem/data/exam.db。',
+      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db。`,
     ].join('\n');
     setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
     setShowUploads(false);
     stickToBottom.current = true;
     setTimeout(() => taRef.current?.focus(), 0);
-  }, []);
+  }, [loadHermesContext]);
 
   const loadUploads = useCallback(async () => {
     setUploadsLoading(true);
@@ -875,9 +915,12 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         : null;
     if (!key || seededRef.current === key) return;
     seededRef.current = key;
-    onSeedConsumed?.();
-    if (seed.sessionId) attachPractice(seed.sessionId);
-    else if (seed.upload) attachUpload(seed.upload);
+    const timer = setTimeout(() => {
+      onSeedConsumed?.();
+      if (seed.sessionId) void attachPractice(seed.sessionId);
+      else if (seed.upload) void attachUpload(seed.upload);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [seed, attachPractice, attachUpload, onSeedConsumed]);
 
   const onKeyDown = (e) => {
@@ -994,114 +1037,20 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
 
   return (
     <div className={`flex h-full overflow-hidden ${fullscreen ? 'relative gap-0' : 'gap-4 animate-fadeIn'}`}>
-      {/* ── 会话列表 ── */}
-      {sidebarOpen && fullscreen && (
-        <button
-          type="button"
-          aria-label="关闭会话列表"
-          onClick={() => setSidebarOpen(false)}
-          className="absolute inset-0 z-10 bg-black/25"
-        />
-      )}
-      {sidebarOpen && (
-        <div className={fullscreen
-          ? 'absolute z-20 inset-y-0 left-0 w-72 flex flex-col bg-white border-r border-black/10 shadow-2xl overflow-hidden'
-          : 'w-64 shrink-0 flex flex-col rounded-3xl bg-white/70 border border-black/5 overflow-hidden'}
-        >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-black/5">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#999]">会话</span>
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={refreshSessions}
-                title="刷新列表"
-                className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-              >
-                {sessionsLoading
-                  ? <Loader2 size={13} className="animate-spin" />
-                  : <RefreshCw size={13} />}
-              </button>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                title="收起"
-                className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={() => {
-              newSession();
-              if (fullscreen) setSidebarOpen(false);
-            }}
-            disabled={busy}
-            className="mx-3 mt-3 flex items-center justify-center space-x-2 px-3 py-2.5 rounded-xl bg-[#1a1a1a] text-white font-bold text-xs disabled:opacity-40 hover:opacity-90 transition-opacity"
-          >
-            <Plus size={14} />
-            <span>新建会话</span>
-          </button>
-
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
-            {grouped.length === 0 && !sessionsLoading && (
-              <p className="px-1 text-[11px] text-[#bbb] leading-relaxed">
-                {connState === 'open' ? '暂无会话' : '连接后显示会话'}
-              </p>
-            )}
-            {grouped.map(({ meta, items }) => {
-              const Icon = meta.icon;
-              return (
-                <div key={meta.label}>
-                  <div className="flex items-center space-x-1.5 px-1 mb-1.5">
-                    <Icon size={11} className="text-[#bbb]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#bbb]">
-                      {meta.label}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    {items.map((s) => (
-                      <div
-                        key={s.id}
-                        className={`group relative flex items-center rounded-xl transition-colors ${
-                          activeStoredId === s.id
-                            ? 'bg-[#1a1a1a] text-white'
-                            : 'hover:bg-black/5 text-[#444]'
-                        } ${busy ? 'opacity-50 pointer-events-none' : ''}`}
-                      >
-                        <button
-                          onClick={() => {
-                            openSession(s);
-                            if (fullscreen) setSidebarOpen(false);
-                          }}
-                          disabled={busy}
-                          title={s.title || s.id}
-                          className="flex-1 min-w-0 text-left px-2.5 py-2"
-                        >
-                          <div className="text-xs font-bold truncate pr-5">{s.title || '(无标题)'}</div>
-                          <div className={`text-[10px] font-bold ${activeStoredId === s.id ? 'text-white/60' : 'text-[#bbb]'}`}>
-                            {s.message_count} 条
-                          </div>
-                        </button>
-                        <button
-                          onClick={(e) => deleteSession(e, s.id)}
-                          title="删除会话"
-                          className={`absolute right-1.5 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${
-                            activeStoredId === s.id
-                              ? 'text-white/60 hover:text-white'
-                              : 'text-[#bbb] hover:text-[#ef5350]'
-                          }`}
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <HermesSidebar
+        fullscreen={fullscreen}
+        open={sidebarOpen}
+        sessions={sessions}
+        sessionsLoading={sessionsLoading}
+        connState={connState}
+        activeStoredId={activeStoredId}
+        busy={busy}
+        onRefresh={refreshSessions}
+        onClose={() => setSidebarOpen(false)}
+        onNew={newSession}
+        onOpen={openSession}
+        onDelete={deleteSession}
+      />
 
       {/* ── 对话区 ── */}
       <div
@@ -1366,190 +1315,26 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           )}
         </div>
       </div>
-      {/* 练习记录选择器。portal 到 body：外层 <main> 带 backdrop-blur，
-          在它内部写 fixed inset-0 只能铺满 main、铺不满屏幕 */}
-      {showReview && createPortal(
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
-          <button
-            type="button"
-            aria-label="关闭"
-            onClick={() => setShowReview(false)}
-            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-          />
-          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
-              <div className="flex items-center space-x-2">
-                <ScanSearch size={15} className="text-[#6b5428]" />
-                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                  挑一场模考复盘
-                </span>
-              </div>
-              <button
-                onClick={() => setShowReview(false)}
-                className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {reviewsLoading && examReviews.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
-              )}
-              {!reviewsLoading && examReviews.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有处理完的复盘。<br />去「真题复盘」传一场模考的录屏和答案 PDF。
-                </p>
-              )}
-              {examReviews.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => attachExamReview(r.id)}
-                  disabled={attaching}
-                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group disabled:opacity-50"
-                >
-                  <div className="text-xs font-black italic truncate">{r.title}</div>
-                  <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
-                    {r.exam_date} · {Math.round((r.duration_sec || 0) / 60)} 分钟
-                    {r.stats?.questions ? ` · ${r.stats.questions} 题` : ''}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div className="px-5 py-3 border-t border-black/5">
-              <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
-                会把整份复盘报告装进输入框，你可以再补一句想问的再发。
-              </p>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {showUploads && createPortal(
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
-          <button
-            type="button"
-            aria-label="关闭"
-            onClick={() => setShowUploads(false)}
-            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-          />
-          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
-              <div className="flex items-center space-x-2">
-                <Upload size={15} className="text-[#6b5428]" />
-                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                  挑一份上传资料复盘
-                </span>
-              </div>
-              <button
-                onClick={() => setShowUploads(false)}
-                className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {uploadsLoading && uploadFiles.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
-              )}
-              {!uploadsLoading && uploadFiles.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有上传资料。<br />去「资料上传」丢一份练习 PDF。
-                </p>
-              )}
-              {uploadFiles.map((f) => (
-                <button
-                  key={`${f.date}/${f.type}/${f.name}`}
-                  onClick={() => attachUpload(f)}
-                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group"
-                >
-                  <div className="text-xs font-black italic truncate">{f.name}</div>
-                  <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
-                    {f.date} · {f.type}
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div className="px-5 py-3 border-t border-black/5">
-              <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
-                会把这份文件的绝对路径装进输入框，Hermes 直接打开，不再满盘搜索。
-              </p>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
-
-      {showPicker && createPortal(
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
-          <button
-            type="button"
-            aria-label="关闭"
-            onClick={() => setShowPicker(false)}
-            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-          />
-          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
-              <div className="flex items-center space-x-2">
-                <Target size={15} className="text-[#6b5428]" />
-                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                  挑一场练习来复盘
-                </span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={loadPracticeRuns}
-                  title="刷新"
-                  className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-                >
-                  {runsLoading
-                    ? <Loader2 size={13} className="animate-spin" />
-                    : <RefreshCw size={13} />}
-                </button>
-                <button
-                  onClick={() => setShowPicker(false)}
-                  className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {runsLoading && practiceRuns.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
-              )}
-              {!runsLoading && practiceRuns.length === 0 && (
-                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有交过卷的练习。<br />去「AI 练题」做一套并交卷，草稿纸会自动存下来。
-                </p>
-              )}
-              {practiceRuns.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => attachPractice(r.id)}
-                  disabled={attaching}
-                  className="w-full text-left px-4 py-3 rounded-2xl border border-black/5 hover:border-[#6b5428] hover:bg-[#f4e6c8] transition-colors flex items-center gap-3 disabled:opacity-50"
-                >
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-xs font-black truncate">{r.category || '未命名批次'}</span>
-                    <span className="block text-[10px] font-bold text-[#bbb] mt-0.5">
-                      对 {r.correct}/{r.total} · 错 {r.wrong_count} · 用时 {fmtSec(r.duration_sec)}
-                      {r.draft_count > 0 && ` · ${r.draft_count} 张草稿`}
-                    </span>
-                  </span>
-                  <ChevronRight size={14} className="shrink-0 text-[#ccc]" />
-                </button>
-              ))}
-            </div>
-
-            <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              会把错题明细和最多 {MAX_DRAFT_ATTACH} 张草稿纸装进输入框，你可以再补一句话再发。
-            </p>
-          </div>
-        </div>,
-        document.body,
-      )}
+      <HermesContextPickers
+        showReview={showReview}
+        setShowReview={setShowReview}
+        reviewsLoading={reviewsLoading}
+        examReviews={examReviews}
+        attachExamReview={attachExamReview}
+        showUploads={showUploads}
+        setShowUploads={setShowUploads}
+        uploadsLoading={uploadsLoading}
+        uploadFiles={uploadFiles}
+        attachUpload={attachUpload}
+        showPicker={showPicker}
+        setShowPicker={setShowPicker}
+        runsLoading={runsLoading}
+        practiceRuns={practiceRuns}
+        attachPractice={attachPractice}
+        attaching={attaching}
+        loadPracticeRuns={loadPracticeRuns}
+        maxDraftAttach={MAX_DRAFT_ATTACH}
+      />
     </div>
   );
 };
