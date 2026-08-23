@@ -2,8 +2,8 @@
 """考点画像表：随做题积累，沉淀每个考点的掌握度。
 
 设计取舍（ponytail）：不建独立的"考点主数据表"。考点标签是字符串主键，
-真题地图里已经有池子，这里只记录"你在这个标签上表现如何"。遇到新考点时，
-先用 register_knowledge_point() 预登记到同一张表，后续再由 record() 累积表现。
+真题地图里已经有池子，这里只记录"你在这个标签上表现如何"。熟练度由事件流水
+按 Beta 先验、时间衰减和证据来源自动估计；遇到新考点时，先登记再记录事件。
 """
 
 import sqlite3
@@ -23,8 +23,12 @@ CREATE TABLE IF NOT EXISTS kaodian_profile (
     last_seen    TEXT,                       -- ISO 日期，控制"两周内不重复出"
     streak       INTEGER NOT NULL DEFAULT 0, -- 连续答对数，负数表示连续错
     note         TEXT,                       -- 复盘时人工/AI 写入的定性判断
-    mastery      INTEGER,                    -- 0~100，对话里按实际情况改
+    mastery      INTEGER,                    -- 统计估计值，不是裸正确率
     mastery_note TEXT,
+    mastery_confidence INTEGER,
+    mastery_samples REAL,
+    mastery_source TEXT NOT NULL DEFAULT 'auto',
+    mastery_updated_at TEXT,
     updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -38,6 +42,8 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
     question_id INTEGER,
     is_correct  INTEGER NOT NULL,
     elapsed_ms  INTEGER,
+    evidence_type TEXT NOT NULL DEFAULT 'hermes',
+    evidence_weight REAL NOT NULL DEFAULT 1.0,
     answered_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -59,14 +65,91 @@ ON CONFLICT(kaodian) DO UPDATE SET
 """
 
 
-def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0):
-    """记一次作答。画像和流水一起更新。"""
+SOURCE_WEIGHTS = {"practice": 1.0, "hermes": 0.7, "manual": 0.4}
+PRIOR_CORRECT = 2.0
+PRIOR_WRONG = 2.0
+HALF_LIFE_DAYS = 21.0
+CONFIDENCE_SCALE = 8.0
+
+
+def calculate_mastery(events, now=None):
+    """用带时间衰减的 Beta 估计，返回分数、置信度和有效样本数。"""
+    import datetime as dt
+
+    now = now or dt.datetime.now(dt.timezone.utc)
+    effective = 0.0
+    weighted_correct = 0.0
+    for event in events:
+        source = event["evidence_type"] if event["evidence_type"] in SOURCE_WEIGHTS else "hermes"
+        try:
+            weight = min(1.5, max(0.1, float(event["evidence_weight"])))
+        except (TypeError, ValueError):
+            weight = 1.0
+        raw = str(event["answered_at"] or "").replace(" ", "T")
+        try:
+            seen = dt.datetime.fromisoformat(raw).replace(tzinfo=dt.timezone.utc)
+            age = max(0.0, (now - seen).total_seconds() / 86400.0)
+        except ValueError:
+            age = 0.0
+        factor = SOURCE_WEIGHTS[source] * weight * (0.5 ** (age / HALF_LIFE_DAYS))
+        effective += factor
+        weighted_correct += factor * int(bool(event["is_correct"]))
+    if effective <= 0:
+        return None
+    estimate = (PRIOR_CORRECT + weighted_correct) / (PRIOR_CORRECT + PRIOR_WRONG + effective)
+    confidence = 1 - __import__("math").exp(-effective / CONFIDENCE_SCALE)
+    return {
+        "mastery": round(max(0.0, min(100.0, estimate * 100))),
+        "mastery_confidence": round(max(0.0, min(100.0, confidence * 100))),
+        "mastery_samples": round(effective, 2),
+    }
+
+
+def recompute_mastery(conn, kaodian=None):
+    """按事件流水重算画像；手工估计不会覆盖自动值。"""
+    ensure_schema(conn)
+    profiles = conn.execute(
+        "SELECT kaodian FROM kaodian_profile WHERE mastery_source != 'manual'"
+        + (" AND kaodian=?" if kaodian else ""),
+        ((kaodian,) if kaodian else ()),
+    ).fetchall()
+    for (tag,) in profiles:
+        events = conn.execute(
+            """SELECT is_correct, answered_at, evidence_type, evidence_weight
+               FROM kaodian_events WHERE kaodian=? ORDER BY answered_at, id""",
+            (tag,),
+        ).fetchall()
+        score = calculate_mastery([
+            {
+                "is_correct": row[0],
+                "answered_at": row[1],
+                "evidence_type": row[2],
+                "evidence_weight": row[3],
+            }
+            for row in events
+        ])
+        if score:
+            conn.execute(
+                """UPDATE kaodian_profile
+                   SET mastery=?, mastery_confidence=?, mastery_samples=?,
+                       mastery_source='auto', mastery_updated_at=datetime('now'),
+                       updated_at=datetime('now') WHERE kaodian=?""",
+                (score["mastery"], score["mastery_confidence"], score["mastery_samples"], tag),
+            )
+
+
+def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0):
+    """记录一次证据并按全部历史流水重算熟练度。"""
+    ensure_schema(conn)
     c = 1 if is_correct else 0
     conn.execute(RECORD, (kaodian, module, subtype, c, elapsed_ms, 1 if c else -1))
     conn.execute(
-        "INSERT INTO kaodian_events (kaodian, is_correct, elapsed_ms) VALUES (?,?,?)",
-        (kaodian, c, elapsed_ms),
+        """INSERT INTO kaodian_events
+           (kaodian, is_correct, elapsed_ms, evidence_type, evidence_weight)
+           VALUES (?,?,?,?,?)""",
+        (kaodian, c, elapsed_ms, source if source in SOURCE_WEIGHTS else "hermes", weight),
     )
+    recompute_mastery(conn, kaodian)
 
 
 def register_knowledge_point(conn, kaodian, module, subtype, note=""):
@@ -113,6 +196,19 @@ def ensure_schema(conn):
         conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery INTEGER")
     if "mastery_note" not in cols:
         conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_note TEXT")
+    if "mastery_confidence" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_confidence INTEGER")
+    if "mastery_samples" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_samples REAL")
+    if "mastery_source" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_source TEXT NOT NULL DEFAULT 'auto'")
+    if "mastery_updated_at" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_updated_at TEXT")
+    event_cols = {r[1] for r in conn.execute("PRAGMA table_info(kaodian_events)")}
+    if "evidence_type" not in event_cols:
+        conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'hermes'")
+    if "evidence_weight" not in event_cols:
+        conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_weight REAL NOT NULL DEFAULT 1.0")
 
 
 def score_of(row):
@@ -143,6 +239,7 @@ def set_mastery(conn, kaodian, score, note="", module="", subtype=""):
             """
             UPDATE kaodian_profile
                SET mastery = ?,
+                   mastery_source = 'manual',
                    mastery_note = CASE WHEN ? = '' THEN mastery_note ELSE ? END,
                    module = CASE WHEN ? = '' THEN module ELSE ? END,
                    subtype = CASE WHEN ? = '' THEN subtype ELSE ? END,
@@ -156,8 +253,9 @@ def set_mastery(conn, kaodian, score, note="", module="", subtype=""):
         conn.execute(
             """
             INSERT INTO kaodian_profile
-              (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak, note, mastery, mastery_note)
-            VALUES (?, ?, ?, 0, 0, 0, date('now'), 0, ?, ?, ?)
+              (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak,
+               note, mastery, mastery_note, mastery_source)
+            VALUES (?, ?, ?, 0, 0, 0, date('now'), 0, ?, ?, ?, 'manual')
             """,
             (kaodian, inferred, subtype, note, score, note),
         )
@@ -169,7 +267,8 @@ def list_points(conn):
     return conn.execute(
         """
         SELECT kaodian, module, subtype, attempts, correct, streak,
-               mastery, mastery_note, note, last_seen
+               mastery, mastery_note, mastery_confidence, mastery_samples,
+               mastery_source, note, last_seen
           FROM kaodian_profile
          ORDER BY module, kaodian
         """
@@ -179,6 +278,18 @@ def list_points(conn):
 def _demo():
     conn = sqlite3.connect(":memory:")
     conn.executescript(SCHEMA)
+    import datetime as dt
+
+    estimate = calculate_mastery(
+        [{
+            "is_correct": 1,
+            "answered_at": "2026-08-24T00:00:00+00:00",
+            "evidence_type": "hermes",
+            "evidence_weight": 1,
+        }],
+        dt.datetime(2026, 8, 24, tzinfo=dt.timezone.utc),
+    )
+    assert estimate["mastery"] == 57 and estimate["mastery_confidence"] == 8, estimate
     for ok in (False, False, True):
         record(conn, "假言命题逆否", "判断推理", "逻辑判断-翻译推理", ok, 60000)
     for _ in range(4):
@@ -209,6 +320,8 @@ def _demo():
     assert pending == (0, "来源：复盘新题；待确认与组织建设表述的边界"), pending
     set_mastery(conn, "假言命题逆否", 35, "刚讲完逆否，自己做还要停很久")
     assert conn.execute("SELECT mastery FROM kaodian_profile WHERE kaodian='假言命题逆否'").fetchone()[0] == 35
+    record(conn, "假言命题逆否", "判断推理", "逻辑判断-翻译推理", True, 60000)
+    assert conn.execute("SELECT mastery, mastery_source FROM kaodian_profile WHERE kaodian='假言命题逆否'").fetchone() == (35, "manual")
     print("demo ok")
 
 
@@ -225,10 +338,33 @@ if __name__ == "__main__":
         register_knowledge_point(conn, tag, module, subtype, " ".join(note))
         conn.commit()
         print(f"registered -> {tag}")
+    elif "--record" in sys.argv:
+        args = sys.argv[sys.argv.index("--record") + 1:]
+        if len(args) < 4:
+            raise SystemExit("用法：--record <标签> <模块> <题型/一级> <0|1> [用时毫秒] [practice|hermes|manual]")
+        tag, module, subtype, result, *rest = args
+        source = rest[1] if len(rest) > 1 else "hermes"
+        elapsed_ms = int(rest[0]) if rest and rest[0].isdigit() else 0
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        record(conn, tag, module, subtype, result in {"1", "true", "True", "对", "正确"}, elapsed_ms, source)
+        conn.commit()
+        row = conn.execute(
+            "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
+            (tag,),
+        ).fetchone()
+        print(f"recorded -> {tag}: mastery={row[0]} confidence={row[1]} samples={row[2]}")
+    elif "--recompute" in sys.argv:
+        args = sys.argv[sys.argv.index("--recompute") + 1:]
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        recompute_mastery(conn, args[0] if args else None)
+        conn.commit()
+        print(f"recomputed -> {args[0] if args else 'all'}")
     elif "--mastery" in sys.argv:
         args = sys.argv[sys.argv.index("--mastery") + 1:]
         if len(args) < 2:
-            raise SystemExit("用法：--mastery <标签> <0-100> [一句依据] [模块] [一级]")
+            raise SystemExit("用法：--mastery <标签> <0-100> [一句依据] [模块] [一级]（仅人工覆盖，Hermes 不应使用）")
         tag, score, *rest = args
         note = rest[0] if rest else ""
         module = rest[1] if len(rest) > 1 else ""
@@ -244,11 +380,11 @@ if __name__ == "__main__":
         rows = list_points(conn)
         if not rows:
             print("(empty)")
-        for kaodian, module, subtype, attempts, correct, streak, mastery, mastery_note, note, last_seen in rows:
+        for kaodian, module, subtype, attempts, correct, streak, mastery, mastery_note, confidence, samples, source, note, last_seen in rows:
             shown = mastery if mastery is not None else (
                 round(correct * 100.0 / attempts) if attempts else "-"
             )
-            print(f"{shown}\t{kaodian}\t{module}\t{subtype or ''}\t{correct}/{attempts}\t{mastery_note or note or ''}")
+            print(f"{shown}\t{kaodian}\t{module}\t{subtype or ''}\t{correct}/{attempts}\t置信度={confidence or 0}%\t样本={samples or 0}\t来源={source or 'auto'}\t{mastery_note or note or ''}")
     else:
         conn = sqlite3.connect(DB)
         ensure_schema(conn)

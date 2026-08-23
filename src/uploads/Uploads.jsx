@@ -57,6 +57,24 @@ const authHeaders = () => {
   return t ? { Authorization: `Bearer ${t}` } : {};
 };
 
+const uploadFileWithProgress = (url, form, onProgress) => new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', url);
+  Object.entries(authHeaders()).forEach(([key, value]) => xhr.setRequestHeader(key, value));
+  xhr.upload.onprogress = (event) => {
+    if (event.lengthComputable) onProgress(event.loaded, event.total);
+  };
+  xhr.onload = () => {
+    let data = {};
+    try { data = JSON.parse(xhr.responseText || '{}'); } catch { /* handled as a generic response */ }
+    if (xhr.status >= 200 && xhr.status < 300) resolve(data);
+    else reject(new Error(data.error || `上传失败 (${xhr.status})`));
+  };
+  xhr.onerror = () => reject(new Error('网络中断，上传失败'));
+  xhr.onabort = () => reject(new Error('上传已取消'));
+  xhr.send(form);
+});
+
 const Uploads = ({ onReviewWithHermes }) => {
   const [mode, setMode] = useState('daily'); // daily | exam
   const [today, setToday] = useState('');
@@ -67,6 +85,7 @@ const Uploads = ({ onReviewWithHermes }) => {
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [type, setType] = useState('pdf');
   const [msg, setMsg] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -195,36 +214,51 @@ const Uploads = ({ onReviewWithHermes }) => {
         setMsg('请先创建或选择一个真题文件夹');
         return;
       }
+      if (uploading) return;
       setUploading(true);
       setMsg('');
+      const totalBytes = list.reduce((sum, file) => sum + file.size, 0);
+      let uploadedBytes = 0;
+      let currentIndex = 0;
       try {
-        for (const file of list) {
-          const fd = new FormData();
-          if (mode === 'exam') fd.append('folder', folder);
-          else fd.append('type', type);
-          fd.append('file', file);
-          const url = mode === 'exam' ? '/api/uploads/exam' : '/api/uploads';
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: fd,
-          });
-          if (!res.ok) {
-            const e = await res.json().catch(() => ({}));
-            throw new Error(e.error || `上传失败 (${res.status})`);
-          }
-        }
-        const where = mode === 'exam' ? `真题/${folder}` : `${today}/${type}`;
-        setMsg(`已上传 ${list.length} 个文件到「${where}」`);
-        await load();
+      for (let i = 0; i < list.length; i += 1) {
+        currentIndex = i + 1;
+        const file = list[i];
+        const fd = new FormData();
+        if (mode === 'exam') fd.append('folder', folder);
+        else fd.append('type', type);
+        fd.append('file', file);
+        const url = mode === 'exam' ? '/api/uploads/exam' : '/api/uploads';
+        const updateProgress = (loaded, total) => {
+          const filePct = total ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+          const currentBytes = Math.min(file.size, loaded);
+          const overallPct = totalBytes
+            ? Math.min(100, Math.round(((uploadedBytes + currentBytes) / totalBytes) * 100))
+            : 0;
+          setUploadProgress({ current: currentIndex, total: list.length, name: file.name, filePct, overallPct });
+        };
+        setUploadProgress({
+          current: currentIndex,
+          total: list.length,
+          name: file.name,
+          filePct: 0,
+          overallPct: totalBytes ? Math.round((uploadedBytes / totalBytes) * 100) : 0,
+        });
+        await uploadFileWithProgress(url, fd, updateProgress);
+        uploadedBytes += file.size;
+        setUploadProgress({ current: currentIndex, total: list.length, name: file.name, filePct: 100, overallPct: totalBytes ? Math.round((uploadedBytes / totalBytes) * 100) : 100 });
+      }
+      const where = mode === 'exam' ? `真题/${folder}` : `${today}/${type}`;
+      setMsg(`已上传 ${list.length} 个文件到「${where}」`);
+      await load();
       } catch (err) {
-        setMsg(err.message || '上传失败');
+        setMsg(`第 ${currentIndex || 1}/${list.length} 个文件上传失败：${err.message || '上传失败'}`);
       } finally {
         setUploading(false);
         if (inputRef.current) inputRef.current.value = '';
       }
     },
-    [mode, folder, type, today, load],
+    [mode, folder, type, today, load, uploading],
   );
 
   const openDaily = useCallback(async (date, t, name) => {
@@ -434,8 +468,11 @@ const Uploads = ({ onReviewWithHermes }) => {
         )}
 
         <div
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            if (!uploading) inputRef.current?.click();
+          }}
           onDragOver={(e) => {
+            if (uploading) return;
             e.preventDefault();
             setDragOver(true);
           }}
@@ -443,9 +480,11 @@ const Uploads = ({ onReviewWithHermes }) => {
           onDrop={(e) => {
             e.preventDefault();
             setDragOver(false);
+            if (uploading) return;
             doUpload(e.dataTransfer.files);
           }}
-          className={`cursor-pointer rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
+          aria-busy={uploading}
+          className={`${uploading ? 'cursor-wait opacity-80' : 'cursor-pointer'} rounded-2xl border-2 border-dashed p-10 text-center transition-all ${
             dragOver ? 'border-[#6b5428] bg-[#2c261c]/10' : 'border-black/10 hover:border-black/20'
           }`}
         >
@@ -467,10 +506,40 @@ const Uploads = ({ onReviewWithHermes }) => {
             type="file"
             {...(isIOS ? {} : { accept: FILE_ACCEPT })}
             multiple
+            disabled={uploading}
             className="hidden"
             onChange={(e) => doUpload(e.target.files)}
           />
         </div>
+
+        {uploading && uploadProgress && (
+          <div className="mt-5 rounded-2xl border border-[#e8d5b0] bg-[#faf6ec] p-4">
+            <div className="flex items-center justify-between gap-3 text-xs font-black">
+              <span>上传第 {uploadProgress.current} / {uploadProgress.total} 个</span>
+              <span>{uploadProgress.overallPct}%</span>
+            </div>
+            <p className="mt-2 truncate text-xs font-bold text-slate-500" title={uploadProgress.name}>
+              当前文件：{uploadProgress.name}
+            </p>
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-[#e8d5b0]"
+              role="progressbar"
+              aria-label="全部文件上传进度"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow={uploadProgress.overallPct}
+            >
+              <div
+                className="h-full rounded-full bg-[#6b5428] transition-[width] duration-200"
+                style={{ width: `${uploadProgress.overallPct}%` }}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-3 text-[11px] font-bold text-slate-400">
+              <span>本文件 {uploadProgress.filePct}%</span>
+              <span>已完成 {uploadProgress.overallPct === 100 ? uploadProgress.total : uploadProgress.current - 1} 个</span>
+            </div>
+          </div>
+        )}
 
         {msg && <p className="mt-4 text-sm font-bold text-[#1a1a1a]">{msg}</p>}
       </div>

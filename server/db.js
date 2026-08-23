@@ -195,8 +195,12 @@ CREATE TABLE IF NOT EXISTS kaodian_profile (
   last_seen    TEXT,
   streak       INTEGER NOT NULL DEFAULT 0,   -- 正数=连对，负数=连错
   note         TEXT,
-  mastery      INTEGER,                      -- 0~100，Hermes/本人按实际情况改
+  mastery      INTEGER,                      -- 统计估计值 0~100
   mastery_note TEXT,
+  mastery_confidence INTEGER,
+  mastery_samples REAL,
+  mastery_source TEXT NOT NULL DEFAULT 'auto',
+  mastery_updated_at TEXT,
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -209,6 +213,8 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
   question_id INTEGER,
   is_correct  INTEGER NOT NULL,
   elapsed_ms  INTEGER,
+  evidence_type TEXT NOT NULL DEFAULT 'hermes',
+  evidence_weight REAL NOT NULL DEFAULT 1.0,
   answered_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -260,6 +266,26 @@ if (!kpCols.has('mastery')) {
 }
 if (!kpCols.has('mastery_note')) {
   db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery_note TEXT');
+}
+if (!kpCols.has('mastery_confidence')) {
+  db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery_confidence INTEGER');
+}
+if (!kpCols.has('mastery_samples')) {
+  db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery_samples REAL');
+}
+if (!kpCols.has('mastery_source')) {
+  db.exec("ALTER TABLE kaodian_profile ADD COLUMN mastery_source TEXT NOT NULL DEFAULT 'auto'");
+}
+if (!kpCols.has('mastery_updated_at')) {
+  db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery_updated_at TEXT');
+}
+
+const keCols = new Set(db.prepare('PRAGMA table_info(kaodian_events)').all().map((r) => r.name));
+if (!keCols.has('evidence_type')) {
+  db.exec("ALTER TABLE kaodian_events ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'hermes'");
+}
+if (!keCols.has('evidence_weight')) {
+  db.exec('ALTER TABLE kaodian_events ADD COLUMN evidence_weight REAL NOT NULL DEFAULT 1.0');
 }
 db.exec(`
   UPDATE kaodian_profile

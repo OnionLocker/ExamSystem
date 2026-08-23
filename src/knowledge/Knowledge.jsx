@@ -26,6 +26,16 @@ function scoreOf(row) {
   return null;
 }
 
+function masteryHint(row) {
+  if (!row) return '';
+  const parts = [];
+  if (row.attempts > 0) parts.push(`${row.correct || 0}/${row.attempts} 次`);
+  if (row.mastery_confidence != null) parts.push(`置信度 ${row.mastery_confidence}%`);
+  if (row.mastery_samples != null) parts.push(`有效样本 ${row.mastery_samples}`);
+  if (row.mastery_source === 'manual') parts.push('人工覆盖');
+  return parts.join(' · ');
+}
+
 function relatedRows(type, rows) {
   const name = type.name || '';
   if (!name) return [];
@@ -54,23 +64,26 @@ function MasteryBar({ score, hint }) {
   const word = !known ? '还没接触' : v < 40 ? '生疏' : v < 70 ? '半会' : v < 90 ? '较稳' : '拿手';
   const label = known ? `${v}% · ${word}` : word;
   return (
-    <span
-      className="inline-flex items-end gap-[2px] flex-shrink-0"
-      style={{ transform: 'skewX(-18deg) translateY(1px)' }}
-      title={[label, hint].filter(Boolean).join(' · ')}
-      aria-label={label}
-    >
-      {MASTERY_COLORS.map((c, i) => (
-        <span
-          key={i}
-          className="block rounded-[1px]"
-          style={{
-            width: 4,
-            height: 13,
-            background: i < lit ? c : '#d5d0c6',
-          }}
-        />
-      ))}
+    <span className="inline-flex items-end gap-1 flex-shrink-0" title={[label, hint].filter(Boolean).join(' · ')} aria-label={label}>
+      <span
+        className="inline-flex items-end gap-[2px]"
+        style={{ transform: 'skewX(-18deg) translateY(1px)' }}
+      >
+        {MASTERY_COLORS.map((c, i) => (
+          <span
+            key={i}
+            className="block rounded-[1px]"
+            style={{
+              width: 4,
+              height: 13,
+              background: i < lit ? c : '#d5d0c6',
+            }}
+          />
+        ))}
+      </span>
+      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+        {known ? `${v}%` : '未评估'}
+      </span>
     </span>
   );
 }
@@ -133,7 +146,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
             <h4 className="text-base font-black tracking-tight">{view.name}</h4>
             <MasteryBar
               score={score}
-              hint={row?.mastery_note || (hits.length > 1 ? `${hits.length} 个相关考点` : '')}
+              hint={[row?.mastery_note, masteryHint(row), hits.length > 1 ? `${hits.length} 个相关考点` : ''].filter(Boolean).join(' · ')}
             />
             {t.custom ? (
               <span className="text-[10px] font-black text-[#8a6d3b] bg-[#f6ecd4] px-2 py-0.5 rounded-full">自补</span>
@@ -310,7 +323,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <p className="text-sm font-bold truncate">{h.kaodian}</p>
-                        <MasteryBar score={scoreOf(h)} hint={h.mastery_note || ''} />
+                        <MasteryBar score={scoreOf(h)} hint={[h.mastery_note, masteryHint(h)].filter(Boolean).join(' · ')} />
                       </div>
                       <p className="text-[10px] text-slate-400 font-bold flex-shrink-0">
                         {h.attempts ? `${h.correct}/${h.attempts}` : '对话'}
@@ -386,7 +399,7 @@ function ProfileList({ rows, onAdd }) {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-black">{r.kaodian}</p>
-                        <MasteryBar score={scoreOf(r)} hint={r.mastery_note || r.note || ''} />
+                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
                       </div>
                       <p className="text-[11px] text-slate-400 font-bold mt-0.5">
                         {[r.subtype, r.attempts ? `${r.correct}/${r.attempts} 次` : '还没做题'].filter(Boolean).join(' · ')}
@@ -489,7 +502,7 @@ export default function Knowledge() {
     try {
       const row = await api('/api/kaodian/mastery', {
         method: 'POST',
-        body: { kaodian, mastery: 0, note: '自己补的考点，先记着', module },
+        body: { kaodian, note: '自己补的考点，先记着', module },
       });
       setRows((prev) => {
         const rest = prev.filter((r) => r.kaodian !== row.kaodian);
@@ -617,7 +630,7 @@ export default function Knowledge() {
                           <article key={r.kaodian} className="rounded-3xl bg-white border border-dashed border-[#e8d5b0] px-5 py-4">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-black">{r.kaodian}</p>
-                              <MasteryBar score={scoreOf(r)} hint={r.mastery_note || r.note || ''} />
+                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
                             </div>
                           </article>
                         ))}

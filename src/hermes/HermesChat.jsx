@@ -667,15 +667,15 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           '1. 每一题先标「本题考察知识点：模块-一级知识点-二级知识点」。优先用广东老师知识库的固定词表（gd-gongkao-coach / 知识点页那套），不要写「综合」「常识题」等泛标签。',
           '2. 结合报告里的原题、做法、草稿，指出我的长处和短处，必须落到具体知识点和题号。',
           '3. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '4. 复盘完用 scripts/kaodian_profile.py 的 record() / register_knowledge_point() 写入 data/exam.db，并按实际情况 --mastery 更新掌握度。',
+          '4. 复盘完用 scripts/kaodian_profile.py 的 record() / register_knowledge_point() 写入 data/exam.db；掌握度由统计算法自动重算，不要凭感觉使用 --mastery。',
           '',
         ].join('\n')
       : '';
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     const masteryNudge = [
       '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
-      `python3 ${projectRoot}/scripts/kaodian_profile.py --mastery '现有标签或模块-一级-二级' 0到100 '一句依据'`,
-      '0=完全不会，100=稳定会做。有依据才改，不要每轮乱调。先 --list 看当前分数。新考点先 --register 再 --mastery。',
+      `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
+      '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
     ].join('\n');
     const outbound = [reviewLead, text, masteryNudge].filter(Boolean).join('\n');
     const msgId = uid();
@@ -876,7 +876,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
 
       lines.push(
         '',
-        "复盘完按实际情况更新掌握度：python3 scripts/kaodian_profile.py --mastery '标签' 0到100 '一句依据'。",
+        "复盘完对每个明确判断的考点用 scripts/kaodian_profile.py --record 记录 0/1；掌握度不要手填，由算法自动重算。",
       );
 
       const prompt = lines.join('\n');
@@ -958,7 +958,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       '',
       '立刻用 python3 + fitz 抽文字，按「你的答案：」「正确答案：」对答案。',
       "先 skill_view('gd-gongkao-coach') 和 skill_view('exam-coaching-gd-provincial')，按里面的三段式逐题复盘。",
-      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db，并用 --mastery 按实际情况改掌握度。`,
+      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db；掌握度由算法自动重算，不要用 --mastery 猜分。`,
     ].join('\n');
     setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
     setShowUploads(false);

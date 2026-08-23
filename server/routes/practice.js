@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import db from '../db.js';
+import { recomputeMastery } from '../mastery.js';
 
 const router = Router();
 
@@ -212,7 +213,7 @@ router.post('/sessions/:id/submit', (req, res) => {
   // 这样能查到"哪个考点老是错"，而不是只知道"判断推理错得多"。
   const addKdEvent = db.prepare(
     `INSERT INTO kaodian_events (kaodian, question_id, is_correct, elapsed_ms)
-     VALUES (?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, 'practice', 1.0)`,
   );
   const upsertKd = db.prepare(
     `INSERT INTO kaodian_profile
@@ -282,6 +283,7 @@ router.post('/sessions/:id/submit', (req, res) => {
   });
 
   const { results, correct } = grade(answers);
+  recomputeMastery(db);
   res.json({
     total: results.length,
     correct,
