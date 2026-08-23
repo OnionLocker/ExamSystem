@@ -633,7 +633,7 @@ const AppInner = () => {
           <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="examReview" icon={ScanSearch} label="真题复盘" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="examReview" icon={ScanSearch} label="录屏复盘" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
@@ -677,7 +677,7 @@ const AppInner = () => {
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
-              {activeTab === 'examReview' && '真题复盘 · 录屏行为分析'}
+              {activeTab === 'examReview' && '录屏复盘 · 真题 / 套题'}
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}

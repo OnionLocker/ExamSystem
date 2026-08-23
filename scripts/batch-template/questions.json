@@ -13,7 +13,7 @@
     "answer": "A",
     "explanation": "《民法典》于 2020 年 5 月 28 日由十三届全国人大三次会议通过，自 2021 年 1 月 1 日起施行，共七编 1260 条，同时废止《合同法》《物权法》等 9 部法律。",
     "difficulty": 2,
-    "tags": ["民法典", "时间"]
+    "tags": ["常识判断-民法与民事权利-民法典", "时间"]
   },
   {
     "external_id": "example-2024-xj-Q002",
@@ -31,7 +31,7 @@
     "answer": "C",
     "explanation": "每个图形的对称轴数量依次为 1, 2, 3, ?, 故选 C（4 条对称轴）。",
     "difficulty": 3,
-    "tags": ["对称"]
+    "tags": ["判断推理-图形推理-对称", "基础"]
   },
   {
     "external_id": "example-2024-xj-Q003",
@@ -47,7 +47,8 @@
     ],
     "answer": "B",
     "explanation": "材料第一段直接给出：2023 年 A 省社会消费品零售总额为 13800 亿元。",
-    "difficulty": 1
+    "difficulty": 1,
+    "tags": ["资料分析-查找比较与简单计算-直接读数"]
   },
   {
     "external_id": "example-2024-xj-Q004",
@@ -63,6 +64,7 @@
     ],
     "answer": "B",
     "explanation": "材料：'同比增长 5.2%'，直接给出。",
-    "difficulty": 1
+    "difficulty": 1,
+    "tags": ["资料分析-增长率-同比增长率"]
   }
 ]

@@ -308,6 +308,7 @@ router.get('/sessions/:id/report', (req, res) => {
          pa.question_id, pa.user_answer, pa.is_correct, pa.time_spent_sec, pa.answered_at,
          q.content, q.options, q.question_type, q.sub_category, q.category,
          q.correct_answer, q.explanation, q.stem_images, q.explanation_images,
+         q.tags,
          pd.question_id AS has_draft
        FROM practice_answers pa
        JOIN questions q ON q.id = pa.question_id
@@ -333,6 +334,7 @@ router.get('/sessions/:id/report', (req, res) => {
     sub_category: r.sub_category,
     correct_answer: r.correct_answer,
     explanation: r.explanation,
+    knowledge_points: parseTags(r.tags),
     user_answer: r.user_answer,
     is_correct: !!r.is_correct,
     skipped: r.user_answer === '',
@@ -505,7 +507,7 @@ router.get('/heat', (_req, res) => {
   // 真题复盘：一场模考按实际时长折算热力，跟番茄钟同口径（1 分钟 1 分）
   const reviews = db
     .prepare(
-      `SELECT id, title, exam_date, duration_sec,
+      `SELECT id, title, kind, exam_date, duration_sec,
               strftime('%s', updated_at) AS ts
          FROM exam_analyses
         WHERE status = 'done' AND exam_date IS NOT NULL`,
@@ -517,7 +519,7 @@ router.get('/heat', (_req, res) => {
     if (!out[r.exam_date]) out[r.exam_date] = { score: 0, entries: [] };
     out[r.exam_date].score += minutes;
     out[r.exam_date].entries.push({
-      type: 'examReview',
+      type: r.kind === 'taoti' ? 'setReview' : 'examReview',
       ts: Number(r.ts) * 1000,
       module: r.title,
       minutes,

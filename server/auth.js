@@ -1,13 +1,30 @@
 import { Router } from 'express';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const PASSWORD = process.env.EXAM_PASSWORD || '';
 if (!PASSWORD) {
   console.warn('[auth] ⚠️  未配置 EXAM_PASSWORD，系统将无法登录');
 }
 
-// 内存 token 池（单用户本地场景足够；重启后需重新登录）
-const tokens = new Set();
+const TOKEN_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data', 'auth-tokens.json');
+const loadTokens = () => {
+  try {
+    const arr = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'));
+    return new Set(Array.isArray(arr) ? arr.filter((x) => typeof x === 'string' && x) : []);
+  } catch {
+    return new Set();
+  }
+};
+const tokens = loadTokens();
+const saveTokens = () => {
+  try {
+    fs.mkdirSync(path.dirname(TOKEN_FILE), { recursive: true });
+    fs.writeFileSync(TOKEN_FILE, JSON.stringify([...tokens]));
+  } catch { /* ignore */ }
+};
 
 const constantTimeEq = (a, b) => {
   const ba = Buffer.from(String(a));
@@ -45,6 +62,7 @@ authRouter.post('/login', (req, res) => {
   }
   const token = crypto.randomBytes(24).toString('hex');
   tokens.add(token);
+  saveTokens();
   res.json({ token });
 });
 
@@ -52,7 +70,10 @@ authRouter.post('/login', (req, res) => {
 authRouter.post('/logout', (req, res) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : '';
-  if (token) tokens.delete(token);
+  if (token) {
+    tokens.delete(token);
+    saveTokens();
+  }
   res.json({ ok: true });
 });
 

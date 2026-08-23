@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
-  PenTool, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink,
+  PenTool, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText,
 } from 'lucide-react';
 
 import { api } from '../api.js';
@@ -43,6 +43,24 @@ const stripEmbeddedImages = (text) =>
 const SYSTEM_NOTICE_RE = /^\s*\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]/;
 const isSystemInjectedNotice = (text) => SYSTEM_NOTICE_RE.test(String(text || ''));
 
+const REVIEW_FILE_RE = /\/data\/exam-reviews\/(\d+)-([^\n]+\.md)/;
+
+const extractReview = (text) => {
+  const raw = String(text || '');
+  const m = raw.match(REVIEW_FILE_RE);
+  if (!m) return { content: raw, review: null };
+  const name = m[2];
+  const review = {
+    id: Number(m[1]),
+    name,
+    title: name.replace(/^\d+-/, '').replace(/\.md$/i, ''),
+  };
+  const chunks = raw.split(/\n{2,}/);
+  const last = (chunks[chunks.length - 1] || '').trim();
+  const lastIsLead = REVIEW_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
+  return { content: lastIsLead ? '' : last, review };
+};
+
 const hydrateHistory = (raw) =>
   (raw || [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
@@ -50,14 +68,16 @@ const hydrateHistory = (raw) =>
     .map((m) => {
       const rawText = String(m.text || '');
       const images = extractEmbeddedImages(rawText);
+      const stripped = images.length > 0 ? stripEmbeddedImages(rawText) : rawText;
+      const pulled = m.role === 'user' ? extractReview(stripped) : { content: stripped, review: null };
       return {
         id: uid(), role: m.role,
-        content: images.length > 0 ? stripEmbeddedImages(rawText) : rawText,
+        content: pulled.content,
         streaming: false, tools: [], thinking: '', images,
+        review: pulled.review,
       };
     })
-    // 纯图/空正文的用户气泡也要留着，否则「我发过」在刷新后会消失
-    .filter((m) => m.content || (m.images?.length ?? 0) > 0);
+    .filter((m) => m.content || (m.images?.length ?? 0) > 0 || m.review);
 
 const eventText = (ev) => ev?.payload?.text || ev?.payload?.rendered || '';
 
@@ -133,6 +153,26 @@ const readFontScale = () => {
   return 100;
 };
 
+const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
+  <div className={`inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-xl border max-w-full ${
+    dark ? 'bg-white/10 border-white/20 text-white' : 'bg-[#f4f0e6] border-[#e8d5b0] text-[#1a1a1a]'
+  }`}>
+    <button type="button" onClick={() => onOpen(review)} className="inline-flex items-center gap-1.5 min-w-0">
+      <FileText size={12} className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
+      <span className="text-[11px] font-black truncate max-w-[220px]">{review.name || review.title}</span>
+    </button>
+    {onRemove ? (
+      <button
+        type="button"
+        onClick={onRemove}
+        className="w-4 h-4 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center shrink-0"
+      >
+        <X size={9} />
+      </button>
+    ) : null}
+  </div>
+);
+
 const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscreen, headerExtra }) => {
   const gwRef = useRef(null);
   const hermesContextRef = useRef(null);
@@ -163,6 +203,10 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [runsLoading, setRunsLoading] = useState(false);
   const [attaching, setAttaching] = useState(false);
+  const [pendingReview, setPendingReview] = useState(null);
+  const [reviewPreview, setReviewPreview] = useState(null);
+  const [reviewMd, setReviewMd] = useState('');
+  const [reviewMdErr, setReviewMdErr] = useState('');
   const [showUploads, setShowUploads] = useState(false);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploadsLoading, setUploadsLoading] = useState(false);
@@ -176,6 +220,31 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
+
+  const openReviewPreview = useCallback((review) => {
+    setReviewMd('');
+    setReviewMdErr('');
+    setReviewPreview(review);
+  }, []);
+
+  const closeReviewPreview = useCallback(() => {
+    setReviewPreview(null);
+    setReviewMd('');
+    setReviewMdErr('');
+  }, []);
+
+  useEffect(() => {
+    if (!reviewPreview?.id) return undefined;
+    let cancelled = false;
+    api(`/api/exam-analyses/${reviewPreview.id}`)
+      .then((row) => {
+        if (!cancelled) setReviewMd(row?.result?.markdown || '');
+      })
+      .catch((err) => {
+        if (!cancelled) setReviewMdErr(err.message || 'failed');
+      });
+    return () => { cancelled = true; };
+  }, [reviewPreview]);
 
   const loadHermesContext = useCallback(() => {
     if (hermesContextRef.current) return Promise.resolve(hermesContextRef.current);
@@ -554,6 +623,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       rememberSession(res);
       setMessages([]);
       setPendingImages([]);
+      setPendingReview(null);
       // 新建后立刻刷新列表，让左栏出现这条新会话
       try {
         const listRes = await gw.request('session.list', {});
@@ -571,7 +641,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     const gw = gwRef.current;
     const text = input.trim();
     if (!gw || busy || sendingRef.current) return;
-    if (!text && pendingImages.length === 0) return;
+    if (!text && pendingImages.length === 0 && !pendingReview) return;
     // 断线时直接拦下，输入框里的字原封不动（读 gateway 自己的状态，
     // 不把 connState 拉进依赖，否则每次重连都要重建这个回调）
     if (gw.connectionState !== 'open') {
@@ -587,6 +657,27 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
 
     sendingRef.current = true;
     const images = pendingImages;
+    const review = pendingReview;
+    const reviewLead = review
+      ? [
+          `下面这个 Markdown 是我那场《${review.title}》的录屏复盘报告，请先打开。`,
+          review.path,
+          '',
+          '不要复述报告。请对照我的知识点体系做长短处诊断：',
+          '1. 每一题先标「本题考察知识点：模块-一级知识点-二级知识点」。优先用广东老师知识库的固定词表（gd-gongkao-coach / 知识点页那套），不要写「综合」「常识题」等泛标签。',
+          '2. 结合报告里的原题、做法、草稿，指出我的长处和短处，必须落到具体知识点和题号。',
+          '3. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
+          '4. 复盘完用 scripts/kaodian_profile.py 的 record() / register_knowledge_point() 写入 data/exam.db，并按实际情况 --mastery 更新掌握度。',
+          '',
+        ].join('\n')
+      : '';
+    const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
+    const masteryNudge = [
+      '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
+      `python3 ${projectRoot}/scripts/kaodian_profile.py --mastery '现有标签或模块-一级-二级' 0到100 '一句依据'`,
+      '0=完全不会，100=稳定会做。有依据才改，不要每轮乱调。先 --list 看当前分数。新考点先 --register 再 --mastery。',
+    ].join('\n');
+    const outbound = [reviewLead, text, masteryNudge].filter(Boolean).join('\n');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -595,12 +686,16 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     setMessages((prev) => [
       ...prev,
       {
-        id: msgId, role: 'user', content: text || '(图片)', streaming: false,
+        id: msgId, role: 'user',
+        content: text || (review ? '' : '(图片)'),
+        streaming: false,
         tools: [], thinking: '', images: images.map((i) => i.dataUrl),
+        review: review ? { id: review.id, name: review.name, title: review.title } : null,
       },
     ]);
     setInput('');
     setPendingImages([]);
+    setPendingReview(null);
     setBusy(true);
     setWaitSec(0);
     setStatus(images.length > 0 ? '上传图片' : '已发送');
@@ -633,7 +728,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           filename: img.name,
         });
       }
-      await gw.request('prompt.submit', { session_id: target, text: text || '看看这张图片' });
+      await gw.request('prompt.submit', { session_id: target, text: outbound || '看看这张图片' });
     };
 
     try {
@@ -664,12 +759,13 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       setInput((cur) => cur || text);
       setPendingImages((cur) => (cur.length > 0 ? cur : images));
+      setPendingReview((cur) => cur || review);
       setBusy(false);
       setStatus('');
     } finally {
       sendingRef.current = false;
     }
-  }, [busy, input, pendingImages, rememberSession, sessionCreateParams]);
+  }, [busy, input, pendingImages, pendingReview, rememberSession, sessionCreateParams]);
 
   const interrupt = useCallback(async () => {
     const gw = gwRef.current;
@@ -778,6 +874,11 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         '看不清写的是什么就直接说看不清，不要猜。',
       );
 
+      lines.push(
+        '',
+        "复盘完按实际情况更新掌握度：python3 scripts/kaodian_profile.py --mastery '标签' 0到100 '一句依据'。",
+      );
+
       const prompt = lines.join('\n');
       if (images.length > 0) setPendingImages((prev) => [...prev, ...images]);
       setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
@@ -813,26 +914,13 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     setAttaching(true);
     setBanner('');
     try {
-      const d = await api(`/api/exam-analyses/${id}`);
-      const md = d?.result?.markdown;
-      if (!md) {
-        setBanner('这场复盘还没有生成报告');
-        return;
-      }
-      const st = d.result?.stats || {};
-      const prompt = [
-        `下面是我 ${d.exam_date || ''} 那场《${d.title}》模考的录屏行为复盘，全程 ${Math.round((d.duration_sec || 0) / 60)} 分钟。`,
-        st.questions ? `录屏里识别到 ${st.questions} 道题，其中 ${st.changed || 0} 题改过答案，有 ${st.idle_count || 0} 处明显停滞。` : '',
-        '',
-        '=== 复盘报告开始 ===',
-        md,
-        '=== 复盘报告结束 ===',
-        '',
-        '请基于这份报告跟我深入聊，不要复述报告里已经写过的内容。我想知道：',
-        '1. 这些毛病里哪一个对分数的影响最大，为什么。',
-        '2. 针对那个毛病，接下来一周我每天该做什么具体训练。',
-      ].filter(Boolean).join('\n');
-      setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
+      const info = await api(`/api/exam-analyses/${id}/md`);
+      setPendingReview({
+        id,
+        path: info.path,
+        name: info.name,
+        title: info.title || info.name,
+      });
       setShowReview(false);
       stickToBottom.current = true;
       setTimeout(() => taRef.current?.focus(), 0);
@@ -870,7 +958,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       '',
       '立刻用 python3 + fitz 抽文字，按「你的答案：」「正确答案：」对答案。',
       "先 skill_view('gd-gongkao-coach') 和 skill_view('exam-coaching-gd-provincial')，按里面的三段式逐题复盘。",
-      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db。`,
+      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db，并用 --mastery 按实际情况改掌握度。`,
     ].join('\n');
     setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
     setShowUploads(false);
@@ -1205,7 +1293,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
                       ))}
                     </div>
                   )}
-                  <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
+                  {m.review && (
+                    <div className={m.content ? 'mb-2' : ''}>
+                      <ReviewChip review={m.review} onOpen={openReviewPreview} dark />
+                    </div>
+                  )}
+                  {m.content ? (
+                    <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="max-w-[92%]">
@@ -1258,6 +1353,15 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           }`}
           style={fullscreen ? { paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' } : undefined}
         >
+          {pendingReview && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              <ReviewChip
+                review={pendingReview}
+                onOpen={openReviewPreview}
+                onRemove={() => setPendingReview(null)}
+              />
+            </div>
+          )}
           {pendingImages.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingImages.map((img) => (
@@ -1298,7 +1402,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
             ) : (
               <button
                 onClick={send}
-                disabled={connState !== 'open' || (!input.trim() && pendingImages.length === 0)}
+                disabled={connState !== 'open' || (!input.trim() && pendingImages.length === 0 && !pendingReview)}
                 title="发送"
                 className="p-3 rounded-2xl bg-[#1a1a1a] text-white disabled:opacity-30 hover:opacity-90 transition-opacity shrink-0"
               >
@@ -1315,6 +1419,43 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           )}
         </div>
       </div>
+      {reviewPreview && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-center justify-center p-6"
+          onClick={closeReviewPreview}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl max-h-[85vh] overflow-y-auto p-6 md:p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">复盘报告</p>
+                <p className="text-xl font-black italic truncate">{reviewPreview.title || reviewPreview.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeReviewPreview}
+                className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {reviewMdErr ? (
+              <p className="text-sm font-bold text-slate-400">{reviewMdErr}</p>
+            ) : reviewMd ? (
+              <MarkdownMessage content={reviewMd} />
+            ) : (
+              <div className="flex items-center gap-2 text-[11px] text-[#999]">
+                <Loader2 size={11} className="animate-spin" />
+                <span>加载中…</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <HermesContextPickers
         showReview={showReview}
         setShowReview={setShowReview}

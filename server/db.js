@@ -195,6 +195,8 @@ CREATE TABLE IF NOT EXISTS kaodian_profile (
   last_seen    TEXT,
   streak       INTEGER NOT NULL DEFAULT 0,   -- 正数=连对，负数=连错
   note         TEXT,
+  mastery      INTEGER,                      -- 0~100，Hermes/本人按实际情况改
+  mastery_note TEXT,
   updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -218,6 +220,7 @@ CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at
 CREATE TABLE IF NOT EXISTS exam_analyses (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
   title         TEXT    NOT NULL,
+  kind          TEXT    NOT NULL DEFAULT 'zhenti', -- zhenti / taoti
   exam_date     TEXT,                       -- YYYY-MM-DD，挂热力图用
   status        TEXT    NOT NULL DEFAULT 'queued',  -- queued/running/done/failed
   stage         TEXT,                       -- 当前步骤的人话描述
@@ -245,6 +248,24 @@ const mCols = new Set(db.prepare('PRAGMA table_info(mistakes)').all().map((r) =>
 if (!mCols.has('correct_streak')) {
   db.exec('ALTER TABLE mistakes ADD COLUMN correct_streak INTEGER DEFAULT 0');
 }
+
+const examCols = new Set(db.prepare('PRAGMA table_info(exam_analyses)').all().map((r) => r.name));
+if (!examCols.has('kind')) {
+  db.exec("ALTER TABLE exam_analyses ADD COLUMN kind TEXT NOT NULL DEFAULT 'zhenti'");
+}
+
+const kpCols = new Set(db.prepare('PRAGMA table_info(kaodian_profile)').all().map((r) => r.name));
+if (!kpCols.has('mastery')) {
+  db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery INTEGER');
+}
+if (!kpCols.has('mastery_note')) {
+  db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery_note TEXT');
+}
+db.exec(`
+  UPDATE kaodian_profile
+     SET mastery = CAST(ROUND(correct * 100.0 / attempts) AS INTEGER)
+   WHERE mastery IS NULL AND attempts > 0
+`);
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------
 const { count } = db.prepare('SELECT COUNT(*) AS count FROM questions').get();

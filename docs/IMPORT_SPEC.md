@@ -94,7 +94,7 @@ npm run import:batch   -- path/to/batch-dir   # 校验 + 写入 DB + 拷图片
 | `explanation` | string | ⬜ 强烈建议 | **答案解析**，可由 Workbuddy 自行撰写，偏实战技巧口径，见顶部"三件套"提醒 |
 | `explanation_images` | string[] | ⬜ | 解析配图（如解析里需要画图说明） |
 | `difficulty` | integer | ⬜ | 1~5，默认 2 |
-| `tags` | string[] | ⬜ | 自由标签，如 `["工程问题", "基础"]` |
+| `tags` | string[] | ⬜ | 第一个标签必须是规范知识点 `模块-一级知识点-二级知识点`；后续可放难度/易混点等辅助标签 |
 | `source` | string | ⬜ | 覆盖 manifest.source |
 | `year` | integer | ⬜ | 覆盖 manifest.year |
 | `region` | string | ⬜ | 覆盖 manifest.region |
@@ -156,7 +156,7 @@ npm run import:batch   -- path/to/batch-dir   # 校验 + 写入 DB + 拷图片
   "answer": "A",
   "explanation": "C(24,1)·C(18,1) / C(42,2) = 432/861 = 24/41。",
   "difficulty": 2,
-  "tags": ["排列组合", "概率"]
+  "tags": ["数量关系-数学运算-排列组合与概率", "基础"]
 }
 ```
 

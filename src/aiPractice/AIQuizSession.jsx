@@ -274,6 +274,11 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
 
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-[#f7f5ee] pt-4">
+          {item.knowledge_points?.length > 0 && (
+            <p className="text-sm font-bold text-[#6b5428]">
+              本题考察知识点：{item.knowledge_points[0]}
+            </p>
+          )}
           <div className="text-[15px] leading-[1.9] whitespace-pre-wrap break-words font-medium">
             {item.content}
           </div>

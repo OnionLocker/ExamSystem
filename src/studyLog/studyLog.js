@@ -44,6 +44,7 @@ export const ENTRY_TYPES = {
   aiquiz: { label: 'AI 练题', color: '#e0a800' },
   mock: { label: '全卷模考', color: '#0ea5e9' },
   examReview: { label: '真题复盘', color: '#06b6d4' },
+  setReview: { label: '套题解析', color: '#0d9488' },
   import: { label: '导入套题', color: '#3b82f6' },
   review: { label: '错题复盘', color: '#22c55e' },
   reviewBrowse: { label: '复习浏览', color: '#14b8a6' },

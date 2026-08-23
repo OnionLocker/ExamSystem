@@ -26,7 +26,7 @@ export const PDF_DIR = path.join(ROOT, 'data', 'exam-pdfs');
 for (const d of [VIDEO_DIR, RAW_DIR, PDF_DIR]) fs.mkdirSync(d, { recursive: true });
 
 // 转码参数：3 倍速 + 1 帧/秒 + 540p。再快就会丢掉「点一下选项就翻页」这类动作
-const SPEED = 3;
+const SPEED = 1;
 // 每段压缩后的秒数；10 分钟约 3.7 万 token，离单次上限很远，失败也只用重跑一段
 const SEGMENT_SEC = 600;
 const MODEL = process.env.EXAM_ANALYSIS_MODEL || 'gemini-3.7-flash-high';
@@ -55,14 +55,6 @@ const setState = (id, patch) => {
   ).run({ ...patch, id });
 };
 
-const safeUnlink = (p) => {
-  try {
-    if (p && fs.existsSync(p)) fs.unlinkSync(p);
-  } catch {
-    /* ignore */
-  }
-};
-
 // ---------------- ffmpeg ----------------
 
 const probeDuration = async (file) => {
@@ -70,21 +62,6 @@ const probeDuration = async (file) => {
     '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file,
   ]);
   return Math.round(parseFloat(stdout.trim()) || 0);
-};
-
-const transcode = async (src, dst) => {
-  await run(
-    'ffmpeg',
-    [
-      '-y', '-i', src,
-      // setpts 先加速，再压到 1 帧/秒；-an 丢掉音轨（做题没人说话，白花 token）
-      '-vf', `setpts=PTS/${SPEED},scale=960:-2,fps=1`,
-      '-an',
-      '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-pix_fmt', 'yuv420p',
-      dst,
-    ],
-    { maxBuffer: 1 << 26, timeout: 60 * 60 * 1000 },
-  );
 };
 
 const splitSegments = async (src, outDir) => {
@@ -190,68 +167,121 @@ const pickJson = (text) => {
 
 // ---------------- prompts ----------------
 
-const segmentPrompt = (index, total, offsetSec, speed) => `这是一段公考模考的屏幕录像（粉笔 App），已经按 ${speed} 倍速压缩过，画面里只有做题过程。
-这是整场考试的第 ${index + 1} 段（共 ${total} 段），本段开头对应整场的第 ${offsetSec} 秒。
+const segmentPrompt = (index, total, offsetSec, speed, kind) => {
+  const scene = kind === 'taoti'
+    ? '这是一段做套题 / 看解析的屏幕录像，'
+    : '这是一段公考真题模考的屏幕录像（粉笔 App），';
+  return `${scene}${speed > 1 ? `已经按 ${speed} 倍速压缩过` : '原速、未压缩'}，画面里是做题过程，可能看得到题干、选项、草稿纸或手写。
+这是整场的第 ${index + 1} 段（共 ${total} 段），本段开头对应整场的第 ${offsetSec} 秒。
 
 换算真实时间：真实秒数 = 你在本段里看到的秒数 × ${speed} + ${offsetSec}。
 
-请逐题观察，把做题过程提取成 JSON，只输出 JSON 不要解释：
+请逐题观察，把每一题提取成 JSON，只输出 JSON 不要解释：
 {
   "questions": [
     {
       "number": 题号数字,
       "start_sec": 该题出现的真实秒数,
       "end_sec": 离开该题的真实秒数,
-      "final_answer": "停留在哪个选项，没选填 null",
+      "stem": "画面上能看清的原题题干+选项，尽量原文；看不清的部分用[看不清]",
+      "draft": "草稿纸、手写、划线、演算里实际写了什么，按出现顺序列出；没有草稿填空字符串",
+      "process": "这题怎么做的：先看了哪、算了什么、点了哪个选项、有没有回头改",
+      "final_answer": "离开此题前最后一次看到被勾选/高亮的选项字母；选项圆点填实或变色就算选了，即使下一秒翻页。全程没看到勾选才填 null",
       "answer_changes": 改动答案的次数,
-      "behaviors": ["从下列词里选：划线、反复滚动、长时间盯着不动、来回翻页、跳过、回头重做、快速作答"]
+      "behaviors": ["从下列词里选：划线、反复滚动、长时间盯着不动、来回翻页、跳过、回头重做、快速作答、写草稿、看解析"]
     }
   ],
   "idle_periods": [
     { "start_sec": 真实秒, "end_sec": 真实秒, "what": "这段时间画面上在发生什么" }
   ],
-  "observations": ["2~4 条关于做题节奏和习惯的具体观察，用中文"]
+  "observations": ["2~4 条关于做题步骤和草稿习惯的具体观察，用中文"]
 }
 
 注意：
-- 只记录你真正看到的，看不清就不要写进去。
-- behaviors 里"划线"指用笔或手指在题干上划动但没有实质推进；"长时间盯着不动"指画面超过 15 秒真实时间没有任何变化。`;
+- 只记录你真正看到的。题干、草稿看不清就写[看不清]，不要编。
+- 原题和草稿是重点，尽量抄画面上的字，不要只写行为标签。
+- "划线"指在题干上划但没有写出算式；"写草稿"指出现了数字、式子或步骤。
+- 勾选判定只看选项圆点/高亮，不要根据草稿上的得数反推。草稿算出 33k 但圆点在 D，final_answer 仍是 D。
+- 切题很快也要回头看离开前最后一两秒：圆点填实过就记下来，禁止只因翻页快就写「未勾选」。`;
+};
 
-const summaryPrompt = (meta, segments, pdfText) => `你是一位带过很多考公学生的行测教练。下面是某位考生一场模考的**录屏行为数据**和这套卷子的**答案与解析**。请把两者结合，给出一份犀利、具体、可执行的复盘。
-
-## 考试信息
+const summaryHeader = (meta, segments, pdfText) => `## 场次信息
 - 名称：${meta.title}
+- 类型：${meta.kind === 'taoti' ? '套题解析' : '真题复盘'}
 - 日期：${meta.exam_date || '未填'}
 - 全程时长：${Math.round(meta.duration_sec / 60)} 分钟
 
-## 从录屏提取的行为数据
+## 从录屏逐题提取的内容（含原题、做法、草稿）
 ${JSON.stringify(segments, null, 1).slice(0, 120000)}
 
-## 这套卷子的答案与解析（PDF 提取，可能有排版噪声）
+## 这套卷子的答案与解析（PDF 提取，可能有排版噪声；没有 PDF 则为空）
 ${pdfText.slice(0, PDF_LIMIT)}
+`;
 
----
+const summaryPromptZhenti = (meta, segments, pdfText) => `你是一位带过很多考公学生的行测教练。下面是一场**真题模考**的录屏提取结果。请按题目复盘，不要写成空泛的时间统计。
 
-请输出 Markdown，严格按下面的结构，**不要写空话套话**，每一条都要指到具体题号或具体时间点：
+${summaryHeader(meta, segments, pdfText)}
 
-## 一、这场考试的时间都去哪了
-按耗时从多到少列出吃掉时间最多的 5~8 道题，标出每题用了多久、答对没有。指出哪些是"值得花"的，哪些是纯亏。
+请输出 Markdown，严格按下面结构。每一题都要写出：原题（能提取到的原文）、这题怎么做的、草稿写了什么。不要空话。
 
-## 二、无效动作
-把录屏里那些没有推进解题的动作挑出来：划了半天线但没动笔算、反复上下翻材料、答案改来改去最后改回原答案、盯着题干发呆。要写清楚发生在第几题、耗时多少。
+## 一、逐题复盘
+按题号从小到大，每题用这个小结构：
 
-## 三、快慢与对错的交叉
-分成四类各举实例：慢而对（值得，但能不能提速）、慢而错（重灾区）、快而对（优势项）、快而错（轻敌或粗心）。
+### 第 N 题
+- 原题：抄提取到的题干和选项；看不清就注明
+- 做法：录屏里实际怎么做的（先看哪、算了什么、选了什么、有没有改）
+- 草稿：草稿纸/手写/划线里写了什么；没写就说「无草稿」
+- 用时与对错：用了多久、最终选项、结合 PDF 判断对不对
+- 这一题的问题：卡在哪、草稿缺哪一步、值不值得花这么久
 
-## 四、按模块的诊断
-言语 / 判断 / 数量 / 资料 / 常识，各自的用时占比、正确率、暴露的具体问题。
+题号和 PDF 对不上时，以 PDF 为准，并在该题注明。
 
-## 五、下次上考场的三条硬规矩
-只给三条，每条都必须是当场能执行的动作（例如"资料分析第 X 类题超过 90 秒立刻标记跳过"），不要写"提高效率"这种废话。
+## 二、共性
+从各题做法和草稿里归纳 3～5 条反复出现的问题（例如某类题从不写式子、草稿只圈选项不演算）。
 
-如果行为数据里的题号和 PDF 对不上，以 PDF 的题号为准，并在开头一句话说明对齐情况。`;
+## 三、下场三条硬规矩
+只给三条，必须是当场能执行的动作，例如「数量题先在草稿写下已知量再看选项」。不要写「提高效率」。`;
+
+const summaryPromptTaoti = (meta, segments, pdfText) => `你是一位带过很多考公学生的行测教练。下面是一场**套题练习 / 看解析**的录屏提取结果。请按题目做解析式复盘：还原原题，讲清这一题是怎么做的、草稿怎么写的，再对照标准解法。
+
+${summaryHeader(meta, segments, pdfText)}
+
+请输出 Markdown，严格按下面结构。重点是「每一题的原题 + 做法 + 草稿」，不要先写整场时间表。
+
+## 一、逐题解析
+按题号从小到大，每题用这个小结构：
+
+### 第 N 题
+- 原题：抄提取到的题干和选项
+- 你怎么做的：录屏里的步骤，先看哪、怎么想、选了什么
+- 草稿怎么写的：画面上的演算、标注、划线，按顺序写；没有就写「没写草稿」
+- 标准解法：结合 PDF 解析，这题正确步骤是什么
+- 差距：你的做法/草稿和标准解法差在哪一步（漏条件、式子写错、没写草稿靠蒙、看了解析才懂）
+
+题号和 PDF 对不上时，以 PDF 为准，并在该题注明。
+
+## 二、草稿习惯
+专门评草稿：哪些题草稿能还原思路，哪些题该写没写，下次这类题草稿最少该写下哪几笔。
+
+## 三、下次做套题的三条规矩
+只给三条，针对「怎么写草稿、做到哪一步再看解析」，必须能当场执行。`;
+
+const summaryPrompt = (meta, segments, pdfText) => (
+  meta.kind === 'taoti'
+    ? summaryPromptTaoti(meta, segments, pdfText)
+    : summaryPromptZhenti(meta, segments, pdfText)
+);
 
 // ---------------- 主流程 ----------------
+
+
+const dropVideo = (named) => {
+  if (!named) return;
+  for (const dir of [VIDEO_DIR, RAW_DIR]) {
+    const f = path.join(dir, named);
+    try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch { /* ignore */ }
+  }
+};
 
 let running = false;
 
@@ -259,33 +289,29 @@ const processOne = async (id) => {
   const row = db.prepare('SELECT * FROM exam_analyses WHERE id = ?').get(id);
   if (!row) return;
 
-  const rawPath = row.video_file ? path.join(RAW_DIR, row.video_file) : null;
-  const smallName = `s${id}_${Date.now()}.mp4`;
-  const smallPath = path.join(VIDEO_DIR, smallName);
+  const named = row.video_file || '';
+  const rawPath = named ? path.join(RAW_DIR, named) : null;
+  const keptPath = named ? path.join(VIDEO_DIR, named) : null;
+  const src = (rawPath && fs.existsSync(rawPath))
+    ? rawPath
+    : (keptPath && fs.existsSync(keptPath) ? keptPath : null);
   const segDir = path.join(VIDEO_DIR, `seg_${id}`);
 
   try {
-    setState(id, { status: 'running', stage: '读取录屏信息', progress: 3, error: null });
+    setState(id, { status: 'running', stage: '\u8bfb\u53d6\u5f55\u5c4f\u4fe1\u606f', progress: 3, error: null });
 
-    if (!rawPath || !fs.existsSync(rawPath)) throw new Error('找不到上传的录屏文件');
-    const duration = await probeDuration(rawPath);
-    setState(id, { duration_sec: duration, stage: '压缩转码中（这一步最久）', progress: 8 });
+    if (!src) throw new Error('\u627e\u4e0d\u5230\u4e0a\u4f20\u7684\u5f55\u5c4f\u6587\u4ef6');
 
-    await transcode(rawPath, smallPath);
-    const smallBytes = fs.statSync(smallPath).size;
-
-    // 原件立刻删：几个 GB 留着没意义，后面全用小样本
-    safeUnlink(rawPath);
+    const duration = await probeDuration(src);
     setState(id, {
-      video_file: smallName,
-      video_bytes: smallBytes,
-      raw_bytes: row.raw_bytes,
+      duration_sec: duration,
+      video_bytes: fs.statSync(src).size,
       speed: SPEED,
-      stage: '切分片段',
+      stage: '\u5207\u5206\u7247\u6bb5',
       progress: 30,
     });
 
-    const segs = await splitSegments(smallPath, segDir);
+    const segs = await splitSegments(src, segDir);
     if (segs.length === 0) throw new Error('切分后没有得到任何片段');
 
     let pdfText = '';
@@ -302,7 +328,7 @@ const processOne = async (id) => {
         progress: 35 + Math.round((i / segs.length) * 45),
       });
       const offset = i * SEGMENT_SEC * SPEED;
-      const { text } = await askWithVideo(segs[i], segmentPrompt(i, segs.length, offset, SPEED));
+      const { text } = await askWithVideo(segs[i], segmentPrompt(i, segs.length, offset, SPEED, row.kind));
       const parsed = pickJson(text);
       results.push(parsed || { raw: text.slice(0, 4000), segment: i + 1 });
     }
@@ -332,6 +358,8 @@ const processOne = async (id) => {
       progress: 100,
       result: JSON.stringify({ markdown: md, stats }),
     });
+    dropVideo(named);
+    setState(id, { video_deleted: 1 });
   } catch (e) {
     setState(id, { status: 'failed', stage: '处理失败', error: String(e.message || e) });
   } finally {
@@ -341,7 +369,6 @@ const processOne = async (id) => {
     } catch {
       /* ignore */
     }
-    safeUnlink(rawPath);
   }
 };
 

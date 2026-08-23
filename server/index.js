@@ -12,6 +12,7 @@ import quotaRouter from './routes/quota.js';
 import examAnalysesRouter from './routes/examAnalyses.js';
 import { resumePending } from './examWorker.js';
 import { attachHermesWs, hermesRouter } from './routes/hermesChat.js';
+import kaodianRouter from './routes/kaodian.js';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/api/practice',       practiceRouter);
 app.use('/api/quota',          quotaRouter);
 app.use('/api/exam-analyses',   examAnalysesRouter);
 app.use('/api/hermes',          hermesRouter);
+app.use('/api/kaodian',         kaodianRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);

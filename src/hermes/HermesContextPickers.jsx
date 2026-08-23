@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ChevronRight, Loader2, RefreshCw, ScanSearch, Target, Upload, X,
@@ -34,6 +35,9 @@ export default function HermesContextPickers({
   loadPracticeRuns,
   maxDraftAttach,
 }) {
+  const [reviewKind, setReviewKind] = useState('zhenti');
+  const shownReviews = examReviews.filter((r) => (r.kind || 'zhenti') === reviewKind);
+
   return (
     <>
       {showReview && createPortal(
@@ -49,7 +53,7 @@ export default function HermesContextPickers({
               <div className="flex items-center space-x-2">
                 <ScanSearch size={15} className="text-[#6b5428]" />
                 <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                  挑一场模考复盘
+                  带进当前对话
                 </span>
               </div>
               <button
@@ -59,23 +63,48 @@ export default function HermesContextPickers({
                 <X size={14} />
               </button>
             </div>
+            <div className="px-5 pt-3 flex gap-2">
+              {[
+                { id: 'zhenti', label: '真题' },
+                { id: 'taoti', label: '套题' },
+              ].map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => setReviewKind(k.id)}
+                  className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-tight transition-all ${
+                    reviewKind === k.id
+                      ? 'bg-[#1a1a1a] text-white'
+                      : 'bg-[#e8d5b0]/60 text-slate-500 hover:bg-[#e8d5b0]'
+                  }`}
+                >
+                  {k.label}
+                </button>
+              ))}
+            </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {reviewsLoading && examReviews.length === 0 && (
+              {reviewsLoading && shownReviews.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
               )}
-              {!reviewsLoading && examReviews.length === 0 && (
+              {!reviewsLoading && shownReviews.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有处理完的复盘。<br />去「真题复盘」传一场模考的录屏和答案 PDF。
+                  还没有处理完的{reviewKind === 'taoti' ? '套题' : '真题'}复盘。<br />
+                  去侧栏「录屏复盘」选好类型再上传录屏。这里不能上传。
                 </p>
               )}
-              {examReviews.map((review) => (
+              {shownReviews.map((review) => (
                 <button
                   key={review.id}
                   onClick={() => attachExamReview(review.id)}
                   disabled={attaching}
                   className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group disabled:opacity-50"
                 >
-                  <div className="text-xs font-black italic truncate">{review.title}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs font-black italic truncate">{review.title}</div>
+                    <span className="shrink-0 text-[9px] font-black tracking-widest text-[#8d7348] group-hover:text-white/50">
+                      {review.kind === 'taoti' ? '套题' : '真题'}
+                    </span>
+                  </div>
                   <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
                     {review.exam_date} · {Math.round((review.duration_sec || 0) / 60)} 分钟
                     {review.stats?.questions ? ` · ${review.stats.questions} 题` : ''}
@@ -85,7 +114,7 @@ export default function HermesContextPickers({
             </div>
             <div className="px-5 py-3 border-t border-black/5">
               <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
-                会把整份复盘报告装进输入框，你可以再补一句想问的再发。
+                不是上传。选一场已完成的复盘，会带上一份 md，不占输入框。发送后还在这个会话里接着聊。
               </p>
             </div>
           </div>

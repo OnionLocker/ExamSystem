@@ -7,6 +7,9 @@ import crypto from 'node:crypto';
 import db from '../db.js';
 import { enqueue, VIDEO_DIR, RAW_DIR, PDF_DIR } from '../examWorker.js';
 
+const REVIEW_DIR = path.join(path.dirname(VIDEO_DIR), 'exam-reviews');
+fs.mkdirSync(REVIEW_DIR, { recursive: true });
+
 const router = Router();
 
 const VIDEO_EXT = ['.mp4', '.mov', '.m4v'];
@@ -59,15 +62,17 @@ router.post('/', (req, res, next) => {
   const pdf = req.files?.pdf?.[0];
   if (!video) return res.status(400).json({ error: '需要上传录屏文件' });
 
-  const title = String(req.body?.title || '').trim() || `模考复盘 ${new Date().toLocaleDateString('zh-CN')}`;
+  const kind = req.body?.kind === 'taoti' ? 'taoti' : 'zhenti';
+  const fallback = kind === 'taoti' ? '套题复盘' : '模考复盘';
+  const title = String(req.body?.title || '').trim() || `${fallback} ${new Date().toLocaleDateString('zh-CN')}`;
   const examDate = String(req.body?.exam_date || '').trim() || new Date().toISOString().slice(0, 10);
 
   const info = db
     .prepare(
-      `INSERT INTO exam_analyses (title, exam_date, status, stage, progress, video_file, raw_bytes, pdf_file)
-       VALUES (?, ?, 'queued', '排队中', 0, ?, ?, ?)`,
+      `INSERT INTO exam_analyses (title, kind, exam_date, status, stage, progress, video_file, raw_bytes, pdf_file)
+       VALUES (?, ?, ?, 'queued', '排队中', 0, ?, ?, ?)`,
     )
-    .run(title, examDate, video.filename, video.size, pdf?.filename || null);
+    .run(title, kind, examDate, video.filename, video.size, pdf?.filename || null);
 
   enqueue();
   res.json({ id: info.lastInsertRowid, ok: true });
@@ -77,7 +82,7 @@ router.post('/', (req, res, next) => {
 router.get('/', (_req, res) => {
   const rows = db
     .prepare(
-      `SELECT id, title, exam_date, status, stage, progress, video_file, video_bytes,
+      `SELECT id, title, kind, exam_date, status, stage, progress, video_file, video_bytes,
               video_deleted, raw_bytes, duration_sec, speed, pdf_file, error,
               created_at, updated_at,
               json_extract(result, '$.stats') AS stats
@@ -85,6 +90,19 @@ router.get('/', (_req, res) => {
     )
     .all();
   res.json(rows.map((r) => ({ ...r, stats: r.stats ? JSON.parse(r.stats) : null })));
+});
+
+router.get('/:id/md', (req, res) => {
+  const row = db.prepare('SELECT * FROM exam_analyses WHERE id = ?').get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: 'not found' });
+  let md = '';
+  try { md = JSON.parse(row.result || '{}')?.markdown || ''; } catch { /* ignore */ }
+  if (!md) return res.status(409).json({ error: '这场复盘还没有生成报告' });
+  const safe = String(row.title || '复盘').replace(/[\\/:*?"<>|]/g, '_').slice(0, 80);
+  const name = `${row.id}-${safe}.md`;
+  const file = path.join(REVIEW_DIR, name);
+  fs.writeFileSync(file, md, 'utf8');
+  res.json({ path: file, name, title: row.title, markdown: md });
 });
 
 router.get('/:id', (req, res) => {
@@ -101,7 +119,7 @@ router.post('/:id/retry', (req, res) => {
   const id = Number(req.params.id);
   const row = db.prepare('SELECT * FROM exam_analyses WHERE id = ?').get(id);
   if (!row) return res.status(404).json({ error: 'not found' });
-  // 原件转码后就删了，重跑只能基于还在的小样本；小样本也没了就没法再来
+  // 原件转码后就删了，重跑只能基于还在的小样本；小样本也没了就没法再跑
   const hasSmall = row.video_file && fs.existsSync(path.join(VIDEO_DIR, row.video_file));
   const hasRaw = row.video_file && fs.existsSync(path.join(RAW_DIR, row.video_file));
   if (!hasSmall && !hasRaw) {

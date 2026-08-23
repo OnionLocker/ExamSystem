@@ -1,4 +1,4 @@
-// 真题复盘：上传一场模考的录屏和答案 PDF，后台跑完给出行为画像。
+// 录屏复盘：上传一场真题或套题的录屏和答案 PDF，后台跑完给出行为画像。
 // 这一页不做对话，只管上传和看结果 —— 想追问就去 Hermes，那边能带上这份复盘。
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -33,6 +33,25 @@ const STATUS = {
   running: { label: '处理中', color: '#8d7348', icon: Loader2 },
   done: { label: '已完成', color: '#22c55e', icon: CheckCircle2 },
   failed: { label: '失败', color: '#ff6b6b', icon: AlertCircle },
+};
+
+const KINDS = {
+  zhenti: {
+    label: '真题',
+    title: '真题复盘',
+    desc: '传一场模考的屏幕录像和带答案的 PDF，后台会把你的做题过程拆出来：时间花在哪、哪些动作是白费的、哪些题慢而且还错。跑完想追问就去 Hermes 带上这份复盘。',
+    placeholder: '标题，例如：粉笔周模考 12 季',
+    fallbackTitle: (d) => `模考复盘 ${d}`,
+    empty: '还没有复盘记录',
+  },
+  taoti: {
+    label: '套题',
+    title: '套题解析',
+    desc: '传一套练习题的屏幕录像和带答案的 PDF，后台会把你的做题过程拆出来：时间花在哪、哪些动作是白费的、哪些题慢而且还错。跑完想追问就去 Hermes 带上这份复盘。',
+    placeholder: '标题，例如：华图行测 第 8 套',
+    fallbackTitle: (d) => `套题复盘 ${d}`,
+    empty: '还没有套题复盘记录',
+  },
 };
 
 // fetch 拿不到上传进度，几个 G 的录屏没有进度条没法用，所以这里退回 XHR
@@ -136,7 +155,18 @@ const FilePicker = ({ label, hint, icon: Icon, accept, file, onPick, required, a
   );
 };
 
+const KIND_KEY = 'examReviewKind';
+const readKind = () => {
+  try { return localStorage.getItem(KIND_KEY) === 'taoti' ? 'taoti' : 'zhenti'; }
+  catch { return 'zhenti'; }
+};
+const writeKind = (k) => {
+  try { localStorage.setItem(KIND_KEY, k); } catch { /* ignore */ }
+};
+
 const ExamReview = () => {
+  const [kind, setKind] = useState(readKind);
+  const pickKind = (k) => { setKind(k); writeKind(k); };
   const [list, setList] = useState([]);
   const [detail, setDetail] = useState(null);
   const [err, setErr] = useState('');
@@ -174,12 +204,14 @@ const ExamReview = () => {
       const form = new FormData();
       form.append('video', video);
       if (pdf) form.append('pdf', pdf);
-      form.append('title', title.trim() || `模考复盘 ${examDate}`);
+      form.append('title', title.trim() || KINDS[kind].fallbackTitle(examDate));
       form.append('exam_date', examDate);
+      form.append('kind', kind);
       await uploadWithProgress(form, (pct, rate, left) => {
         setUpPct(pct); setUpRate(rate); setUpLeft(left);
       });
       setVideo(null); setPdf(null); setTitle('');
+      writeKind(kind);
       await load();
     } catch (e) {
       setErr(e.message);
@@ -223,7 +255,9 @@ const ExamReview = () => {
         </button>
 
         <div className="bg-[#1a1a1a] text-white rounded-[2rem] p-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6b5428]">真题复盘</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#6b5428]">
+            {(KINDS[detail.kind] || KINDS.zhenti).title}
+          </p>
           <h2 className="text-2xl font-black italic mt-1">{detail.title}</h2>
           <div className="flex flex-wrap gap-x-8 gap-y-2 mt-5 text-xs font-bold text-white/60">
             <span>{detail.exam_date}</span>
@@ -262,13 +296,31 @@ const ExamReview = () => {
   }
 
   // ---------------- 列表 ----------------
+  const shown = list.filter((r) => (r.kind || 'zhenti') === kind);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h2 className="text-4xl font-black tracking-tighter italic uppercase">真题复盘</h2>
+        <div className="flex gap-2 mb-4">
+          {Object.keys(KINDS).map((k) => (
+            <button
+              key={k}
+              type="button"
+              disabled={uploading}
+              onClick={() => { pickKind(k); setDetail(null); }}
+              className={`px-5 py-2.5 rounded-full text-sm font-black tracking-tight transition-all disabled:opacity-40 ${
+                kind === k
+                  ? 'bg-[#1a1a1a] text-white shadow-lg shadow-black/10'
+                  : 'bg-white/60 text-[#666] hover:bg-white/90 hover:text-black'
+              }`}
+            >
+              {KINDS[k].label}
+            </button>
+          ))}
+        </div>
+        <h2 className="text-4xl font-black tracking-tighter italic uppercase">{KINDS[kind].title}</h2>
         <p className="text-sm font-medium text-slate-400 mt-2">
-          传一场模考的屏幕录像和带答案的 PDF，后台会把你的做题过程拆出来：时间花在哪、
-          哪些动作是白费的、哪些题慢而且还错。跑完想追问就去 Hermes 带上这份复盘。
+          {KINDS[kind].desc}
         </p>
       </div>
 
@@ -292,7 +344,7 @@ const ExamReview = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <input
             value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="标题，例如：粉笔周模考 12 季"
+            placeholder={KINDS[kind].placeholder}
             className="md:col-span-2 bg-[#e8d5b0]/60 rounded-2xl py-3 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
           />
           <input
@@ -350,16 +402,16 @@ const ExamReview = () => {
 
       {/* 任务列表 */}
       <div className="space-y-3">
-        {list.length === 0 && (
+        {shown.length === 0 && (
           <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-14 text-center">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-[#e8d5b0] flex items-center justify-center mb-3 text-slate-400">
               <FileVideo size={24} />
             </div>
-            <p className="text-sm font-bold text-slate-400">还没有复盘记录</p>
+            <p className="text-sm font-bold text-slate-400">{KINDS[kind].empty}</p>
           </div>
         )}
 
-        {list.map((r) => {
+        {shown.map((r) => {
           const st = STATUS[r.status] || STATUS.queued;
           const Icon = st.icon;
           const busy = r.status === 'queued' || r.status === 'running';

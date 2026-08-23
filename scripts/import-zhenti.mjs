@@ -3,7 +3,7 @@
 // 把 data/zhenti/*.json 里的真题导入 questions 表。
 //
 // 这些卷子是 parse_zhenti.py 的产物，字段跟 batches/ 那套导入格式差一层：
-// options 是对象不是数组、答案字段叫 correct_answer、考点在 knowledge_points。
+// options 是对象不是数组、答案字段叫 correct_answer、规范主考点在 knowledge_points[0]。
 // 差的就是这层翻译，所以 2000 多道题一直躺在磁盘上没进库。
 //
 // 用法:
