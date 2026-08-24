@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, '..', 'dist');
+const QUESTION_IMAGES = path.join(__dirname, '..', 'public', 'q-images');
 const PORT = 5173;
 const API_HOST = '127.0.0.1';
 const API_PORT = 3001;
@@ -19,6 +20,8 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.png':  'image/png',
   '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.svg':  'image/svg+xml',
   '.ico':  'image/x-icon',
   '.woff': 'font/woff',
@@ -29,15 +32,28 @@ const MIME = {
 };
 
 function serveStatic(req, res) {
-  const cleanUrl = req.url === '/' ? '/index.html' : req.url.split('?')[0];
-  // 防越权：拒绝 .. 越目录
+  const rawUrl = req.url === '/' ? '/index.html' : req.url.split('?')[0];
+  let cleanUrl;
+  try {
+    cleanUrl = decodeURIComponent(rawUrl);
+  } catch {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
+  // 解码后再检查，连 %2e%2e 形式的越目录也一起拒绝。
   if (cleanUrl.includes('..')) {
     res.writeHead(400);
     res.end('Bad Request');
     return;
   }
   const reqExt = path.extname(cleanUrl);
-  let filePath = path.join(DIST, cleanUrl);
+  // 题库图片会在运行时持续导入，不能依赖 vite build 时复制到 dist。
+  // /q-images/* 直接读取 public/q-images，其余前端资源仍走 dist。
+  const isQuestionImage = cleanUrl.startsWith('/q-images/');
+  let filePath = isQuestionImage
+    ? path.join(QUESTION_IMAGES, cleanUrl.slice('/q-images/'.length))
+    : path.join(DIST, cleanUrl);
 
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {

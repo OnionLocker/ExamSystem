@@ -24,7 +24,9 @@ const parseTags = (raw) => {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const draftDir = path.join(__dirname, '..', '..', 'data', 'draft-images');
+const practiceReviewDir = path.join(__dirname, '..', '..', 'data', 'practice-reviews');
 if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
+if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursive: true });
 
 const DRAFT_MAX_BYTES = 8 * 1024 * 1024;
 
@@ -147,6 +149,11 @@ router.get('/sessions', (req, res) => {
     .prepare(
       `SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
+         COALESCE(
+           (SELECT NULLIF(q.source, '') FROM questions q
+             WHERE q.batch_id = s.category LIMIT 1),
+           s.category
+         ) AS display_title,
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.is_correct = 0)          AS wrong_count,
          (SELECT COUNT(*) FROM practice_drafts pd
@@ -212,7 +219,8 @@ router.post('/sessions/:id/submit', (req, res) => {
   // 考点画像：把 questions.tags 里的每个知识点单独记账，
   // 这样能查到"哪个考点老是错"，而不是只知道"判断推理错得多"。
   const addKdEvent = db.prepare(
-    `INSERT INTO kaodian_events (kaodian, question_id, is_correct, elapsed_ms)
+    `INSERT INTO kaodian_events
+       (kaodian, question_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
      VALUES (?, ?, ?, ?, 'practice', 1.0)`,
   );
   const upsertKd = db.prepare(
@@ -298,12 +306,20 @@ router.post('/sessions/:id/submit', (req, res) => {
 //   交卷后的逐题对答案 / 事后复盘 / 喂给 Hermes 的数据源
 //   → { session, items: [{ ...题目, user_answer, is_correct, draft_url }] }
 // ───────────────────────────────────────────────────────────────
-router.get('/sessions/:id/report', (req, res) => {
-  const sessionId = Number(req.params.id);
-  const session = db.prepare('SELECT * FROM practice_sessions WHERE id = ?').get(sessionId);
-  if (!session) return res.status(404).json({ error: 'session not found' });
+const getPracticeReport = (sessionId) => {
+  const session = db.prepare(`
+    SELECT s.*,
+           COALESCE(
+             (SELECT NULLIF(q.source, '') FROM questions q
+               WHERE q.batch_id = s.category LIMIT 1),
+             s.category
+           ) AS display_title
+      FROM practice_sessions s
+     WHERE s.id = ?
+  `).get(sessionId);
+  if (!session) return null;
 
-  // 同一场里一道题只会有一条作答记录；万一有重复取最后一条
+  // 同一场里一道题只会有一条作答记录；万一有重复取最后一条。
   const rows = db
     .prepare(
       `SELECT
@@ -344,7 +360,113 @@ router.get('/sessions/:id/report', (req, res) => {
     draft_url: r.has_draft ? draftUrl(sessionId, r.question_id) : null,
   }));
 
-  res.json({ session, items });
+  return { session, items };
+};
+
+const fmtReviewDuration = (sec) => {
+  const total = Math.max(0, Math.floor(Number(sec) || 0));
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
+const practiceReviewMarkdown = ({ session, items }) => {
+  const wrong = items.filter((item) => !item.is_correct);
+  const times = items.map((item) => Math.max(0, Number(item.time_spent_sec) || 0));
+  const avgSec = times.length ? times.reduce((sum, value) => sum + value, 0) / times.length : 0;
+  const slowThreshold = Math.max(60, Math.ceil(avgSec * 1.5));
+  const focusItems = items.filter((item) =>
+    !item.is_correct || item.draft_url || Number(item.time_spent_sec) >= slowThreshold);
+  const lines = [
+    `# AI 练题复盘：${session.display_title || session.category || '未命名批次'}`,
+    '',
+    `- 场次：${session.id}`,
+    `- 交卷时间：${session.ended_at || '未知'}`,
+    `- 成绩：${session.correct}/${session.total}`,
+    `- 总用时：${fmtReviewDuration(session.duration_sec)}`,
+    `- 错题或空题：${wrong.length}`,
+    `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
+    '',
+    '## 逐题概览',
+    '',
+    '| 题号 | 结果 | 用时 | 草稿 | 知识点 |',
+    '|---|---|---:|---|---|',
+  ];
+
+  for (const [index, item] of items.entries()) {
+    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
+    const draft = item.draft_url ? '有' : '无';
+    const points = (item.knowledge_points || []).join('、').replace(/\|/g, '\\|') || '未标注';
+    lines.push(`| ${index + 1} | ${result} | ${fmtReviewDuration(item.time_spent_sec)} | ${draft} | ${points} |`);
+  }
+
+  lines.push('', '## 复盘重点');
+  if (focusItems.length === 0) {
+    lines.push('', '本场没有错题、草稿异常或明显慢题。正确且快速的题无需逐题展开。');
+    return lines.join('\n');
+  }
+
+  for (const item of focusItems) {
+    const no = items.indexOf(item) + 1;
+    const subtitle = item.sub_category ? ` · ${item.sub_category}` : '';
+    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
+    const reasons = [
+      !item.is_correct ? '答案需复盘' : null,
+      item.draft_url ? '有草稿，需检查思路和书写' : null,
+      Number(item.time_spent_sec) >= slowThreshold ? '用时偏长，需检查方法选择和步骤压缩' : null,
+    ].filter(Boolean).join('；');
+    lines.push('', `### 第 ${no} 题${subtitle}`, '', String(item.content || ''));
+    for (const option of item.options || []) {
+      lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}`);
+    }
+    lines.push(
+      '',
+      `- 作答结果：${result}`,
+      `- 我的作答：${item.user_answer || '未作答'}`,
+      `- 正确答案：${item.correct_answer || '未知'}`,
+      `- 本题用时：${fmtReviewDuration(item.time_spent_sec)}`,
+      `- 入选原因：${reasons}`,
+    );
+    if (item.knowledge_points?.length) {
+      lines.push(`- 知识点：${item.knowledge_points.join('、')}`);
+    }
+    if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
+    if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
+  }
+  return lines.join('\n');
+};
+
+router.get('/sessions/:id/report', (req, res) => {
+  const report = getPracticeReport(Number(req.params.id));
+  if (!report) return res.status(404).json({ error: 'session not found' });
+  res.json(report);
+});
+
+router.get('/sessions/:id/md', (req, res) => {
+  const sessionId = Number(req.params.id);
+  const report = getPracticeReport(sessionId);
+  if (!report) return res.status(404).json({ error: 'session not found' });
+  if (!report.session.ended_at) return res.status(409).json({ error: '这场练习还没有交卷' });
+
+  const markdown = practiceReviewMarkdown(report);
+  const title = `AI 练题复盘：${report.session.display_title || report.session.category || '未命名批次'}`;
+  const safe = String(report.session.display_title || report.session.category || '未命名批次')
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .slice(0, 80);
+  const name = `${sessionId}-${safe}.md`;
+  const file = path.join(practiceReviewDir, name);
+  fs.writeFileSync(file, markdown, 'utf8');
+
+  res.json({
+    path: file,
+    name,
+    title,
+    markdown,
+    summary: {
+      total: report.session.total,
+      correct: report.session.correct,
+      wrong: report.items.filter((item) => !item.is_correct).length,
+      duration_sec: report.session.duration_sec,
+    },
+  });
 });
 
 // ───────────────────────────────────────────────────────────────

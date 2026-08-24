@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
-  PenTool, ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText,
+  ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText,
 } from 'lucide-react';
 
 import { api } from '../api.js';
@@ -43,19 +43,35 @@ const stripEmbeddedImages = (text) =>
 const SYSTEM_NOTICE_RE = /^\s*\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]/;
 const isSystemInjectedNotice = (text) => SYSTEM_NOTICE_RE.test(String(text || ''));
 
-const REVIEW_FILE_RE = /\/data\/exam-reviews\/(\d+)-([^\n]+\.md)/;
+const REVIEW_FILE_RE = /\/data\/(exam-reviews|practice-reviews)\/(\d+)-([^\n]+\.md)/;
+const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
+const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
+const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
+
+const visibleUserText = (text) => {
+  const raw = String(text || '');
+  const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
+  return marked != null ? marked.trim() : raw.replace(INTERNAL_NUDGE_RE, '').trim();
+};
 
 const extractReview = (text) => {
   const raw = String(text || '');
+  const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
   const m = raw.match(REVIEW_FILE_RE);
-  if (!m) return { content: raw, review: null };
-  const name = m[2];
+  if (!m) return { content: visibleUserText(raw), review: null };
+  const kind = m[1] === 'practice-reviews' ? 'practice' : 'exam';
+  const name = m[3];
+  const cleanTitle = name.replace(/^\d+-/, '').replace(/\.md$/i, '');
   const review = {
-    id: Number(m[1]),
+    id: Number(m[2]),
+    kind,
     name,
-    title: name.replace(/^\d+-/, '').replace(/\.md$/i, ''),
+    title: kind === 'practice' ? `AI 练题复盘：${cleanTitle}` : cleanTitle,
+    label: kind === 'practice' ? `AI练题复盘 #${m[2]} · ${cleanTitle}` : name,
   };
-  const chunks = raw.split(/\n{2,}/);
+  if (marked != null) return { content: marked.trim(), review };
+  const cleaned = raw.replace(INTERNAL_NUDGE_RE, '').trim();
+  const chunks = cleaned.split(/\n{2,}/);
   const last = (chunks[chunks.length - 1] || '').trim();
   const lastIsLead = REVIEW_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
   return { content: lastIsLead ? '' : last, review };
@@ -73,7 +89,8 @@ const hydrateHistory = (raw) =>
       return {
         id: uid(), role: m.role,
         content: pulled.content,
-        streaming: false, tools: [], thinking: '', images,
+        streaming: false, tools: [], thinking: '',
+        images: pulled.review?.kind === 'practice' ? [] : images,
         review: pulled.review,
       };
     })
@@ -136,9 +153,13 @@ const fmtSec = (sec) => {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 };
 
-const clip = (text, max) => {
-  const t = String(text || '').trim();
-  return t.length > max ? `${t.slice(0, max)}…` : t;
+const fmtDateTime = (raw) => {
+  if (!raw) return '';
+  const date = new Date(String(raw).includes('T') ? raw : `${String(raw).replace(' ', 'T')}Z`);
+  if (Number.isNaN(date.getTime())) return String(raw);
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
 };
 
 // 只放大对话正文（表格/Markdown），不动顶栏和浏览器缩放。
@@ -159,7 +180,7 @@ const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
   }`}>
     <button type="button" onClick={() => onOpen(review)} className="inline-flex items-center gap-1.5 min-w-0">
       <FileText size={12} className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
-      <span className="text-[11px] font-black truncate max-w-[220px]">{review.name || review.title}</span>
+      <span className="text-[11px] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
     </button>
     {onRemove ? (
       <button
@@ -236,9 +257,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   useEffect(() => {
     if (!reviewPreview?.id) return undefined;
     let cancelled = false;
-    api(`/api/exam-analyses/${reviewPreview.id}`)
+    const practice = reviewPreview.kind === 'practice';
+    const url = practice
+      ? `/api/practice/sessions/${reviewPreview.id}/md`
+      : `/api/exam-analyses/${reviewPreview.id}`;
+    api(url)
       .then((row) => {
-        if (!cancelled) setReviewMd(row?.result?.markdown || '');
+        const markdown = practice ? row?.markdown : row?.result?.markdown;
+        if (!cancelled) setReviewMd(markdown || '');
       })
       .catch((err) => {
         if (!cancelled) setReviewMdErr(err.message || 'failed');
@@ -540,7 +566,8 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     rememberSession(res, storedId || res.stored_session_id || null);
     const hydrated = hydrateHistory(res.messages);
     const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
-    const inflightUser = String(res.inflight?.user || '').trim();
+    const inflightRaw = String(res.inflight?.user || '').trim();
+    const inflightUser = inflightRaw ? extractReview(inflightRaw).content : '';
 
     // 回合还在跑时，当前这句用户话只在 inflight 里，还没写进 history。
     // 重连若直接用 history 覆盖，会把本地刚发出去的气泡抹掉。
@@ -558,6 +585,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           content: pending,
           streaming: false, tools: [], thinking: '',
           images: lastLocalUser?.images || [],
+          review: lastLocalUser?.review || null,
         });
       }
       if (res.running) {
@@ -658,7 +686,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     sendingRef.current = true;
     const images = pendingImages;
     const review = pendingReview;
-    const reviewLead = review
+    const examReviewLead = review
       ? [
           `下面这个 Markdown 是我那场《${review.title}》的录屏复盘报告，请先打开。`,
           review.path,
@@ -671,13 +699,42 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           '',
         ].join('\n')
       : '';
+    const practiceReviewLead = review
+      ? [
+          `下面这个 Markdown 是我选中的《${review.title}》，请先直接打开文件。`,
+          review.path,
+          '',
+          '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析，不要复述报告原文。',
+          '1. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
+          '2. 正确题不能按结果直接跳过：有草稿、用时偏长、涂改多或方法绕远时，也要给出考场上可执行的压缩步骤。',
+          '3. 正确、快速且草稿干净的题不要展开表扬，最多一句确认；把篇幅留给真正能改进的地方。',
+          '4. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
+          '',
+        ].join('\n')
+      : '';
+    const reviewLead = review?.kind === 'practice' ? practiceReviewLead : examReviewLead;
+    const submittedText = review || text
+      ? `[USER_MESSAGE]\n${text}\n[/USER_MESSAGE]`
+      : '';
+
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     const masteryNudge = [
+      'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
       '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
       `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
       '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
     ].join('\n');
-    const outbound = [reviewLead, text, masteryNudge].filter(Boolean).join('\n');
+    const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
+    const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(text);
+    const quizNudge = wantsQuiz && !wantsInlineQuiz
+      ? [
+          'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
+          "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
+          'Use the exact knowledge point requested by the user. Run the correctness gate and quality gate for every question; a single-choice question must have exactly one valid answer.',
+          'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
+        ].join('\n')
+      : '';
+    const outbound = [reviewLead, submittedText, masteryNudge, quizNudge].filter(Boolean).join('\n');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -689,8 +746,8 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         id: msgId, role: 'user',
         content: text || (review ? '' : '(图片)'),
         streaming: false,
-        tools: [], thinking: '', images: images.map((i) => i.dataUrl),
-        review: review ? { id: review.id, name: review.name, title: review.title } : null,
+        tools: [], thinking: '', images: images.filter((i) => !i.hidden).map((i) => i.dataUrl),
+        review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label } : null,
       },
     ]);
     setInput('');
@@ -810,83 +867,57 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     setAttaching(true);
     setBanner('');
     try {
-      const rep = await api(`/api/practice/sessions/${sessionId}/report`);
+      const [rep, info] = await Promise.all([
+        api(`/api/practice/sessions/${sessionId}/report`),
+        api(`/api/practice/sessions/${sessionId}/md`),
+      ]);
       const items = rep?.items || [];
-      const wrong = items.filter((it) => !it.is_correct);
-      if (wrong.length === 0) {
-        setBanner('这一场全对，没有错题可以分析');
-        return;
-      }
-
       const noOf = (it) => items.indexOf(it) + 1;
-      const drafted = wrong.filter((it) => it.draft_url).slice(0, MAX_DRAFT_ATTACH);
+      const wrongDrafts = items.filter((it) => !it.is_correct && it.draft_url);
+      const correctDrafts = items
+        .filter((it) => it.is_correct && it.draft_url)
+        .sort((a, b) => Number(b.time_spent_sec || 0) - Number(a.time_spent_sec || 0));
+      const reservedCorrect = correctDrafts.length > 0 ? 1 : 0;
+      const drafted = [
+        ...wrongDrafts.slice(0, MAX_DRAFT_ATTACH - reservedCorrect),
+        ...correctDrafts,
+      ].slice(0, MAX_DRAFT_ATTACH);
 
       const images = [];
       for (const it of drafted) {
         try {
-          // 让后端直接给 data URL：<img> 再进 canvas 会多一道跨域污染的坑
           const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
           if (r?.data_url) {
-            images.push({ id: uid(), name: `q${noOf(it)}-draft.png`, dataUrl: r.data_url });
+            images.push({
+              id: uid(),
+              name: `q${noOf(it)}-draft.png`,
+              dataUrl: r.data_url,
+              contextKind: 'practice',
+              contextId: Number(sessionId),
+              hidden: true,
+            });
           }
-        } catch { /* 单张拿不到就跳过，不该拖垮整次复盘 */ }
+        } catch { /* 单张草稿加载失败不阻塞整份复盘 */ }
       }
-      const draftedNos = drafted.slice(0, images.length).map(noOf);
-      const draftedSet = new Set(draftedNos);
 
       const s = rep.session || {};
-      const lines = [
-        `帮我复盘一次公考练习：${s.category || '未命名批次'}，共 ${s.total} 题，对 ${s.correct} 题，用时 ${fmtSec(s.duration_sec)}。`,
-        '',
-        `这一场做错或空着的有 ${wrong.length} 道：`,
-      ];
-
-      for (const it of wrong) {
-        const no = noOf(it);
-        lines.push('', `【第 ${no} 题${it.sub_category ? ` · ${it.sub_category}` : ''}】`, clip(it.content, 900));
-        const opts = (it.options || []).map((o) => `${o.key}. ${o.text ?? ''}`).join('\n');
-        if (opts) lines.push(opts);
-        lines.push(
-          `我选：${it.user_answer || '（空着没做）'} / 正确答案：${it.correct_answer} / 本题用时：${fmtSec(it.time_spent_sec)}`,
-        );
-        if (it.explanation) lines.push(`官方解析：${clip(it.explanation, 500)}`);
-        if (draftedSet.has(no)) lines.push('（这题的草稿纸见附图）');
-      }
-
-      lines.push('');
-      if (draftedNos.length > 0) {
-        lines.push(
-          `附图是我做题时的草稿纸，按顺序依次是第 ${draftedNos.join('、')} 题。`,
-          '每张图里题目、我在题干上的圈划、旁边的演算过程都在一起，能看出我当时是怎么想的。',
-        );
-      } else {
-        lines.push('这几题当时没留草稿纸，只能从答案本身推。');
-      }
-
-      lines.push(
-        '',
-        '请结合草稿纸回答三件事，每条都要落到具体的题和具体的笔迹上，不要讲通用套话：',
-        '1. 每道错题我的推理链是怎么走的、从哪一步开始偏的 —— 是审题漏条件、逻辑用错，还是纯算错。',
-        '2. 我这几张草稿纸本身有什么坏习惯（条件没抄全、符号乱用、步骤跳太多、排版挤在一起、算完不回头验证等），',
-        '   每条都给出下次具体该怎么写。',
-        '3. 综合起来我最该先纠的一个做题习惯是什么，给一个下次练习就能执行的检查动作。',
-        '',
-        '看不清写的是什么就直接说看不清，不要猜。',
-      );
-
-      lines.push(
-        '',
-        "复盘完对每个明确判断的考点用 scripts/kaodian_profile.py --record 记录 0/1；掌握度不要手填，由算法自动重算。",
-      );
-
-      const prompt = lines.join('\n');
-      if (images.length > 0) setPendingImages((prev) => [...prev, ...images]);
-      setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
+      setPendingImages((prev) => [
+        ...prev.filter((img) => img.contextKind !== 'practice'),
+        ...images,
+      ]);
+      setPendingReview({
+        id: Number(sessionId),
+        kind: 'practice',
+        path: info.path,
+        name: info.name,
+        title: info.title || `AI 练题复盘：${s.display_title || s.category || '未命名批次'}`,
+        label: `AI练题复盘 · ${fmtDateTime(s.ended_at)} · ${s.display_title || s.category || '未命名批次'} · ${s.correct}/${s.total}`,
+      });
       setShowPicker(false);
       stickToBottom.current = true;
       setTimeout(() => taRef.current?.focus(), 0);
     } catch (err) {
-      setBanner(`带错题失败：${err.message}`);
+      setBanner(`带上 AI 练题复盘失败：${err.message}`);
     } finally {
       setAttaching(false);
     }
@@ -917,9 +948,11 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       const info = await api(`/api/exam-analyses/${id}/md`);
       setPendingReview({
         id,
+        kind: 'exam',
         path: info.path,
         name: info.name,
         title: info.title || info.name,
+        label: info.title || info.name,
       });
       setShowReview(false);
       stickToBottom.current = true;
@@ -1202,13 +1235,13 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
             <button
               onClick={openPicker}
               disabled={attaching}
-              title="带上某次练习的错题和草稿纸"
+              title="选择一次 AI 练题结果进行复盘"
               className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
               {attaching
                 ? <Loader2 size={11} className="animate-spin" />
-                : <PenTool size={11} />}
-              <span className={fullscreen ? 'hidden' : ''}>错题草稿</span>
+                : <FileText size={11} />}
+              <span className={fullscreen ? 'hidden' : ''}>AI练题复盘</span>
             </button>
             <button
               onClick={openUploadPicker}
@@ -1358,13 +1391,18 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
               <ReviewChip
                 review={pendingReview}
                 onOpen={openReviewPreview}
-                onRemove={() => setPendingReview(null)}
+                onRemove={() => {
+                  if (pendingReview.kind === 'practice') {
+                    setPendingImages((prev) => prev.filter((img) => img.contextKind !== 'practice'));
+                  }
+                  setPendingReview(null);
+                }}
               />
             </div>
           )}
-          {pendingImages.length > 0 && (
+          {pendingImages.some((img) => !img.hidden) && (
             <div className="flex flex-wrap gap-2 mb-2">
-              {pendingImages.map((img) => (
+              {pendingImages.filter((img) => !img.hidden).map((img) => (
                 <div key={img.id} className="relative">
                   <img src={img.dataUrl} alt="" className="w-14 h-14 object-cover rounded-lg border border-black/10" />
                   <button
@@ -1433,7 +1471,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
             <div className="flex items-start justify-between gap-4 mb-5">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">复盘报告</p>
-                <p className="text-xl font-black italic truncate">{reviewPreview.title || reviewPreview.name}</p>
+                <p className="text-xl font-black italic truncate">{reviewPreview.label || reviewPreview.title || reviewPreview.name}</p>
               </div>
               <button
                 type="button"

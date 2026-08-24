@@ -9,6 +9,15 @@ const fmtSec = (sec) => {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 };
 
+const fmtDateTime = (raw) => {
+  if (!raw) return '';
+  const date = new Date(String(raw).includes('T') ? raw : `${String(raw).replace(' ', 'T')}Z`);
+  if (Number.isNaN(date.getTime())) return String(raw);
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+};
+
 const ModalShell = ({ children }) => (
   <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4">
     {children}
@@ -190,7 +199,7 @@ export default function HermesContextPickers({
               <div className="flex items-center space-x-2">
                 <Target size={15} className="text-[#6b5428]" />
                 <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
-                  挑一场练习来复盘
+                  选择一次 AI 练题复盘
                 </span>
               </div>
               <div className="flex items-center space-x-1">
@@ -218,7 +227,7 @@ export default function HermesContextPickers({
               )}
               {!runsLoading && practiceRuns.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有交过卷的练习。<br />去「AI 练题」做一套并交卷，草稿纸会自动存下来。
+                  还没有可复盘的 AI 练题记录。<br />去「AI 练题」完成一套并交卷后，这里会自动出现。
                 </p>
               )}
               {practiceRuns.map((run) => (
@@ -229,9 +238,9 @@ export default function HermesContextPickers({
                   className="w-full text-left px-4 py-3 rounded-2xl border border-black/5 hover:border-[#6b5428] hover:bg-[#f4e6c8] transition-colors flex items-center gap-3 disabled:opacity-50"
                 >
                   <span className="flex-1 min-w-0">
-                    <span className="block text-xs font-black truncate">{run.category || '未命名批次'}</span>
+                    <span className="block text-xs font-black truncate">{run.display_title || run.category || '未命名批次'}</span>
                     <span className="block text-[10px] font-bold text-[#bbb] mt-0.5">
-                      对 {run.correct}/{run.total} · 错 {run.wrong_count} · 用时 {fmtSec(run.duration_sec)}
+                      {fmtDateTime(run.ended_at)} · 对 {run.correct}/{run.total} · 错 {run.wrong_count} · 用时 {fmtSec(run.duration_sec)}
                       {run.draft_count > 0 && ` · ${run.draft_count} 张草稿`}
                     </span>
                   </span>
@@ -241,7 +250,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              会把错题明细和最多 {maxDraftAttach} 张草稿纸装进输入框，你可以再补一句话再发。
+              选中后会生成一份可预览的 Markdown 附件，并带上最多 {maxDraftAttach} 张复盘重点草稿纸（含正确但慢的题），不占输入框。
             </p>
           </div>
         </ModalShell>,

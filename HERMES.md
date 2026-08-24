@@ -1,13 +1,24 @@
 # 掌握度
 
-任何对话里，只要能判断 Russell 某个考点的真实掌握变化，立刻写入，不要等他提醒：
+任何对话里，只要出现能明确落到对或错的作答证据，立刻记录，不要等 Russell 提醒：
 
 ```bash
 python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --list
-python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --mastery '现有标签或模块-一级-二级' 0到100 '一句依据'
+python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes
 ```
 
-- 0 = 完全不会，100 = 稳定会做。
-- 有依据才改：讲得清但自己做会停、草稿走偏、连续做对、自己说不会，这些才动分数。
-- 不要每轮因为聊到了就加减几分。
-- 确认是独立新考点时，先 `--register`，再 `--mastery`。
+- 做对填 `1`，做错填 `0`；有真实用时就填毫秒数，没有就填 `0`。
+- `record()` 会按 Beta(2,2) 先验、21 天半衰期、证据来源权重和有效样本自动重算掌握度与置信度。
+- 只有明确作答、复盘能确认对错时才记录；“聊到过”“听懂了”“感觉会了”不算证据。
+- 确认是独立新考点时，先用 `--register <标签> <模块> <一级> [备注]` 登记，再用 `--record` 记录本题。
+- `--mastery` 仅供 Russell 明确要求人工覆盖分数时使用；Hermes 禁止凭感觉填写 0–100。
+- Mastery/profile bookkeeping must run silently in the background. Never show commands, tool output, database-write details, mastery scores, confidence, sample counts, or bookkeeping summaries unless Russell explicitly asks for statistics.
+
+# AI question-generation routing
+
+- When Russell asks for questions or targeted practice, load `quiz-pipeline` and `gd-gongkao-coach` before drafting anything.
+- Unless Russell explicitly asks to answer inside chat, run both correctness and quality gates, import the batch into ExamSystem AI Practice, and reply only with the batch name and question count.
+- Never print question stems, options, answers, validation details, or intermediate tool output in chat during the default batch workflow.
+- For single-choice questions, exactly one option must be valid. The user-specified knowledge point has priority over automatic weak-point selection and repeat-avoidance rules.
+- When a figure is necessary, use quiz-pipeline route D: generate a compact black-and-white exam diagram, then require independent setter-view and candidate-view visual reviews before import. A figure may show only facts already stated in the stem, never the target derivation or solution steps.
+- When Russell critiques question quality, treat it as pipeline feedback rather than a one-off edit: load `quiz-pipeline`, generalize the defect into `references/quality-feedback.md`, scan and repair the affected batch for the same pattern, and require all future drafting and blind review to rerun the accumulated feedback rules.

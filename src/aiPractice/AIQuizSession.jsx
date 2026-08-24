@@ -78,7 +78,7 @@ const ImageList = ({ images }) => {
     <div className="mt-3 space-y-2">
       {images.map((src, i) => (
         <img key={i} src={src} alt="" loading="lazy"
-          className="max-w-full rounded-xl border border-[#e8d5b0] bg-white" />
+          className="block w-auto max-w-full sm:max-w-[420px] max-h-[320px] object-contain rounded-lg border border-[#e8d5b0] bg-white" />
       ))}
     </div>
   );
@@ -530,6 +530,16 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     });
   }, [sessionId, drafts, bumpSaving]);
 
+  const toggleDraftMode = () => {
+    if (draftMode) {
+      persistDraft(current?.id);
+      setDraftMode(false);
+      return;
+    }
+    setDraftMode(true);
+    setScratchRows((rows) => Math.max(rows, 1));
+  };
+
   // ── 导航 ──
   const goTo = useCallback((nextIndex) => {
     if (nextIndex < 0 || nextIndex >= total || nextIndex === index) return;
@@ -773,6 +783,21 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             已答 <span className="text-[#1a1a1a]">{answeredCount}</span>/{total}
           </span>
           <button
+            type="button"
+            onClick={toggleDraftMode}
+            aria-label={draftMode ? '退出草稿纸模式' : '打开草稿纸模式'}
+            aria-pressed={draftMode}
+            title={draftMode ? '退出草稿纸模式' : '进入草稿纸模式'}
+            className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              draftMode
+                ? 'bg-[#1a1a1a] text-white'
+                : 'text-[#999] hover:bg-[#e8d5b0] hover:text-[#1a1a1a]'
+            }`}
+          >
+            {draftMode ? <XIcon size={18} /> : <PenTool size={17} />}
+          </button>
+
+          <button
             onClick={() => setShowSheet(true)}
             className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-black text-[#999] hover:bg-[#e8d5b0] hover:text-[#1a1a1a] transition-colors"
           >
@@ -985,21 +1010,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               }`}
             >
               <Bookmark size={18} />
-            </button>
-
-            <button
-              onClick={() => { setDraftMode(true); setScratchRows((r) => Math.max(r, 1)); }}
-              title={hasDraft
-                ? '草稿纸：这题留了草稿，打开就能看到'
-                : '草稿纸：在题目上圈划、在下面演算'}
-              className={`shrink-0 h-14 px-4 rounded-2xl border-2 flex items-center gap-1.5 font-black transition-colors ${
-                hasDraft
-                  ? 'bg-[#2c261c] border-[#6b5428] text-white'
-                  : 'bg-white border-[#e8d5b0] text-[#999] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
-              }`}
-            >
-              <PenTool size={17} />
-              <span className="text-xs uppercase tracking-widest hidden sm:inline">草稿纸</span>
             </button>
 
             {isLast ? (
