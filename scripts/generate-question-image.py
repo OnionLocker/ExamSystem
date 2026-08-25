@@ -17,15 +17,18 @@ from PIL import Image, ImageChops, ImageOps
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
 MODEL = os.environ.get("QUESTION_IMAGE_MODEL", "gemini-3.1-flash-image")
-STYLE_GUARD = """你正在为中国公务员行测题绘制题目示意图，不是在制作解析图。
-硬性要求：
-- 只画下方规格明确允许出现的已知对象与关系，不补充推导、答案特征或解题步骤。
-- 白底黑色线稿，接近纸质真题插图；紧凑留白，禁止彩色、渐变、阴影、纹理和装饰。
-- 禁止教学标题、步骤编号、流程箭头、剪刀图标，以及规格未明确要求的字母、数字、公式和尺寸标签。
-- 线条清晰，缩小到约 420 CSS 像素宽时仍能辨认。
-- 图片中不要加入边框外说明、答案、解析或水印。
+STYLE_GUARD = """You are a professional figure illustrator for China's civil-service Administrative Aptitude Test.
+Render only the concrete figure facts supplied below.
 
-允许绘制的规格：
+Universal hard constraints:
+- Clean white background, pure black lines and text; no color, gray fill, gradients, shadows, textures, 3D, photorealism, or decoration.
+- Compact centered exam layout with aligned equal-size panels and enough whitespace; readable when reduced to about 420 CSS pixels wide.
+- Uniform crisp strokes; every endpoint, intersection, node, connector, arrow direction, count, and geometric relation must be unambiguous.
+- Reproduce only explicitly requested Chinese characters, Latin letters, numbers, and units, with no additions, omissions, substitutions, or garbling.
+- Show only facts already given in the stem. Never add an answer, inferred direction, derived force, target pattern, solution step, teaching arrow, title, highlight, watermark, or decorative outer frame.
+- Do not add, remove, duplicate, swap, or reinterpret any requested object, panel, label, line, or option.
+
+Concrete IMAGE_FACTS:
 """
 
 
