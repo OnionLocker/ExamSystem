@@ -20,6 +20,7 @@ const HERMES_PORT = process.env.HERMES_PORT || '9119';
 const HERMES_TOKEN = process.env.HERMES_SESSION_TOKEN || '';
 
 const WS_PATH = '/api/hermes/ws';
+const WS_MAX_PAYLOAD = 256 * 1024 * 1024;
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 // 浏览器只需要知道 Hermes 应该在哪个项目目录工作；绝对路径由服务端决定，
@@ -53,7 +54,7 @@ export function attachHermesWs(httpServer) {
     console.warn('[hermes] ⚠️  未配置 HERMES_SESSION_TOKEN，Hermes 对话页将无法连接');
   }
 
-  const wss = new WebSocketServer({ noServer: true });
+  const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAX_PAYLOAD });
 
   httpServer.on('upgrade', (req, socket, head) => {
     let pathname;
@@ -93,7 +94,7 @@ function bridge(client) {
 
   let upstream;
   try {
-    upstream = new WebSocket(upstreamUrl());
+    upstream = new WebSocket(upstreamUrl(), { maxPayload: WS_MAX_PAYLOAD });
   } catch (err) {
     sendError(client, `无法连接 Hermes：${err.message}`, 'upstream_error');
     client.close(1011, 'upstream error');

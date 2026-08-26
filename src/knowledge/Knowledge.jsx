@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Ban, ChevronDown, Lightbulb, Pencil, Plus, Target, Trash2 } from 'lucide-react';
 import { TRACKS, XINGCE, SHENLUN } from './canon.js';
+import { consumeKnowledgeFocus, KNOWLEDGE_OPEN_EVENT } from './nav.js';
 import { api } from '../api.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 
@@ -428,6 +429,19 @@ export default function Knowledge() {
     setOverrides(next);
     cloudSet(OVERRIDE_KEY, next);
   };
+
+  useEffect(() => {
+    const apply = (detail) => {
+      if (!detail?.moduleId || !detail?.typeId) return;
+      setTrack(detail.track || 'xingce');
+      setModId(detail.moduleId);
+      setOpenId(detail.typeId);
+    };
+    apply(consumeKnowledgeFocus());
+    const onOpen = (e) => apply(e.detail);
+    window.addEventListener(KNOWLEDGE_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(KNOWLEDGE_OPEN_EVENT, onOpen);
+  }, []);
 
   useEffect(() => {
     const load = () => {

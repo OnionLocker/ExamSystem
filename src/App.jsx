@@ -41,6 +41,7 @@ import HermesChat from './hermes/HermesChat.jsx';
 import AIQuizHome from './aiPractice/AIQuizHome.jsx';
 import ExamReview from './examReview/ExamReview.jsx';
 import Knowledge from './knowledge/Knowledge.jsx';
+import { KNOWLEDGE_OPEN_EVENT } from './knowledge/nav.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
@@ -119,6 +120,12 @@ const AppInner = () => {
   };
   const [hermesFullscreen, setHermesFullscreen] = useState(readHermesFs);
   const hermesFs = activeTab === 'hermes' && hermesFullscreen;
+
+  useEffect(() => {
+    const go = () => setActiveTab('knowledge');
+    window.addEventListener(KNOWLEDGE_OPEN_EVENT, go);
+    return () => window.removeEventListener(KNOWLEDGE_OPEN_EVENT, go);
+  }, []);
 
   useEffect(() => {
     try { localStorage.setItem(HERMES_FS_KEY, hermesFullscreen ? '1' : '0'); }
@@ -730,15 +737,18 @@ const AppInner = () => {
 
           {activeTab === 'uploads' && <Uploads onReviewWithHermes={seedHermesUpload} />}
 
-          {activeTab === 'hermes' && (
+          {/* Keep Hermes mounted while other modules are open so its WebSocket,
+              active response, attachments, and scroll state continue in background. */}
+          <div className={activeTab === 'hermes' ? 'h-full' : 'hidden'}>
             <HermesChat
+              active={activeTab === 'hermes'}
               seed={hermesSeed}
               onSeedConsumed={() => setHermesSeed(null)}
               fullscreen={hermesFs}
               onToggleFullscreen={() => setHermesFullscreen((v) => !v)}
               headerExtra={<TopBarTimer onOpen={() => setActiveTab('pomodoro')} />}
             />
-          )}
+          </div>
 
           {activeTab === 'aiPractice' && <AIQuizHome onAnalyzeWithHermes={seedHermes} />}
 

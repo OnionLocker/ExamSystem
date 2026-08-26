@@ -6,21 +6,48 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
-  ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText,
+  ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
+  PictureInPicture2,
 } from 'lucide-react';
 
 import { api } from '../api.js';
 import HermesGateway from './gateway.js';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
+import { getToolActivity } from './toolActivity.js';
 import QuotaBar from './QuotaBar.jsx';
 import HermesSidebar from './HermesSidebar.jsx';
 import HermesContextPickers from './HermesContextPickers.jsx';
+import ReviewFloater from './ReviewFloater.jsx';
 
 let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
 
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const AUDIO_MAX_BYTES = 200 * 1024 * 1024;
+
+const pickRecorderMime = () => {
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return '';
+  return [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/aac',
+    'audio/ogg;codecs=opus',
+  ].find((t) => MediaRecorder.isTypeSupported(t)) || '';
+};
+
+const extFromAudioMime = (mime) => {
+  const t = String(mime || '').toLowerCase();
+  if (t.includes('mp4') || t.includes('m4a') || t.includes('aac')) return 'm4a';
+  if (t.includes('ogg') || t.includes('opus')) return 'ogg';
+  if (t.includes('wav')) return 'wav';
+  if (t.includes('mpeg') || t.includes('mp3')) return 'mp3';
+  return 'webm';
+};
+
+const normalizeAudioDataUrl = (dataUrl) =>
+  String(dataUrl || '').replace(/^data:audio\/([^;,]+)[^,]*,/, 'data:audio/$1;base64,');
 
 // session.resume 返回的历史消息里，图片是以裸 data URL 的形式内嵌在 text 末尾的
 // （hermes 侧 _coerce_message_text 把多模态 content 折叠成单一字符串时留下的）。
@@ -86,15 +113,24 @@ const hydrateHistory = (raw) =>
       const images = extractEmbeddedImages(rawText);
       const stripped = images.length > 0 ? stripEmbeddedImages(rawText) : rawText;
       const pulled = m.role === 'user' ? extractReview(stripped) : { content: stripped, review: null };
+      const cleaned = String(pulled.content || '')
+        .replace(/\[audio\]/gi, '')
+        .replace(/下面附了我的口述录音[^\n]*/g, '')
+        .trim();
+      const audioSec = parseAudioLen(cleaned);
+      const hadAudio = /\[audio\]/i.test(rawText) || isAudioLabel(cleaned);
       return {
         id: uid(), role: m.role,
-        content: pulled.content,
+        content: cleaned,
         streaming: false, tools: [], thinking: '',
         images: pulled.review?.kind === 'practice' ? [] : images,
+        audioSec,
         review: pulled.review,
+        audio: null,
+        hadAudio,
       };
     })
-    .filter((m) => m.content || (m.images?.length ?? 0) > 0 || m.review);
+    .filter((m) => m.content || (m.images?.length ?? 0) > 0 || m.review || m.audioSec || m.hadAudio);
 
 const eventText = (ev) => ev?.payload?.text || ev?.payload?.rendered || '';
 
@@ -107,6 +143,7 @@ const SESSION_LIST_LIMIT = 40;
 // 这样首屏不用干等「握手 + DB 查询」。sessionStorage 而不是 localStorage：
 // 关掉标签页就失效，避免长期拿着过期列表。
 const SESSION_CACHE_KEY = 'hermes.sessions.v1';
+const ACTIVE_SESSION_KEY = 'hermes.activeSession.v1';
 
 const readCachedSessions = () => {
   try {
@@ -124,9 +161,20 @@ const writeCachedSessions = (list) => {
   } catch { /* 隐私模式下 sessionStorage 可能不可写，缓存失败不影响功能 */ }
 };
 
+const readCachedActiveSession = () => {
+  try { return sessionStorage.getItem(ACTIVE_SESSION_KEY) || null; }
+  catch { return null; }
+};
+
+const writeCachedActiveSession = (id) => {
+  try {
+    if (id == null) sessionStorage.removeItem(ACTIVE_SESSION_KEY);
+    else sessionStorage.setItem(ACTIVE_SESSION_KEY, String(id));
+  } catch { /* session recovery remains best-effort */ }
+};
+
 // 一次最多带几张草稿纸。每张 PNG 转成 base64 有 300KB~1MB，
 // 带太多会把 prompt 撑爆，也会让模型的注意力散掉。
-const MAX_DRAFT_ATTACH = 4;
 
 const IS_STANDALONE =
   typeof window !== 'undefined' &&
@@ -151,6 +199,97 @@ const exitOsFullscreen = () => {
 const fmtSec = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
+
+const fmtAudioLen = (sec) => {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  if (s < 60) return `${s}秒`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}分${r}秒` : `${m}分钟`;
+};
+
+const parseAudioLen = (text) => {
+  const s = String(text || '').trim().replace(/^[（(]|[）)]$/g, '');
+  const m = s.match(/^(?:语音\s*)?(\d+)\s*秒$/) || s.match(/^(\d+)\s*s$/i);
+  if (m) return Number(m[1]);
+  const mm = s.match(/^(?:语音\s*)?(\d+)\s*分钟$/);
+  if (mm) return Number(mm[1]) * 60;
+  const mix = s.match(/^(?:语音\s*)?(\d+)\s*分(\d+)\s*秒$/);
+  if (mix) return Number(mix[1]) * 60 + Number(mix[2]);
+  return null;
+};
+
+const isAudioLabel = (text) => {
+  const s = String(text || '').trim();
+  return s === '语音' || s === '（语音口述）' || parseAudioLen(s) != null;
+};
+
+const fmtVoiceQuote = (sec) => {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  if (s <= 0) return '语音';
+  if (s < 60) return `${s}"`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}'${r}"` : `${m}'`;
+};
+
+const VoiceWaves = ({ playing }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className={playing ? 'voice-playing' : ''}>
+    <path d="M10.6 6a2.2 2.2 0 0 0 0 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M8.2 4.5a4.2 4.2 0 0 0 0 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M5.8 3a6.2 6.2 0 0 0 0 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <circle cx="13.1" cy="8" r="1.15" fill="currentColor" />
+  </svg>
+);
+
+const VoiceBubble = ({ src, sec = 0, onDuration }) => {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const width = 78 + Math.min(Math.max(Number(sec) || 1, 1), 60) * 2.1;
+
+  const toggle = () => {
+    const el = audioRef.current;
+    if (!el || !src) return;
+    if (playing) {
+      el.pause();
+      return;
+    }
+    document.querySelectorAll('audio[data-voice]').forEach((a) => {
+      if (a !== el) a.pause();
+    });
+    el.play().catch(() => {});
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={!src}
+      title={src ? (playing ? '暂停' : '播放') : '录音已不在本地'}
+      className="relative flex items-center justify-end gap-1.5 h-10 pr-3.5 pl-4 mr-1.5 rounded-[10px] bg-[#1a1a1a] text-[#f7efe0] disabled:opacity-90"
+      style={{ width }}
+    >
+      <span className="text-[15px] tabular-nums leading-none">{fmtVoiceQuote(sec)}</span>
+      <VoiceWaves playing={playing} />
+      <span className="absolute -right-[5px] top-1/2 -mt-[5px] w-0 h-0 border-y-[5px] border-y-transparent border-l-[6px] border-l-[#1a1a1a]" />
+      {src ? (
+        <audio
+          ref={audioRef}
+          data-voice=""
+          src={src}
+          className="hidden"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          onLoadedMetadata={(e) => {
+            const d = e.currentTarget.duration;
+            if (!(sec > 0) && Number.isFinite(d) && d > 0) onDuration?.(Math.round(d));
+          }}
+        />
+      ) : null}
+    </button>
+  );
 };
 
 const fmtDateTime = (raw) => {
@@ -194,7 +333,7 @@ const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
   </div>
 );
 
-const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscreen, headerExtra }) => {
+const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, onToggleFullscreen, headerExtra }) => {
   const gwRef = useRef(null);
   const hermesContextRef = useRef(null);
   const hermesContextPromiseRef = useRef(null);
@@ -203,7 +342,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   const [sessionsLoading, setSessionsLoading] = useState(false);
   // sid 是 gateway 的活动会话 id（session.create/resume 返回），与列表里的存档 id 不同
   const [sid, setSid] = useState(null);
-  const [activeStoredId, setActiveStoredId] = useState(null);
+  const [activeStoredId, setActiveStoredId] = useState(() => readCachedActiveSession());
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -211,6 +350,10 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   const [banner, setBanner] = useState('');
   const [showThinking, setShowThinking] = useState(false);
   const [pendingImages, setPendingImages] = useState([]);
+  const [pendingAudio, setPendingAudio] = useState(null);
+  const [popout, setPopout] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [recordSec, setRecordSec] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1440);
   const [dragOver, setDragOver] = useState(false);
   const [osFs, setOsFs] = useState(() => !!osFullscreenEl());
@@ -304,6 +447,12 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   // busy 是 state，setBusy 要等下一次渲染才拦得住第二次点击。
   // 图片上传是 await，中间那几秒只能靠同步的 ref 挡住连点
   const sendingRef = useRef(false);
+  const recRef = useRef(null);
+  const recChunksRef = useRef([]);
+  const recStreamRef = useRef(null);
+  const recTickRef = useRef(null);
+  const recStartedAtRef = useRef(0);
+  const audioPickRef = useRef(null);
   // 用来区分「第一次连上」和「断线重连」。重连后必须再 resume，
   // 否则 Hermes 的事件还绑在已经死掉的那条 WS 上，界面就会一直「思考中」。
   const openedOnceRef = useRef(false);
@@ -328,6 +477,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     setSid(liveId);
     activeStoredIdRef.current = storedId;
     setActiveStoredId(storedId);
+    writeCachedActiveSession(storedId);
     return liveId;
   }, []);
 
@@ -425,7 +575,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       gw.on('message.start', () => {
         setWaitSec(0);
         setBusy(true);
-        setStatus('生成中');
+        setStatus('(｡•̀ᴗ-)✧ 整理一下');
         setMessages((prev) => {
           const last = prev[prev.length - 1];
           if (last && last.role === 'assistant' && last.streaming) return prev;
@@ -443,7 +593,8 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           tool_id: p.tool_id, name: p.name || 'tool', args: p.args,
           args_text: p.args_text, preview: p.preview, done: false,
         });
-        setStatus(`调用 ${p.name || '工具'}`);
+        const activity = getToolActivity(p.name);
+        setStatus(`${activity.emoji} ${activity.label}`);
       }),
       gw.on('tool.complete', (ev) => {
         const p = ev.payload || {};
@@ -451,7 +602,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           tool_id: p.tool_id, name: p.name || 'tool', args: p.args,
           result: p.result, duration_s: p.duration_s, done: true,
         });
-        setStatus('生成中');
+        setStatus('(｡•̀ᴗ-)✧ 整理一下');
       }),
 
       gw.on('status.update', (ev) => {
@@ -537,6 +688,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       if (activeStoredIdRef.current === sessionId) {
         activeStoredIdRef.current = null;
         setActiveStoredId(null);
+        writeCachedActiveSession(null);
         setSid(null);
         sidRef.current = null;
         setMessages([]);
@@ -567,25 +719,34 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     const hydrated = hydrateHistory(res.messages);
     const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
     const inflightRaw = String(res.inflight?.user || '').trim();
-    const inflightUser = inflightRaw ? extractReview(inflightRaw).content : '';
+    const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
 
-    // 回合还在跑时，当前这句用户话只在 inflight 里，还没写进 history。
-    // 重连若直接用 history 覆盖，会把本地刚发出去的气泡抹掉。
+    // A running turn lives in inflight until completion. Restore both its visible
+    // text and attachment metadata; review-only messages legitimately have no text.
     setMessages((prev) => {
       const lastLocalUser = [...prev].reverse().find((m) => m.role === 'user');
-      const pending = inflightUser
-        || (lastLocalUser && lastLocalUser.content !== lastHydratedUser?.content
-          ? lastLocalUser.content
-          : '');
-      const next = [...hydrated];
-      if (pending && pending !== lastHydratedUser?.content) {
+      const localPending = lastLocalUser
+        && (lastLocalUser.content !== lastHydratedUser?.content
+          || lastLocalUser.review?.id !== lastHydratedUser?.review?.id);
+      const pendingContent = inflightUser?.content ?? (localPending ? lastLocalUser.content : '');
+      const pendingReview = inflightUser?.review ?? (localPending ? lastLocalUser.review : null);
+      const alreadyHydrated = pendingContent === lastHydratedUser?.content
+        && pendingReview?.id === lastHydratedUser?.review?.id;
+      const next = hydrated.map((m, i) => {
+        const old = prev[i];
+        return old && old.role === m.role ? { ...m, id: old.id } : m;
+      });
+      if ((pendingContent || pendingReview) && !alreadyHydrated) {
         next.push({
           id: lastLocalUser?.id || uid(),
           role: 'user',
-          content: pending,
+          content: pendingContent,
           streaming: false, tools: [], thinking: '',
           images: lastLocalUser?.images || [],
-          review: lastLocalUser?.review || null,
+          audio: lastLocalUser?.audio || null,
+          audioSec: lastLocalUser?.audioSec ?? parseAudioLen(pendingContent),
+          hadAudio: lastLocalUser?.hadAudio || isAudioLabel(pendingContent),
+          review: pendingReview,
         });
       }
       if (res.running) {
@@ -615,13 +776,21 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
   // 第一次 open 由上面的 connect() 处理，这里只接重连。
   useEffect(() => {
     if (connState !== 'open') return;
+    const gw = gwRef.current;
+    if (!gw) return;
+
     if (!openedOnceRef.current) {
       openedOnceRef.current = true;
+      const cachedActive = readCachedActiveSession();
+      if (!cachedActive) return;
+      gw.request('session.resume', { session_id: cachedActive, cols: 100 })
+        .then((res) => applyResume(res, cachedActive))
+        .catch(() => writeCachedActiveSession(null));
       return;
     }
-    const gw = gwRef.current;
+
     const stored = activeStoredIdRef.current;
-    if (!gw || !stored) return;
+    if (!stored) return;
     setStatus('重连会话');
     gw.request('session.resume', { session_id: stored, cols: 100 })
       .then((res) => applyResume(res, stored))
@@ -647,11 +816,16 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     if (!gw || busy) return;
     setBanner('');
     try {
+      if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop();
+      recRef.current = null;
+      setRecording(false);
       const res = await gw.request('session.create', await sessionCreateParams());
       rememberSession(res);
       setMessages([]);
       setPendingImages([]);
+      setPendingAudio(null);
       setPendingReview(null);
+      setPopout(null);
       // 新建后立刻刷新列表，让左栏出现这条新会话
       try {
         const listRes = await gw.request('session.list', {});
@@ -664,12 +838,146 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     }
   }, [busy, rememberSession, sessionCreateParams]);
 
+  const stopTracks = () => {
+    const stream = recStreamRef.current;
+    recStreamRef.current = null;
+    stream?.getTracks().forEach((t) => t.stop());
+    if (recTickRef.current) {
+      clearInterval(recTickRef.current);
+      recTickRef.current = null;
+    }
+  };
+
+  const stopRecording = useCallback(() => {
+    const rec = recRef.current;
+    if (rec && rec.state !== 'inactive') {
+      try { rec.requestData(); } catch { /* Safari 以外可能没有 */ }
+      rec.stop();
+    }
+    recRef.current = null;
+    setRecording(false);
+  }, []);
+
+  const ingestAudioBlob = useCallback((blob, mime, name, knownSec) => {
+    if (blob.size < 800) {
+      setBanner('录音太短，再试一次');
+      return;
+    }
+    if (blob.size > AUDIO_MAX_BYTES) {
+      setBanner(`录音过大（上限 ${AUDIO_MAX_BYTES / 1024 / 1024}MB，请分段发）`);
+      return;
+    }
+    const ext = extFromAudioMime(mime) || extFromAudioMime(name) || 'webm';
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = normalizeAudioDataUrl(String(reader.result));
+      const apply = (sec) => {
+        setPendingAudio({
+          id: uid(),
+          dataUrl,
+          mime: mime || `audio/${ext}`,
+          name: name || `voice.${ext}`,
+          sec: sec > 0 ? Math.round(sec) : null,
+        });
+      };
+      if (knownSec > 0) {
+        apply(knownSec);
+        return;
+      }
+      const probe = new Audio(dataUrl);
+      probe.onloadedmetadata = () => apply(probe.duration);
+      probe.onerror = () => apply(0);
+    };
+    reader.readAsDataURL(blob);
+  }, []);
+
+  const pickAudioFile = useCallback(() => {
+    audioPickRef.current?.click();
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (recording || busy || sendingRef.current) return;
+    const canLive = Boolean(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
+    if (!canLive) {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        const httpsUrl = `https://${location.host}${location.pathname}${location.search}`;
+        setBanner(
+          <>
+            当前是 HTTP，浏览器不允许网页开麦。
+            <a href={httpsUrl} className="underline mx-1">改用 HTTPS 打开</a>
+            就能直接说；也可以先选一段录音文件。
+          </>,
+        );
+      } else {
+        setBanner('这个环境不能直接开麦，请选择一段录音文件');
+      }
+      pickAudioFile();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recStreamRef.current = stream;
+      recChunksRef.current = [];
+      const mime = pickRecorderMime();
+      let rec;
+      try {
+        rec = new MediaRecorder(stream, {
+          ...(mime ? { mimeType: mime } : {}),
+          audioBitsPerSecond: 32000,
+        });
+      } catch {
+        rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      }
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size) recChunksRef.current.push(e.data);
+      };
+      rec.onstop = () => {
+        stopTracks();
+        const blob = new Blob(recChunksRef.current, { type: rec.mimeType || 'audio/webm' });
+        recChunksRef.current = [];
+        const elapsed = recStartedAtRef.current
+          ? (Date.now() - recStartedAtRef.current) / 1000
+          : 0;
+        ingestAudioBlob(blob, rec.mimeType || 'audio/webm', `voice.${extFromAudioMime(rec.mimeType)}`, elapsed);
+      };
+      try {
+        rec.start(250);
+      } catch {
+        rec.start();
+      }
+      recRef.current = rec;
+      recStartedAtRef.current = Date.now();
+      setPendingAudio(null);
+      setRecordSec(0);
+      setRecording(true);
+      setBanner('');
+      const t0 = Date.now();
+      recTickRef.current = setInterval(() => {
+        setRecordSec(Math.floor((Date.now() - t0) / 1000));
+      }, 250);
+    } catch (err) {
+      stopTracks();
+      setRecording(false);
+      setBanner(/denied|NotAllowed|Permission/i.test(err?.message || '')
+        ? '没有麦克风权限'
+        : `录音失败：${err.message || err}`);
+    }
+  }, [busy, recording, stopRecording, ingestAudioBlob, pickAudioFile]);
+
+  useEffect(() => () => {
+    if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop();
+    stopTracks();
+  }, []);
+
   // ---------- 发送 ----------
   const send = useCallback(async () => {
     const gw = gwRef.current;
-    const text = input.trim();
+    if (recording) return;
+    const typed = input.trim();
+    const audio = pendingAudio;
+    const text = typed;
     if (!gw || busy || sendingRef.current) return;
-    if (!text && pendingImages.length === 0 && !pendingReview) return;
+    if (!text && pendingImages.length === 0 && !pendingReview && !audio) return;
     // 断线时直接拦下，输入框里的字原封不动（读 gateway 自己的状态，
     // 不把 connState 拉进依赖，否则每次重连都要重建这个回调）
     if (gw.connectionState !== 'open') {
@@ -703,27 +1011,43 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       ? [
           `下面这个 Markdown 是我选中的《${review.title}》，请先直接打开文件。`,
           review.path,
+          `本场共 ${review.total || 0} 题；已附上 ${review.draftCount || 0} 张实际保存的草稿纸。请逐题对应，不要把附件数量误认为题目总数。`,
           '',
-          '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析，不要复述报告原文。',
-          '1. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
-          '2. 正确题不能按结果直接跳过：有草稿、用时偏长、涂改多或方法绕远时，也要给出考场上可执行的压缩步骤。',
-          '3. 正确、快速且草稿干净的题不要展开表扬，最多一句确认；把篇幅留给真正能改进的地方。',
-          '4. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
+          '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析。除原题外，不要机械复述报告统计或现成解析。',
+          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，随后在同一引用块内完整照录题干，并将 `> **A.**`、`> **B.**`、`> **C.**`、`> **D.**` 各放一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。发送前逐题检查 A/B/C/D 是否齐全。',
+          '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时明确提示查看对应题图或草稿图，并结合实际图片分析，禁止凭文字补造图形。',
+          '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
+          '4. 正确题不能按结果直接跳过：有草稿、用时偏长、涂改多或方法绕远时，也要给出考场上可执行的压缩步骤。',
+          '5. 正确、快速且草稿干净的题不要展开表扬，最多一句确认；把篇幅留给真正能改进的地方。',
+          '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
           '',
         ].join('\n')
       : '';
     const reviewLead = review?.kind === 'practice' ? practiceReviewLead : examReviewLead;
-    const submittedText = review || text
-      ? `[USER_MESSAGE]\n${text}\n[/USER_MESSAGE]`
+    const voiceLead = audio
+      ? '下面附了我的口述录音，请直接听，不要让我改成文字。'
+      : '';
+    const audioLabel = audio
+      ? (audio.sec > 0 ? fmtAudioLen(audio.sec) : '语音')
+      : '';
+    const persistText = text || audioLabel;
+    const submittedText = review || persistText
+      ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
       : '';
 
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
-    const masteryNudge = [
-      'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
-      '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
-      `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
-      '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
-    ].join('\n');
+    const masteryNudge = review?.kind === 'practice'
+      ? [
+          'This AI Practice review is strictly read-only. Submission already wrote every answer, duration, and knowledge-point event to data/exam.db.',
+          'Never call kaodian_profile.py record/register/set-master, never insert or update kaodian_profile or kaodian_events, and never rewrite question tags during this review.',
+          'Repeated reviews of the same practice session must produce analysis only and must not change the learner profile or knowledge-point catalog.',
+        ].join('\n')
+      : [
+          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
+          `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
+          '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
+        ].join('\n');
     const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
     const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(text);
     const quizNudge = wantsQuiz && !wantsInlineQuiz
@@ -734,7 +1058,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
         ].join('\n')
       : '';
-    const outbound = [reviewLead, submittedText, masteryNudge, quizNudge].filter(Boolean).join('\n');
+    const outbound = [reviewLead, voiceLead, submittedText, masteryNudge, quizNudge].filter(Boolean).join('\n');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -744,18 +1068,22 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       ...prev,
       {
         id: msgId, role: 'user',
-        content: text || (review ? '' : '(图片)'),
+        content: text || (review ? '' : audioLabel),
         streaming: false,
         tools: [], thinking: '', images: images.filter((i) => !i.hidden).map((i) => i.dataUrl),
+        audio: audio?.dataUrl || null,
+        audioSec: audio?.sec > 0 ? Math.round(audio.sec) : (parseAudioLen(audioLabel) || null),
+        hadAudio: !!audio,
         review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label } : null,
       },
     ]);
     setInput('');
     setPendingImages([]);
+    setPendingAudio(null);
     setPendingReview(null);
     setBusy(true);
     setWaitSec(0);
-    setStatus(images.length > 0 ? '上传图片' : '已发送');
+    setStatus(audio ? '上传录音' : (images.length > 0 ? '上传图片' : '已发送'));
     stickToBottom.current = true;
 
     // 拿一个可用会话：优先 resume 当前存档（能保住上下文），
@@ -785,7 +1113,17 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           filename: img.name,
         });
       }
-      await gw.request('prompt.submit', { session_id: target, text: outbound || '看看这张图片' });
+      if (audio) {
+        await gw.request('audio.attach_bytes', {
+          session_id: target,
+          content_base64: audio.dataUrl,
+          filename: audio.name,
+        });
+      }
+      await gw.request('prompt.submit', {
+        session_id: target,
+        text: outbound || (audio ? '请听这段口述' : '看看这张图片'),
+      });
     };
 
     try {
@@ -816,13 +1154,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       setInput((cur) => cur || text);
       setPendingImages((cur) => (cur.length > 0 ? cur : images));
+      setPendingAudio((cur) => cur || audio);
       setPendingReview((cur) => cur || review);
       setBusy(false);
       setStatus('');
     } finally {
       sendingRef.current = false;
     }
-  }, [busy, input, pendingImages, pendingReview, rememberSession, sessionCreateParams]);
+  }, [busy, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
 
   const interrupt = useCallback(async () => {
     const gw = gwRef.current;
@@ -873,15 +1212,9 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
       ]);
       const items = rep?.items || [];
       const noOf = (it) => items.indexOf(it) + 1;
-      const wrongDrafts = items.filter((it) => !it.is_correct && it.draft_url);
-      const correctDrafts = items
-        .filter((it) => it.is_correct && it.draft_url)
-        .sort((a, b) => Number(b.time_spent_sec || 0) - Number(a.time_spent_sec || 0));
-      const reservedCorrect = correctDrafts.length > 0 ? 1 : 0;
-      const drafted = [
-        ...wrongDrafts.slice(0, MAX_DRAFT_ATTACH - reservedCorrect),
-        ...correctDrafts,
-      ].slice(0, MAX_DRAFT_ATTACH);
+      // Keep every saved draft in question order. The review needs the full session,
+      // not a hand-picked subset that can hide a correct-but-slow approach.
+      const drafted = items.filter((it) => it.draft_url);
 
       const images = [];
       for (const it of drafted) {
@@ -912,6 +1245,8 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         name: info.name,
         title: info.title || `AI 练题复盘：${s.display_title || s.category || '未命名批次'}`,
         label: `AI练题复盘 · ${fmtDateTime(s.ended_at)} · ${s.display_title || s.category || '未命名批次'} · ${s.correct}/${s.total}`,
+        draftCount: images.length,
+        total: Number(s.total || items.length || 0),
       });
       setShowPicker(false);
       stickToBottom.current = true;
@@ -1103,19 +1438,22 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
     if (!addImageFiles(e.dataTransfer?.files)) setBanner('只认图片文件');
   };
 
-  // 自适应输入框高度
+  // Re-measure after returning from another module. display:none reports a
+  // scrollHeight of zero, which otherwise leaves the textarea visibly crushed.
   useEffect(() => {
+    if (!active) return;
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = 'auto';
     ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
-  }, [input]);
+  }, [input, active]);
 
-  // 跟随滚动（用户手动上翻时不抢）
+  // Restore the live conversation position when Hermes becomes visible again.
   useEffect(() => {
+    if (!active) return;
     const el = scrollRef.current;
     if (el && stickToBottom.current) el.scrollTop = el.scrollHeight;
-  }, [messages, status]);
+  }, [messages, status, active]);
 
   useEffect(() => {
     const sync = () => setOsFs(!!osFullscreenEl());
@@ -1318,22 +1656,35 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           {messages.map((m) => (
             <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : ''}>
               {m.role === 'user' ? (
-                <div className="max-w-[78%] px-4 py-2.5 rounded-2xl rounded-br-md bg-[#1a1a1a] text-white">
-                  {m.images?.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {m.images.map((src, i) => (
-                        <img key={i} src={src} alt="" className="w-20 h-20 object-cover rounded-lg" />
-                      ))}
+                <div className="max-w-[78%] flex flex-col items-end gap-1.5">
+                  {(m.audio || m.audioSec > 0 || m.hadAudio || isAudioLabel(m.content)) && (
+                    <VoiceBubble
+                      src={m.audio}
+                      sec={m.audioSec > 0 ? m.audioSec : (parseAudioLen(m.content) || 0)}
+                      onDuration={(s) => setMessages((prev) => prev.map((x) => (
+                        x.id === m.id ? { ...x, audioSec: s } : x
+                      )))}
+                    />
+                  )}
+                  {(m.images?.length > 0 || m.review || (m.content && !isAudioLabel(m.content))) && (
+                    <div className="px-4 py-2.5 rounded-2xl rounded-br-md bg-[#1a1a1a] text-white">
+                      {m.images?.length > 0 && (
+                        <div className={`flex flex-wrap gap-1.5 ${m.review || (m.content && !isAudioLabel(m.content)) ? 'mb-2' : ''}`}>
+                          {m.images.map((src, i) => (
+                            <img key={i} src={src} alt="" className="w-20 h-20 object-cover rounded-lg" />
+                          ))}
+                        </div>
+                      )}
+                      {m.review && (
+                        <div className={m.content && !isAudioLabel(m.content) ? 'mb-2' : ''}>
+                          <ReviewChip review={m.review} onOpen={openReviewPreview} dark />
+                        </div>
+                      )}
+                      {m.content && !isAudioLabel(m.content) ? (
+                        <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
+                      ) : null}
                     </div>
                   )}
-                  {m.review && (
-                    <div className={m.content ? 'mb-2' : ''}>
-                      <ReviewChip review={m.review} onOpen={openReviewPreview} dark />
-                    </div>
-                  )}
-                  {m.content ? (
-                    <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
-                  ) : null}
                 </div>
               ) : (
                 <div className="max-w-[92%]">
@@ -1342,6 +1693,22 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
                       ⚕
                     </div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-[#bbb]">Hermes</span>
+                    {m.content && (
+                      <button
+                        type="button"
+                        onClick={() => setPopout((cur) => (
+                          cur?.id === m.id ? null : { id: m.id, content: m.content || '' }
+                        ))}
+                        title={popout?.id === m.id ? '收起复盘浮框' : '弹出复盘浮框，可拖动、缩放、单独滚动'}
+                        className={`ml-1 p-1 rounded-md transition-colors ${
+                          popout?.id === m.id
+                            ? 'bg-[#1a1a1a] text-white'
+                            : 'text-[#bbb] hover:bg-black/5 hover:text-[#1a1a1a]'
+                        }`}
+                      >
+                        <PictureInPicture2 size={12} />
+                      </button>
+                    )}
                   </div>
 
                   {showThinking && m.thinking && (
@@ -1355,22 +1722,12 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
                     </details>
                   )}
 
-                  {m.tools?.map((t) => <ToolCard key={t.tool_id || t.name} tool={t} />)}
+                  {m.streaming && (
+                    <ToolCard tool={m.tools?.[m.tools.length - 1]} />
+                  )}
 
                   {(m.content || !m.streaming) && (
                     <MarkdownMessage content={m.content} streaming={m.streaming} />
-                  )}
-                  {m.streaming && !m.content && (m.tools?.length ?? 0) === 0 && (
-                    <div className="flex items-center space-x-2 text-[11px] text-[#999]">
-                      <Loader2 size={11} className="animate-spin" />
-                      <span>
-                        {waitSec >= 90
-                          ? `还在等模型，已 ${fmtSec(waitSec)}。上下文很大时可能几分钟才开始吐字`
-                          : waitSec >= 15
-                            ? `思考中… ${fmtSec(waitSec)}`
-                            : '思考中…'}
-                      </span>
-                    </div>
                   )}
                 </div>
               )}
@@ -1415,8 +1772,51 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
               ))}
             </div>
           )}
+          {(pendingAudio || recording) && (
+            <div className="flex items-center justify-end gap-2 mb-2">
+              {recording ? (
+                <span className="text-[11px] font-black text-[#c62828] mr-1">
+                  录音中 {fmtSec(recordSec)}
+                </span>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPendingAudio(null)}
+                    className="w-5 h-5 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center shrink-0"
+                  >
+                    <X size={10} />
+                  </button>
+                  <VoiceBubble src={pendingAudio.dataUrl} sec={pendingAudio.sec} />
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex items-end space-x-2">
+            <input
+              ref={audioPickRef}
+              type="file"
+              accept="audio/*,.m4a,.mp3,.wav,.webm,.aac,.ogg,.mp4"
+              capture="user"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) ingestAudioBlob(file, file.type, file.name);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => (recording ? stopRecording() : startRecording())}
+              disabled={busy || attaching}
+              title={recording ? '停止录音' : '口述给 Hermes'}
+              className={`p-3 rounded-2xl shrink-0 transition-colors disabled:opacity-30 ${
+                recording ? 'bg-[#ef5350] text-white' : 'bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5'
+              }`}
+            >
+              {recording ? <Square size={18} /> : <Mic size={18} />}
+            </button>
             <textarea
               ref={taRef}
               value={input}
@@ -1425,7 +1825,9 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
               onPaste={onPaste}
               rows={1}
               placeholder={connState === 'open'
-                ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，Shift+Enter 换行，图片可粘贴或拖入')
+                ? (recording
+                  ? '正在录音…再点一次红钮结束'
+                  : (dragOver ? '松手就把图片放进来' : 'Enter 发送，也可点麦克风口述'))
                 : '连接中…先写，连上了再发'}
               className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
             />
@@ -1440,7 +1842,7 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
             ) : (
               <button
                 onClick={send}
-                disabled={connState !== 'open' || (!input.trim() && pendingImages.length === 0 && !pendingReview)}
+                disabled={connState !== 'open' || recording || (!input.trim() && pendingImages.length === 0 && !pendingReview && !pendingAudio)}
                 title="发送"
                 className="p-3 rounded-2xl bg-[#1a1a1a] text-white disabled:opacity-30 hover:opacity-90 transition-opacity shrink-0"
               >
@@ -1494,6 +1896,14 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
           </div>
         </div>
       )}
+      {popout && (
+        <ReviewFloater
+          content={messages.find((m) => m.id === popout.id)?.content || popout.content}
+          streaming={!!messages.find((m) => m.id === popout.id)?.streaming}
+          fontScale={fontScale}
+          onClose={() => setPopout(null)}
+        />
+      )}
       <HermesContextPickers
         showReview={showReview}
         setShowReview={setShowReview}
@@ -1512,7 +1922,6 @@ const HermesChat = ({ seed, onSeedConsumed, fullscreen = false, onToggleFullscre
         attachPractice={attachPractice}
         attaching={attaching}
         loadPracticeRuns={loadPracticeRuns}
-        maxDraftAttach={MAX_DRAFT_ATTACH}
       />
     </div>
   );

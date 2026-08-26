@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, RefreshCw, ChevronRight, BookOpen, Loader2, Sparkles, Clock, Trash2 } from 'lucide-react';
+import { Target, RefreshCw, ChevronRight, BookOpen, Loader2, Sparkles, Clock, Trash2, AlertTriangle } from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
 
@@ -41,6 +41,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
   // reviewSessionId 不为空 = 这组以前交过卷，点进去先看当时的做题情况
   const [active, setActive] = useState(null);
   const [deleting, setDeleting] = useState(null);   // 正在删除的 batch_id
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [errMsg, setErrMsg] = useState('');
 
   const reload = () => {
@@ -66,25 +67,25 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
   useEffect(fetchBatches, []);
 
   // 删除整个题组（题目 + 作答记录一起删，练废的测试批次不该留着占列表）
-  const handleDelete = async (b, e) => {
-    // 卡片本身是「进入做题」的按钮，删除按钮嵌在里面，必须掐掉冒泡
+  const requestDelete = (b, e) => {
+    // The card itself opens the quiz, so keep the nested delete action isolated.
     e.stopPropagation();
     e.preventDefault();
-    if (deleting) return;
+    if (!deleting) setDeleteTarget(b);
+  };
 
-    const hasData = b.attempt_count > 0;
-    const warn = hasData
-      ? `确定删除题组「${nameOf(b)}」？\n\n这会一起删掉 ${b.count} 道题和 ${b.attempt_count} 条作答记录，不可恢复。`
-      : `确定删除题组「${nameOf(b)}」？\n\n共 ${b.count} 道题，不可恢复。`;
-    if (!confirm(warn)) return;
+  const confirmDelete = async () => {
+    const b = deleteTarget;
+    if (!b || deleting) return;
 
     setDeleting(b.batch_id);
     setErrMsg('');
     try {
       await api(`/api/questions/batch/${encodeURIComponent(b.batch_id)}`, { method: 'DELETE' });
-      // 本地先摘掉，不等整表刷新，列表立刻少一行
       setBatches((prev) => prev.filter((x) => x.batch_id !== b.batch_id));
+      setDeleteTarget(null);
     } catch (err) {
+      setDeleteTarget(null);
       setErrMsg(err?.message || '删除失败');
     } finally {
       setDeleting(null);
@@ -212,7 +213,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
                         iPad 没有 hover，所以按钮常驻显示，不做 hover 才出现。 */}
                     <button
                       type="button"
-                      onClick={(e) => handleDelete(b, e)}
+                      onClick={(e) => requestDelete(b, e)}
                       disabled={isDeleting}
                       title="删除这个题组"
                       aria-label={`删除题组 ${nameOf(b)}`}
@@ -283,6 +284,52 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
         <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-300">
           共 {batches.length} 个批次 · 每次随机抽30题
         </p>
+      )}
+
+      {deleteTarget && createPortal(
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-5" role="dialog" aria-modal="true" aria-labelledby="delete-batch-title">
+          <button
+            type="button"
+            aria-label="取消删除"
+            className="absolute inset-0 bg-black/35 backdrop-blur-[3px]"
+            onClick={() => { if (!deleting) setDeleteTarget(null); }}
+          />
+          <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-2xl">
+            <div className="p-6 pb-5">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-[#ef5350]">
+                <AlertTriangle size={20} />
+              </div>
+              <h3 id="delete-batch-title" className="text-lg font-black tracking-tight">删除这个题组？</h3>
+              <p className="mt-1.5 truncate text-sm font-bold text-[#6b5428]">{nameOf(deleteTarget)}</p>
+              <p className="mt-4 rounded-2xl bg-[#f7f3ea] px-4 py-3 text-sm leading-relaxed text-slate-600">
+                将删除 <strong className="text-[#1a1a1a]">{deleteTarget.count} 道题</strong>
+                {deleteTarget.attempt_count > 0 && (
+                  <>及 <strong className="text-[#1a1a1a]">{deleteTarget.attempt_count} 条作答记录</strong></>
+                )}，删除后无法恢复。
+              </p>
+            </div>
+            <div className="flex gap-3 border-t border-black/5 bg-[#fcfaf6] p-4">
+              <button
+                type="button"
+                autoFocus
+                disabled={!!deleting}
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-black text-[#666] hover:bg-black/[0.03] disabled:opacity-50"
+              >
+                先留着
+              </button>
+              <button
+                type="button"
+                disabled={!!deleting}
+                onClick={confirmDelete}
+                className="flex-1 rounded-2xl bg-[#ef5350] px-4 py-3 text-sm font-black text-white shadow-lg shadow-red-200 hover:bg-[#e54848] disabled:opacity-60"
+              >
+                {deleting ? <Loader2 size={16} className="mx-auto animate-spin" /> : '确认删除'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

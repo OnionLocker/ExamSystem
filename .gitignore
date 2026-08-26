@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 运行时自签证书（prod.js 自动生成，勿提交私钥）
+server/certs/
+
 # 数据库运行时辅助文件（WAL/SHM/journal 不入 git）
 *.db-journal
 *.db-wal

@@ -3,19 +3,20 @@
 // 按真考的节奏走：整卷做完再交卷，中途可以随便往前翻回去改；
 // 交卷那一刻一次性判分，然后逐题对答案、看解析、回看当时的草稿纸。
 //
-// 三件事跟老版本不一样：
-//   1. 答案先攒在前端，不再每题即时判分 —— 否则「倒回来重做前面的题」没有意义；
+// 三件事情跟老版本不一样：
+//   1. 答案先攒在前端，不再每题即时判分 —— 否则「倒回去重做前面的题」没有意义；
 //   2. 单题用时是累计停留时长（来回跳转会累加，切到后台会暂停），不是一次性的差值；
-//   3. 草稿纸是盖在整页上的批注层，能在题干上圈划，离开该题时把整页快照存到后台。
+//   3. 草稿纸是罩在整页上的批注层，能在题干上圈划，离开该题时把整页快照存到后台。
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft, ArrowRight, Check, X as XIcon, Clock, Trophy, RotateCcw,
   AlertTriangle, Lightbulb, Flag, PenTool, Loader2, Grid3x3, Eraser,
-  Highlighter, Undo2, Trash2, ChevronUp, ChevronDown, Plus, Send, Bookmark,
+  Highlighter, Undo2, Trash2, ChevronUp, ChevronDown, Plus, Send,
 } from 'lucide-react';
 import { api, getToken } from '../api.js';
+import { openKnowledge } from '../knowledge/nav.js';
 import DraftLayer from './DraftLayer.jsx';
 import { scrollHost } from './scrollHost.js';
 import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
@@ -70,7 +71,7 @@ const useTick = (running) => {
   return now;
 };
 
-// ─── 小组件 ────────────────────────────────────────────────────
+// ─── 小组件 ───────────────────────────────────────────────────
 
 const ImageList = ({ images }) => {
   if (!images || images.length === 0) return null;
@@ -155,7 +156,7 @@ const ScratchPad = ({ rows, onAddRow, fill }) => {
 // 答题卡：哪些做了、哪些空着、哪些标记了，点一下直达。
 // 必须 portal 到 body —— 外层 <main> 带 backdrop-blur，会成为包含块，
 // 在它内部写 fixed inset-0 只能铺满 main、铺不满屏幕。
-const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => createPortal(
+const AnswerSheet = ({ questions, answers, index, onJump, onClose, onSubmit }) => createPortal(
   <div className="fixed inset-0 z-[9998] flex justify-end" data-capture-ignore="1">
     <button
       type="button"
@@ -164,7 +165,7 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
       className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
     />
     <div
-      className="relative w-[min(22rem,88vw)] h-full bg-white shadow-2xl flex flex-col animate-slideIn"
+      className="relative w-[min(22rem,88vw)] h-full bg-[#f2e4c4] shadow-2xl flex flex-col animate-slideIn"
       style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8d5b0]">
@@ -182,13 +183,10 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
                 key={q.id}
                 onClick={() => { onJump(i); onClose(); }}
                 className={`relative h-11 rounded-xl border-2 text-sm font-black tabular-nums transition-colors ${
-                  done ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-white text-[#bbb] border-[#eee]'
+                  done ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]' : 'bg-transparent text-[#aaa] border-white/70'
                 } ${i === index ? 'ring-2 ring-[#6b5428] ring-offset-2' : ''}`}
               >
                 {i + 1}
-                {flags.has(q.id) && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#2c261c] border border-white" />
-                )}
               </button>
             );
           })}
@@ -196,15 +194,50 @@ const AnswerSheet = ({ questions, answers, flags, index, onJump, onClose }) => c
         <div className="mt-6 space-y-1.5 text-[11px] font-bold text-[#999]">
           <p className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-[#1a1a1a]" />已作答</p>
           <p className="flex items-center gap-2"><span className="w-3 h-3 rounded border-2 border-[#eee]" />还没做</p>
-          <p className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-[#2c261c]" />做了标记</p>
         </div>
+      </div>
+      <div className="shrink-0 p-5">
+        <button
+          type="button"
+          onClick={onSubmit}
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#1a1a1a] text-sm font-black tracking-widest text-white shadow-lg hover:bg-[#2c261c]"
+        >
+          <Flag size={18} />
+          <span>交卷</span>
+        </button>
       </div>
     </div>
   </div>,
   document.body,
 );
 
-// ─── 交卷后的成绩 / 复盘 ────────────────────────────────────────
+// ─── 交卷后的成绩 / 复盘 ───────────────────────────────────────
+
+const BlankSubmitConfirm = ({ blank, grading, onCancel, onConfirm }) => createPortal(
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center p-5" role="dialog" aria-modal="true" aria-labelledby="blank-submit-title" data-capture-ignore="1">
+    <button type="button" aria-label="继续答题" onClick={onCancel} className="absolute inset-0 bg-black/35 backdrop-blur-[3px]" />
+    <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-2xl">
+      <div className="p-6">
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#fff3e0] text-[#e87924]">
+          <AlertTriangle size={21} />
+        </div>
+        <h3 id="blank-submit-title" className="text-xl font-black tracking-tight">还有 {blank} 题未答</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[#666]">空题会计入本次成绩。建议先回到答题卡补完，确认放弃后也可以直接交卷。</p>
+      </div>
+      <div className="flex gap-3 border-t border-black/5 bg-[#faf6ed] p-4">
+        <button type="button" autoFocus disabled={grading} onClick={onCancel}
+          className="flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-black text-[#555] disabled:opacity-50">
+          继续答题
+        </button>
+        <button type="button" disabled={grading} onClick={onConfirm}
+          className="flex-1 rounded-2xl bg-[#1a1a1a] px-4 py-3 text-sm font-black text-white disabled:opacity-60">
+          {grading ? <Loader2 size={16} className="mx-auto animate-spin" /> : '仍然交卷'}
+        </button>
+      </div>
+    </div>
+  </div>,
+  document.body,
+);
 
 const ScoreCard = ({ title, result }) => (
   <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden">
@@ -275,9 +308,13 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
       {open && (
         <div className="px-5 pb-5 space-y-4 border-t border-[#f7f5ee] pt-4">
           {item.knowledge_points?.length > 0 && (
-            <p className="text-sm font-bold text-[#6b5428]">
+            <button
+              type="button"
+              onClick={() => openKnowledge(item.knowledge_points[0])}
+              className="text-sm font-bold text-[#6b5428] underline decoration-dotted underline-offset-4 hover:text-[#1a1a1a]"
+            >
               本题考察知识点：{item.knowledge_points[0]}
-            </p>
+            </button>
           )}
           <div className="text-[15px] leading-[1.9] whitespace-pre-wrap break-words font-medium">
             {item.content}
@@ -319,7 +356,7 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
   );
 };
 
-// ─── 主组件 ────────────────────────────────────────────────────
+// ─── 主组件 ───────────────────────────────────────────────────
 
 const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeWithHermes }) => {
   // 界面上只出题组名；batchId 只用来请求接口
@@ -336,7 +373,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   const [index, setIndex] = useState(0);
 
   const [answers, setAnswers] = useState({});        // { [qid]: ['A'] }
-  const [flags, setFlags] = useState(() => new Set());
   const [timeSpent, setTimeSpent] = useState({});    // { [qid]: 累计秒 }
   const [drafts, setDrafts] = useState({});          // { [qid]: stroke[] }
 
@@ -344,9 +380,9 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   const [tool, setTool] = useState('pen');
   const [color, setColor] = useState(PEN_COLORS[0]);
   const [scratchRows, setScratchRows] = useState(0);
-  const [savingDraft, setSavingDraft] = useState(false);
 
   const [showSheet, setShowSheet] = useState(false);
+  const [blankSubmitCount, setBlankSubmitCount] = useState(0);
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
   const [openReview, setOpenReview] = useState(null);
@@ -362,7 +398,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   const savingCountRef = useRef(0);
   const bumpSaving = useCallback((d) => {
     savingCountRef.current = Math.max(0, savingCountRef.current + d);
-    setSavingDraft(savingCountRef.current > 0);
   }, []);
   const uploadedRef = useRef(new Set());
 
@@ -424,7 +459,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         setSessionId(s.id);
         setIndex(0);
         setAnswers({});
-        setFlags(new Set());
         setTimeSpent({});
         setDrafts({});
         setScratchRows(0);
@@ -447,7 +481,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
   }, [batchId, runKey, reviewing, reviewSessionId]);
 
   // 重做 / 再刷一遍：都是开全新的一场。redoing 一旦置上，上面那个 effect
-  // 就不再走复盘分支。旧成绩在库里原封不动，新这场交了卷才会取代它
+  // 就不再走复盘分支。旧成绩在库里原封不动，新这一场交了卷才会取代它
   const restart = () => { setRedoing(true); setPhase('loading'); setRunKey((k) => k + 1); };
 
   // ── 计时 ──
@@ -459,7 +493,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     setTimeSpent((prev) => ({ ...prev, [slot.qid]: (prev[slot.qid] || 0) + delta }));
   }, []);
 
-  // 切到后台 / 锁屏不该算进「我在这题上停留了多久」
+  // 切到后台 / 锁屏不该算进「我在这题上停留了多久」。
   useEffect(() => {
     if (!running) return;
     const onVisibility = () => {
@@ -498,7 +532,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     setDrafts((prev) => ({ ...prev, [qid]: fn(prev[qid] || []) }));
   };
 
-  // 草稿存盘：抓快照这一下是同步的，截图和上传都甩到后台，翻页不用等。
+  // 草稿落盘：抓快照这一下是同步的，截图和上传都扔到后台，翻页不用等。
   // 失败就把这道题重新标脏，下次离开它会再试一次。
   const persistDraft = useCallback((qid) => {
     if (!sessionId || !qid) return;
@@ -529,6 +563,14 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       }
     });
   }, [sessionId, drafts, bumpSaving]);
+
+  // 停笔后自动落盘；退出草稿、切题和交卷时仍会立刻保存。
+  useEffect(() => {
+    const qid = current?.id;
+    if (!draftMode || !qid || !dirtyDraftsRef.current.has(qid)) return undefined;
+    const timer = window.setTimeout(() => persistDraft(qid), 1200);
+    return () => window.clearTimeout(timer);
+  }, [draftMode, current?.id, persistDraft]);
 
   const toggleDraftMode = () => {
     if (draftMode) {
@@ -563,23 +605,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     });
   }, [current, running]);
 
-  const toggleFlag = () => {
-    const qid = current?.id;
-    if (!qid) return;
-    setFlags((prev) => {
-      const next = new Set(prev);
-      if (next.has(qid)) next.delete(qid); else next.add(qid);
-      return next;
-    });
-  };
-
   // ── 交卷 ──
   const answeredCount = useMemo(
     () => questions.filter((q) => (answers[q.id] || []).length > 0).length,
     [questions, answers],
   );
 
-  // 退出：没交卷就不算这一次，所以把这场残局连草稿一起删掉，
+  // 退出：没交卷就不算这一次，所以把这场局部连草稿一起删掉，
   // 复盘里看到的仍然是上一次交过卷的那份
   const exitQuiz = async () => {
     if (phase === 'running' && sessionId) {
@@ -591,10 +623,14 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     onExit();
   };
 
-  const submitAll = async () => {
+  const submitAll = async (confirmedBlank = false) => {
     if (!sessionId || phase !== 'running') return;
     const blank = total - answeredCount;
-    if (blank > 0 && !confirm(`还有 ${blank} 道没做，确定交卷吗？\n\n空着的题按答错计。`)) return;
+    if (blank > 0 && !confirmedBlank) {
+      setBlankSubmitCount(blank);
+      return;
+    }
+    setBlankSubmitCount(0);
 
     // 当前题最后这一段停留还没进 timeSpent（setState 是异步的），
     // 所以先取出来在 payload 里手动补上，别走 settle
@@ -774,6 +810,73 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">退出</span>
         </button>
 
+        <div className="flex min-w-0 flex-1 items-center px-2">
+          {draftMode && (
+            <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-xl px-1" aria-label="草稿工具栏">
+              {PEN_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => { setTool('pen'); setColor(c); }}
+                  title="笔"
+                  className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
+                    tool === 'pen' && color === c
+                      ? 'border-[#6b5428] bg-white/60 shadow-sm'
+                      : 'border-transparent hover:bg-black/5'
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded-full" style={{ background: c }} />
+                </button>
+              ))}
+              <button
+                onClick={() => setTool('highlighter')}
+                title="荧光笔（圈划题干）"
+                className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                  tool === 'highlighter' ? 'bg-[#2c261c] text-white' : 'text-[#999] hover:bg-black/5'
+                }`}
+              >
+                <Highlighter size={16} />
+              </button>
+              <button
+                onClick={() => setTool('eraser')}
+                title="橡皮"
+                className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                  tool === 'eraser' ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5'
+                }`}
+              >
+                <Eraser size={16} />
+              </button>
+
+              <span className="shrink-0 w-px h-6 bg-[#e8d5b0] mx-0.5" />
+
+              <button onClick={() => mutateStrokes((s) => s.slice(0, -1))}
+                disabled={!hasDraft} title="撤销一笔"
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30 transition-colors">
+                <Undo2 size={16} />
+              </button>
+              <button onClick={() => mutateStrokes(() => [])}
+                disabled={!hasDraft} title="清空本题草稿"
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-red-50 hover:text-[#ef5350] disabled:opacity-30 transition-colors">
+                <Trash2 size={16} />
+              </button>
+              <button onClick={() => setScratchRows((r) => r + 1)} title="加一块演算区"
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors">
+                <Plus size={16} />
+              </button>
+
+              <span className="shrink-0 w-px h-6 bg-[#e8d5b0] mx-0.5" />
+
+              <button onClick={() => scrollPage(paperRef.current, -0.7)} title="上翻"
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5">
+                <ChevronUp size={16} />
+              </button>
+              <button onClick={() => scrollPage(paperRef.current, 0.7)} title="下翻"
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5">
+                <ChevronDown size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="flex items-center gap-1.5 text-[#999]">
             <Clock size={14} />
@@ -795,6 +898,26 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             }`}
           >
             {draftMode ? <XIcon size={18} /> : <PenTool size={17} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo(index - 1)}
+            disabled={index === 0}
+            title="上一题"
+            className="shrink-0 h-10 w-10 sm:w-[5.5rem] rounded-xl flex items-center justify-center gap-1.5 text-[#777] hover:bg-[#e8d5b0] hover:text-[#1a1a1a] disabled:opacity-30 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            <span className="hidden sm:inline text-xs font-black">上一题</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => goTo(index + 1)}
+            disabled={isLast}
+            title="下一题"
+            className="shrink-0 h-10 w-10 sm:w-[5.5rem] rounded-xl flex items-center justify-center gap-1.5 bg-[#1a1a1a] text-white hover:bg-[#2c261c] disabled:opacity-30 transition-colors"
+          >
+            <span className="hidden sm:inline text-xs font-black">下一题</span>
+            <ArrowRight size={16} />
           </button>
 
           <button
@@ -821,7 +944,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         </div>
       )}
 
-      {/* 草稿纸范围：题干、选项、演算区都在这一层里，批注层盖在最上面 */}
+      {/* 草稿纸范围：题干、选项、演算区都在这一层里，批注层罩在最上面 */}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3">
       <div ref={paperRef} className={`relative ${draftMode ? 'min-h-full' : ''}`}>
         <div className={`bg-white rounded-[1.5rem] p-5 sm:p-8 border-2 transition-colors ${
@@ -843,9 +966,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                   : <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#fdecea] text-[#c62828]">
                       上次答错 · 错了 {history.wrong} 次
                     </span>
-              )}
-              {flags.has(current?.id) && (
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#f3e0a8] text-[#8a5400]">已标记</span>
               )}
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
@@ -894,164 +1014,28 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       </div>
       </div>
 
-      <div
-        className="shrink-0 px-3 pt-2 border-t border-[#e8d5b0] bg-white"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-        data-capture-ignore="1"
-      >
-        {draftMode ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-white rounded-2xl p-2 shadow-lg border border-[#e8d5b0] overflow-x-auto">
-            {PEN_COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => { setTool('pen'); setColor(c); }}
-                title="笔"
-                className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                  tool === 'pen' && color === c ? 'bg-[#e8d5b0] ring-2 ring-[#6b5428]' : 'hover:bg-black/5'
-                }`}
-              >
-                <span className="w-5 h-5 rounded-full" style={{ background: c }} />
-              </button>
-            ))}
-            <button
-              onClick={() => setTool('highlighter')}
-              title="荧光笔（圈划题干）"
-              className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                tool === 'highlighter' ? 'bg-[#2c261c] text-white' : 'text-[#999] hover:bg-black/5'
-              }`}
-            >
-              <Highlighter size={17} />
-            </button>
-            <button
-              onClick={() => setTool('eraser')}
-              title="橡皮"
-              className={`shrink-0 w-11 h-11 rounded-xl flex items-center justify-center transition-colors ${
-                tool === 'eraser' ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5'
-              }`}
-            >
-              <Eraser size={17} />
-            </button>
 
-            <span className="shrink-0 w-px h-7 bg-[#e8d5b0] mx-0.5" />
 
-            <button onClick={() => mutateStrokes((s) => s.slice(0, -1))}
-              disabled={!hasDraft} title="撤销一笔"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30 transition-colors">
-              <Undo2 size={17} />
-            </button>
-            <button onClick={() => mutateStrokes(() => [])}
-              disabled={!hasDraft} title="清空本题草稿"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-red-50 hover:text-[#ef5350] disabled:opacity-30 transition-colors">
-              <Trash2 size={17} />
-            </button>
-            <button onClick={() => setScratchRows((r) => r + 1)} title="加一块演算区"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors">
-              <Plus size={17} />
-            </button>
-
-            <span className="shrink-0 w-px h-7 bg-[#e8d5b0] mx-0.5" />
-
-            {/* 批注时 canvas 吃掉了触摸手势，翻页得给按钮 */}
-            <button onClick={() => scrollPage(paperRef.current, -0.7)} title="上翻"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5">
-              <ChevronUp size={17} />
-            </button>
-            <button onClick={() => scrollPage(paperRef.current, 0.7)} title="下翻"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5">
-              <ChevronDown size={17} />
-            </button>
-            <button
-              onClick={() => goTo(index - 1)}
-              disabled={index === 0}
-              title="上一题"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 disabled:opacity-30"
-            >
-              <ArrowLeft size={17} />
-            </button>
-            <button
-              onClick={() => goTo(index + 1)}
-              disabled={isLast}
-              title="下一题"
-              className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[#999] hover:bg-black/5 disabled:opacity-30"
-            >
-              <ArrowRight size={17} />
-            </button>
-
-            <button
-              onClick={() => {
-                persistDraft(current?.id);
-                setDraftMode(false);
-              }}
-              className="ml-auto shrink-0 flex items-center gap-1.5 bg-[#1a1a1a] text-white px-4 h-11 rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-opacity"
-            >
-              <Check size={15} />
-              <span>保留草稿</span>
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => goTo(index - 1)}
-              disabled={index === 0}
-              title="上一题"
-              className="shrink-0 h-14 px-4 rounded-2xl bg-white border-2 border-[#e8d5b0] text-[#999] font-black flex items-center gap-1.5 hover:border-[#1a1a1a] hover:text-[#1a1a1a] disabled:opacity-40 transition-colors"
-            >
-              <ArrowLeft size={17} />
-              <span className="text-xs uppercase tracking-widest hidden sm:inline">上一题</span>
-            </button>
-
-            <button
-              onClick={toggleFlag}
-              title="标记本题，回头再看"
-              className={`shrink-0 h-14 w-14 rounded-2xl border-2 flex items-center justify-center transition-colors ${
-                flags.has(current?.id)
-                  ? 'bg-[#f3e0a8] border-[#6b5428] text-[#8a5400]'
-                  : 'bg-white border-[#e8d5b0] text-[#bbb] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
-              }`}
-            >
-              <Bookmark size={18} />
-            </button>
-
-            {isLast ? (
-              <button
-                onClick={submitAll}
-                disabled={grading}
-                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#2c261c] hover:text-white disabled:opacity-60 transition-all shadow-lg"
-              >
-                {grading
-                  ? (<><Loader2 size={17} className="animate-spin" /><span>判分中…</span></>)
-                  : (<><Flag size={17} /><span>交卷</span></>)}
-              </button>
-            ) : (
-              <button
-                onClick={() => goTo(index + 1)}
-                className="flex-1 h-14 rounded-2xl bg-[#1a1a1a] text-white font-black flex items-center justify-center gap-2 uppercase tracking-widest text-xs hover:bg-[#2c261c] hover:text-white disabled:opacity-60 transition-all shadow-lg"
-              >
-                <span>下一题</span>
-                <ArrowRight size={17} />
-              </button>
-            )}
-          </div>
-        )}
-
-        <p className="mt-2 text-center text-[10px] font-black uppercase tracking-widest text-[#ccc]">
-          {draftMode
-            ? 'Apple Pencil 画笔迹 · 双指翻页 · 保留草稿后可再打开'
-            : 'A/B/C/D 选择 · ← → 翻题 · 最后一题交卷'}
-          {savingDraft && (
-            <span className="text-[#ddd]"> · 草稿保存中</span>
-          )}
-        </p>
-      </div>
+      {blankSubmitCount > 0 && (
+        <BlankSubmitConfirm
+          blank={blankSubmitCount}
+          grading={grading}
+          onCancel={() => setBlankSubmitCount(0)}
+          onConfirm={() => submitAll(true)}
+        />
+      )}
 
       {showSheet && (
         <AnswerSheet
           questions={questions}
           answers={answers}
-          flags={flags}
           index={index}
           onJump={goTo}
           onClose={() => setShowSheet(false)}
+          onSubmit={() => {
+            setShowSheet(false);
+            submitAll();
+          }}
         />
       )}
     </div>

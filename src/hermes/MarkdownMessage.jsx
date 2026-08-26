@@ -15,6 +15,30 @@ import { Check, Copy } from 'lucide-react';
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
 import './katex-fix.css';
+import { findKnowledgeTarget, openKnowledge } from '../knowledge/nav.js';
+
+const textOf = (node) => {
+  if (node == null) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join('');
+  if (node?.props?.children) return textOf(node.props.children);
+  return '';
+};
+
+const KnowledgeChip = ({ label }) => {
+  const hit = findKnowledgeTarget(label);
+  return (
+    <p className="my-2">
+      <button
+        type="button"
+        onClick={() => openKnowledge(label)}
+        className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#f4e6c8] border border-[#e8d5b0] text-[13px] font-black text-[#6b5428] hover:border-[#1a1a1a]"
+      >
+        本题考察知识点：{hit?.module ? `${hit.module} · ${hit.name}` : label}
+      </button>
+    </p>
+  );
+};
 
 // navigator.clipboard 只在安全上下文里存在：明文 HTTP 访问（预览端口 4173
 // 走的就是 http，且不是 localhost）时它整个是 undefined，
@@ -145,6 +169,9 @@ const components = {
     return <li className="leading-relaxed">{children}</li>;
   },
   p({ children }) {
+    const raw = textOf(children).trim();
+    const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
+    if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
     return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
   },
   h1({ children }) {
@@ -154,6 +181,25 @@ const components = {
     return <h2 className="mt-4 mb-2 text-base font-black tracking-tight">{children}</h2>;
   },
   h3({ children }) {
+    const raw = textOf(children).trim();
+    const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
+    if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
+    const title = raw.replace(/^\d+\s*[·.．]\s*/, '');
+    const hit = findKnowledgeTarget(title);
+    if (hit) {
+      return (
+        <h3 className="mt-3 mb-1.5 text-sm font-black tracking-tight">
+          <button
+            type="button"
+            onClick={() => openKnowledge(title)}
+            className="text-left underline decoration-dotted decoration-[#c4aa6a] underline-offset-4 hover:text-[#6b5428]"
+            title="打开对应知识点"
+          >
+            {children}
+          </button>
+        </h3>
+      );
+    }
     return <h3 className="mt-3 mb-1.5 text-sm font-black tracking-tight">{children}</h3>;
   },
   h4({ children }) {
@@ -161,7 +207,7 @@ const components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-3 pl-4 border-l-[3px] border-[#6b5428] text-[#555] italic">
+      <blockquote className="my-4 rounded-2xl border border-[#d9c49d] bg-[#f8f3e8] px-5 py-4 text-[#40382b] [&_p]:my-1 [&_strong]:text-[#1a1a1a]">
         {children}
       </blockquote>
     );
@@ -173,6 +219,20 @@ const components = {
     return <strong className="font-black text-[#1a1a1a]">{children}</strong>;
   },
 };
+
+// Models occasionally collapse A/B/C/D back onto one line despite the review
+// template. Normalize only original-question quote cards at render time so the
+// layout is deterministic and ordinary prose remains untouched.
+const normalizeOriginalQuestionOptions = (raw = '') => String(raw).replace(
+  /^(?:>[^\n]*(?:\n|$))+/gm,
+  (block) => {
+    if (!block.includes('原题')) return block;
+    const optionPattern = /(?:[ \t]*)(?:\*\*)?([A-D])[.．、](?:\*\*)?[ \t]*/g;
+    const labels = [...block.matchAll(optionPattern)].map((match) => match[1]);
+    if (new Set(labels).size < 2) return block;
+    return block.replace(optionPattern, '  \n> **$1.** ');
+  },
+);
 
 const KATEX_OPTIONS = {
   throwOnError: false,
@@ -197,6 +257,8 @@ const Caret = () => (
 );
 
 const MarkdownMessage = memo(function MarkdownMessage({ content, streaming }) {
+  const displayContent = useMemo(() => normalizeOriginalQuestionOptions(content), [content]);
+
   return (
     <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
       <ReactMarkdown
@@ -204,7 +266,7 @@ const MarkdownMessage = memo(function MarkdownMessage({ content, streaming }) {
         rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
         components={components}
       >
-        {content || ''}
+        {displayContent}
       </ReactMarkdown>
       {streaming && <Caret />}
     </div>

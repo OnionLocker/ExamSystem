@@ -1,9 +1,11 @@
-// 生产模式启动器：纯 HTTP 静态服务 + API 代理
-// 用法：node server/prod.js
-// 在 4173 端口提供 dist/ 目录，/api 请求代理到后端 3001
+// 生产模式启动器：静态服务 + API 代理
+// 同一端口同时收 HTTP / HTTPS（自签证书），录音必须走 HTTPS
 import http from 'http';
+import https from 'https';
+import net from 'net';
 import fs from 'fs';
 import path from 'path';
+import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -168,20 +170,65 @@ function proxyUpgrade(req, clientSocket, head) {
   proxyReq.end();
 }
 
-const server = http.createServer((req, res) => {
-  if (req.url.startsWith('/api')) {
-    proxyApi(req, res);
-  } else {
-    serveStatic(req, res);
-  }
-});
-
-server.on('upgrade', (req, socket, head) => {
+const onRequest = (req, res) => {
+  if (req.url.startsWith('/api')) proxyApi(req, res);
+  else serveStatic(req, res);
+};
+const onUpgrade = (req, socket, head) => {
   if (req.url.startsWith('/api')) proxyUpgrade(req, socket, head);
   else socket.destroy();
+};
+
+const CERT_DIR = path.join(__dirname, 'certs');
+const KEY_PATH = path.join(CERT_DIR, 'key.pem');
+const CERT_PATH = path.join(CERT_DIR, 'cert.pem');
+
+function ensureTls() {
+  if (!fs.existsSync(KEY_PATH) || !fs.existsSync(CERT_PATH)) {
+    fs.mkdirSync(CERT_DIR, { recursive: true });
+    let ips = [];
+    try {
+      ips = execFileSync('hostname', ['-I'], { encoding: 'utf8' }).trim().split(/\s+/).filter(Boolean);
+    } catch { /* 没有 hostname -I 就只写 localhost */ }
+    const san = ['DNS:localhost', 'IP:127.0.0.1', ...ips.map((ip) => `IP:${ip}`)].join(',');
+    execFileSync('openssl', [
+      'req', '-x509', '-newkey', 'rsa:2048', '-sha256', '-days', '3650', '-nodes',
+      '-keyout', KEY_PATH, '-out', CERT_PATH,
+      '-subj', '/CN=ExamSystem',
+      '-addext', `subjectAltName=${san}`,
+    ]);
+  }
+  return { key: fs.readFileSync(KEY_PATH), cert: fs.readFileSync(CERT_PATH) };
+}
+
+const httpServer = http.createServer(onRequest);
+httpServer.on('upgrade', onUpgrade);
+
+let httpsServer = null;
+try {
+  httpsServer = https.createServer(ensureTls(), onRequest);
+  httpsServer.on('upgrade', onUpgrade);
+} catch (err) {
+  console.warn(`[web] TLS 不可用，仅 HTTP：${err.message}`);
+}
+
+const front = net.createServer((socket) => {
+  socket.on('error', () => socket.destroy());
+  socket.once('data', (buf) => {
+    if (!buf?.length) {
+      socket.destroy();
+      return;
+    }
+    socket.pause();
+    socket.unshift(buf);
+    const useTls = Boolean(httpsServer && buf[0] === 0x16);
+    (useTls ? httpsServer : httpServer).emit('connection', socket);
+    process.nextTick(() => socket.resume());
+  });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+front.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ 生产服务已启动：http://0.0.0.0:${PORT}`);
+  if (httpsServer) console.log(`   录音请用 https://<主机>:${PORT} （自签证书，点「继续访问」一次）`);
   console.log(`   API 代理 → http://${API_HOST}:${API_PORT}`);
 });

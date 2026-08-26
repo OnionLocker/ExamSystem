@@ -42,7 +42,6 @@ export default function HermesContextPickers({
   attachPractice,
   attaching,
   loadPracticeRuns,
-  maxDraftAttach,
 }) {
   const [reviewKind, setReviewKind] = useState('zhenti');
   const shownReviews = examReviews.filter((r) => (r.kind || 'zhenti') === reviewKind);
@@ -250,7 +249,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              选中后会生成一份可预览的 Markdown 附件，并带上最多 {maxDraftAttach} 张复盘重点草稿纸（含正确但慢的题），不占输入框。
+              选中后会生成一份可预览的 Markdown 附件，并带上本场所有已保存的草稿纸（含正确题），不占输入框。
             </p>
           </div>
         </ModalShell>,

@@ -70,3 +70,68 @@ body.draft-annotating * {
   user-select: none !important;
   -webkit-touch-callout: none !important;
 }
+
+
+/* Hermes tool activity: visible effort without a distracting loader. */
+@keyframes hermesWorkShimmer {
+  from { transform: translateX(-180%); }
+  to { transform: translateX(420%); }
+}
+
+@keyframes hermesWorkEmoji {
+  0%, 100% { transform: translateY(0) rotate(0) scale(1); }
+  25% { transform: translateY(-8px) rotate(-16deg) scale(1.25); }
+  50% { transform: translateY(1px) rotate(10deg) scale(1.05); }
+  75% { transform: translateY(-5px) rotate(14deg) scale(1.2); }
+}
+
+@keyframes hermesWorkDot {
+  0%, 65%, 100% { transform: translateY(0); opacity: 0.25; }
+  32% { transform: translateY(-3px); opacity: 1; }
+}
+
+.hermes-working {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgb(107 84 40 / 8%);
+}
+
+.hermes-working::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 32%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 55%), transparent);
+  animation: hermesWorkShimmer 1.8s ease-in-out infinite;
+}
+
+.hermes-working-emoji {
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  animation: hermesWorkEmoji 1.15s ease-in-out infinite;
+}
+
+.hermes-working-dot {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: hermesWorkDot 960ms ease-in-out infinite;
+}
+
+@keyframes voiceWave {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+.voice-playing path:nth-child(1) { animation: voiceWave 1s ease-in-out infinite; }
+.voice-playing path:nth-child(2) { animation: voiceWave 1s ease-in-out 0.16s infinite; }
+.voice-playing path:nth-child(3) { animation: voiceWave 1s ease-in-out 0.32s infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-playing path {
+    animation: none;
+  }
+}
