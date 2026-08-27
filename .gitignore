@@ -15,14 +15,14 @@ dist-ssr
 # 运行时自签证书（prod.js 自动生成，勿提交私钥）
 server/certs/
 
-# 数据库运行时辅助文件（WAL/SHM/journal 不入 git）
+# SQLite 题库与运行时辅助文件（含真题、个人作答，不入 git）
+*.db
 *.db-journal
 *.db-wal
 *.db-shm
 
-# 默认忽略 data/ 目录里其它文件，但放行主数据库快照（含题库 + 个人练习记录）
+# data/ 下均为运行时数据
 data/*
-!data/exam.db
 
 # 导入的批次图片（可能很大，不入 git）
 public/q-images/*

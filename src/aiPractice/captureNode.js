@@ -25,9 +25,12 @@ export const warmUpCapture = () => { load().catch(() => {}); };
 // 快照仍然是离开时那道题。
 export const detachForCapture = (node) => {
   const cssW = node?.offsetWidth;
-  if (!cssW) return null;
+  const cssH = node?.offsetHeight;
+  if (!cssW || !cssH) return null;
 
   const clone = node.cloneNode(true);
+  clone.style.width = `${cssW}px`;
+  clone.style.height = `${cssH}px`;
   // cloneNode 不会搬 canvas 里的像素，笔迹得自己画过去一次
   const from = node.querySelectorAll('canvas');
   const to = clone.querySelectorAll('canvas');
@@ -45,7 +48,7 @@ export const detachForCapture = (node) => {
 
   // 宽度钉成原来那么宽，副本里的 w-full / 换行位置才跟屏幕上一模一样
   const holder = document.createElement('div');
-  holder.style.cssText = `position:fixed;top:0;left:-99999px;width:${cssW}px;pointer-events:none;z-index:-1;`;
+  holder.style.cssText = `position:fixed;top:0;left:-99999px;width:${cssW}px;height:${cssH}px;pointer-events:none;z-index:-1;`;
   holder.appendChild(clone);
   document.body.appendChild(holder);
 

@@ -100,7 +100,62 @@ function validateManifest(dir, rep) {
   if (m.year != null && (!Number.isInteger(m.year) || m.year < 1990 || m.year > 2100)) {
     rep.err('manifest.json', `year 非法: ${m.year}`);
   }
+  if (m.kind === 'ai-generated') {
+    const generation = m.generation;
+    if (!generation || typeof generation !== 'object' || Array.isArray(generation)) {
+      rep.err('manifest.json', 'AI 生成批次必须提供 generation 参考题溯源信息');
+    } else {
+      if (!generation.style_marker || typeof generation.style_marker !== 'string') {
+        rep.err('manifest.json', 'generation.style_marker 必填');
+      }
+      checkContextRefs(generation.generation_contexts, 'generation.generation_contexts', rep);
+      checkContextRefs(generation.evaluation_contexts, 'generation.evaluation_contexts', rep);
+      const allIds = [
+        ...(generation.generation_contexts || []),
+        ...(generation.evaluation_contexts || []),
+      ].map((item) => item?.context_id);
+      if (new Set(allIds).size !== allIds.length) {
+        rep.err('manifest.json', '生成与评测 context_id 不能重复');
+      }
+    }
+  }
   return m;
+}
+
+function checkContextRefs(contexts, loc, rep) {
+  if (!Array.isArray(contexts) || contexts.length < 1 || contexts.length > 50) {
+    rep.err('manifest.json', `${loc} 必须包含 1~50 个考点参考包`);
+    return;
+  }
+  contexts.forEach((item, index) => {
+    const itemLoc = `${loc}[${index}]`;
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      rep.err('manifest.json', `${itemLoc} 必须是对象`);
+      return;
+    }
+    if (
+      typeof item.context_id !== 'string'
+      || !/^refctx-[a-f0-9]{32}$/.test(item.context_id)
+    ) {
+      rep.err('manifest.json', `${itemLoc}.context_id 必须是 reference_style.py 生成的 refctx ID`);
+    }
+    for (const [field, min, max] of [['reference_ids', 1, 8], ['question_ids', 1, 200]]) {
+      const values = item[field];
+      if (
+        !Array.isArray(values)
+        || values.length < min
+        || values.length > max
+        || values.some((id) => typeof id !== 'string' || !id.trim())
+        || new Set(values).size !== values.length
+      ) {
+        rep.err('manifest.json', `${itemLoc}.${field} 必须是 ${min}~${max} 个不重复的 ID`);
+      }
+    }
+  });
+  const ids = contexts.map((item) => item?.context_id);
+  if (new Set(ids).size !== ids.length) {
+    rep.err('manifest.json', `${loc} 内的 context_id 不能重复`);
+  }
 }
 
 function validateMaterials(dir, manifest, rep) {

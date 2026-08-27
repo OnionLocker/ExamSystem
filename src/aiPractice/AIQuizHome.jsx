@@ -170,7 +170,6 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
       ) : (
         <div className="space-y-3">
           {batches.map((b) => {
-            const hasDone = b.done_count > 0;
             const acc = b.attempt_count > 0 ? b.correct_count / b.attempt_count : null;
             const progress = b.count > 0 ? b.done_count / b.count : 0;
             const timeStr = relTime(b.last_answered_at);
@@ -235,43 +234,17 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
                   />
                 </div>
 
-                {/* 下行：统计数据 */}
-                <div className="flex items-center space-x-4 text-[11px] font-black">
-                  {/* 题数/进度 */}
-                  <span className="text-slate-400">
-                    {hasDone ? (
-                      <><span className="text-[#1a1a1a]">{b.done_count}</span> / {b.count} 题</>
-                    ) : (
-                      <span>{b.count} 题 · 未开始</span>
-                    )}
-                  </span>
-
-                  {/* 正确率 */}
+                <div className="flex items-center text-[11px] font-black">
                   {acc !== null && (
-                    <>
-                      <span className="text-slate-200">·</span>
-                      <span className={accColor(acc)}>
-                        正确率 {Math.round(acc * 100)}%
-                      </span>
-                      <span className="text-slate-200">·</span>
-                      <span className="text-slate-400">共答 {b.attempt_count} 次</span>
-                    </>
+                    <span className={accColor(acc)}>
+                      正确率 {Math.round(acc * 100)}%
+                    </span>
                   )}
-
-                  {/* 点进去会发生什么，先说清楚 */}
-                  <span className="ml-auto pl-2 text-[10px] uppercase tracking-widest text-[#ccc] group-hover:text-[#1a1a1a] transition-colors shrink-0">
-                    {b.last_session_id ? '点开复盘' : '开始做题'}
-                  </span>
-
-                  {/* 上次练习时间 */}
                   {timeStr && (
-                    <>
-                      <span className="text-slate-200">·</span>
-                      <span className="flex items-center space-x-1 text-slate-400">
-                        <Clock size={10} />
-                        <span>{timeStr}</span>
-                      </span>
-                    </>
+                    <span className="ml-auto flex items-center space-x-1 text-slate-400">
+                      <Clock size={10} />
+                      <span>{timeStr}</span>
+                    </span>
                   )}
                 </div>
               </div>

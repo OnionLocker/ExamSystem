@@ -5,9 +5,11 @@ import fs from 'node:fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
-const dbPath = path.join(dataDir, 'exam.db');
+const dbPath = process.env.EXAM_DB
+  ? path.resolve(process.env.EXAM_DB)
+  : path.join(dataDir, 'exam.db');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
@@ -39,6 +41,67 @@ CREATE TABLE IF NOT EXISTS questions (
 
 CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category);
 CREATE INDEX IF NOT EXISTS idx_questions_sub      ON questions(sub_category);
+
+-- 真题参考库：只供出题时检索风格，不进入 AI 练题、错题本或学习画像。
+CREATE TABLE IF NOT EXISTS reference_questions (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  external_id        TEXT NOT NULL UNIQUE,
+  category           TEXT NOT NULL,
+  sub_category       TEXT NOT NULL,
+  question_type      TEXT NOT NULL DEFAULT 'single',
+  content            TEXT NOT NULL,
+  stem_images        TEXT,
+  options            TEXT,
+  correct_answer     TEXT NOT NULL,
+  explanation        TEXT,
+  explanation_images TEXT,
+  difficulty         INTEGER NOT NULL DEFAULT 2,
+  tags               TEXT,
+  source             TEXT NOT NULL,
+  year               INTEGER,
+  region             TEXT,
+  source_url         TEXT,
+  imported_by        TEXT NOT NULL DEFAULT 'agent',
+  created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_reference_category
+  ON reference_questions(category, sub_category);
+CREATE INDEX IF NOT EXISTS idx_reference_year
+  ON reference_questions(year);
+
+-- 真题风格内化台账：source row 保持原样，用内容哈希判断新增/修改题是否需要重新处理。
+CREATE TABLE IF NOT EXISTS reference_digest_items (
+  external_id      TEXT PRIMARY KEY,
+  content_hash     TEXT NOT NULL,
+  digest_version   TEXT NOT NULL,
+  status           TEXT NOT NULL,             -- accepted / holdout / excluded
+  source_tier      TEXT NOT NULL,
+  note             TEXT,
+  generation_uses  INTEGER NOT NULL DEFAULT 0,
+  evaluation_uses  INTEGER NOT NULL DEFAULT 0,
+  last_used_at     TEXT,
+  processed_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (external_id) REFERENCES reference_questions(external_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_reference_digest_status
+  ON reference_digest_items(digest_version, status);
+
+-- 每次为 Hermes 组装的参考包都留痕，AI 生成批次可在 manifest 中反向引用。
+CREATE TABLE IF NOT EXISTS reference_context_runs (
+  context_id       TEXT PRIMARY KEY,
+  role             TEXT NOT NULL,             -- generate / evaluate
+  digest_version   TEXT NOT NULL,
+  target           TEXT NOT NULL,             -- JSON
+  reference_ids    TEXT NOT NULL,             -- JSON
+  batch_id         TEXT,
+  created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_reference_context_created
+  ON reference_context_runs(created_at);
 
 CREATE TABLE IF NOT EXISTS materials (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

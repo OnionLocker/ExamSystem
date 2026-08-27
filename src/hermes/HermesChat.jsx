@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
   ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
-  PictureInPicture2,
+  PictureInPicture2, Check,
 } from 'lucide-react';
 
 import { api } from '../api.js';
@@ -234,6 +234,55 @@ const fmtVoiceQuote = (sec) => {
   return r ? `${m}'${r}"` : `${m}'`;
 };
 
+const RecWave = ({ stream }) => {
+  const [levels, setLevels] = useState(() => Array.from({ length: 20 }, () => 5));
+  useEffect(() => {
+    if (!stream) return undefined;
+    let raf = 0;
+    let ac;
+    let fake;
+    const n = 20;
+    const paintFake = () => {
+      fake = window.setInterval(() => {
+        const t = Date.now() / 130;
+        setLevels(Array.from({ length: n }, (_, i) => 5 + Math.abs(Math.sin(t + i * 0.42)) * 13));
+      }, 80);
+    };
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error('no AudioContext');
+      ac = new AC();
+      const src = ac.createMediaStreamSource(stream);
+      const an = ac.createAnalyser();
+      an.fftSize = 64;
+      an.smoothingTimeConstant = 0.5;
+      src.connect(an);
+      const data = new Uint8Array(an.frequencyBinCount);
+      const tick = () => {
+        an.getByteFrequencyData(data);
+        setLevels(Array.from({ length: n }, (_, i) => 4 + ((data[2 + i] || 0) / 255) * 16));
+        raf = requestAnimationFrame(tick);
+      };
+      if (ac.state === 'suspended' && ac.resume) ac.resume().then(tick, tick);
+      else tick();
+    } catch {
+      paintFake();
+    }
+    return () => {
+      cancelAnimationFrame(raf);
+      if (fake) window.clearInterval(fake);
+      ac?.close?.();
+    };
+  }, [stream]);
+  return (
+    <span className="flex items-end gap-[2px] h-[18px]" aria-hidden="true">
+      {levels.map((h, i) => (
+        <span key={i} className="w-[2px] rounded-full bg-current" style={{ height: `${h}px` }} />
+      ))}
+    </span>
+  );
+};
+
 const VoiceWaves = ({ playing }) => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className={playing ? 'voice-playing' : ''}>
     <path d="M10.6 6a2.2 2.2 0 0 0 0 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -354,6 +403,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [popout, setPopout] = useState(null);
   const [recording, setRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
+  const [recStream, setRecStream] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1440);
   const [dragOver, setDragOver] = useState(false);
   const [osFs, setOsFs] = useState(() => !!osFullscreenEl());
@@ -449,6 +499,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const sendingRef = useRef(false);
   const recRef = useRef(null);
   const recChunksRef = useRef([]);
+  const recDiscardRef = useRef(false);
   const recStreamRef = useRef(null);
   const recTickRef = useRef(null);
   const recStartedAtRef = useRef(0);
@@ -456,7 +507,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   // 用来区分「第一次连上」和「断线重连」。重连后必须再 resume，
   // 否则 Hermes 的事件还绑在已经死掉的那条 WS 上，界面就会一直「思考中」。
   const openedOnceRef = useRef(false);
-  const [waitSec, setWaitSec] = useState(0);
+  const [, setWaitSec] = useState(0);
 
   // ---------- 消息辅助 ----------
   const appendAssistantDelta = useCallback((text) => {
@@ -841,6 +892,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const stopTracks = () => {
     const stream = recStreamRef.current;
     recStreamRef.current = null;
+    setRecStream(null);
     stream?.getTracks().forEach((t) => t.stop());
     if (recTickRef.current) {
       clearInterval(recTickRef.current);
@@ -848,7 +900,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
   };
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback((discard = false) => {
+    recDiscardRef.current = Boolean(discard);
     const rec = recRef.current;
     if (rec && rec.state !== 'inactive') {
       try { rec.requestData(); } catch { /* Safari 以外可能没有 */ }
@@ -857,6 +910,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     recRef.current = null;
     setRecording(false);
   }, []);
+
+  const cancelRecording = useCallback(() => stopRecording(true), [stopRecording]);
 
   const ingestAudioBlob = useCallback((blob, mime, name, knownSec) => {
     if (blob.size < 800) {
@@ -917,6 +972,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recStreamRef.current = stream;
+      setRecStream(stream);
       recChunksRef.current = [];
       const mime = pickRecorderMime();
       let rec;
@@ -932,9 +988,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         if (e.data && e.data.size) recChunksRef.current.push(e.data);
       };
       rec.onstop = () => {
+        const discard = recDiscardRef.current;
+        recDiscardRef.current = false;
         stopTracks();
         const blob = new Blob(recChunksRef.current, { type: rec.mimeType || 'audio/webm' });
         recChunksRef.current = [];
+        if (discard) return;
         const elapsed = recStartedAtRef.current
           ? (Date.now() - recStartedAtRef.current) / 1000
           : 0;
@@ -947,6 +1006,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       }
       recRef.current = rec;
       recStartedAtRef.current = Date.now();
+      recDiscardRef.current = false;
       setPendingAudio(null);
       setRecordSec(0);
       setRecording(true);
@@ -962,7 +1022,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ? '没有麦克风权限'
         : `录音失败：${err.message || err}`);
     }
-  }, [busy, recording, stopRecording, ingestAudioBlob, pickAudioFile]);
+  }, [busy, recording, ingestAudioBlob, pickAudioFile]);
 
   useEffect(() => () => {
     if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop();
@@ -1048,12 +1108,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
         ].join('\n');
-    const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
+    const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
     const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(text);
     const quizNudge = wantsQuiz && !wantsInlineQuiz
       ? [
           'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
           "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
+          `Before writing any stem, run python3 ${projectRoot}/scripts/reference_style.py context --role generate with the target category/sub-category/tag and use the returned GONGKAO-STYLE reference pack. The independent quality reviewer must separately request --role evaluate.`,
+          'The AI-generated batch manifest must record style_marker plus generation/evaluation context arrays that cover every generated question. import:batch will reject missing, incomplete, reused, or fabricated provenance.',
           'Use the exact knowledge point requested by the user. Run the correctness gate and quality gate for every question; a single-choice question must have exactly one valid answer.',
           'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
         ].join('\n')
@@ -1579,7 +1641,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               {attaching
                 ? <Loader2 size={11} className="animate-spin" />
                 : <FileText size={11} />}
-              <span className={fullscreen ? 'hidden' : ''}>AI练题复盘</span>
+              <span>AI练题复盘</span>
             </button>
             <button
               onClick={openUploadPicker}
@@ -1588,7 +1650,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
               <Upload size={11} />
-              <span className={fullscreen ? 'hidden' : ''}>资料上传</span>
+              <span>资料上传</span>
             </button>
             <button
               onClick={openReviewPicker}
@@ -1597,7 +1659,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
               <ScanSearch size={11} />
-              <span className={fullscreen ? 'hidden' : ''}>真题复盘</span>
+              <span>真题复盘</span>
             </button>
             <div className="flex items-center rounded-lg overflow-hidden">
               <button
@@ -1625,7 +1687,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               }`}
             >
               <Brain size={11} />
-              <span className={fullscreen ? 'hidden' : ''}>思考</span>
+              <span>思考</span>
             </button>
           </div>
         </div>
@@ -1773,11 +1835,29 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             </div>
           )}
           {(pendingAudio || recording) && (
-            <div className="flex items-center justify-end gap-2 mb-2">
+            <div className="flex items-center justify-center gap-2 mb-2">
               {recording ? (
-                <span className="text-[11px] font-black text-[#c62828] mr-1">
-                  录音中 {fmtSec(recordSec)}
-                </span>
+                <div className="flex items-center gap-2 rounded-full bg-[#1a1a1a] text-white px-1 py-1">
+                  <button
+                    type="button"
+                    onClick={cancelRecording}
+                    title="取消这次录音"
+                    className="w-8 h-8 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0 hover:bg-white/25"
+                  >
+                    <X size={15} strokeWidth={2.6} />
+                  </button>
+                  <span className="w-2 h-2 rounded-full bg-[#ef5350] animate-pulse shrink-0" />
+                  <RecWave stream={recStream} />
+                  <span className="text-[11px] font-black tabular-nums opacity-80">{fmtSec(recordSec)}</span>
+                  <button
+                    type="button"
+                    onClick={() => stopRecording(false)}
+                    title="说完了，放进对话框"
+                    className="w-8 h-8 rounded-full bg-white text-[#1a1a1a] flex items-center justify-center shrink-0 hover:bg-[#f2e4c4]"
+                  >
+                    <Check size={16} strokeWidth={2.6} />
+                  </button>
+                </div>
               ) : (
                 <>
                   <button
@@ -1808,14 +1888,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             />
             <button
               type="button"
-              onClick={() => (recording ? stopRecording() : startRecording())}
-              disabled={busy || attaching}
-              title={recording ? '停止录音' : '口述给 Hermes'}
-              className={`p-3 rounded-2xl shrink-0 transition-colors disabled:opacity-30 ${
-                recording ? 'bg-[#ef5350] text-white' : 'bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5'
-              }`}
+              onClick={startRecording}
+              disabled={busy || attaching || recording}
+              title="口述给 Hermes"
+              className="p-3 rounded-2xl shrink-0 bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5 transition-colors disabled:opacity-30"
             >
-              {recording ? <Square size={18} /> : <Mic size={18} />}
+              <Mic size={18} />
             </button>
             <textarea
               ref={taRef}
@@ -1825,9 +1903,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               onPaste={onPaste}
               rows={1}
               placeholder={connState === 'open'
-                ? (recording
-                  ? '正在录音…再点一次红钮结束'
-                  : (dragOver ? '松手就把图片放进来' : 'Enter 发送，也可点麦克风口述'))
+                ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，也可点麦克风口述')
                 : '连接中…先写，连上了再发'}
               className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
             />

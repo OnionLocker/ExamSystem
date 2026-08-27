@@ -73,6 +73,39 @@ npm run import:batch   -- path/to/batch-dir   # 校验 + 写入 DB + 拷图片
 | `created_at` | string | ⬜ | ISO 日期 |
 | `notes` | string | ⬜ | 自由备注 |
 
+### 1.1 AI 生成批次的真题参考溯源
+
+第三方真题/资料导入不用填写。Hermes 生成的练题必须额外设置 `kind = "ai-generated"`，
+并记录生成阶段和独立质量评测阶段实际取得的参考包：
+
+```json
+{
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-...",
+        "reference_ids": ["粉笔-2026-广东-数字推理-31"],
+        "question_ids": ["20260827_数量关系_01-Q001"]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-...",
+        "reference_ids": ["粉笔-2024-广东-数字推理-34"],
+        "question_ids": ["20260827_数量关系_01-Q001"]
+      }
+    ]
+  }
+}
+```
+
+- context 必须由 `scripts/reference_style.py context` 现场生成，不得手写或复用。
+- 同考点多题可以共用一个 context；不同考点应分别检索。
+- `generation_contexts` 与 `evaluation_contexts` 都必须覆盖本批全部题。
+- `import:batch` 会反查 context 的角色、内化版本和 reference IDs，并在成功后绑定 batch_id。
+
 ---
 
 ## 2. questions.json

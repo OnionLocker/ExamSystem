@@ -17,6 +17,14 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
 # AI question-generation routing
 
 - When Russell asks for questions or targeted practice, load `quiz-pipeline` and `gd-gongkao-coach` before drafting anything.
+- Before writing any stem, use `/home/ubuntu/ExamSystem/scripts/reference_style.py context --role generate`
+  with the target category / sub-category / canonical tag. This command automatically internalizes newly
+  added or changed reference questions and returns a traceable `GONGKAO-STYLE` context pack.
+- The independent quality reviewer must separately call the same command with `--role evaluate`.
+  Generation examples and holdout evaluation examples must never come from the same context.
+- Every AI-generated batch manifest must set `kind: "ai-generated"` and record the style marker plus
+  generation/evaluation context arrays. Both arrays must map context and reference IDs onto every generated
+  question. `import:batch` rejects missing, incomplete, reused, or fabricated provenance.
 - Unless Russell explicitly asks to answer inside chat, run both correctness and quality gates, import the batch into ExamSystem AI Practice, and reply only with the batch name and question count.
 - Never print question stems, options, answers, validation details, or intermediate tool output in chat during the default batch workflow.
 - For single-choice questions, exactly one option must be valid. The user-specified knowledge point has priority over automatic weak-point selection and repeat-avoidance rules.

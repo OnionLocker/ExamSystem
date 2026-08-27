@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import {
   ArrowLeft, ArrowRight, Check, X as XIcon, Clock, Trophy, RotateCcw,
   AlertTriangle, Lightbulb, Flag, PenTool, Loader2, Grid3x3, Eraser,
-  Highlighter, Undo2, Trash2, ChevronUp, ChevronDown, Plus, Send,
+  Undo2, Trash2, Send,
 } from 'lucide-react';
 import { api, getToken } from '../api.js';
 import { openKnowledge } from '../knowledge/nav.js';
@@ -21,9 +21,7 @@ import DraftLayer from './DraftLayer.jsx';
 import { scrollHost } from './scrollHost.js';
 import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
 
-// 笔色。放在这儿而不是 DraftLayer 里：工具栏是这边画的，
-// 而 DraftLayer 只该导出组件本身（否则 react-refresh 失效）。
-const PEN_COLORS = ['#1a1a1a', '#e53935', '#1e88e5'];
+const PEN_COLOR = '#1a1a1a';
 
 // ─── 工具函数 ──────────────────────────────────────────────────
 
@@ -46,13 +44,6 @@ const normalizeJudgeOptions = (options) =>
 
 const optionsOf = (q) =>
   q?.question_type === 'judge' ? normalizeJudgeOptions(q.options) : q?.options || [];
-
-const scrollPage = (from, ratio) => {
-  const host = scrollHost(from);
-  const top = (host ? host.clientHeight : window.innerHeight) * ratio;
-  if (host) host.scrollBy({ top, behavior: 'smooth' });
-  else window.scrollBy({ top, behavior: 'smooth' });
-};
 
 const scrollToTop = (from) => {
   const host = scrollHost(from);
@@ -119,37 +110,6 @@ const OptionRow = ({ option, state, onClick, disabled }) => {
       {state === 'correct' && <Check size={20} className="shrink-0 text-[#4caf50] mt-2" />}
       {state === 'wrong' && <XIcon size={20} className="shrink-0 text-[#ef5350] mt-2" />}
     </button>
-  );
-};
-
-// 演算区：草稿纸的空白部分。题干在上面能圈划，式子列在这儿。
-const ScratchPad = ({ rows, onAddRow, fill }) => {
-  if (rows <= 0) return null;
-  const height = fill
-    ? `max(${rows * 300}px, calc(100dvh - 11rem))`
-    : rows * 300;
-  return (
-    <div className="mt-4 rounded-[1.5rem] border-2 border-dashed border-[#dcc89a] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-2.5 bg-[#f2e4c4] border-b border-[#ead9b0]">
-        <span className="text-[10px] font-black uppercase tracking-widest text-[#c3bda8]">演算区</span>
-        <button
-          type="button"
-          onClick={onAddRow}
-          data-capture-ignore="1"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black text-[#b3ab93] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors"
-        >
-          <Plus size={12} />
-          <span>加高</span>
-        </button>
-      </div>
-      <div
-        style={{
-          height,
-          background: '#f2e4c4',
-          backgroundImage: 'repeating-linear-gradient(to bottom, transparent 0 31px, #e0cd9a 31px 32px)',
-        }}
-      />
-    </div>
   );
 };
 
@@ -378,8 +338,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
   const [draftMode, setDraftMode] = useState(false);
   const [tool, setTool] = useState('pen');
-  const [color, setColor] = useState(PEN_COLORS[0]);
-  const [scratchRows, setScratchRows] = useState(0);
 
   const [showSheet, setShowSheet] = useState(false);
   const [blankSubmitCount, setBlankSubmitCount] = useState(0);
@@ -461,7 +419,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         setAnswers({});
         setTimeSpent({});
         setDrafts({});
-        setScratchRows(0);
         setResult(null);
         setReport(null);
         setOpenReview(null);
@@ -578,8 +535,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       setDraftMode(false);
       return;
     }
+    setTool('pen');
     setDraftMode(true);
-    setScratchRows((rows) => Math.max(rows, 1));
   };
 
   // ── 导航 ──
@@ -677,11 +634,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       const tag = (e.target?.tagName || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
       if (e.key === 'Escape' && draftMode) { e.preventDefault(); setDraftMode(false); return; }
-      if (draftMode) return;
       const k = e.key.toUpperCase();
       if (['A', 'B', 'C', 'D', 'E'].includes(k)) {
         if (optionsOf(current).some((o) => o.key === k)) { e.preventDefault(); toggleSelect(k); }
-      } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        return;
+      }
+      if (draftMode) return;
+      if (e.key === 'ArrowRight' || e.key === 'Enter') {
         e.preventDefault();
         goTo(index + 1);
       } else if (e.key === 'ArrowLeft') {
@@ -810,34 +769,11 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           <span className="text-xs font-black uppercase tracking-widest hidden sm:inline">退出</span>
         </button>
 
-        <div className="flex min-w-0 flex-1 items-center px-2">
+        <div className="flex min-w-0 flex-1 items-center gap-1 px-2">
           {draftMode && (
-            <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-xl px-1" aria-label="草稿工具栏">
-              {PEN_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => { setTool('pen'); setColor(c); }}
-                  title="笔"
-                  className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
-                    tool === 'pen' && color === c
-                      ? 'border-[#6b5428] bg-white/60 shadow-sm'
-                      : 'border-transparent hover:bg-black/5'
-                  }`}
-                >
-                  <span className="w-4 h-4 rounded-full" style={{ background: c }} />
-                </button>
-              ))}
+            <div className="flex items-center gap-1" aria-label="草稿工具栏">
               <button
-                onClick={() => setTool('highlighter')}
-                title="荧光笔（圈划题干）"
-                className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                  tool === 'highlighter' ? 'bg-[#2c261c] text-white' : 'text-[#999] hover:bg-black/5'
-                }`}
-              >
-                <Highlighter size={16} />
-              </button>
-              <button
-                onClick={() => setTool('eraser')}
+                onClick={() => setTool((t) => (t === 'eraser' ? 'pen' : 'eraser'))}
                 title="橡皮"
                 className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
                   tool === 'eraser' ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5'
@@ -845,9 +781,6 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               >
                 <Eraser size={16} />
               </button>
-
-              <span className="shrink-0 w-px h-6 bg-[#e8d5b0] mx-0.5" />
-
               <button onClick={() => mutateStrokes((s) => s.slice(0, -1))}
                 disabled={!hasDraft} title="撤销一笔"
                 className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30 transition-colors">
@@ -858,26 +791,32 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                 className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-red-50 hover:text-[#ef5350] disabled:opacity-30 transition-colors">
                 <Trash2 size={16} />
               </button>
-              <button onClick={() => setScratchRows((r) => r + 1)} title="加一块演算区"
-                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors">
-                <Plus size={16} />
-              </button>
-
-              <span className="shrink-0 w-px h-6 bg-[#e8d5b0] mx-0.5" />
-
-              <button onClick={() => scrollPage(paperRef.current, -0.7)} title="上翻"
-                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5">
-                <ChevronUp size={16} />
-              </button>
-              <button onClick={() => scrollPage(paperRef.current, 0.7)} title="下翻"
-                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[#999] hover:bg-black/5">
-                <ChevronDown size={16} />
-              </button>
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-3 sm:gap-4">
+          {draftMode && (
+            <div className="flex items-center gap-1.5" aria-label="作答">
+              {optionsOf(current).map((opt) => {
+                const on = selection.includes(opt.key);
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => toggleSelect(opt.key)}
+                    className={`shrink-0 h-9 w-9 rounded-xl text-sm font-black border-2 transition-colors ${
+                      on
+                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                        : 'bg-white text-[#1a1a1a] border-[#e8d5b0] hover:border-[#6b5428]'
+                    }`}
+                  >
+                    {opt.key}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="flex items-center gap-1.5 text-[#999]">
             <Clock size={14} />
             <span className="text-xs font-mono tabular-nums font-black">{fmtDuration(totalElapsed)}</span>
@@ -911,13 +850,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           </button>
           <button
             type="button"
-            onClick={() => goTo(index + 1)}
-            disabled={isLast}
-            title="下一题"
+            onClick={() => (isLast ? submitAll() : goTo(index + 1))}
+            disabled={grading}
+            title={isLast ? '交卷' : '下一题'}
             className="shrink-0 h-10 w-10 sm:w-[5.5rem] rounded-xl flex items-center justify-center gap-1.5 bg-[#1a1a1a] text-white hover:bg-[#2c261c] disabled:opacity-30 transition-colors"
           >
-            <span className="hidden sm:inline text-xs font-black">下一题</span>
-            <ArrowRight size={16} />
+            <span className="hidden sm:inline text-xs font-black">{isLast ? '交卷' : '下一题'}</span>
+            {isLast ? <Flag size={16} /> : <ArrowRight size={16} />}
           </button>
 
           <button
@@ -944,12 +883,15 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         </div>
       )}
 
-      {/* 草稿纸范围：题干、选项、演算区都在这一层里，批注层罩在最上面 */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 sm:px-5 py-3">
-      <div ref={paperRef} className={`relative ${draftMode ? 'min-h-full' : ''}`}>
-        <div className={`bg-white rounded-[1.5rem] p-5 sm:p-8 border-2 transition-colors ${
-          draftMode ? 'border-[#6b5428]' : 'border-[#e8d5b0]'
-        }`}>
+      <div className="flex-1 min-h-0 px-3 sm:px-5 py-3">
+      <div
+        ref={paperRef}
+        className={`relative h-full min-h-0 overflow-hidden rounded-[1.5rem] border-2 transition-colors ${
+          draftMode ? 'border-[#6b5428] bg-white' : 'border-[#e8d5b0] bg-white'
+        }`}
+      >
+        <div className="absolute inset-0 overflow-y-auto overscroll-y-contain">
+        <div className="min-h-full p-5 sm:p-8">
           <div className="flex items-center justify-between gap-2 mb-5">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-black uppercase tracking-widest bg-[#1a1a1a] text-white px-3 py-1 rounded-full">
@@ -1000,14 +942,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             ))}
           </div>
         </div>
-
-        <ScratchPad rows={scratchRows} fill={draftMode} onAddRow={() => setScratchRows((r) => r + 1)} />
+        </div>
 
         <DraftLayer
           active={draftMode}
           visible={draftMode}
           tool={tool}
-          color={color}
+          color={PEN_COLOR}
           strokes={currentStrokes}
           onStrokeEnd={pushStroke}
         />

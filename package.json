@@ -15,7 +15,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "validate:batch": "node scripts/validate-batch.mjs",
+    "test:reference-api": "node scripts/test-reference-question-api.mjs",
+    "test:reference-style": "python3 scripts/test_reference_style.py",
+    "test:generation-provenance": "node scripts/test-generation-provenance.mjs",
     "import:batch": "node scripts/import-batch.mjs",
+    "reference:build": "python3 scripts/reference_style.py build",
+    "reference:status": "python3 scripts/reference_style.py status",
+    "reference:context": "python3 scripts/reference_style.py context",
     "clean:vocab": "node scripts/clean-vocab.mjs",
     "validate:vocab-pack": "node scripts/validate-vocab-pack.mjs"
   },

@@ -44,6 +44,71 @@ function copyImages(batchDir, batchId, questions, materials) {
 const rewrite = (batchId, arr) =>
   Array.isArray(arr) && arr.length ? arr.map((p) => toImgPublicPath(batchId, p)) : null;
 
+function verifyGenerationContexts(manifest, questions) {
+  if (manifest.kind !== 'ai-generated') return [];
+  const generation = manifest.generation || {};
+  const groups = [
+    {
+      role: 'generate',
+      contexts: generation.generation_contexts || [],
+    },
+    {
+      role: 'evaluate',
+      contexts: generation.evaluation_contexts || [],
+    },
+  ];
+  const questionIds = new Set((questions || []).map((question) => question.external_id));
+  const getContext = db.prepare(`
+    SELECT context_id, role, digest_version, reference_ids, batch_id
+      FROM reference_context_runs
+     WHERE context_id = ?
+  `);
+
+  const contextIds = [];
+  for (const group of groups) {
+    const covered = new Set();
+    for (const ref of group.contexts) {
+      for (const questionId of ref.question_ids || []) {
+        if (!questionIds.has(questionId)) {
+          throw new Error(`参考包 ${ref.context_id} 绑定了批次中不存在的题: ${questionId}`);
+        }
+        covered.add(questionId);
+      }
+      const row = getContext.get(ref.context_id);
+      if (!row) {
+        throw new Error(`参考包不存在或未由 reference_style.py 生成: ${ref.context_id}`);
+      }
+      if (row.role !== group.role) {
+        throw new Error(
+          `参考包 ${ref.context_id} 角色应为 ${group.role}，实际为 ${row.role}`,
+        );
+      }
+      if (row.digest_version !== generation.style_marker) {
+        throw new Error(`参考包 ${ref.context_id} 的内化版本与 manifest 不一致`);
+      }
+      let recorded;
+      try { recorded = JSON.parse(row.reference_ids); } catch { recorded = []; }
+      if (JSON.stringify(recorded) !== JSON.stringify(ref.reference_ids)) {
+        throw new Error(`参考包 ${ref.context_id} 的题目 ID 与 manifest 不一致`);
+      }
+      if (row.batch_id && row.batch_id !== manifest.batch_id) {
+        throw new Error(`参考包 ${ref.context_id} 已绑定其他批次: ${row.batch_id}`);
+      }
+      contextIds.push(ref.context_id);
+    }
+    const missing = [...questionIds].filter((questionId) => !covered.has(questionId));
+    if (missing.length) {
+      throw new Error(
+        `${group.role} 参考包未覆盖全部生成题，缺少: ${missing.slice(0, 5).join(', ')}`,
+      );
+    }
+  }
+  if (new Set(contextIds).size !== contextIds.length) {
+    throw new Error('生成与评测参考包不能重复使用同一个 context_id');
+  }
+  return contextIds;
+}
+
 function importToDB(manifest, questions, materials) {
   const batchId = manifest.batch_id;
 
@@ -96,6 +161,8 @@ function importToDB(manifest, questions, materials) {
   const stats = { materials: 0, questions: 0 };
 
   const run = db.transaction(() => {
+    const generationContexts = verifyGenerationContexts(manifest, questions);
+
     // 1) materials
     for (const m of materials || []) {
       upsertMat.run({
@@ -152,6 +219,14 @@ function importToDB(manifest, questions, materials) {
         batch_id: batchId,
       });
       stats.questions++;
+    }
+
+    for (const contextId of generationContexts) {
+      db.prepare(`
+        UPDATE reference_context_runs
+           SET batch_id = ?
+         WHERE context_id = ?
+      `).run(batchId, contextId);
     }
   });
 
