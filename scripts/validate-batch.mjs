@@ -5,7 +5,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // ---------- 枚举 ----------
 export const CATEGORY_ENUM = {
@@ -335,7 +338,48 @@ function validateQuestions(dir, manifest, materialMap, rep) {
       rep.err(loc, `region 不在枚举内: ${region}`);
   });
 
+  if (manifest?.kind === 'ai-generated') {
+    validateAiQuestionTags(arr, rep);
+  }
+
   return arr;
+}
+
+function validateAiQuestionTags(questions, rep) {
+  const proc = spawnSync(
+    'python3',
+    [
+      '-c',
+      [
+        'import json,sys',
+        'from kaodian_taxonomy import question_primary_tag, validate_ai_primary_tag',
+        'qs=json.load(sys.stdin)',
+        'out=[]',
+        'for i,q in enumerate(qs):',
+        '    try:',
+        '        validate_ai_primary_tag(question_primary_tag(q or {}), str((q or {}).get("category") or ""))',
+        '    except ValueError as e:',
+        '        out.append({"i": i, "id": (q or {}).get("external_id"), "msg": str(e)})',
+        'json.dump(out, sys.stdout)',
+      ].join('\n'),
+    ],
+    { cwd: path.join(ROOT, 'scripts'), encoding: 'utf8', input: JSON.stringify(questions || []) },
+  );
+  if (proc.status !== 0) {
+    rep.err('questions.json', proc.stderr?.trim() || proc.stdout?.trim() || '考点标签校验失败');
+    return;
+  }
+  let errors;
+  try {
+    errors = JSON.parse(proc.stdout || '[]');
+  } catch {
+    rep.err('questions.json', `考点标签校验输出无法解析: ${proc.stdout}`);
+    return;
+  }
+  for (const item of errors) {
+    const loc = `questions[${item.i}]${item.id ? ` (${item.id})` : ''}`;
+    rep.err(loc, item.msg);
+  }
 }
 
 function checkImagePaths(paths, loc, dir, rep) {

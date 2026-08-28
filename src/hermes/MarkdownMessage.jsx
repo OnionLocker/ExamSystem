@@ -4,13 +4,14 @@
 //   remark-gfm    表格 / 删除线 / 任务列表
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
+import { normalizeOriginalQuestionOptions } from './reviewFormat.js';
 import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import hljs from 'highlight.js/lib/common';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, FileImage, Loader2 } from 'lucide-react';
 
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
@@ -112,6 +113,70 @@ const CodeBlock = ({ language, code }) => {
   );
 };
 
+const questionNumberOf = (title) => {
+  const match = String(title || '').match(
+    /^(?:第\s*)?0*(\d{1,3})\s*(?:题(?:\s|[·.．、-]|$)|[·.．、-])/,
+  );
+  return match ? Number(match[1]) : null;
+};
+
+const QuestionHeading = ({
+  children,
+  draftQuestions,
+  activeDraftNumber,
+  draftLoadingNumber,
+  onOpenDraft,
+}) => {
+  const raw = textOf(children).trim();
+  const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
+  if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
+
+  const title = raw.replace(/^(?:第\s*)?\d+\s*(?:题\s*)?[·.．、-]?\s*/, '');
+  const hit = findKnowledgeTarget(title);
+  const questionNumber = questionNumberOf(raw);
+  const hasQuestion = questionNumber != null && draftQuestions?.has(questionNumber);
+  const draft = hasQuestion ? draftQuestions.get(questionNumber) : null;
+  const active = draft && activeDraftNumber === questionNumber;
+  const loading = draft && draftLoadingNumber === questionNumber;
+
+  return (
+    <h3 className="mt-3 mb-1.5 flex items-center gap-2 text-sm font-black tracking-tight">
+      <span className="min-w-0 flex-1">
+        {hit ? (
+          <button
+            type="button"
+            onClick={() => openKnowledge(title)}
+            className="text-left underline decoration-dotted decoration-[#c4aa6a] underline-offset-4 hover:text-[#6b5428]"
+            title="打开对应知识点"
+          >
+            {children}
+          </button>
+        ) : children}
+      </span>
+      {hasQuestion && (
+        <button
+          type="button"
+          disabled={!draft || loading}
+          onClick={() => onOpenDraft?.(questionNumber, draft)}
+          title={draft ? '查看本题当时的草稿' : '本题没有草稿'}
+          className={`shrink-0 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors ${
+            active
+              ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+              : draft
+                ? 'border-[#d4c09a] bg-[#f4e6c8] text-[#6b5428] hover:border-[#6b5428]'
+                : 'cursor-not-allowed border-black/5 bg-black/[0.03] text-[#bbb]'
+          }`}
+        >
+          {loading
+            ? <Loader2 size={11} className="animate-spin" />
+            : <FileImage size={11} />}
+          <span>草稿</span>
+        </button>
+      )}
+    </h3>
+  );
+};
+
 const components = {
   code({ inline, className, children, ...props }) {
     const text = String(children ?? '').replace(/\n$/, '');
@@ -181,26 +246,7 @@ const components = {
     return <h2 className="mt-4 mb-2 text-base font-black tracking-tight">{children}</h2>;
   },
   h3({ children }) {
-    const raw = textOf(children).trim();
-    const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
-    if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
-    const title = raw.replace(/^\d+\s*[·.．]\s*/, '');
-    const hit = findKnowledgeTarget(title);
-    if (hit) {
-      return (
-        <h3 className="mt-3 mb-1.5 text-sm font-black tracking-tight">
-          <button
-            type="button"
-            onClick={() => openKnowledge(title)}
-            className="text-left underline decoration-dotted decoration-[#c4aa6a] underline-offset-4 hover:text-[#6b5428]"
-            title="打开对应知识点"
-          >
-            {children}
-          </button>
-        </h3>
-      );
-    }
-    return <h3 className="mt-3 mb-1.5 text-sm font-black tracking-tight">{children}</h3>;
+    return <QuestionHeading>{children}</QuestionHeading>;
   },
   h4({ children }) {
     return <h4 className="mt-3 mb-1.5 text-sm font-bold">{children}</h4>;
@@ -220,19 +266,6 @@ const components = {
   },
 };
 
-// Models occasionally collapse A/B/C/D back onto one line despite the review
-// template. Normalize only original-question quote cards at render time so the
-// layout is deterministic and ordinary prose remains untouched.
-const normalizeOriginalQuestionOptions = (raw = '') => String(raw).replace(
-  /^(?:>[^\n]*(?:\n|$))+/gm,
-  (block) => {
-    if (!block.includes('原题')) return block;
-    const optionPattern = /(?:[ \t]*)(?:\*\*)?([A-D])[.．、](?:\*\*)?[ \t]*/g;
-    const labels = [...block.matchAll(optionPattern)].map((match) => match[1]);
-    if (new Set(labels).size < 2) return block;
-    return block.replace(optionPattern, '  \n> **$1.** ');
-  },
-);
 
 const KATEX_OPTIONS = {
   throwOnError: false,
@@ -256,15 +289,35 @@ const Caret = () => (
   />
 );
 
-const MarkdownMessage = memo(function MarkdownMessage({ content, streaming }) {
+const MarkdownMessage = memo(function MarkdownMessage({
+  content,
+  streaming,
+  draftQuestions,
+  activeDraftNumber,
+  draftLoadingNumber,
+  onOpenDraft,
+}) {
   const displayContent = useMemo(() => normalizeOriginalQuestionOptions(content), [content]);
+  const renderedComponents = useMemo(() => ({
+    ...components,
+    h3: ({ children }) => (
+      <QuestionHeading
+        draftQuestions={draftQuestions}
+        activeDraftNumber={activeDraftNumber}
+        draftLoadingNumber={draftLoadingNumber}
+        onOpenDraft={onOpenDraft}
+      >
+        {children}
+      </QuestionHeading>
+    ),
+  }), [draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft]);
 
   return (
     <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
-        components={components}
+        components={renderedComponents}
       >
         {displayContent}
       </ReactMarkdown>

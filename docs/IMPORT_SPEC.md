@@ -127,7 +127,7 @@ npm run import:batch   -- path/to/batch-dir   # 校验 + 写入 DB + 拷图片
 | `explanation` | string | ⬜ 强烈建议 | **答案解析**，可由 Workbuddy 自行撰写，偏实战技巧口径，见顶部"三件套"提醒 |
 | `explanation_images` | string[] | ⬜ | 解析配图（如解析里需要画图说明） |
 | `difficulty` | integer | ⬜ | 1~5，默认 2 |
-| `tags` | string[] | ⬜ | 第一个标签必须是规范知识点 `模块-一级知识点-二级知识点`；后续可放难度/易混点等辅助标签 |
+| `tags` | string[] | ✅ AI 练题必填 / 其他批次强烈建议 | 第一个标签必须是规范知识点 `模块-一级知识点-二级知识点`。数量关系必须用知识卡片三级名，禁止 `数量关系-数学运算-排列组合` 这种旧粗标签。后续可放难度/易混点等辅助标签。只有 `knowledge_point` 没有 `tags` 时，校验器会把前者当作主标签，但入库字段仍是 `tags`。 |
 | `source` | string | ⬜ | 覆盖 manifest.source |
 | `year` | integer | ⬜ | 覆盖 manifest.year |
 | `region` | string | ⬜ | 覆盖 manifest.region |

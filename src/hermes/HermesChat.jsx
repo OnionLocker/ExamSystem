@@ -19,6 +19,15 @@ import QuotaBar from './QuotaBar.jsx';
 import HermesSidebar from './HermesSidebar.jsx';
 import HermesContextPickers from './HermesContextPickers.jsx';
 import ReviewFloater from './ReviewFloater.jsx';
+import {
+  appendAssistantDelta as appendAssistantDeltaState,
+  ensureStreamingAssistant,
+  eventText,
+  extractReview,
+  finishAssistantMessage,
+  isSystemInjectedNotice,
+  normalizeHermesHistory,
+} from './hermesProtocol.js';
 
 let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
@@ -49,95 +58,9 @@ const extFromAudioMime = (mime) => {
 const normalizeAudioDataUrl = (dataUrl) =>
   String(dataUrl || '').replace(/^data:audio\/([^;,]+)[^,]*,/, 'data:audio/$1;base64,');
 
-// session.resume 返回的历史消息里，图片是以裸 data URL 的形式内嵌在 text 末尾的
-// （hermes 侧 _coerce_message_text 把多模态 content 折叠成单一字符串时留下的）。
-// 不解析出来的话：m.images 永远是 undefined（图片不显示），而那几 MB 的 base64
-// 会被当成正文塞进 markdown 渲染器。官方 desktop 端对应的函数叫 extractEmbeddedImages。
-const EMBEDDED_IMAGE_RE = /data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
-
-const extractEmbeddedImages = (text) => text.match(EMBEDDED_IMAGE_RE) || [];
-
-// 去掉正文里的裸 data URL。图片一般是前面带换行单独一行，连换行一起吃掉，
-// 避免正文尾部留下一串空行
-const stripEmbeddedImages = (text) =>
-  text.replace(new RegExp(`\\n*${EMBEDDED_IMAGE_RE.source}`, 'g'), '').trim();
-
-// hermes 运行时会把「后台子任务完成」这类通知以 user 角色写进历史（见
-// hermes-agent/tools/process_registry.py 的 _format_async_delegation），
-// 模型需要读到它才能拿到子任务结果，但那不是用户说的话。
-// 不过滤的话，换浏览器触发 session.resume 时这整段会当成用户消息冒出来。
-// 用行首锚定的方括号标记来判断，避免误伤用户正常引用这些词的消息。
-const SYSTEM_NOTICE_RE = /^\s*\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]/;
-const isSystemInjectedNotice = (text) => SYSTEM_NOTICE_RE.test(String(text || ''));
-
-const REVIEW_FILE_RE = /\/data\/(exam-reviews|practice-reviews)\/(\d+)-([^\n]+\.md)/;
-const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
-const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
-const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
-
-const visibleUserText = (text) => {
-  const raw = String(text || '');
-  const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
-  return marked != null ? marked.trim() : raw.replace(INTERNAL_NUDGE_RE, '').trim();
-};
-
-const extractReview = (text) => {
-  const raw = String(text || '');
-  const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
-  const m = raw.match(REVIEW_FILE_RE);
-  if (!m) return { content: visibleUserText(raw), review: null };
-  const kind = m[1] === 'practice-reviews' ? 'practice' : 'exam';
-  const name = m[3];
-  const cleanTitle = name.replace(/^\d+-/, '').replace(/\.md$/i, '');
-  const review = {
-    id: Number(m[2]),
-    kind,
-    name,
-    title: kind === 'practice' ? `AI 练题复盘：${cleanTitle}` : cleanTitle,
-    label: kind === 'practice' ? `AI练题复盘 #${m[2]} · ${cleanTitle}` : name,
-  };
-  if (marked != null) return { content: marked.trim(), review };
-  const cleaned = raw.replace(INTERNAL_NUDGE_RE, '').trim();
-  const chunks = cleaned.split(/\n{2,}/);
-  const last = (chunks[chunks.length - 1] || '').trim();
-  const lastIsLead = REVIEW_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
-  return { content: lastIsLead ? '' : last, review };
-};
-
-const hydrateHistory = (raw) =>
-  (raw || [])
-    .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .filter((m) => !isSystemInjectedNotice(m.text))
-    .map((m) => {
-      const rawText = String(m.text || '');
-      const images = extractEmbeddedImages(rawText);
-      const stripped = images.length > 0 ? stripEmbeddedImages(rawText) : rawText;
-      const pulled = m.role === 'user' ? extractReview(stripped) : { content: stripped, review: null };
-      const cleaned = String(pulled.content || '')
-        .replace(/\[audio\]/gi, '')
-        .replace(/下面附了我的口述录音[^\n]*/g, '')
-        .trim();
-      const audioSec = parseAudioLen(cleaned);
-      const hadAudio = /\[audio\]/i.test(rawText) || isAudioLabel(cleaned);
-      return {
-        id: uid(), role: m.role,
-        content: cleaned,
-        streaming: false, tools: [], thinking: '',
-        images: pulled.review?.kind === 'practice' ? [] : images,
-        audioSec,
-        review: pulled.review,
-        audio: null,
-        hadAudio,
-      };
-    })
-    .filter((m) => m.content || (m.images?.length ?? 0) > 0 || m.review || m.audioSec || m.hadAudio);
-
-const eventText = (ev) => ev?.payload?.text || ev?.payload?.rendered || '';
-
-// 会话列表拉取上限。gateway 侧 session.list 会给每条会话跑一次 preview 子查询
-// （50 条约 77ms，全量 124 条 200ms+），条数直接决定首屏等待时间。
-// 40 条足够覆盖最近的对话，再往前翻的需求很少。
-const SESSION_LIST_LIMIT = 40;
+// cron / 微信会话虽然不展示，仍会占 session.list 的返回名额；多取一些，
+// 避免自动会话把较早的本地对话挤出侧栏。
+const SESSION_LIST_LIMIT = 200;
 
 // 上次的会话列表缓存。进页面时先用它把左栏渲染出来，等 WS 连上再静默替换成新数据，
 // 这样首屏不用干等「握手 + DB 查询」。sessionStorage 而不是 localStorage：
@@ -500,6 +423,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const recRef = useRef(null);
   const recChunksRef = useRef([]);
   const recDiscardRef = useRef(false);
+  const recFinalizingRef = useRef(false);
   const recStreamRef = useRef(null);
   const recTickRef = useRef(null);
   const recStartedAtRef = useRef(0);
@@ -511,15 +435,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   // ---------- 消息辅助 ----------
   const appendAssistantDelta = useCallback((text) => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.role === 'assistant' && last.streaming) {
-        const copy = prev.slice(0, -1);
-        copy.push({ ...last, content: last.content + text });
-        return copy;
-      }
-      return [...prev, { id: uid(), role: 'assistant', content: text, streaming: true, tools: [], thinking: '' }];
-    });
+    setMessages((prev) => appendAssistantDeltaState(prev, text, uid));
   }, []);
 
   const rememberSession = useCallback((res, storedId = res?.stored_session_id || null) => {
@@ -568,24 +484,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, []);
 
   const finishStreaming = useCallback((finalText = '') => {
-    setMessages((prev) => {
-      const last = prev[prev.length - 1];
-      if (!last || !last.streaming) {
-        // 流式 delta 全程没到、只来了一条 complete（长上下文卡流时很常见）
-        if (finalText) {
-          return [...prev, {
-            id: uid(), role: 'assistant', content: finalText,
-            streaming: false, tools: [], thinking: '',
-          }];
-        }
-        return prev;
-      }
-      const copy = prev.slice(0, -1);
-      // 把仍标记为运行中的工具收尾，避免一直转圈
-      const tools = (last.tools || []).map((t) => (t.done ? t : { ...t, done: true }));
-      copy.push({ ...last, content: last.content || finalText, streaming: false, tools });
-      return copy;
-    });
+    setMessages((prev) => finishAssistantMessage(prev, finalText, uid));
     setBusy(false);
     setStatus('');
     // 回复完成后刷新列表：Hermes 在第一轮对话结束后才生成 title，
@@ -627,14 +526,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         setWaitSec(0);
         setBusy(true);
         setStatus('(｡•̀ᴗ-)✧ 整理一下');
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last && last.role === 'assistant' && last.streaming) return prev;
-          return [...prev, {
-            id: uid(), role: 'assistant', content: '',
-            streaming: true, tools: [], thinking: '',
-          }];
-        });
+        setMessages((prev) => ensureStreamingAssistant(prev, uid));
       }),
       gw.on('message.complete', (ev) => finishStreaming(eventText(ev))),
 
@@ -767,9 +659,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   const applyResume = useCallback((res, storedId) => {
     rememberSession(res, storedId || res.stored_session_id || null);
-    const hydrated = hydrateHistory(res.messages);
+    const hydrated = normalizeHermesHistory(res.messages, {
+      nextId: uid,
+      parseAudioLen,
+      isAudioLabel,
+    });
     const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
-    const inflightRaw = String(res.inflight?.user || '').trim();
+    const inflightCandidate = String(res.inflight?.user || '').trim();
+    const inflightRaw = isSystemInjectedNotice(inflightCandidate) ? '' : inflightCandidate;
     const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
 
     // A running turn lives in inflight until completion. Restore both its visible
@@ -904,8 +801,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     recDiscardRef.current = Boolean(discard);
     const rec = recRef.current;
     if (rec && rec.state !== 'inactive') {
+      recFinalizingRef.current = !discard;
       try { rec.requestData(); } catch { /* Safari 以外可能没有 */ }
       rec.stop();
+    } else {
+      recFinalizingRef.current = false;
     }
     recRef.current = null;
     setRecording(false);
@@ -915,10 +815,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   const ingestAudioBlob = useCallback((blob, mime, name, knownSec) => {
     if (blob.size < 800) {
+      recFinalizingRef.current = false;
       setBanner('录音太短，再试一次');
       return;
     }
     if (blob.size > AUDIO_MAX_BYTES) {
+      recFinalizingRef.current = false;
       setBanner(`录音过大（上限 ${AUDIO_MAX_BYTES / 1024 / 1024}MB，请分段发）`);
       return;
     }
@@ -934,6 +836,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           name: name || `voice.${ext}`,
           sec: sec > 0 ? Math.round(sec) : null,
         });
+        recFinalizingRef.current = false;
       };
       if (knownSec > 0) {
         apply(knownSec);
@@ -942,6 +845,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const probe = new Audio(dataUrl);
       probe.onloadedmetadata = () => apply(probe.duration);
       probe.onerror = () => apply(0);
+    };
+    reader.onerror = () => {
+      recFinalizingRef.current = false;
+      setBanner('读取录音失败，请重试');
     };
     reader.readAsDataURL(blob);
   }, []);
@@ -993,7 +900,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         stopTracks();
         const blob = new Blob(recChunksRef.current, { type: rec.mimeType || 'audio/webm' });
         recChunksRef.current = [];
-        if (discard) return;
+        if (discard) {
+          recFinalizingRef.current = false;
+          return;
+        }
         const elapsed = recStartedAtRef.current
           ? (Date.now() - recStartedAtRef.current) / 1000
           : 0;
@@ -1007,6 +917,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       recRef.current = rec;
       recStartedAtRef.current = Date.now();
       recDiscardRef.current = false;
+      recFinalizingRef.current = false;
       setPendingAudio(null);
       setRecordSec(0);
       setRecording(true);
@@ -1032,7 +943,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   // ---------- 发送 ----------
   const send = useCallback(async () => {
     const gw = gwRef.current;
-    if (recording) return;
+    if (recording || recFinalizingRef.current) return;
     const typed = input.trim();
     const audio = pendingAudio;
     const text = typed;
@@ -1074,7 +985,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `本场共 ${review.total || 0} 题；已附上 ${review.draftCount || 0} 张实际保存的草稿纸。请逐题对应，不要把附件数量误认为题目总数。`,
           '',
           '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析。除原题外，不要机械复述报告统计或现成解析。',
-          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，随后在同一引用块内完整照录题干，并将 `> **A.**`、`> **B.**`、`> **C.**`、`> **D.**` 各放一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。发送前逐题检查 A/B/C/D 是否齐全。',
+          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
           '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时明确提示查看对应题图或草稿图，并结合实际图片分析，禁止凭文字补造图形。',
           '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
           '4. 正确题不能按结果直接跳过：有草稿、用时偏长、涂改多或方法绕远时，也要给出考场上可执行的压缩步骤。',
@@ -1117,10 +1028,36 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `Before writing any stem, run python3 ${projectRoot}/scripts/reference_style.py context --role generate with the target category/sub-category/tag and use the returned GONGKAO-STYLE reference pack. The independent quality reviewer must separately request --role evaluate.`,
           'The AI-generated batch manifest must record style_marker plus generation/evaluation context arrays that cover every generated question. import:batch will reject missing, incomplete, reused, or fabricated provenance.',
           'Use the exact knowledge point requested by the user. Run the correctness gate and quality gate for every question; a single-choice question must have exactly one valid answer.',
+          'questions.json tags[0] must be the canonical 模块-一级-二级 card tag. For permutation questions use 基础原理/特殊模型/反面容斥, never 数量关系-数学运算-排列组合. knowledge_point is only a fallback; the stored field is tags.',
           'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
         ].join('\n')
       : '';
-    const outbound = [reviewLead, voiceLead, submittedText, masteryNudge, quizNudge].filter(Boolean).join('\n');
+    const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
+      || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(text));
+    let learnerNudge = '';
+    if (needsLearnerSnapshot) {
+      try {
+        const snapshot = await api('/api/learner/snapshot?compact=1');
+        if (snapshot?.compact) {
+          learnerNudge = [
+            '[LEARNER_SNAPSHOT — SYSTEM FACTS]',
+            snapshot.compact,
+            'Use this database snapshot as the source of truth for performance and recency. Do not infer mastery from conversational memory.',
+            'If a target is listed under 刚练过不宜主攻, or its family was seen within 1 day, and the user did not name it, do not make it the main batch; at most mix 2 structural variants. Permutation subskills share one family; date and cycle share one family. Never regenerate the same scenario with swapped numbers.',
+            'If the user names a module such as 数量, only recommend from that module in 下一步候选, still skip 刚练过不宜主攻 unless they named that family. Recency, 到期回捞 and mastery already encode the 21-day forgetting curve; do not invent a separate memory of what is due.',
+            '[/LEARNER_SNAPSHOT]',
+          ].join('\n');
+        }
+      } catch { /* 快照失败不应阻断用户消息，Hermes skill 仍可直接查库 */ }
+    }
+    const outbound = [
+      reviewLead,
+      voiceLead,
+      submittedText,
+      learnerNudge,
+      masteryNudge,
+      quizNudge,
+    ].filter(Boolean).join('\n');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -1224,6 +1161,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       sendingRef.current = false;
     }
   }, [busy, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
+
+  // 小键盘句点开始录音；录音时 Esc 丢弃，第一次 Enter 只完成录音。
+  // 音频进入输入区后，再按一次 Enter 才发送，和点右侧勾的行为一致。
+  useEffect(() => {
+    const onVoiceShortcut = (event) => {
+      if (!active || event.defaultPrevented || event.repeat || event.isComposing) return;
+      if (event.ctrlKey || event.altKey || event.metaKey) return;
+
+      if (event.code === 'NumpadDecimal') {
+        event.preventDefault();
+        if (!recording && !busy && !attaching) void startRecording();
+        return;
+      }
+      if (!recording) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelRecording();
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        stopRecording(false);
+      }
+    };
+    window.addEventListener('keydown', onVoiceShortcut, true);
+    return () => window.removeEventListener('keydown', onVoiceShortcut, true);
+  }, [active, attaching, busy, recording, startRecording, cancelRecording, stopRecording]);
 
   const interrupt = useCallback(async () => {
     const gw = gwRef.current;
@@ -1442,8 +1404,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, [seed, attachPractice, attachUpload, onSeedConsumed]);
 
   const onKeyDown = (e) => {
+    if (e.defaultPrevented) return;
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
+      if (recording) {
+        stopRecording(false);
+        return;
+      }
       send();
     }
   };
@@ -1547,6 +1514,16 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const el = scrollRef.current;
     if (!el) return;
     stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  const practiceSessionForMessage = (messageId) => {
+    const index = messages.findIndex((message) => message.id === messageId);
+    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+      const message = messages[cursor];
+      if (message.role !== 'user') continue;
+      return message.review?.kind === 'practice' ? Number(message.review.id) : null;
+    }
+    return null;
   };
 
   const connLabel = {
@@ -1759,7 +1736,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                       <button
                         type="button"
                         onClick={() => setPopout((cur) => (
-                          cur?.id === m.id ? null : { id: m.id, content: m.content || '' }
+                          cur?.id === m.id
+                            ? null
+                            : {
+                                id: m.id,
+                                content: m.content || '',
+                                practiceSessionId: practiceSessionForMessage(m.id),
+                              }
                         ))}
                         title={popout?.id === m.id ? '收起复盘浮框' : '弹出复盘浮框，可拖动、缩放、单独滚动'}
                         className={`ml-1 p-1 rounded-md transition-colors ${
@@ -1841,7 +1824,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   <button
                     type="button"
                     onClick={cancelRecording}
-                    title="取消这次录音"
+                    title="取消这次录音（Esc）"
                     className="w-8 h-8 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0 hover:bg-white/25"
                   >
                     <X size={15} strokeWidth={2.6} />
@@ -1852,7 +1835,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   <button
                     type="button"
                     onClick={() => stopRecording(false)}
-                    title="说完了，放进对话框"
+                    title="说完了，放进对话框（Enter）"
                     className="w-8 h-8 rounded-full bg-white text-[#1a1a1a] flex items-center justify-center shrink-0 hover:bg-[#f2e4c4]"
                   >
                     <Check size={16} strokeWidth={2.6} />
@@ -1890,7 +1873,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               type="button"
               onClick={startRecording}
               disabled={busy || attaching || recording}
-              title="口述给 Hermes"
+              title="口述给 Hermes（小键盘 .）"
               className="p-3 rounded-2xl shrink-0 bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5 transition-colors disabled:opacity-30"
             >
               <Mic size={18} />
@@ -1903,7 +1886,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               onPaste={onPaste}
               rows={1}
               placeholder={connState === 'open'
-                ? (dragOver ? '松手就把图片放进来' : 'Enter 发送，也可点麦克风口述')
+                ? (dragOver ? '松手就把图片放进来' : 'Enter 发送 · 小键盘 . 录音')
                 : '连接中…先写，连上了再发'}
               className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
             />
@@ -1977,6 +1960,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           content={messages.find((m) => m.id === popout.id)?.content || popout.content}
           streaming={!!messages.find((m) => m.id === popout.id)?.streaming}
           fontScale={fontScale}
+          practiceSessionId={popout.practiceSessionId}
           onClose={() => setPopout(null)}
         />
       )}

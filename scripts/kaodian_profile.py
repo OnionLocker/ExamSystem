@@ -10,6 +10,8 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from kaodian_taxonomy import canonicalize, normalize_module
+
 DB = Path(__file__).resolve().parent.parent / "data" / "exam.db"
 
 SCHEMA = """
@@ -40,6 +42,7 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     kaodian     TEXT NOT NULL,
     question_id INTEGER,
+    session_id  INTEGER,
     is_correct  INTEGER NOT NULL,
     elapsed_ms  INTEGER,
     evidence_type TEXT NOT NULL DEFAULT 'hermes',
@@ -48,6 +51,27 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at);
+
+CREATE TABLE IF NOT EXISTS kaodian_aliases (
+    alias       TEXT PRIMARY KEY,
+    canonical   TEXT NOT NULL,
+    module      TEXT NOT NULL,
+    subtype     TEXT,
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_kaodian_alias_canonical
+    ON kaodian_aliases(canonical);
+
+CREATE TABLE IF NOT EXISTS kaodian_debts (
+    kaodian          TEXT PRIMARY KEY,
+    wrong_count      INTEGER NOT NULL DEFAULT 1,
+    recovery_streak  INTEGER NOT NULL DEFAULT 0,
+    last_wrong_at    TEXT,
+    last_seen_at     TEXT,
+    mastered         INTEGER NOT NULL DEFAULT 0,
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 RECORD = """
@@ -115,8 +139,19 @@ def recompute_mastery(conn, kaodian=None):
     ).fetchall()
     for (tag,) in profiles:
         events = conn.execute(
-            """SELECT is_correct, answered_at, evidence_type, evidence_weight
-               FROM kaodian_events WHERE kaodian=? ORDER BY answered_at, id""",
+            """SELECT MAX(e.is_correct), MIN(e.answered_at),
+                      MAX(e.evidence_type), MAX(e.evidence_weight)
+                 FROM kaodian_events e
+                 LEFT JOIN kaodian_aliases a ON a.alias=e.kaodian
+                WHERE COALESCE(a.canonical, e.kaodian)=?
+                GROUP BY CASE
+                  WHEN e.session_id IS NOT NULL
+                    THEN 's:' || e.session_id || ':' || COALESCE(e.question_id, 0) || ':' || e.evidence_type
+                  WHEN e.question_id IS NOT NULL
+                    THEN 'q:' || e.question_id || ':' || e.answered_at || ':' || e.evidence_type
+                  ELSE 'e:' || e.id
+                END
+                ORDER BY MIN(e.answered_at), MIN(e.id)""",
             (tag,),
         ).fetchall()
         score = calculate_mastery([
@@ -138,9 +173,29 @@ def recompute_mastery(conn, kaodian=None):
             )
 
 
+def resolve_kaodian(conn, kaodian, module="", subtype=""):
+    row = conn.execute(
+        "SELECT canonical, module, subtype FROM kaodian_aliases WHERE alias=?",
+        (kaodian,),
+    ).fetchone()
+    if row:
+        return row[0], row[1], row[2]
+    canonical = canonicalize(kaodian, module, subtype)
+    normalized_module = normalize_module(module or canonical.split("-", 1)[0])
+    canonical_subtype = canonical.split("-")[1] if "-" in canonical else subtype
+    conn.execute(
+        """INSERT INTO kaodian_aliases(alias, canonical, module, subtype)
+           VALUES (?,?,?,?)
+           ON CONFLICT(alias) DO NOTHING""",
+        (kaodian, canonical, normalized_module, canonical_subtype),
+    )
+    return canonical, normalized_module, canonical_subtype
+
+
 def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0):
     """记录一次证据并按全部历史流水重算熟练度。"""
     ensure_schema(conn)
+    kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     c = 1 if is_correct else 0
     conn.execute(RECORD, (kaodian, module, subtype, c, elapsed_ms, 1 if c else -1))
     conn.execute(
@@ -158,6 +213,8 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
     新点以 attempts=0 进入画像，后续第一次作答直接复用同一标签调用 record()。
     note 建议包含来源题号、定义和与相邻考点的区分，方便下次复盘确认是否合并。
     """
+    ensure_schema(conn)
+    kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     conn.execute("""
         INSERT INTO kaodian_profile
           (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak, note)
@@ -176,15 +233,18 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
 
 
 def weak_points(conn, limit=20, min_attempts=3):
-    """薄弱考点：做过至少 min_attempts 次且正确率低的，按 (正确率, 连错) 排序。"""
+    """薄弱考点：优先可信画像，再看掌握度、连错与耗时。"""
     return conn.execute("""
         SELECT kaodian, module, subtype, attempts, correct,
                ROUND(correct * 100.0 / attempts, 1) AS acc,
                CASE WHEN attempts > 0 THEN total_ms / attempts / 1000 ELSE 0 END AS avg_sec,
-               streak, last_seen
+               streak, last_seen, mastery, mastery_confidence, mastery_samples
         FROM kaodian_profile
         WHERE attempts >= ?
-        ORDER BY acc ASC, streak ASC, attempts DESC
+        ORDER BY CASE WHEN COALESCE(mastery_confidence,0) >= 25 THEN 0 ELSE 1 END,
+                 COALESCE(mastery, acc) ASC,
+                 streak ASC,
+                 attempts DESC
         LIMIT ?
     """, (min_attempts, limit)).fetchall()
 
@@ -209,6 +269,22 @@ def ensure_schema(conn):
         conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'hermes'")
     if "evidence_weight" not in event_cols:
         conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_weight REAL NOT NULL DEFAULT 1.0")
+    if "session_id" not in event_cols:
+        conn.execute("ALTER TABLE kaodian_events ADD COLUMN session_id INTEGER")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS kaodian_aliases (
+          alias TEXT PRIMARY KEY,
+          canonical TEXT NOT NULL,
+          module TEXT NOT NULL,
+          subtype TEXT,
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_practice_evidence
+        ON kaodian_events(kaodian, question_id, session_id, evidence_type)
+        WHERE session_id IS NOT NULL
+    """)
 
 
 def score_of(row):
@@ -229,6 +305,7 @@ def score_of(row):
 def set_mastery(conn, kaodian, score, note="", module="", subtype=""):
     """按实际情况写入掌握度。没有这个考点就建一行。"""
     ensure_schema(conn)
+    kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     score = max(0, min(100, int(score)))
     note = (note or "").strip()
     module = (module or "").strip()

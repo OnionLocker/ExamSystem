@@ -16,6 +16,9 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
 
 # AI question-generation routing
 
+- For any study plan, weakness analysis, targeted practice, or review, first run
+  `python3 /home/ubuntu/ExamSystem/scripts/learner_snapshot.py --compact`.
+  This database snapshot overrides conversational memory for performance, confidence, recency, and open mistakes.
 - When Russell asks for questions or targeted practice, load `quiz-pipeline` and `gd-gongkao-coach` before drafting anything.
 - Before writing any stem, use `/home/ubuntu/ExamSystem/scripts/reference_style.py context --role generate`
   with the target category / sub-category / canonical tag. This command automatically internalizes newly
@@ -24,7 +27,9 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
   Generation examples and holdout evaluation examples must never come from the same context.
 - Every AI-generated batch manifest must set `kind: "ai-generated"` and record the style marker plus
   generation/evaluation context arrays. Both arrays must map context and reference IDs onto every generated
-  question. `import:batch` rejects missing, incomplete, reused, or fabricated provenance.
+  question. Before import, persist `evidence/correctness.json` and `evidence/quality.json`, then issue
+  `.gate.json` with `scripts/generation_gate.py`. `import:batch` rejects missing, stale, incomplete,
+  reused, or fabricated provenance and gate evidence.
 - Unless Russell explicitly asks to answer inside chat, run both correctness and quality gates, import the batch into ExamSystem AI Practice, and reply only with the batch name and question count.
 - Never print question stems, options, answers, validation details, or intermediate tool output in chat during the default batch workflow.
 - For single-choice questions, exactly one option must be valid. The user-specified knowledge point has priority over automatic weak-point selection and repeat-avoidance rules.

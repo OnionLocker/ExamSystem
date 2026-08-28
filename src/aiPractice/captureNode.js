@@ -83,7 +83,16 @@ export async function captureNode(node) {
         });
       },
     });
-    return canvas.toDataURL('image/png');
+    // JPEG 比 PNG data URL 小一个数量级。iPad Safari 把整页 PNG 塞进 JSON
+    // 再 PUT，WebKit 会直接抛 TypeError: Load failed，服务端根本收不到。
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b && b.size ? resolve(b) : reject(new Error('截图为空'))),
+        'image/jpeg',
+        0.72,
+      );
+    });
+    return blob;
   } catch (err) {
     console.warn('[draft] 草稿纸截图失败', err);
     return null;

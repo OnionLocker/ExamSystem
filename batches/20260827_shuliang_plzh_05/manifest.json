@@ -1,0 +1,49 @@
+{
+  "batch_id": "20260827_shuliang_plzh_05",
+  "source": "广东省考行测 · 数量关系排列组合（均等分组分配消序专项）",
+  "region": "广东-省直",
+  "year": 2026,
+  "license": "个人备考学习使用",
+  "created_at": "2026-08-27",
+  "notes": "针对不同人员均等分组分配消序（除以组数阶乘）、指定对象同组/不同组等5大变式题",
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-f1a0771e79084aba962b4d2a748d59ee",
+        "reference_ids": [
+          "粉笔-2026-国家地市-数学运算-67",
+          "粉笔-2024-青海-数学运算-67",
+          "粉笔-2026-湖北-数学运算-69",
+          "粉笔-2026-黑龙江-数学运算-69",
+          "粉笔-2025-浙江C类-数学运算-63"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-05-01",
+          "20260827-shuliang-plzh-05-02",
+          "20260827-shuliang-plzh-05-03",
+          "20260827-shuliang-plzh-05-04",
+          "20260827-shuliang-plzh-05-05"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-427089cf0eac4bb3b2ce6c5125c62a3e",
+        "reference_ids": [
+          "粉笔-2026-内蒙古-数学运算-70",
+          "粉笔-2026-贵州-数学运算-58",
+          "粉笔-2026-浙江B类-数学运算-65"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-05-01",
+          "20260827-shuliang-plzh-05-02",
+          "20260827-shuliang-plzh-05-03",
+          "20260827-shuliang-plzh-05-04",
+          "20260827-shuliang-plzh-05-05"
+        ]
+      }
+    ]
+  }
+}

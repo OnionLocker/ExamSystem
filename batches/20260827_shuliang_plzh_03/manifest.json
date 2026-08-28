@@ -1,0 +1,59 @@
+{
+  "batch_id": "20260827_shuliang_plzh_03",
+  "source": "广东省考行测 · 数量关系排列组合决策树第3期（终极通关）",
+  "region": "广东-省直",
+  "year": 2026,
+  "license": "个人备考学习使用",
+  "created_at": "2026-08-27",
+  "notes": "排列组合四级决策树第3期终极通关",
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-3cd48735a9184aa5b24e42fc7351b87c",
+        "reference_ids": [
+          "粉笔-2026-国家地市-数学运算-67",
+          "粉笔-2024-青海-数学运算-67",
+          "粉笔-2026-广东-数学运算-45",
+          "粉笔-2026-贵州-数学运算-54",
+          "粉笔-2026-天津-数学运算-52"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-03-01",
+          "20260827-shuliang-plzh-03-02",
+          "20260827-shuliang-plzh-03-03",
+          "20260827-shuliang-plzh-03-04",
+          "20260827-shuliang-plzh-03-05",
+          "20260827-shuliang-plzh-03-06",
+          "20260827-shuliang-plzh-03-07",
+          "20260827-shuliang-plzh-03-08",
+          "20260827-shuliang-plzh-03-09",
+          "20260827-shuliang-plzh-03-10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-de419ea569d44e2cae278b6ed2e2ad94",
+        "reference_ids": [
+          "粉笔-2026-浙江B类-数学运算-65",
+          "粉笔-2025-云南-数学运算-58",
+          "粉笔-2026-内蒙古-数学运算-70"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-03-01",
+          "20260827-shuliang-plzh-03-02",
+          "20260827-shuliang-plzh-03-03",
+          "20260827-shuliang-plzh-03-04",
+          "20260827-shuliang-plzh-03-05",
+          "20260827-shuliang-plzh-03-06",
+          "20260827-shuliang-plzh-03-07",
+          "20260827-shuliang-plzh-03-08",
+          "20260827-shuliang-plzh-03-09",
+          "20260827-shuliang-plzh-03-10"
+        ]
+      }
+    ]
+  }
+}

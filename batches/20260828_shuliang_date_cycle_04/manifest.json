@@ -1,0 +1,55 @@
+{
+  "batch_id": "20260828_shuliang_date_cycle_04",
+  "source": "广东省考行测 · 数量关系周期与日期推算靶向通关",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-cddd98e3037b42a3a397b8d3b2cbdeb0",
+        "reference_ids": [
+          "粉笔-2026-黑龙江-数学运算-67",
+          "粉笔-2026-黑龙江-数学运算-69",
+          "粉笔-2025-新疆-数学运算-57",
+          "粉笔-2026-国家副省-数学运算-78",
+          "粉笔-2026-国家副省-数学运算-74"
+        ],
+        "question_ids": [
+          "20260828_shuliang_date_cycle_04_01",
+          "20260828_shuliang_date_cycle_04_02",
+          "20260828_shuliang_date_cycle_04_03",
+          "20260828_shuliang_date_cycle_04_04",
+          "20260828_shuliang_date_cycle_04_05",
+          "20260828_shuliang_date_cycle_04_06",
+          "20260828_shuliang_date_cycle_04_07",
+          "20260828_shuliang_date_cycle_04_08",
+          "20260828_shuliang_date_cycle_04_09",
+          "20260828_shuliang_date_cycle_04_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-081f8800186e40c5a1351e9be821e9ea",
+        "reference_ids": [
+          "粉笔-2026-浙江B类-数学运算-65",
+          "粉笔-2026-内蒙古-数学运算-70"
+        ],
+        "question_ids": [
+          "20260828_shuliang_date_cycle_04_01",
+          "20260828_shuliang_date_cycle_04_02",
+          "20260828_shuliang_date_cycle_04_03",
+          "20260828_shuliang_date_cycle_04_04",
+          "20260828_shuliang_date_cycle_04_05",
+          "20260828_shuliang_date_cycle_04_06",
+          "20260828_shuliang_date_cycle_04_07",
+          "20260828_shuliang_date_cycle_04_08",
+          "20260828_shuliang_date_cycle_04_09",
+          "20260828_shuliang_date_cycle_04_10"
+        ]
+      }
+    ]
+  }
+}

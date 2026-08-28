@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Ban, ChevronDown, Lightbulb, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { TRACKS, XINGCE, SHENLUN } from './canon.js';
 import { consumeKnowledgeFocus, KNOWLEDGE_OPEN_EVENT } from './nav.js';
 import { api } from '../api.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
+import { cardRow as matchCardRow, relatedRows } from './match.js';
+import { cardToMarkdown } from './cardMarkdown.js';
+import 'katex/dist/katex.min.css';
+import '../hermes/katex-fix.css';
 
 const OVERRIDE_KEY = 'knowledge_overrides_v1';
 const packOf = (id) => (id === 'shenlun' ? SHENLUN : XINGCE);
@@ -37,24 +45,54 @@ function masteryHint(row) {
   return parts.join(' · ');
 }
 
-function relatedRows(type, rows) {
-  const name = type.name || '';
-  if (!name) return [];
-  return rows.filter((r) => {
-    const k = r.kaodian || '';
-    if (k === name || k.endsWith(`-${name}`) || k.includes(name) || name.includes(k)) return true;
-    const sub = r.subtype || '';
-    return Boolean(sub && (sub.includes(name) || name.includes(sub)));
-  });
+function cardRow(type, rows) {
+  return matchCardRow(type, rows, scoreOf);
 }
 
-function cardRow(type, rows) {
-  const hits = relatedRows(type, rows);
-  if (!hits.length) return { score: null, hits, row: null };
-  const exact = hits.find((r) => r.kaodian === type.name);
-  const row = exact || [...hits].sort((a, b) => (b.attempts || 0) - (a.attempts || 0))[0];
-  return { score: scoreOf(row), hits, row };
-}
+const headingText = (node) => {
+  if (node == null) return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(headingText).join('');
+  if (node?.props?.children) return headingText(node.props.children);
+  return '';
+};
+
+const CARD_MD = {
+  h4({ children }) {
+    const title = headingText(children);
+    const danger = title.includes('禁止');
+    return (
+      <p className={`text-[13px] font-black tracking-widest mb-2.5 mt-5 first:mt-0 ${
+        danger ? 'text-[#a15c3a]' : 'text-slate-500'
+      }`}
+      >
+        {children}
+      </p>
+    );
+  },
+  ol({ children }) {
+    return <ol className="list-decimal pl-6 space-y-2.5 text-[17px] leading-8 marker:font-black marker:text-slate-400">{children}</ol>;
+  },
+  ul({ children }) {
+    return <ul className="list-disc pl-6 space-y-2 text-[17px] leading-8 marker:text-[#c4ae7a]">{children}</ul>;
+  },
+  li({ children }) {
+    return <li className="pl-0.5">{children}</li>;
+  },
+  p({ children }) {
+    return <p className="text-[17px] leading-8 my-1.5">{children}</p>;
+  },
+  strong({ children }) {
+    return <strong className="font-black text-[#1a1a1a]">{children}</strong>;
+  },
+};
+
+const KATEX_OPTIONS = {
+  throwOnError: false,
+  strict: false,
+  macros: { '\\frac': '\\dfrac' },
+  minRuleThickness: 0.07,
+};
 
 const MASTERY_COLORS = ['#e24b4b', '#ef7d3a', '#e6b423', '#9cc43a', '#4caf50', '#2a9d5c'];
 
@@ -82,7 +120,7 @@ function MasteryBar({ score, hint }) {
           />
         ))}
       </span>
-      <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+      <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
         {known ? `${v}%` : '未评估'}
       </span>
     </span>
@@ -144,7 +182,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
       >
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-3 min-w-0">
-            <h4 className="text-base font-black tracking-tight">{view.name}</h4>
+            <h4 className="text-lg font-black tracking-tight">{view.name}</h4>
             <MasteryBar
               score={score}
               hint={[row?.mastery_note, masteryHint(row), hits.length > 1 ? `${hits.length} 个相关考点` : ''].filter(Boolean).join(' · ')}
@@ -153,7 +191,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
               <span className="text-[10px] font-black text-[#8a6d3b] bg-[#f6ecd4] px-2 py-0.5 rounded-full">自补</span>
             ) : null}
           </div>
-          <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed">{view.how}</p>
+          <p className="text-sm text-slate-500 font-medium mt-1 leading-relaxed">{view.how}</p>
         </div>
         <ChevronDown
           size={18}
@@ -254,76 +292,38 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
             </div>
           ) : (
             <>
-              {view.steps?.length > 0 && (
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">怎么做</p>
-                  <ol className="space-y-2">
-                    {view.steps.map((s, i) => (
-                      <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                        <span className="w-5 h-5 rounded-full bg-[#1a1a1a] text-white text-[10px] font-black flex items-center justify-center flex-shrink-0 mt-0.5">
-                          {i + 1}
-                        </span>
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              )}
-              {view.know?.length > 0 && (
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-                    <Lightbulb size={11} /> 要记住
-                  </p>
-                  <ul className="space-y-1.5">
-                    {view.know.map((s, i) => (
-                      <li key={i} className="text-sm leading-relaxed pl-3 border-l-2 border-[#c4ae7a]">{s}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {view.ban?.length > 0 && (
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#a15c3a] mb-2 flex items-center gap-1.5">
-                    <Ban size={11} /> 禁止
-                  </p>
-                  <ul className="space-y-1">
-                    {view.ban.map((s, i) => (
-                      <li key={i} className="text-sm text-[#6b3f2a] leading-relaxed">{s}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {view.anchors?.length > 0 && (
-                <section>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">真题锚点</p>
-                  <ul className="space-y-1">
-                    {view.anchors.map((s, i) => (
-                      <li key={i} className="text-sm text-slate-600 leading-relaxed">{s}</li>
-                    ))}
-                  </ul>
-                </section>
+              {cardToMarkdown(view) && (
+                <div className="katex-inline-host text-[17px]">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkMath]}
+                    rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
+                    components={CARD_MD}
+                  >
+                    {cardToMarkdown(view)}
+                  </ReactMarkdown>
+                </div>
               )}
               {view.next && (
-                <p className="flex items-start gap-2 rounded-2xl bg-[#1a1a1a] text-white px-4 py-3 text-sm font-bold">
+                <p className="flex items-start gap-2 rounded-2xl bg-[#1a1a1a] text-white px-4 py-3 text-[17px] font-bold leading-7">
                   <Target size={14} className="flex-shrink-0 mt-0.5 opacity-70" />
                   <span>下次：{view.next}</span>
                 </p>
               )}
               {view.mine && (
-                <p className="rounded-2xl bg-[#f6ecd4] px-4 py-3 text-sm leading-relaxed">{view.mine}</p>
+                <p className="rounded-2xl bg-[#f6ecd4] px-4 py-3 text-[17px] leading-8">{view.mine}</p>
               )}
             </>
           )}
 
           {hits.length > 0 && (
             <section>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">练过 / Hermes 记过</p>
+              <p className="text-[13px] font-black tracking-widest text-slate-500 mb-2">练过 / Hermes 记过</p>
               <div className="space-y-2">
                 {hits.map((h) => (
                   <div key={h.kaodian} className="rounded-2xl border border-[#f0e4c8] px-3 py-2">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <p className="text-sm font-bold truncate">{h.kaodian}</p>
+                        <p className="text-base font-bold truncate">{h.kaodian}</p>
                         <MasteryBar score={scoreOf(h)} hint={[h.mastery_note, masteryHint(h)].filter(Boolean).join(' · ')} />
                       </div>
                       <p className="text-[10px] text-slate-400 font-bold flex-shrink-0">

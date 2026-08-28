@@ -5,6 +5,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 import db from '../server/db.js'; // 自动跑 schema / migration
@@ -43,6 +44,19 @@ function copyImages(batchDir, batchId, questions, materials) {
 // 把 JSON 里的相对路径数组改写为绝对 public 路径
 const rewrite = (batchId, arr) =>
   Array.isArray(arr) && arr.length ? arr.map((p) => toImgPublicPath(batchId, p)) : null;
+
+function resolvedTags(q) {
+  const tags = Array.isArray(q.tags)
+    ? q.tags.map((tag) => String(tag).trim()).filter(Boolean)
+    : [];
+  if (tags.length) return tags;
+  const fallback = String(q.knowledge_point || '').trim();
+  if (fallback) return [fallback];
+  const points = Array.isArray(q.knowledge_points)
+    ? q.knowledge_points.map((tag) => String(tag).trim()).filter(Boolean)
+    : [];
+  return points;
+}
 
 function verifyGenerationContexts(manifest, questions) {
   if (manifest.kind !== 'ai-generated') return [];
@@ -211,7 +225,7 @@ function importToDB(manifest, questions, materials) {
         explanation: q.explanation ?? null,
         explanation_images: JSON.stringify(rewrite(batchId, q.explanation_images) || []),
         difficulty: q.difficulty ?? 2,
-        tags: JSON.stringify(q.tags ?? []),
+        tags: JSON.stringify(resolvedTags(q)),
         source: q.source ?? manifest.source ?? null,
         year: q.year ?? manifest.year ?? null,
         region: q.region ?? manifest.region ?? null,
@@ -248,6 +262,19 @@ rep.print();
 if (!rep.ok) {
   console.log('\n✗ 校验失败，已中止导入');
   process.exit(1);
+}
+
+if (manifest.kind === 'ai-generated') {
+  const gate = spawnSync(
+    'python3',
+    [path.join(ROOT, 'scripts', 'generation_gate.py'), 'verify', abs],
+    { encoding: 'utf8' },
+  );
+  if (gate.status !== 0) {
+    console.error(gate.stdout?.trim() || gate.stderr?.trim() || 'AI 生成双闸门校验失败');
+    process.exit(1);
+  }
+  console.log('  ✓ 正确性与质量闸门回执有效');
 }
 
 const materials = Array.from(materialMap.values());

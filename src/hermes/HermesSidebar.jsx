@@ -10,6 +10,7 @@ const SOURCE_META = {
   tui: { label: '本地', icon: Terminal, order: 0 },
   cli: { label: '本地', icon: Terminal, order: 0 },
 };
+const HIDDEN_SOURCES = new Set(['cron', 'weixin', 'wechat']);
 
 const sourceMeta = (source) => SOURCE_META[source] || {
   label: '其他', icon: MessageSquare, order: 3,
@@ -32,6 +33,7 @@ export default function HermesSidebar({
   const grouped = useMemo(() => {
     const groups = new Map();
     for (const session of sessions) {
+      if (HIDDEN_SOURCES.has(session.source)) continue;
       const meta = sourceMeta(session.source);
       if (!groups.has(meta.label)) groups.set(meta.label, { meta, items: [] });
       groups.get(meta.label).items.push(session);

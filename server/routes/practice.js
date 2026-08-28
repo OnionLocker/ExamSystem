@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -23,7 +23,8 @@ const parseTags = (raw) => {
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const draftDir = path.join(__dirname, '..', '..', 'data', 'draft-images');
+const draftDir = process.env.EXAM_DRAFT_DIR
+  || path.join(__dirname, '..', '..', 'data', 'draft-images');
 const practiceReviewDir = path.join(__dirname, '..', '..', 'data', 'practice-reviews');
 if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
 if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursive: true });
@@ -43,22 +44,27 @@ const DRAFT_MAX_BYTES = 8 * 1024 * 1024;
 const DRAFT_MAX_WIDTH = 1024;
 const PALETTE_COLORS = 16;
 
-const shrinkPng = (buf) => {
+const shrinkDraft = (buf) => {
   const r = spawnSync(
     'convert',
     [
-      'png:-',
+      '-[0]',
       '-filter', 'Box',
       '-resize', `${DRAFT_MAX_WIDTH}x>`,
       '+dither', '-colors', String(PALETTE_COLORS),
       '-define', 'png:compression-level=9',
       'png8:-',
     ],
-    { input: buf, maxBuffer: DRAFT_MAX_BYTES },
+    { input: buf, maxBuffer: DRAFT_MAX_BYTES, timeout: 8000 },
   );
   const out = r.status === 0 ? r.stdout : null;
   // 没装 ImageMagick、或压完反而更大，就照原样存
   return out && out.length && out.length < buf.length ? out : buf;
+};
+
+const readDraftUpload = (req, res, next) => {
+  if (String(req.headers['content-type'] || '').includes('application/json')) return next();
+  express.raw({ type: () => true, limit: DRAFT_MAX_BYTES })(req, res, next);
 };
 
 const safeUnlinkDraft = (filename) => {
@@ -215,13 +221,37 @@ router.post('/sessions/:id/submit', (req, res) => {
             mastered = CASE WHEN correct_streak + 1 >= ${MISTAKE_CLEAR} THEN 1 ELSE 0 END
       WHERE question_id = ? AND mastered = 0`,
   );
+  const addKaodianDebt = db.prepare(
+    `INSERT INTO kaodian_debts
+       (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
+     VALUES (?, 1, 0, datetime('now'), datetime('now'), 0)
+     ON CONFLICT(kaodian) DO UPDATE SET
+       wrong_count = wrong_count + 1,
+       recovery_streak = 0,
+       last_wrong_at = datetime('now'),
+       last_seen_at = datetime('now'),
+       mastered = 0,
+       updated_at = datetime('now')`,
+  );
+  const clearKaodianDebt = db.prepare(
+    `UPDATE kaodian_debts
+        SET recovery_streak = recovery_streak + 1,
+            last_seen_at = datetime('now'),
+            mastered = CASE WHEN recovery_streak + 1 >= ${MISTAKE_CLEAR} THEN 1 ELSE 0 END,
+            updated_at = datetime('now')
+      WHERE kaodian = ? AND mastered = 0`,
+  );
 
   // 考点画像：把 questions.tags 里的每个知识点单独记账，
   // 这样能查到"哪个考点老是错"，而不是只知道"判断推理错得多"。
   const addKdEvent = db.prepare(
     `INSERT INTO kaodian_events
-       (kaodian, question_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
-     VALUES (?, ?, ?, ?, 'practice', 1.0)`,
+       (kaodian, question_id, session_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
+     VALUES (?, ?, ?, ?, ?, 'practice', 1.0)
+     ON CONFLICT DO NOTHING`,
+  );
+  const getCanonicalKd = db.prepare(
+    'SELECT canonical FROM kaodian_aliases WHERE alias = ?',
   );
   const upsertKd = db.prepare(
     `INSERT INTO kaodian_profile
@@ -259,8 +289,20 @@ router.post('/sessions/:id/submit', (req, res) => {
         if (isCorrect) clearMistake.run(q.id);
         else addMistake.run(q.id);
 
-        for (const kd of parseTags(q.tags)) {
-          addKdEvent.run(kd, q.id, isCorrect ? 1 : 0, timeSpent * 1000);
+        // IMPORT_SPEC 规定第一个 tag 是规范主考点；辅助标签不应各自生成一份掌握度。
+        const [rawKd] = parseTags(q.tags);
+        if (rawKd) {
+          const kd = getCanonicalKd.get(rawKd)?.canonical || rawKd;
+          if (isCorrect) clearKaodianDebt.run(kd);
+          else addKaodianDebt.run(kd);
+          const added = addKdEvent.run(
+            kd,
+            q.id,
+            sessionId,
+            isCorrect ? 1 : 0,
+            timeSpent * 1000,
+          );
+          if (added.changes > 0) {
           upsertKd.run({
             kaodian: kd,
             module: q.category || '未分类',
@@ -268,6 +310,7 @@ router.post('/sessions/:id/submit', (req, res) => {
             ok: isCorrect ? 1 : 0,
             ms: timeSpent * 1000,
           });
+          }
         }
       }
 
@@ -474,7 +517,7 @@ router.get('/sessions/:id/md', (req, res) => {
 //   body: { data: 'data:image/png;base64,...' }
 //   草稿纸合成图（题目 + 圈划 + 演算）落盘，同一题重复写就覆盖
 // ───────────────────────────────────────────────────────────────
-router.put('/sessions/:id/drafts/:questionId', (req, res) => {
+router.put('/sessions/:id/drafts/:questionId', readDraftUpload, (req, res) => {
   const sessionId = Number(req.params.id);
   const questionId = Number(req.params.questionId);
 
@@ -483,22 +526,31 @@ router.put('/sessions/:id/drafts/:questionId', (req, res) => {
   const q = db.prepare('SELECT id FROM questions WHERE id = ?').get(questionId);
   if (!q) return res.status(404).json({ error: 'question not found' });
 
-  let { data, mime } = req.body || {};
-  if (!data || typeof data !== 'string') return res.status(400).json({ error: 'data required' });
+  let mime = 'image/png';
+  let buf;
+  if (Buffer.isBuffer(req.body)) {
+    mime = String(req.headers['content-type'] || 'image/jpeg').split(';')[0].trim().toLowerCase();
+    buf = req.body;
+  } else {
+    let { data, mime: bodyMime } = req.body || {};
+    if (!data || typeof data !== 'string') return res.status(400).json({ error: 'data required' });
+    const m = data.match(/^data:([^;]+);base64,(.+)$/s);
+    if (m) { bodyMime = bodyMime || m[1]; data = m[2]; }
+    mime = String(bodyMime || 'image/png').toLowerCase();
+    try { buf = Buffer.from(data, 'base64'); } catch { return res.status(400).json({ error: 'base64 解码失败' }); }
+  }
 
-  const m = data.match(/^data:([^;]+);base64,(.+)$/s);
-  if (m) { mime = mime || m[1]; data = m[2]; }
-  mime = String(mime || 'image/png').toLowerCase();
   if (mime !== 'image/png' && mime !== 'image/jpeg' && mime !== 'image/webp') {
     return res.status(400).json({ error: `不支持的草稿图类型: ${mime}` });
   }
-
-  let buf;
-  try { buf = Buffer.from(data, 'base64'); } catch { return res.status(400).json({ error: 'base64 解码失败' }); }
-  if (!buf.length) return res.status(400).json({ error: '草稿图为空' });
+  if (!buf?.length) return res.status(400).json({ error: '草稿图为空' });
   if (buf.length > DRAFT_MAX_BYTES) return res.status(400).json({ error: '草稿图过大' });
 
-  if (mime === 'image/png') buf = shrinkPng(buf);
+  const shrunk = shrinkDraft(buf);
+  if (shrunk !== buf) {
+    buf = shrunk;
+    mime = 'image/png';
+  }
 
   const ext = mime === 'image/jpeg' ? '.jpg' : mime === 'image/webp' ? '.webp' : '.png';
   const filename = `${crypto.randomUUID()}${ext}`;

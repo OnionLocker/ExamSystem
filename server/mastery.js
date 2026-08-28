@@ -51,10 +51,21 @@ export function recomputeMastery(db, kaodian = null) {
     ? db.prepare("SELECT kaodian FROM kaodian_profile WHERE kaodian = ? AND mastery_source != 'manual'").all(kaodian)
     : db.prepare("SELECT kaodian FROM kaodian_profile WHERE mastery_source != 'manual'").all();
   const events = db.prepare(`
-    SELECT is_correct, answered_at, evidence_type, evidence_weight
-      FROM kaodian_events
-     WHERE kaodian = ?
-     ORDER BY answered_at ASC, id ASC
+    SELECT MAX(e.is_correct) AS is_correct,
+           MIN(e.answered_at) AS answered_at,
+           MAX(e.evidence_type) AS evidence_type,
+           MAX(e.evidence_weight) AS evidence_weight
+      FROM kaodian_events e
+      LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+     WHERE COALESCE(a.canonical, e.kaodian) = ?
+     GROUP BY CASE
+       WHEN e.session_id IS NOT NULL
+         THEN 's:' || e.session_id || ':' || COALESCE(e.question_id, 0) || ':' || e.evidence_type
+       WHEN e.question_id IS NOT NULL
+         THEN 'q:' || e.question_id || ':' || e.answered_at || ':' || e.evidence_type
+       ELSE 'e:' || e.id
+     END
+     ORDER BY answered_at ASC
   `);
   const update = db.prepare(`
     UPDATE kaodian_profile

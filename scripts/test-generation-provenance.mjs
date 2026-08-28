@@ -105,6 +105,36 @@ const makeBatch = (batchId, generation) => {
   return dir;
 };
 
+const issueGate = (dir, questionId, evaluationContextIds) => {
+  const evidenceDir = path.join(dir, 'evidence');
+  fs.mkdirSync(evidenceDir);
+  const correctness = path.join(evidenceDir, 'correctness.json');
+  const quality = path.join(evidenceDir, 'quality.json');
+  fs.writeFileSync(correctness, JSON.stringify({
+    verdict: 'PASS',
+    route: 'B',
+    question_ids: [questionId],
+    checks: ['答案唯一', '选项数值不碰撞'],
+  }, null, 2));
+  fs.writeFileSync(quality, JSON.stringify({
+    verdict: 'PASS',
+    question_ids: [questionId],
+    evaluation_context_ids: evaluationContextIds,
+    checks: ['考点单一', '真题信息密度', '干扰项有效'],
+  }, null, 2));
+  const result = spawnSync(
+    'python3',
+    [
+      path.join(ROOT, 'scripts', 'generation_gate.py'),
+      'issue', dir,
+      '--correctness', correctness,
+      '--quality', quality,
+    ],
+    { cwd: ROOT, encoding: 'utf8' },
+  );
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+};
+
 const batchId = 'provenance-test-good';
 const questionId = `${batchId}-Q001`;
 const goodDir = makeBatch(batchId, {
@@ -120,6 +150,7 @@ const goodDir = makeBatch(batchId, {
     question_ids: [questionId],
   }],
 });
+issueGate(goodDir, questionId, [evaluateContext.context_id]);
 
 const imported = spawnSync(
   process.execPath,
@@ -153,6 +184,7 @@ const badDir = makeBatch(badBatchId, {
     question_ids: [badQuestionId],
   }],
 });
+issueGate(badDir, badQuestionId, [evaluateContext.context_id]);
 const rejected = spawnSync(
   process.execPath,
   [path.join(ROOT, 'scripts', 'import-batch.mjs'), badDir],

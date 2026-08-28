@@ -1,0 +1,59 @@
+{
+  "batch_id": "20260827_shuliang_plzh_01",
+  "source": "广东省考行测 · 数量关系排列组合四级决策树专项强化",
+  "region": "广东-省直",
+  "year": 2026,
+  "license": "个人备考学习使用",
+  "created_at": "2026-08-27",
+  "notes": "严格按照广东省考 85+ 标杆出题，覆盖优限法、捆绑法、插空法、分类讨论、隔板法标准型与变式、复合多限制决策树、错位重排对称性、圆桌环形排列、网格最短路径反面法",
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-4877edaf45ec4044a6c6a6dc273ee2e2",
+        "reference_ids": [
+          "粉笔-2026-国家地市-数学运算-67",
+          "粉笔-2024-青海-数学运算-67",
+          "粉笔-2026-广东-数学运算-45",
+          "粉笔-2026-国家副省-数学运算-78",
+          "粉笔-2026-国家副省-数学运算-74"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-01-01",
+          "20260827-shuliang-plzh-01-02",
+          "20260827-shuliang-plzh-01-03",
+          "20260827-shuliang-plzh-01-04",
+          "20260827-shuliang-plzh-01-05",
+          "20260827-shuliang-plzh-01-06",
+          "20260827-shuliang-plzh-01-07",
+          "20260827-shuliang-plzh-01-08",
+          "20260827-shuliang-plzh-01-09",
+          "20260827-shuliang-plzh-01-10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-75859ffee22e4f32a64ce09e451659c5",
+        "reference_ids": [
+          "粉笔-2026-内蒙古-数学运算-70",
+          "粉笔-2026-贵州-数学运算-58",
+          "粉笔-2026-浙江B类-数学运算-65"
+        ],
+        "question_ids": [
+          "20260827-shuliang-plzh-01-01",
+          "20260827-shuliang-plzh-01-02",
+          "20260827-shuliang-plzh-01-03",
+          "20260827-shuliang-plzh-01-04",
+          "20260827-shuliang-plzh-01-05",
+          "20260827-shuliang-plzh-01-06",
+          "20260827-shuliang-plzh-01-07",
+          "20260827-shuliang-plzh-01-08",
+          "20260827-shuliang-plzh-01-09",
+          "20260827-shuliang-plzh-01-10"
+        ]
+      }
+    ]
+  }
+}

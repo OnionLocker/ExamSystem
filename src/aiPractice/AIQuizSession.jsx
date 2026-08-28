@@ -504,12 +504,22 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     // 排成一队跑：截图在 iPad 上不便宜，连着翻几页也不该几张图一起挤
     draftQueueRef.current = draftQueueRef.current.then(async () => {
       try {
-        const dataUrl = await captureNode(snap.node);
-        if (!dataUrl) return;
-        await api(`/api/practice/sessions/${sessionId}/drafts/${qid}`, {
+        const blob = await captureNode(snap.node);
+        if (!blob) throw new Error('截图失败');
+        const put = () => api(`/api/practice/sessions/${sessionId}/drafts/${qid}`, {
           method: 'PUT',
-          body: { data: dataUrl, mime: 'image/png' },
+          body: blob,
+          headers: { 'Content-Type': blob.type || 'image/jpeg' },
         });
+        try {
+          await put();
+        } catch (e) {
+          // iPad Safari 偶发把大请求报成 Load failed，换一条连接再试一次。
+          if (!(e instanceof TypeError) && !/load failed|failed to fetch/i.test(e?.message || '')) {
+            throw e;
+          }
+          await put();
+        }
         uploadedRef.current.add(qid);
       } catch (e) {
         dirtyDraftsRef.current.add(qid);

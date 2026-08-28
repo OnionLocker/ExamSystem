@@ -11,16 +11,22 @@ export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
 let onUnauthorized = null;
 export const setOnUnauthorized = (cb) => { onUnauthorized = cb; };
 
+const isRawBody = (body) =>
+  typeof Blob !== 'undefined' && body instanceof Blob
+  || typeof FormData !== 'undefined' && body instanceof FormData
+  || typeof ArrayBuffer !== 'undefined' && body instanceof ArrayBuffer;
+
 export async function api(path, { method = 'GET', body, headers } = {}) {
   const token = getToken();
+  const raw = isRawBody(body);
   const res = await fetch(path, {
     method,
     headers: {
-      'Content-Type': 'application/json',
+      ...(raw ? {} : { 'Content-Type': 'application/json' }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers || {}),
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
   });
 
   if (res.status === 401) {

@@ -14,6 +14,9 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
 PROJECT_ROOT = Path(os.environ.get("EXAMSYSTEM_ROOT", Path(__file__).resolve().parents[1])).resolve()
 HERMES_DB = os.path.expanduser(os.environ.get("HERMES_DB", "~/.hermes/state.db"))
 EXAM_DB = os.environ.get("EXAM_DB", str(PROJECT_ROOT / "data" / "exam.db"))
@@ -490,6 +493,26 @@ def format_activity_text(rows: list[dict]) -> str:
     return "\n".join(f"- {x}" for x in lines)
 
 
+def format_plan_status(date_str: str) -> str:
+    try:
+        from daily_plan_state import reconcile
+
+        conn = sqlite3.connect(EXAM_DB)
+        try:
+            plan = reconcile(conn, date_str)
+        finally:
+            conn.close()
+        if not plan:
+            return "（当日无结构化学习计划）"
+        return "\n".join(
+            f"- {item['module']}：{item['done']}/{item['count']}（{item['status']}）"
+            for item in plan["items"]
+        )
+    except Exception as exc:
+        print(f"Plan reconcile failed: {exc}", file=sys.stderr)
+        return "（计划对账失败）"
+
+
 def _load_digest(cursor) -> dict:
     row = cursor.execute("SELECT v FROM user_kv WHERE k = ?", (DIGEST_KEY,)).fetchone()
     if not row:
@@ -697,7 +720,11 @@ def main(argv: list[str] | None = None):
         file=sys.stderr,
     )
 
-    eval_result = query_gemini_evaluation(messages, format_activity_text(activity))
+    activity_text = (
+        f"{format_activity_text(activity)}\n\n"
+        f"--- 当日计划完成状态 ---\n{format_plan_status(date_str)}"
+    )
+    eval_result = query_gemini_evaluation(messages, activity_text)
     if not eval_result:
         # 评委叫不通时也要留下痕迹：之前这里直接 return 1，报告不写、热力不动，
         # 结果连着三天没人发现评委的 key 已经废了。

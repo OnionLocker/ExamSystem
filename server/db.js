@@ -208,6 +208,15 @@ CREATE TABLE IF NOT EXISTS user_kv (
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS daily_plans (
+  plan_date    TEXT PRIMARY KEY,
+  items        TEXT NOT NULL,                 -- JSON: [{module,target,count,done,status}]
+  source       TEXT NOT NULL DEFAULT 'hermes',
+  snapshot_at  TEXT,
+  created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 复习模块：每个模块是一组图片（知识点/错题截图等）
 CREATE TABLE IF NOT EXISTS review_modules (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -274,6 +283,7 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   kaodian     TEXT NOT NULL,
   question_id INTEGER,
+  session_id  INTEGER,
   is_correct  INTEGER NOT NULL,
   elapsed_ms  INTEGER,
   evidence_type TEXT NOT NULL DEFAULT 'hermes',
@@ -282,6 +292,32 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at);
+
+-- 历史短标签/同义词到规范考点的映射。事件原文保留，画像按 canonical 汇总。
+CREATE TABLE IF NOT EXISTS kaodian_aliases (
+  alias       TEXT PRIMARY KEY,
+  canonical   TEXT NOT NULL,
+  module      TEXT NOT NULL,
+  subtype     TEXT,
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_kaodian_alias_canonical
+  ON kaodian_aliases(canonical);
+
+-- 知识债按规范考点清偿；不同变式题也能累计连续答对，不被 question_id 绑死。
+CREATE TABLE IF NOT EXISTS kaodian_debts (
+  kaodian          TEXT PRIMARY KEY,
+  wrong_count      INTEGER NOT NULL DEFAULT 1,
+  recovery_streak  INTEGER NOT NULL DEFAULT 0,
+  last_wrong_at    TEXT,
+  last_seen_at     TEXT,
+  mastered         INTEGER NOT NULL DEFAULT 0,
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_kaodian_debts_open
+  ON kaodian_debts(mastered, last_wrong_at);
 
 -- 真题复盘：一次模考的录屏 + 答案 PDF，后台跑完存下行为画像。
 -- 录屏原件几个 GB，磁盘存不下也没必要留：转码成小样本后原件立刻删，
@@ -350,7 +386,13 @@ if (!keCols.has('evidence_type')) {
 if (!keCols.has('evidence_weight')) {
   db.exec('ALTER TABLE kaodian_events ADD COLUMN evidence_weight REAL NOT NULL DEFAULT 1.0');
 }
+if (!keCols.has('session_id')) {
+  db.exec('ALTER TABLE kaodian_events ADD COLUMN session_id INTEGER');
+}
 db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_practice_evidence
+    ON kaodian_events(kaodian, question_id, session_id, evidence_type)
+    WHERE session_id IS NOT NULL;
   UPDATE kaodian_profile
      SET mastery = CAST(ROUND(correct * 100.0 / attempts) AS INTEGER)
    WHERE mastery IS NULL AND attempts > 0
