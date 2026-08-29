@@ -52,13 +52,21 @@ const KINDS = {
     fallbackTitle: (d) => `套题复盘 ${d}`,
     empty: '还没有套题复盘记录',
   },
+  test: {
+    label: '测试',
+    title: '测试样本',
+    desc: '只把录屏和答案 PDF 存到本机，不分析、不切片、不删原片。用来试去音轨、不切片上传这些通路。',
+    placeholder: '标题，例如：去音轨试验 1',
+    fallbackTitle: (d) => `测试样本 ${d}`,
+    empty: '还没有测试样本',
+  },
 };
 
 // fetch 拿不到上传进度，几个 G 的录屏没有进度条没法用，所以这里退回 XHR
-const uploadWithProgress = (form, onProgress) =>
+const uploadWithProgress = (url, form, onProgress) =>
   new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/exam-analyses');
+    xhr.open('POST', url);
     xhr.setRequestHeader('Authorization', `Bearer ${getToken()}`);
     const t0 = Date.now();
     xhr.upload.onprogress = (e) => {
@@ -157,8 +165,10 @@ const FilePicker = ({ label, hint, icon: Icon, accept, file, onPick, required, a
 
 const KIND_KEY = 'examReviewKind';
 const readKind = () => {
-  try { return localStorage.getItem(KIND_KEY) === 'taoti' ? 'taoti' : 'zhenti'; }
-  catch { return 'zhenti'; }
+  try {
+    const k = localStorage.getItem(KIND_KEY);
+    return k === 'taoti' || k === 'test' ? k : 'zhenti';
+  } catch { return 'zhenti'; }
 };
 const writeKind = (k) => {
   try { localStorage.setItem(KIND_KEY, k); } catch { /* ignore */ }
@@ -181,12 +191,12 @@ const ExamReview = () => {
 
   const load = useCallback(async () => {
     try {
-      setList(await api('/api/exam-analyses'));
+      setList(await api(kind === 'test' ? '/api/exam-test' : '/api/exam-analyses'));
       setErr('');
     } catch (e) {
       setErr(e?.message || '读取失败');
     }
-  }, []);
+  }, [kind]);
 
   useEffect(() => {
     const run = () => { void load(); };
@@ -206,10 +216,14 @@ const ExamReview = () => {
       if (pdf) form.append('pdf', pdf);
       form.append('title', title.trim() || KINDS[kind].fallbackTitle(examDate));
       form.append('exam_date', examDate);
-      form.append('kind', kind);
-      await uploadWithProgress(form, (pct, rate, left) => {
-        setUpPct(pct); setUpRate(rate); setUpLeft(left);
-      });
+      if (kind !== 'test') form.append('kind', kind);
+      await uploadWithProgress(
+        kind === 'test' ? '/api/exam-test' : '/api/exam-analyses',
+        form,
+        (pct, rate, left) => {
+          setUpPct(pct); setUpRate(rate); setUpLeft(left);
+        },
+      );
       setVideo(null); setPdf(null); setTitle('');
       writeKind(kind);
       await load();
@@ -232,7 +246,8 @@ const ExamReview = () => {
   const act = async (id, path, method = 'POST', confirmText) => {
     if (confirmText && !confirm(confirmText)) return;
     try {
-      await api(`/api/exam-analyses/${id}${path}`, { method });
+      const base = kind === 'test' ? '/api/exam-test' : '/api/exam-analyses';
+      await api(`${base}/${id}${path}`, { method });
       await load();
       if (detail?.id === id) setDetail(null);
     } catch (e) {
@@ -296,7 +311,8 @@ const ExamReview = () => {
   }
 
   // ---------------- 列表 ----------------
-  const shown = list.filter((r) => (r.kind || 'zhenti') === kind);
+  const shown = kind === 'test' ? list : list.filter((r) => (r.kind || 'zhenti') === kind);
+  const isTest = kind === 'test';
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -374,7 +390,9 @@ const ExamReview = () => {
 
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-bold text-slate-400 leading-relaxed">
-            录屏会先加速压缩再分析，原件转码完立刻删除，不会长期占盘。
+            {isTest
+              ? '原片和 PDF 会留在本机 data/exam-test，不跑复盘、不切片、不删。盘现在不多，传完用完记得删。'
+              : '录屏按 10 分钟无损切开再分析，画质不降。答案 PDF 原件给模型读。原件分析完立刻删除。'}
             {video && video.size > 1.5 * 1024 * 1024 * 1024 && (
               <span className="block text-[#8a5400]">
                 这个文件 {fmtBytes(video.size)}，按家宽上行 30~50 Mbps 估算要传
@@ -388,7 +406,7 @@ const ExamReview = () => {
             className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-[#1a1a1a] text-white font-black text-xs uppercase tracking-widest hover:bg-[#2c261c] hover:text-white transition-all disabled:opacity-30 disabled:hover:bg-[#1a1a1a] disabled:hover:text-white"
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            <span>{uploading ? '上传中' : '开始处理'}</span>
+            <span>{uploading ? '上传中' : isTest ? '保存样本' : '开始处理'}</span>
           </button>
         </div>
       </div>
@@ -412,6 +430,33 @@ const ExamReview = () => {
         )}
 
         {shown.map((r) => {
+          if (isTest) {
+            return (
+              <div key={r.id} className="bg-white rounded-[1.75rem] border border-[#e8d5b0] p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-base font-black italic truncate">{r.title}</div>
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1.5 text-[11px] font-bold text-slate-400">
+                      <span>{(r.created_at || '').slice(0, 16).replace('T', ' ')}</span>
+                      <span>{fmtDur(r.duration_sec)}</span>
+                      <span className="flex items-center space-x-1">
+                        <HardDrive size={10} />
+                        <span>{fmtBytes(r.video_bytes)}</span>
+                      </span>
+                      <span>{r.has_audio ? '有音轨' : r.has_audio === false ? '无音轨' : '音轨未知'}</span>
+                      {r.pdf_file && <span>含答案 PDF · {fmtBytes(r.pdf_bytes)}</span>}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => act(r.id, '', 'DELETE', '删掉这份测试样本？原片和 PDF 都会去掉。')}
+                    title="删除样本"
+                    className="p-1.5 rounded-lg text-slate-400 hover:bg-[#ff6b6b]/10 hover:text-[#ff6b6b]">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            );
+          }
           const st = STATUS[r.status] || STATUS.queued;
           const Icon = st.icon;
           const busy = r.status === 'queued' || r.status === 'running';

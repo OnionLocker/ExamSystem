@@ -12,6 +12,7 @@ import learnerRouter from './routes/learner.js';
 import practiceRouter from './routes/practice.js';
 import quotaRouter from './routes/quota.js';
 import examAnalysesRouter from './routes/examAnalyses.js';
+import examTestRouter from './routes/examTest.js';
 import { resumePending } from './examWorker.js';
 import { attachHermesWs, hermesRouter } from './routes/hermesChat.js';
 import kaodianRouter from './routes/kaodian.js';
@@ -40,6 +41,7 @@ app.use('/api/learner',          learnerRouter);
 app.use('/api/practice',       practiceRouter);
 app.use('/api/quota',          quotaRouter);
 app.use('/api/exam-analyses',   examAnalysesRouter);
+app.use('/api/exam-test',       examTestRouter);
 app.use('/api/hermes',          hermesRouter);
 app.use('/api/kaodian',         kaodianRouter);
 
