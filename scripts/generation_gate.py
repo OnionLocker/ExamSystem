@@ -14,6 +14,12 @@ from pathlib import Path
 from kaodian_taxonomy import question_primary_tag, validate_ai_primary_tag
 
 
+def is_zhenti_question(question: dict) -> bool:
+    return str(question.get("origin") or "") == "zhenti" or str(
+        question.get("external_id") or ""
+    ).startswith("zhenti-")
+
+
 VERSION = 1
 RECEIPT = ".gate.json"
 
@@ -52,6 +58,8 @@ def question_ids(batch_dir: Path) -> list[str]:
     for index, question in enumerate(questions):
         if not isinstance(question, dict):
             raise ValueError(f"questions[{index}] 必须是对象")
+        if is_zhenti_question(question):
+            continue
         try:
             validate_ai_primary_tag(
                 question_primary_tag(question),
@@ -60,7 +68,7 @@ def question_ids(batch_dir: Path) -> list[str]:
         except ValueError as exc:
             ident = question.get("external_id") or index
             raise ValueError(f"questions[{ident}] {exc}") from exc
-    return ids
+    return [str(question.get("external_id") or "") for question in questions if not is_zhenti_question(question)]
 
 
 def validate_evidence(

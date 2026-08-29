@@ -1,0 +1,25 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260829_panduan_fanyi_01_01",
+    "20260829_panduan_fanyi_01_02",
+    "20260829_panduan_fanyi_01_03",
+    "20260829_panduan_fanyi_01_04",
+    "20260829_panduan_fanyi_01_05",
+    "20260829_panduan_fanyi_01_06",
+    "20260829_panduan_fanyi_01_07",
+    "20260829_panduan_fanyi_01_08",
+    "20260829_panduan_fanyi_01_09",
+    "20260829_panduan_fanyi_01_10"
+  ],
+  "evaluation_context_ids": [
+    "refctx-9217f82c0665453e89a4f87d90c2cd05"
+  ],
+  "checks": [
+    "考点单一：纯粹考查充分必要条件、选言与假言联言逆否推导",
+    "信息边界：无冗余题干背景，不泄露箭头与推导规则",
+    "真题密度：题干100-150字，选项平行规范",
+    "干扰项：包含肯后、否前、选言肯定等经典误区",
+    "历史回归：无Unicode/LaTeX混用缺陷，纯文本符号"
+  ]
+}

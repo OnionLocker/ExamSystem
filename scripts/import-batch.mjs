@@ -71,7 +71,14 @@ function verifyGenerationContexts(manifest, questions) {
       contexts: generation.evaluation_contexts || [],
     },
   ];
-  const questionIds = new Set((questions || []).map((question) => question.external_id));
+  const isZhenti = (question) =>
+    question?.origin === 'zhenti' || String(question?.external_id || '').startsWith('zhenti-');
+  const questionIds = new Set(
+    (questions || [])
+      .filter((question) => !isZhenti(question))
+      .map((question) => question.external_id),
+  );
+  if (questionIds.size === 0) return [];
   const getContext = db.prepare(`
     SELECT context_id, role, digest_version, reference_ids, batch_id
       FROM reference_context_runs

@@ -1,0 +1,21 @@
+{
+  "verdict": "PASS",
+  "route": "B",
+  "question_ids": [
+    "20260829_shuliang_jihe_01_01",
+    "20260829_shuliang_jihe_01_02",
+    "20260829_shuliang_jihe_01_03",
+    "20260829_shuliang_jihe_01_04",
+    "20260829_shuliang_jihe_01_05",
+    "20260829_shuliang_jihe_01_06",
+    "20260829_shuliang_jihe_01_07",
+    "20260829_shuliang_jihe_01_08",
+    "20260829_shuliang_jihe_01_09",
+    "20260829_shuliang_jihe_01_10"
+  ],
+  "checks": [
+    "Python 代码逐题精确求解，无欠定或物理不自洽方程",
+    "干扰项数值全部独立复核，无重叠或撞车现象",
+    "面积与周长公式计算、中位线、旋转割补模型验证无误"
+  ]
+}

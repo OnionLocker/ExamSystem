@@ -114,8 +114,9 @@ GET /api/reference-questions/<external_id>
 
 ## AI 练题风格内化
 
-参考题写入后保持在 `reference_questions`，不会直接进入练题库。Hermes 出题通过
-`scripts/reference_style.py` 使用这些题：
+参考题写入后保持在 `reference_questions`，不会直接进入练题库。已解析的省考/国考
+可用 `python3 scripts/promote_zhenti_references.py` 升进此表。Hermes 出题通过
+`scripts/reference_style.py` 使用这些题（省考定题面，国考垫高）：
 
 ```bash
 # 把新增/修改题纳入 GONGKAO-STYLE 提纲并写逐题内容哈希标记

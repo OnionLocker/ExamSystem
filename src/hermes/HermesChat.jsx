@@ -1025,8 +1025,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ? [
           'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
           "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
-          `Before writing any stem, run python3 ${projectRoot}/scripts/reference_style.py context --role generate with the target category/sub-category/tag and use the returned GONGKAO-STYLE reference pack. The independent quality reviewer must separately request --role evaluate.`,
-          'The AI-generated batch manifest must record style_marker plus generation/evaluation context arrays that cover every generated question. import:batch will reject missing, incomplete, reused, or fabricated provenance.',
+          `Default batch is 10: first run python3 ${projectRoot}/scripts/reference_style.py practice --tag '<规范主标签>' --count 2 and put those origin=zhenti items into questions.json unchanged. Then generate 8 new questions. If practice returns fewer than 2, generate more so the batch still has 10.`,
+          `Before writing any generated stem, run python3 ${projectRoot}/scripts/reference_style.py context --role generate with the target category/sub-category/tag and use the returned GONGKAO-STYLE reference pack. Copy 省考 length and ask-style; do not write easier than the shallowest 国考 cognitive steps in the pack. The independent quality reviewer must separately request --role evaluate.`,
+          'The AI-generated batch manifest must record style_marker plus generation/evaluation context arrays that cover every generated question only. zhenti- items are not gated and must not appear in context question_ids.',
           'Use the exact knowledge point requested by the user. Run the correctness gate and quality gate for every question; a single-choice question must have exactly one valid answer.',
           'questions.json tags[0] must be the canonical 模块-一级-二级 card tag. For permutation questions use 基础原理/特殊模型/反面容斥, never 数量关系-数学运算-排列组合. knowledge_point is only a fallback; the stored field is tags.',
           'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',

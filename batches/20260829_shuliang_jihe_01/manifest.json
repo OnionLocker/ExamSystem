@@ -1,0 +1,55 @@
+{
+  "batch_id": "20260829_shuliang_jihe_01",
+  "source": "广东省考行测 · 数量关系平面几何周长与面积专项通关",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-d1922d57720a4e669b1edab4961725d0",
+        "reference_ids": [
+          "粉笔-2026-广东-数学运算-45",
+          "粉笔-2026-贵州-数学运算-54",
+          "粉笔-2026-天津-数学运算-52",
+          "粉笔-2026-天津-数学运算-57",
+          "粉笔-2026-湖北-数学运算-61"
+        ],
+        "question_ids": [
+          "20260829_shuliang_jihe_01_01",
+          "20260829_shuliang_jihe_01_02",
+          "20260829_shuliang_jihe_01_03",
+          "20260829_shuliang_jihe_01_04",
+          "20260829_shuliang_jihe_01_05",
+          "20260829_shuliang_jihe_01_06",
+          "20260829_shuliang_jihe_01_07",
+          "20260829_shuliang_jihe_01_08",
+          "20260829_shuliang_jihe_01_09",
+          "20260829_shuliang_jihe_01_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-19c59bf1bc5f4584814ba1737c21275d",
+        "reference_ids": [
+          "粉笔-2026-浙江B类-数学运算-65",
+          "粉笔-2026-内蒙古-数学运算-70"
+        ],
+        "question_ids": [
+          "20260829_shuliang_jihe_01_01",
+          "20260829_shuliang_jihe_01_02",
+          "20260829_shuliang_jihe_01_03",
+          "20260829_shuliang_jihe_01_04",
+          "20260829_shuliang_jihe_01_05",
+          "20260829_shuliang_jihe_01_06",
+          "20260829_shuliang_jihe_01_07",
+          "20260829_shuliang_jihe_01_08",
+          "20260829_shuliang_jihe_01_09",
+          "20260829_shuliang_jihe_01_10"
+        ]
+      }
+    ]
+  }
+}

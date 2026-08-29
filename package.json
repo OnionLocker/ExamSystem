@@ -23,6 +23,7 @@
     "test:practice-evolution": "node scripts/test-practice-evolution.mjs",
     "import:batch": "node scripts/import-batch.mjs",
     "generation:gate": "python3 scripts/generation_gate.py",
+    "reference:promote": "python3 scripts/promote_zhenti_references.py",
     "reference:build": "python3 scripts/reference_style.py build",
     "reference:status": "python3 scripts/reference_style.py status",
     "reference:context": "python3 scripts/reference_style.py context",

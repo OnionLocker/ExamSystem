@@ -1,0 +1,21 @@
+{
+  "verdict": "PASS",
+  "route": "A",
+  "question_ids": [
+    "20260829_panduan_fanyi_01_01",
+    "20260829_panduan_fanyi_01_02",
+    "20260829_panduan_fanyi_01_03",
+    "20260829_panduan_fanyi_01_04",
+    "20260829_panduan_fanyi_01_05",
+    "20260829_panduan_fanyi_01_06",
+    "20260829_panduan_fanyi_01_07",
+    "20260829_panduan_fanyi_01_08",
+    "20260829_panduan_fanyi_01_09",
+    "20260829_panduan_fanyi_01_10"
+  ],
+  "checks": [
+    "Z3 SAT/SMT 命题逻辑判定全部唯一有解",
+    "前提与选项命题符号化一致性校验",
+    "逆否与德摩根定理推导无肯后断链"
+  ]
+}

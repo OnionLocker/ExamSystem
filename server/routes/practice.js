@@ -368,6 +368,7 @@ const getPracticeReport = (sessionId) => {
       `SELECT
          pa.question_id, pa.user_answer, pa.is_correct, pa.time_spent_sec, pa.answered_at,
          q.content, q.options, q.question_type, q.sub_category, q.category,
+         q.external_id,
          q.correct_answer, q.explanation, q.stem_images, q.explanation_images,
          q.tags,
          pd.question_id AS has_draft
@@ -386,6 +387,7 @@ const getPracticeReport = (sessionId) => {
 
   const items = rows.map((r) => ({
     question_id: r.question_id,
+    external_id: r.external_id,
     content: r.content,
     options: parseOptions(r.options),
     stem_images: parseOptions(r.stem_images),

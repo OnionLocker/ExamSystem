@@ -89,8 +89,44 @@ def main() -> int:
                     f"某项研究提出第{index}个观点。以下哪项如果为真，最能削弱上述观点？",
                     options,
                     json.dumps(["判断推理-逻辑判断-削弱论点"], ensure_ascii=False),
-                    f"2026年{'广东' if index < 4 else '其他省'}公务员录用考试第{index}题",
-                    "广东" if index < 4 else "浙江",
+                    f"2026年{'广东' if index < 6 else '其他省'}公务员录用考试第{index}题",
+                    "广东" if index < 6 else "浙江",
+                ),
+            )
+        for index in range(6):
+            conn.execute(
+                """
+                INSERT INTO reference_questions (
+                  external_id, category, sub_category, question_type, content,
+                  stem_images, options, correct_answer, explanation_images,
+                  difficulty, tags, source, year, region, imported_by
+                ) VALUES (?, '判断推理', '逻辑判断', 'single', ?, '[]', ?, 'C',
+                          '[]', 3, ?, ?, 2026, '国家', 'test')
+                """,
+                (
+                    f"ref-gk-{index:02d}",
+                    f"国考研究提出第{index}个更长论证链。以下哪项如果为真，最能削弱上述观点？",
+                    options,
+                    json.dumps(["判断推理-逻辑判断-削弱论点"], ensure_ascii=False),
+                    f"2026年国家公务员录用考试第{index}题",
+                ),
+            )
+        for index in range(2):
+            conn.execute(
+                """
+                INSERT INTO reference_questions (
+                  external_id, category, sub_category, question_type, content,
+                  stem_images, options, correct_answer, explanation_images,
+                  difficulty, tags, source, year, region, imported_by
+                ) VALUES (?, '判断推理', '定义判断', 'single', ?, '[]', ?, 'C',
+                          '[]', 3, ?, ?, 2026, '国家', 'test')
+                """,
+                (
+                    f"ref-dy-{index:02d}",
+                    f"根据所给定义，下列最符合第{index}种情形的是？",
+                    options,
+                    json.dumps(["判断推理-定义判断-符合定义"], ensure_ascii=False),
+                    f"2026年国家公务员录用考试定义判断第{index}题",
                 ),
             )
         # 整题重复项应被排除，但原题仍保留。
@@ -112,12 +148,14 @@ def main() -> int:
 
         run(db_path, output_dir, "build")
         status = json.loads(run(db_path, output_dir, "status", "--json").stdout)
-        assert status["total"] == 13
-        assert status["current"] == 13
+        assert status["total"] == 21
+        assert status["current"] == 21
         assert status["pending"] == 0
         assert status["excluded"] == 1
         assert status["holdout"] >= 1
-        assert (output_dir / "reference-style-profile.md").exists()
+        profile = (output_dir / "reference-style-profile.md").read_text(encoding="utf-8")
+        assert "默认目标分位" in profile
+        assert "国考拔高分位" in profile
 
         generated = json.loads(
             run(
@@ -139,6 +177,45 @@ def main() -> int:
         assert generated["role"] == "generate"
         assert generated["context_id"].startswith("refctx-")
         assert len(generated["reference_ids"]) == 3
+        gen_tiers = [item["source_tier"] for item in generated["references"]]
+        assert gen_tiers.count("gd-real") == 2
+        assert gen_tiers.count("national-real") == 1
+
+        mixed = json.loads(
+            run(
+                db_path,
+                output_dir,
+                "context",
+                "--role",
+                "generate",
+                "--category",
+                "判断推理",
+                "--count",
+                "5",
+            ).stdout
+        )
+        mixed_tiers = [item["source_tier"] for item in mixed["references"]]
+        assert mixed_tiers.count("gd-real") == 3
+        assert 1 <= mixed_tiers.count("national-real") <= 2
+        assert all("定义判断" not in item["sub_category"] for item in mixed["references"])
+        assert all(not str(item["external_id"]).startswith("ref-dy-") for item in mixed["references"])
+
+        practiced = json.loads(
+            run(
+                db_path,
+                output_dir,
+                "practice",
+                "--category",
+                "判断推理",
+                "--tag",
+                "判断推理-逻辑判断-削弱论点",
+                "--count",
+                "2",
+            ).stdout
+        )
+        assert practiced["selected"] == 2
+        assert all(item["origin"] == "zhenti" for item in practiced["questions"])
+        assert all(item["answer"] for item in practiced["questions"])
 
         evaluated = json.loads(
             run(
@@ -185,8 +262,9 @@ def main() -> int:
         )
         refreshed = json.loads(run(db_path, output_dir, "status", "--json").stdout)
         assert refreshed["pending"] == 0
-        assert refreshed["generation_uses"] == 4
+        assert refreshed["generation_uses"] == 9
         assert refreshed["evaluation_uses"] == 1
+        # practice 只更新 last_used，不计入 generation_uses
 
     print("reference style pipeline: ok")
     return 0

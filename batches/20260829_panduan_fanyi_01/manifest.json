@@ -1,0 +1,54 @@
+{
+  "batch_id": "20260829_panduan_fanyi_01",
+  "source": "广东省考行测 · 判断推理翻译推理专项通关",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-0b376a0357fb4da08fdfea7f9d922a0d",
+        "reference_ids": [
+          "粉笔-2025-国家地市-逻辑判断-105",
+          "粉笔-2026-贵州-逻辑判断-86",
+          "粉笔-2026-天津-逻辑判断-95",
+          "粉笔-2026-四川-逻辑判断-80",
+          "粉笔-2026-浙江C类-逻辑判断-86"
+        ],
+        "question_ids": [
+          "20260829_panduan_fanyi_01_01",
+          "20260829_panduan_fanyi_01_02",
+          "20260829_panduan_fanyi_01_03",
+          "20260829_panduan_fanyi_01_04",
+          "20260829_panduan_fanyi_01_05",
+          "20260829_panduan_fanyi_01_06",
+          "20260829_panduan_fanyi_01_07",
+          "20260829_panduan_fanyi_01_08",
+          "20260829_panduan_fanyi_01_09",
+          "20260829_panduan_fanyi_01_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-9217f82c0665453e89a4f87d90c2cd05",
+        "reference_ids": [
+          "粉笔-2024-广东-逻辑判断-60"
+        ],
+        "question_ids": [
+          "20260829_panduan_fanyi_01_01",
+          "20260829_panduan_fanyi_01_02",
+          "20260829_panduan_fanyi_01_03",
+          "20260829_panduan_fanyi_01_04",
+          "20260829_panduan_fanyi_01_05",
+          "20260829_panduan_fanyi_01_06",
+          "20260829_panduan_fanyi_01_07",
+          "20260829_panduan_fanyi_01_08",
+          "20260829_panduan_fanyi_01_09",
+          "20260829_panduan_fanyi_01_10"
+        ]
+      }
+    ]
+  }
+}

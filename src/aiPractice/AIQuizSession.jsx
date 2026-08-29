@@ -37,6 +37,20 @@ const withToken = (url) => `${url}${url.includes('?') ? '&' : '?'}token=${encode
 
 const typeLabelOf = (t) => (t === 'multi' ? '多选题' : t === 'judge' ? '判断题' : '单选题');
 
+const isZhenti = (q) =>
+  q?.origin === 'zhenti'
+  || String(q?.external_id || '').startsWith('zhenti-');
+
+const ZhentiMark = ({ compact = false }) => (
+  <span className={`font-black tracking-widest rounded-full ${
+    compact
+      ? 'text-[8px] leading-none bg-[#8b1e1e] text-white px-1 py-0.5'
+      : 'text-[10px] uppercase bg-[#8b1e1e] text-white px-3 py-1'
+  }`}>
+    {compact ? '真' : '真题'}
+  </span>
+);
+
 const normalizeJudgeOptions = (options) =>
   options && options.length >= 2
     ? options
@@ -147,6 +161,11 @@ const AnswerSheet = ({ questions, answers, index, onJump, onClose, onSubmit }) =
                 } ${i === index ? 'ring-2 ring-[#6b5428] ring-offset-2' : ''}`}
               >
                 {i + 1}
+                {isZhenti(q) && (
+                  <span className="absolute -top-1 -right-1">
+                    <ZhentiMark compact />
+                  </span>
+                )}
               </button>
             );
           })}
@@ -252,7 +271,10 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
           {no}
         </span>
         <span className="flex-1 min-w-0">
-          <span className="block text-sm font-bold truncate">{item.content}</span>
+          <span className="flex items-center gap-2">
+            {isZhenti(item) && <ZhentiMark />}
+            <span className="block text-sm font-bold truncate">{item.content}</span>
+          </span>
           <span className="block text-[11px] font-bold text-[#bbb] mt-0.5">
             我选 {item.user_answer || '—'} · 正确 {item.correct_answer} · 用时 {fmtDuration(item.time_spent_sec)}
             {item.draft_url ? ' · 有草稿' : ''}
@@ -907,6 +929,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               <span className="text-[10px] font-black uppercase tracking-widest bg-[#1a1a1a] text-white px-3 py-1 rounded-full">
                 {typeLabelOf(current?.question_type)}
               </span>
+              {isZhenti(current) && <ZhentiMark />}
               {current?.sub_category && (
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#bbb]">
                   {current.sub_category}

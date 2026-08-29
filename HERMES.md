@@ -20,9 +20,15 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
   `python3 /home/ubuntu/ExamSystem/scripts/learner_snapshot.py --compact`.
   This database snapshot overrides conversational memory for performance, confidence, recency, and open mistakes.
 - When Russell asks for questions or targeted practice, load `quiz-pipeline` and `gd-gongkao-coach` before drafting anything.
-- Before writing any stem, use `/home/ubuntu/ExamSystem/scripts/reference_style.py context --role generate`
+- Default targeted practice is 10 questions: first
+  `python3 /home/ubuntu/ExamSystem/scripts/reference_style.py practice --tag '<规范主标签>' --count 2`
+  and copy those `origin: "zhenti"` items into the batch unchanged. Then generate 8 new questions
+  for the same tag. If fewer than 2 real items exist, generate extra so the batch is still 10.
+- Before writing any generated stem, use `/home/ubuntu/ExamSystem/scripts/reference_style.py context --role generate`
   with the target category / sub-category / canonical tag. This command automatically internalizes newly
   added or changed reference questions and returns a traceable `GONGKAO-STYLE` context pack.
+  Use Guangdong items for stem form and length; treat the 1–2 national items as a difficulty ceiling.
+  Generation/evaluation contexts cover generated IDs only, never the `zhenti-` items.
 - The independent quality reviewer must separately call the same command with `--role evaluate`.
   Generation examples and holdout evaluation examples must never come from the same context.
 - Every AI-generated batch manifest must set `kind: "ai-generated"` and record the style marker plus
