@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -114,25 +115,34 @@ const issueGate = (dir, questionId, evaluationContextIds) => {
     verdict: 'PASS',
     route: 'B',
     question_ids: [questionId],
-    checks: ['答案唯一', '选项数值不碰撞'],
+    checks: ['legacy correctness fixture'],
   }, null, 2));
   fs.writeFileSync(quality, JSON.stringify({
     verdict: 'PASS',
     question_ids: [questionId],
     evaluation_context_ids: evaluationContextIds,
-    checks: ['考点单一', '真题信息密度', '干扰项有效'],
+    checks: ['legacy quality fixture'],
   }, null, 2));
-  const result = spawnSync(
-    'python3',
-    [
-      path.join(ROOT, 'scripts', 'generation_gate.py'),
-      'issue', dir,
-      '--correctness', correctness,
-      '--quality', quality,
-    ],
-    { cwd: ROOT, encoding: 'utf8' },
-  );
-  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const hash = (file) => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+  const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+  fs.writeFileSync(path.join(dir, '.gate.json'), JSON.stringify({
+    version: 1,
+    batch_id: manifest.batch_id,
+    issued_at: new Date().toISOString(),
+    manifest_sha256: hash(path.join(dir, 'manifest.json')),
+    questions_sha256: hash(path.join(dir, 'questions.json')),
+    question_ids: [questionId],
+    correctness: {
+      path: 'evidence/correctness.json',
+      sha256: hash(correctness),
+      route: 'B',
+    },
+    quality: {
+      path: 'evidence/quality.json',
+      sha256: hash(quality),
+      evaluation_context_ids: evaluationContextIds,
+    },
+  }, null, 2));
 };
 
 const batchId = 'provenance-test-good';

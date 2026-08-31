@@ -5,6 +5,7 @@ const CONFIDENCE_SCALE = 8;
 
 const SOURCE_WEIGHTS = {
   practice: 1,
+  exam: 1,
   hermes: 0.7,
   manual: 0.4,
 };

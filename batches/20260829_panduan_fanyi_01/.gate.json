@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "batch_id": "20260829_panduan_fanyi_01",
+  "issued_at": "2026-08-29T04:59:53+00:00",
+  "manifest_sha256": "6e0c588eeb0e8c5d5da59405a56183411767041e4a50724647c3e17f2dc118a7",
+  "questions_sha256": "0086664cd27747b962f9ad3c05503fd6a9e998f1a4f21c2805d43a35a439763d",
+  "question_ids": [
+    "20260829_panduan_fanyi_01_01",
+    "20260829_panduan_fanyi_01_02",
+    "20260829_panduan_fanyi_01_03",
+    "20260829_panduan_fanyi_01_04",
+    "20260829_panduan_fanyi_01_05",
+    "20260829_panduan_fanyi_01_06",
+    "20260829_panduan_fanyi_01_07",
+    "20260829_panduan_fanyi_01_08",
+    "20260829_panduan_fanyi_01_09",
+    "20260829_panduan_fanyi_01_10"
+  ],
+  "correctness": {
+    "path": "evidence/correctness.json",
+    "sha256": "1a9c2742b73708a5a6f8b740a086ed7389c32d847b706a6a8d00a94f2cf6d6b1",
+    "route": "A"
+  },
+  "quality": {
+    "path": "evidence/quality.json",
+    "sha256": "76b58e67b49b874cdd03b2ed399c34f3bca869033126995222fcbf3111f1fcce",
+    "evaluation_context_ids": [
+      "refctx-9217f82c0665453e89a4f87d90c2cd05"
+    ]
+  }
+}

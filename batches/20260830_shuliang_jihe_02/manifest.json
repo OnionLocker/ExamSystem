@@ -1,0 +1,56 @@
+{
+  "batch_id": "20260830_shuliang_jihe_02",
+  "source": "广东省考行测 · 数量关系平面几何技巧强化",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-43647e3f950c40eaa4f0797f42307783",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q40",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q38",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q39",
+          "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q68",
+          "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q73"
+        ],
+        "question_ids": [
+          "20260830_shuliang_jihe_02-q01",
+          "20260830_shuliang_jihe_02-q02",
+          "20260830_shuliang_jihe_02-q03",
+          "20260830_shuliang_jihe_02-q04",
+          "20260830_shuliang_jihe_02-q05",
+          "20260830_shuliang_jihe_02-q06",
+          "20260830_shuliang_jihe_02-q07",
+          "20260830_shuliang_jihe_02-q08",
+          "20260830_shuliang_jihe_02-q09",
+          "20260830_shuliang_jihe_02-q10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-bb707c2750854e9f9d7f30ad46da6817",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q36",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q43",
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q36"
+        ],
+        "question_ids": [
+          "20260830_shuliang_jihe_02-q01",
+          "20260830_shuliang_jihe_02-q02",
+          "20260830_shuliang_jihe_02-q03",
+          "20260830_shuliang_jihe_02-q04",
+          "20260830_shuliang_jihe_02-q05",
+          "20260830_shuliang_jihe_02-q06",
+          "20260830_shuliang_jihe_02-q07",
+          "20260830_shuliang_jihe_02-q08",
+          "20260830_shuliang_jihe_02-q09",
+          "20260830_shuliang_jihe_02-q10"
+        ]
+      }
+    ]
+  }
+}

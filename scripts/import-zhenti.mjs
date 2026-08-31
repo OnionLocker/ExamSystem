@@ -42,6 +42,7 @@ const regionOf = (j) => {
 // 不能反过来拿"没有选项"当判断题的判据：图形推理、科学推理那些题选项是图，
 // 文本解析同样解不出选项，但答案能到 C/D，补成两项就全错了。
 const JUDGE_MARK = /[（(]\s*判断题\s*[）)]/;
+const PLACEHOLDER = /题干缺失|全力以赴征集|第一时间上传/;
 const JUDGE_OPTIONS = [
   { key: 'A', text: '正确', images: [] },
   { key: 'B', text: '错误', images: [] },
@@ -86,17 +87,12 @@ const normalizeQuestion = (q, j) => {
     has_figure: !!q.has_figure,
     // 选项没解析出来又不是判断题：这题没法做，只能丢
     broken: !isJudge && options.length === 0,
+    unusable:
+      q.module === '资料分析' ||
+      q.has_figure ||
+      PLACEHOLDER.test(q.stem || ''),
   };
 };
-
-const upsertMat = db.prepare(`
-  INSERT INTO materials (external_id, content, images, source, year, region, batch_id)
-  VALUES (@external_id, @content, @images, @source, @year, @region, @batch_id)
-  ON CONFLICT(external_id) DO UPDATE SET
-    content = excluded.content, source = excluded.source,
-    year = excluded.year, region = excluded.region, batch_id = excluded.batch_id
-`);
-const getMatId = db.prepare('SELECT id FROM materials WHERE external_id = ?');
 
 const upsertQ = db.prepare(`
   INSERT INTO questions (
@@ -126,37 +122,23 @@ function importPaper(file) {
   const questions = (j.questions || []).map((q) => normalizeQuestion(q, j));
 
   const figured = questions.filter((q) => q.has_figure).length;
-  const usable = SKIP_FIGURE ? questions.filter((q) => !q.has_figure) : questions;
+  const usable = questions.filter((q) => !q.unusable && (!SKIP_FIGURE || !q.has_figure));
   const noAnswer = usable.filter((q) => !q.correct_answer).length;
   const withAnswer = usable.filter((q) => q.correct_answer && q.content);
   const broken = withAnswer.filter((q) => q.broken).length;
   const keep = withAnswer.filter((q) => !q.broken);
 
   const report = {
-    batchId, title: j.title, materials: (j.materials || []).length,
+    batchId, title: j.title, materials: 0,
     questions: keep.length, figured, noAnswer, broken,
   };
   if (DRY_RUN) return report;
 
   const run = db.transaction(() => {
-    const matIds = new Map();
-    for (const m of j.materials || []) {
-      const externalId = `${batchId}-mat-${slug(m.ref)}`;
-      upsertMat.run({
-        external_id: externalId,
-        content: m.text || '',
-        images: '[]',
-        source: j.title || null,
-        year: j.year ?? null,
-        region: regionOf(j),
-        batch_id: batchId,
-      });
-      matIds.set(m.ref, getMatId.get(externalId).id);
-    }
-
+    // 资料分析材料缺表/图，不再入库
     for (const q of keep) {
-      const { material_ref: ref, has_figure: _hf, broken: _bk, ...row } = q;
-      upsertQ.run({ ...row, material_id: ref ? (matIds.get(ref) ?? null) : null, batch_id: batchId });
+      const { material_ref: _ref, has_figure: _hf, broken: _bk, unusable: _u, ...row } = q;
+      upsertQ.run({ ...row, material_id: null, batch_id: batchId });
     }
   });
   run();

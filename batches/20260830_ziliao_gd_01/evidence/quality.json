@@ -1,0 +1,40 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260830_ziliao_gd_01-Q01",
+    "20260830_ziliao_gd_01-Q02",
+    "20260830_ziliao_gd_01-Q03",
+    "20260830_ziliao_gd_01-Q04",
+    "20260830_ziliao_gd_01-Q05",
+    "20260830_ziliao_gd_01-Q06",
+    "20260830_ziliao_gd_01-Q07",
+    "20260830_ziliao_gd_01-Q08",
+    "20260830_ziliao_gd_01-Q09",
+    "20260830_ziliao_gd_01-Q10",
+    "20260830_ziliao_gd_01-Q11",
+    "20260830_ziliao_gd_01-Q12",
+    "20260830_ziliao_gd_01-Q13",
+    "20260830_ziliao_gd_01-Q14",
+    "20260830_ziliao_gd_01-Q15"
+  ],
+  "evaluation_context_ids": [
+    "refctx-c4cc18f6b4344a29bab96feffa7ad0b1"
+  ],
+  "checks": [
+    "考点单一",
+    "信息边界完整无泄露",
+    "真题密度与设问规范",
+    "干扰项有诊断价值",
+    "历史质量反馈回归测试通过",
+    "卷种句式与篇幅符合广东卷要求"
+  ],
+  "rubric": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "reviewer": "independent-quality"
+}

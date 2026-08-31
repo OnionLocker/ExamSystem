@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Gauge, RefreshCw, AlertCircle, X } from 'lucide-react';
 import { api } from '../api.js';
+import { combineQuota } from './quotaMath.js';
 
 const REFRESH_MS = 120_000;
 // 后端重启、网络抖一下都会失败一次，等满两分钟才重试太钝了，先短后长地追几次
@@ -85,24 +86,9 @@ const QuotaBar = () => {
   }, [open]);
 
   const accounts = data?.accounts || [];
-  let worst = null;
-  let headline = [];
-  for (const a of accounts) {
-    for (const g of a.groups || []) {
-      for (const b of g.buckets || []) {
-        if (b.remaining == null) continue;
-        if (!worst || b.remaining < worst.remaining) {
-          worst = { ...b, email: a.email, group: g.name };
-          const h5 = (g.buckets || []).find((x) => x.window === '5h');
-          const week = (g.buckets || []).find((x) => x.window === 'weekly');
-          headline = [h5, week].filter((x) => x && x.remaining != null);
-          if (headline.length === 0) headline = [b];
-        }
-      }
-    }
-  }
-
-  const hasData = accounts.length > 0 && worst;
+  const combined = combineQuota(accounts);
+  const headline = combined.headline;
+  const hasData = headline.length > 0;
 
   useEffect(() => {
     if (!open || !boxRef.current) {
@@ -127,12 +113,12 @@ const QuotaBar = () => {
           // 展开时如果正卡在错误上，别让人干等下一轮
           if (next && err) void load(true);
         }}
-        title={hasData ? `${shortMail(worst.email)} · ${worst.group}` : '模型额度'}
-        className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
+        title={hasData ? `综合 · ${combined.preferred?.name || '额度'} · ${combined.accountCount} 账号` : '模型额度'}
+        className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg text-[15px] font-bold transition-colors ${
           open ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]'
         }`}
       >
-        <Gauge size={11} className={loading && !data ? 'animate-pulse' : ''} />
+        <Gauge size={16} className={loading && !data ? 'animate-pulse' : ''} />
         {hasData ? (
           headline.map((b, i) => (
             <span key={b.id || b.window || i} className="flex items-center space-x-1">
@@ -194,6 +180,34 @@ const QuotaBar = () => {
           )}
 
           <div className="space-y-4">
+            {combined.preferred && combined.accountCount > 1 && (
+              <div className="rounded-xl bg-[#1a1a1a] text-white p-3">
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-xs font-black">综合</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/50">
+                    {combined.preferred.name} · {combined.accountCount} 账号
+                  </span>
+                </div>
+                <div className="space-y-1.5">
+                  {headline.map((b) => (
+                    <div key={b.id || b.window}>
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-[10px] font-bold text-white/60">{b.label || (b.window === '5h' ? '5 小时' : '本周')}</span>
+                        <span className="text-[10px] font-black tabular-nums" style={{ color: colorOf(b.remaining) }}>
+                          {pct(b.remaining)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-white/15 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct(b.remaining)}%`, backgroundColor: colorOf(b.remaining) }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {accounts.map((a) => (
               <div key={a.email} className="rounded-xl bg-[#e8d5b0]/50 p-3">
                 <div className="flex items-center justify-between mb-2.5">

@@ -38,6 +38,13 @@ assert.equal(relatedRows(cow, rows).length, 0);
 assert.equal(relatedRows(date, rows).length, 2);
 assert.equal(cardRow(date, rows, (row) => row.mastery).score, 44);
 
+const ziliao = { name: 'ABRX类 · 基期量计算与比较' };
+const ziliaoRows = [
+  { kaodian: '资料分析-ABRX类-基期量计算与比较', mastery: 55, mastery_confidence: 80 },
+  { kaodian: '资料分析-基期量-基期量计算', mastery: 40, mastery_confidence: 50 },
+];
+assert.equal(relatedRows(ziliao, ziliaoRows).length, 2);
+
 const md = cardToMarkdown({
   steps: ['观察尾数'],
   know: ['平方差：a^2 - b^2 = (a + b)(a - b)'],

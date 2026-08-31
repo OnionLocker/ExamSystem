@@ -684,7 +684,7 @@ const AppInner = () => {
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
-              {activeTab === 'examReview' && '录屏复盘 · 真题 / 套题'}
+              {activeTab === 'examReview' && '录屏复盘 · 真题 / 套题 / 测试'}
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
@@ -723,7 +723,9 @@ const AppInner = () => {
 
           {activeTab === 'copybook' && <Copybook />}
 
-          {activeTab === 'review' && <Review />}
+          <div className={activeTab === 'review' ? '' : 'hidden'}>
+            <Review />
+          </div>
 
           {activeTab === 'practice' && <NumericPractice />}
 

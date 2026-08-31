@@ -1,0 +1,25 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260830_shuliang_jihe_02-q01",
+    "20260830_shuliang_jihe_02-q02",
+    "20260830_shuliang_jihe_02-q03",
+    "20260830_shuliang_jihe_02-q04",
+    "20260830_shuliang_jihe_02-q05",
+    "20260830_shuliang_jihe_02-q06",
+    "20260830_shuliang_jihe_02-q07",
+    "20260830_shuliang_jihe_02-q08",
+    "20260830_shuliang_jihe_02-q09",
+    "20260830_shuliang_jihe_02-q10"
+  ],
+  "evaluation_context_ids": [
+    "refctx-bb707c2750854e9f9d7f30ad46da6817"
+  ],
+  "checks": [
+    "考点单一：严格聚焦数量关系平面几何周长与面积",
+    "信息边界：题干数据自洽完整，无歧义，无信息泄露",
+    "真题密度：贴合广东省考数学运算真题设问与题型特征",
+    "干扰项：包含常见错误模型设置（如大正方形未折半、中位线未抵消等真实诱饵）",
+    "历史回归：已检查并规避公式展开硬解与歧义描述"
+  ]
+}

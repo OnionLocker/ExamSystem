@@ -18,6 +18,7 @@
     "test:reference-api": "node scripts/test-reference-question-api.mjs",
     "test:reference-style": "python3 scripts/test_reference_style.py",
     "test:generation-provenance": "node scripts/test-generation-provenance.mjs",
+    "test:quality-gate": "python3 scripts/test_quality_gate.py",
     "test:hermes-protocol": "node scripts/test-hermes-protocol.mjs",
     "test:learner-evolution": "python3 scripts/test_learner_evolution.py",
     "test:practice-evolution": "node scripts/test-practice-evolution.mjs",
@@ -31,7 +32,10 @@
     "profile:snapshot": "python3 scripts/learner_snapshot.py",
     "plan:state": "python3 scripts/daily_plan_state.py",
     "clean:vocab": "node scripts/clean-vocab.mjs",
-    "validate:vocab-pack": "node scripts/validate-vocab-pack.mjs"
+    "validate:vocab-pack": "node scripts/validate-vocab-pack.mjs",
+    "sync:read-spot": "node scripts/sync-ziliao-read-spot.mjs",
+    "review:ziliao-visual": "python3 scripts/ziliao_visual_gate.py",
+    "quality:gate": "python3 scripts/quality_orchestrator.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",

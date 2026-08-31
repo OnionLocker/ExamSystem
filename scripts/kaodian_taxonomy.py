@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import json
 import os
+import random
 import sqlite3
+from collections import Counter
 from pathlib import Path
 
 
@@ -46,6 +48,131 @@ COARSE_PRIMARY_TAGS = {
     "数量关系-数学运算-排列组合",
     "数量关系-数学运算-排列组合与概率",
     "排列组合",
+}
+
+# 与 solver-canon/07-ziliao.md、知识页卡片逐字一致。
+ZILIAO_QI = "资料分析-基础知识-统计术语与常考概念"
+ZILIAO_ADD = "资料分析-速算技巧-加法与减法"
+ZILIAO_MUL = "资料分析-速算技巧-乘除截位与分数比较"
+ZILIAO_415 = "资料分析-速算技巧-415份数法与假设分配法"
+ZILIAO_BASE = "资料分析-ABRX类-基期量计算与比较"
+ZILIAO_RATE = "资料分析-ABRX类-增长率计算模型"
+ZILIAO_DELTA = "资料分析-ABRX类-增长量计算与现期推算"
+ZILIAO_SHARE = "资料分析-比重类-现期、基期与隔级比重"
+ZILIAO_SHARE_DIFF = "资料分析-比重类-比重趋势、比重差与比值差"
+ZILIAO_MIX = "资料分析-盐水类-十字交叉法与混合增长率"
+ZILIAO_CMP = "资料分析-比较类-双线法与增量比较"
+ZILIAO_AVG = "资料分析-平均类-一般平均值与年均增速/增量"
+ZILIAO_SPEC = "资料分析-特殊考点-拉动增长、贡献率与容斥"
+ZILIAO_STEPS = "资料分析-每题四步-每题四步"
+KNOWN_ZILIAO_TAGS = {
+    ZILIAO_QI,
+    ZILIAO_ADD,
+    ZILIAO_MUL,
+    ZILIAO_415,
+    ZILIAO_BASE,
+    ZILIAO_RATE,
+    ZILIAO_DELTA,
+    ZILIAO_SHARE,
+    ZILIAO_SHARE_DIFF,
+    ZILIAO_MIX,
+    ZILIAO_CMP,
+    ZILIAO_AVG,
+    ZILIAO_SPEC,
+    ZILIAO_STEPS,
+}
+ZILIAO_METHOD_TAGS = {ZILIAO_ADD, ZILIAO_MUL, ZILIAO_415, ZILIAO_STEPS}
+ZILIAO_QUESTION_TAGS = (
+    ZILIAO_QI,
+    ZILIAO_BASE,
+    ZILIAO_RATE,
+    ZILIAO_DELTA,
+    ZILIAO_SHARE,
+    ZILIAO_SHARE_DIFF,
+    ZILIAO_MIX,
+    ZILIAO_CMP,
+    ZILIAO_AVG,
+    ZILIAO_SPEC,
+)
+ZILIAO_LIGHT_TAGS = (ZILIAO_QI, ZILIAO_BASE)
+ZILIAO_FINALE_TAGS = (ZILIAO_SPEC, ZILIAO_SHARE_DIFF, ZILIAO_CMP)
+ZILIAO_DEFAULT_PACK = (ZILIAO_BASE, ZILIAO_RATE, ZILIAO_DELTA, ZILIAO_SHARE, ZILIAO_AVG)
+ZILIAO_ALT_PACK = (ZILIAO_QI, ZILIAO_SHARE_DIFF, ZILIAO_MIX, ZILIAO_CMP, ZILIAO_SPEC)
+ZILIAO_FORMS = (
+    ("text", "纯文字，无表无图"),
+    ("table", "文字+窄表"),
+    ("chart", "文字+柱或饼"),
+    ("mixed", "文字+表或图，且至少1题选项是饼/柱图"),
+)
+ZILIAO_ANSWER_LETTERS = ("A", "B", "C", "D")
+ZILIAO_ANSWER_COVER_RATE = 0.8
+
+
+def is_abcd_plus_one(answers: list[str] | tuple[str, ...]) -> bool:
+    """5 题恰好覆盖 A/B/C/D，并有一个字母重复一次。"""
+    keys = [str(item).strip().upper() for item in answers]
+    if len(keys) != 5 or any(key not in ZILIAO_ANSWER_LETTERS for key in keys):
+        return False
+    counts = Counter(keys)
+    return set(counts) == set(ZILIAO_ANSWER_LETTERS) and sorted(counts.values()) == [1, 1, 1, 2]
+
+
+def _abcd_plus_one(rng: random.Random) -> list[str]:
+    keys = list(ZILIAO_ANSWER_LETTERS) + [rng.choice(ZILIAO_ANSWER_LETTERS)]
+    rng.shuffle(keys)
+    return keys
+
+
+def _scattered_answers(rng: random.Random) -> list[str]:
+    for _ in range(32):
+        keys = [rng.choice(ZILIAO_ANSWER_LETTERS) for _ in range(5)]
+        if not is_abcd_plus_one(keys):
+            return keys
+    return ["A", "A", "B", "B", "C"]
+
+
+def assign_ziliao_answers(n_materials: int = 4, rng: random.Random | None = None) -> list[dict]:
+    """4 篇里约 80%（3 篇）走考场常见分布：ABCD 各一 + 1 个重复；1 篇故意打散。"""
+    rng = rng or random.Random()
+    n_cover = max(0, min(n_materials, round(n_materials * ZILIAO_ANSWER_COVER_RATE)))
+    cover_at = set(rng.sample(range(n_materials), n_cover)) if n_cover else set()
+    plans = []
+    for index in range(n_materials):
+        if index in cover_at:
+            keys = _abcd_plus_one(rng)
+            kind = "abcd_plus_one"
+            label = "ABCD各一+随机"
+        else:
+            keys = _scattered_answers(rng)
+            kind = "scattered"
+            label = "打散，不齐ABCD"
+        plans.append({"kind": kind, "label": label, "answers": keys})
+    return plans
+
+
+def validate_ziliao_paper_answers(groups: list[list[str]]) -> None:
+    """广东日常 4 篇须恰好 3 篇为 ABCD 各一 + 1 随机。"""
+    if len(groups) != 4 or any(len(group) != 5 for group in groups):
+        raise ValueError("资料分析日常批须 4 篇 × 5 题，才能检查答案分布")
+    cover = sum(1 for group in groups if is_abcd_plus_one(group))
+    if cover != 3:
+        raise ValueError(f"4 篇须恰好 3 篇为 ABCD 各一+1 随机，当前 {cover} 篇")
+ZILIAO_BANNED_PRIMARY = {"资料分析-综合分析-综合判断"}
+ZILIAO_TAG_ALIASES = {
+    "资料分析-简单计算与查找-直接查找": ZILIAO_QI,
+    "资料分析-简单查找-直接查找": ZILIAO_QI,
+    "资料分析-倍数-倍数计算": ZILIAO_QI,
+    "资料分析-基期量-基期量计算": ZILIAO_BASE,
+    "资料分析-增长率-同比增长率": ZILIAO_RATE,
+    "资料分析-增长率-增长率计算": ZILIAO_RATE,
+    "资料分析-增长量-增长量计算与比较": ZILIAO_DELTA,
+    "资料分析-比重-比重计算与比较": ZILIAO_SHARE,
+    "资料分析-比重-两期比重差": ZILIAO_SHARE_DIFF,
+    "资料分析-增长率-年均增长率": ZILIAO_AVG,
+    "资料分析-平均数-现期平均数": ZILIAO_AVG,
+    "资料分析-平均类-年均增长率": ZILIAO_AVG,
+    "资料分析-特殊考点-贡献率": ZILIAO_SPEC,
+    "资料分析-综合分析-综合判断": ZILIAO_CMP,
 }
 
 
@@ -148,25 +275,62 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
         return f"言语理解与表达-{sub or '未细分'}-{raw}"
 
     if mod == "资料分析":
-        if raw.startswith("资料分析-") and raw.count("-") >= 2:
-            return raw
-        if _has_any(raw, "直接读数", "简单查找", "读数排序"):
-            return "资料分析-简单计算与查找-直接查找"
-        if "基期量" in raw:
-            return "资料分析-基期量-基期量计算"
-        if _has_any(raw, "增长量", "环比增量"):
-            return "资料分析-增长量-增长量计算与比较"
-        if _has_any(raw, "比重", "占比", "资产负债率", "饼图"):
-            return "资料分析-比重-比重计算与比较"
-        if "倍数" in raw:
-            return "资料分析-倍数-倍数计算"
-        if _has_any(raw, "综合", "双变量变动"):
-            return "资料分析-综合分析-综合判断"
-        return f"资料分析-{sub or '未细分'}-{raw}"
+        return _canonicalize_ziliao(raw, sub)
 
     if raw.startswith(f"{mod}-") and raw.count("-") >= 2:
         return raw
     return f"{mod}-{sub or '未细分'}-{raw}"
+
+
+def _ziliao_from_keywords(raw: str) -> str:
+    if _has_any(raw, "每题四步"):
+        return ZILIAO_STEPS
+    if _has_any(raw, "415", "假设分配"):
+        return ZILIAO_415
+    if _has_any(raw, "截位", "分数比较"):
+        return ZILIAO_MUL
+    if _has_any(raw, "削峰填谷", "尾数法", "加法与减法"):
+        return ZILIAO_ADD
+    if _has_any(raw, "混合增长", "十字交叉", "盐水"):
+        return ZILIAO_MIX
+    if _has_any(raw, "拉动", "贡献率", "容斥"):
+        return ZILIAO_SPEC
+    if _has_any(raw, "两期比重", "比重差", "比重趋势", "比值差"):
+        return ZILIAO_SHARE_DIFF
+    if _has_any(raw, "隔级比重", "基期比重", "现期比重"):
+        return ZILIAO_SHARE
+    if _has_any(raw, "比重", "占比", "资产负债率", "饼图"):
+        return ZILIAO_SHARE
+    if "年均" in raw:
+        return ZILIAO_AVG
+    if _has_any(raw, "平均数", "平均值"):
+        return ZILIAO_AVG
+    if _has_any(raw, "增长量", "环比增量"):
+        return ZILIAO_DELTA
+    if _has_any(raw, "增长率", "同比增速"):
+        return ZILIAO_RATE
+    if _has_any(raw, "基期量", "基期"):
+        return ZILIAO_BASE
+    if _has_any(raw, "双线", "增量比较"):
+        return ZILIAO_CMP
+    if _has_any(raw, "倍数", "直接读数", "简单查找", "读数排序", "术语"):
+        return ZILIAO_QI
+    if _has_any(raw, "综合判断", "综合分析"):
+        return ZILIAO_CMP
+    return ""
+
+
+def _canonicalize_ziliao(raw: str, subtype: str = "") -> str:
+    if raw in KNOWN_ZILIAO_TAGS:
+        return raw
+    if raw in ZILIAO_TAG_ALIASES:
+        return ZILIAO_TAG_ALIASES[raw]
+    mapped = _ziliao_from_keywords(raw)
+    if mapped:
+        return mapped
+    if raw.startswith("资料分析-") and raw.count("-") >= 2:
+        return raw
+    return f"资料分析-{subtype or '未细分'}-{raw}"
 
 
 def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
@@ -273,9 +437,24 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
         raise ValueError(f"标签必须是 模块-一级-二级，收到: {tag}")
     canonical = canonicalize(tag, category)
     module = (category or tag.split("-", 1)[0]).strip()
+    if tag in ZILIAO_BANNED_PRIMARY or tag.endswith("-综合判断"):
+        raise ValueError(
+            "不要写资料分析-综合分析-综合判断。"
+            "末题可以出综合判断句，tags[0] 打在正确项最重的那张知识库主标签上。"
+        )
     if module == "数量关系" and canonical not in KNOWN_QUANTITY_TAGS and canonical not in registered_canonical_tags():
         raise ValueError(
             f"数量关系标签无法归一到知识卡片或已登记考点: {tag} → {canonical}。"
             "新考点先 kaodian_profile.py --register 再出题。"
         )
+    if module == "资料分析" or canonical.startswith("资料分析-"):
+        if tag in ZILIAO_METHOD_TAGS or canonical in ZILIAO_METHOD_TAGS:
+            raise ValueError(
+                "速算技巧 / 每题四步是方法卡，不能当 tags[0]。"
+                "改用 ABRX / 比重 / 平均 / 比较 / 盐水 / 贡献率等出题槽。"
+            )
+        if tag not in KNOWN_ZILIAO_TAGS:
+            hint = f"应写成 {canonical}" if canonical in KNOWN_ZILIAO_TAGS else "词表见 solver-canon/07-ziliao.md"
+            raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。{hint}")
+        return tag
     return canonical

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "batch_id": "20260830_ziliao_gd_01",
+  "issued_at": "2026-08-30T07:34:36+00:00",
+  "manifest_sha256": "91e5ca921ee86d7cdacc684c4d976db2ba665a1c76c1751c990839c748c81a64",
+  "questions_sha256": "4bf2330249ed7c65dbbe81d6630f5821bb10891cfb852630dd5254fca24e9fac",
+  "question_ids": [
+    "20260830_ziliao_gd_01-Q01",
+    "20260830_ziliao_gd_01-Q02",
+    "20260830_ziliao_gd_01-Q03",
+    "20260830_ziliao_gd_01-Q04",
+    "20260830_ziliao_gd_01-Q05",
+    "20260830_ziliao_gd_01-Q06",
+    "20260830_ziliao_gd_01-Q07",
+    "20260830_ziliao_gd_01-Q08",
+    "20260830_ziliao_gd_01-Q09",
+    "20260830_ziliao_gd_01-Q10",
+    "20260830_ziliao_gd_01-Q11",
+    "20260830_ziliao_gd_01-Q12",
+    "20260830_ziliao_gd_01-Q13",
+    "20260830_ziliao_gd_01-Q14",
+    "20260830_ziliao_gd_01-Q15"
+  ],
+  "correctness": {
+    "path": "evidence/correctness.json",
+    "sha256": "799777a3f995091200cde4705e5996bbb597930d1f3b49660f8aba8cd85928c6",
+    "route": "B"
+  },
+  "quality": {
+    "path": "evidence/quality.json",
+    "sha256": "e1cf70bca7f84288840a1827de7b817c5c4c2c25aa623413ed6fa0a83e8a3347",
+    "evaluation_context_ids": [
+      "refctx-c4cc18f6b4344a29bab96feffa7ad0b1"
+    ]
+  }
+}

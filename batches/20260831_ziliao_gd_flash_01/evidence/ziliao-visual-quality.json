@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "kind": "ziliao-visual-quality",
+  "batch_id": "20260831_ziliao_gd_flash_01",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T10:43:32+00:00",
+  "mobile_width": 320,
+  "verdict": "PASS",
+  "images": [
+    {
+      "path": "images/m-02-table.png",
+      "sha256": "4c63f5479c8471e478821cfbd1feddcd61e525e19746820a2a64a3854202aa03",
+      "width": 444,
+      "height": 278,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/m-03-bars.png",
+      "sha256": "f384d66159dd6fed17bf7e9faeef2ab193f3c9087b737f9c7e527933ab287dbb",
+      "width": 480,
+      "height": 398,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/m-04-table.png",
+      "sha256": "430f5a43accb7225b94ae4763241c984697127fbf4e0deae954f91320e0d00e2",
+      "width": 481,
+      "height": 241,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/q-20-opt-A.png",
+      "sha256": "0ea550cee583a7df0b44e03f7289d655830d3d0f39a54d62a86842d3ea31a453",
+      "width": 480,
+      "height": 398,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/q-20-opt-B.png",
+      "sha256": "9a136e05954a4e062a6dc9478fdfdc9fe0600fbfccccc17d9f1fb0e6563b3e12",
+      "width": 480,
+      "height": 398,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/q-20-opt-C.png",
+      "sha256": "3e34c21ffbd2fa3b59ef2ed59aff829ca402a61ca9552a8b5630c4849bd61ce8",
+      "width": 480,
+      "height": 398,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    },
+    {
+      "path": "images/q-20-opt-D.png",
+      "sha256": "703560e2bb363843588da81ab93e4c26be1b632902811e428d869c7942860c30",
+      "width": 480,
+      "height": 398,
+      "mobile_width": 320,
+      "verdict": "PASS",
+      "checks": {
+        "complete": true,
+        "no_overlap": true,
+        "units_mapped": true,
+        "mobile_readable": true,
+        "context_consistent": true
+      },
+      "issues": [],
+      "raw_verdict": "PASS"
+    }
+  ]
+}

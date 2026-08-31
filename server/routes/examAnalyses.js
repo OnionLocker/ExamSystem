@@ -102,7 +102,9 @@ router.get('/:id/md', (req, res) => {
   const name = `${row.id}-${safe}.md`;
   const file = path.join(REVIEW_DIR, name);
   fs.writeFileSync(file, md, 'utf8');
-  res.json({ path: file, name, title: row.title, markdown: md });
+  let grade = null;
+  try { grade = JSON.parse(row.result || '{}')?.grade || null; } catch { /* ignore */ }
+  res.json({ path: file, name, title: row.title, markdown: md, grade });
 });
 
 router.get('/:id', (req, res) => {

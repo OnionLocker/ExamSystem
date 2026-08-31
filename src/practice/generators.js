@@ -1,3 +1,5 @@
+import { READ_SPOT_GENERATORS, READ_SPOT_CATEGORY } from './readSpot.js';
+
 // ---------------- 题目生成器 ----------------
 // 每个生成器返回 { prompt, answer, displayAnswer?, tolerance? }
 // - prompt: 题干字符串
@@ -1025,6 +1027,8 @@ export const generators = {
         `${relB}（${labels[relB - 1]}；线段法：A 在整体${a > r ? '上方' : a < r ? '下方' : '重合'}，则 B 在另一侧。B≈${bExact}%）`,
     };
   },
+  ...READ_SPOT_GENERATORS,
+
 };
 
 // 动态生成 mulByN（避免重复代码）
@@ -1110,6 +1114,7 @@ export const CATEGORIES = [
       { id: 'mixtureRateEstimate', name: '混合增长率定性线段', gen: 'mixtureRateEstimate', weight: 5 },
     ],
   },
+  READ_SPOT_CATEGORY,
   {
     id: 'quant',
     name: '数量关系专项',

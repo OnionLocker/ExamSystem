@@ -1,0 +1,21 @@
+{
+  "verdict": "PASS",
+  "route": "A",
+  "question_ids": [
+    "20260829_panduan_fanyi_02_01",
+    "20260829_panduan_fanyi_02_02",
+    "20260829_panduan_fanyi_02_03",
+    "20260829_panduan_fanyi_02_04",
+    "20260829_panduan_fanyi_02_05",
+    "20260829_panduan_fanyi_02_06",
+    "20260829_panduan_fanyi_02_07",
+    "20260829_panduan_fanyi_02_08",
+    "20260829_panduan_fanyi_02_09",
+    "20260829_panduan_fanyi_02_10"
+  ],
+  "checks": [
+    "Z3 SAT/SMT 形式化机械判定 100% 唯一解",
+    "全量覆盖除非否则、假言联言逆否、选言否定肯定与德摩根",
+    "无肯后断链与假命题"
+  ]
+}

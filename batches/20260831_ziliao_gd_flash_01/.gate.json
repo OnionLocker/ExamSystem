@@ -1,0 +1,63 @@
+{
+  "version": 2,
+  "batch_id": "20260831_ziliao_gd_flash_01",
+  "issued_at": "2026-08-31T10:43:32+00:00",
+  "manifest_sha256": "28422e8263c50bdebb324e0ff17528e2e9d0f41719c0e4662315f781e32d470e",
+  "questions_sha256": "15111b1367a1ff1d796f1e9943f0f63b9719ba34adb29e687d81fb59c9cd4f19",
+  "artifacts": {
+    "images/m-02-table.png": "4c63f5479c8471e478821cfbd1feddcd61e525e19746820a2a64a3854202aa03",
+    "images/m-03-bars.png": "f384d66159dd6fed17bf7e9faeef2ab193f3c9087b737f9c7e527933ab287dbb",
+    "images/m-04-table.png": "430f5a43accb7225b94ae4763241c984697127fbf4e0deae954f91320e0d00e2",
+    "images/q-20-opt-A.png": "0ea550cee583a7df0b44e03f7289d655830d3d0f39a54d62a86842d3ea31a453",
+    "images/q-20-opt-B.png": "9a136e05954a4e062a6dc9478fdfdc9fe0600fbfccccc17d9f1fb0e6563b3e12",
+    "images/q-20-opt-C.png": "3e34c21ffbd2fa3b59ef2ed59aff829ca402a61ca9552a8b5630c4849bd61ce8",
+    "images/q-20-opt-D.png": "703560e2bb363843588da81ab93e4c26be1b632902811e428d869c7942860c30",
+    "materials.json": "311b633db039ce939545e2143beeeacfef9151d69ae71891c8d1306759d8ed42",
+    "read-spot-packs.json": "16520c46ea4d1a009de71b5e91caf3a669da5af18a202aad200c386f9bdc5a50"
+  },
+  "question_ids": [
+    "20260831_ziliao_gd_flash_01-Q01",
+    "20260831_ziliao_gd_flash_01-Q02",
+    "20260831_ziliao_gd_flash_01-Q03",
+    "20260831_ziliao_gd_flash_01-Q04",
+    "20260831_ziliao_gd_flash_01-Q05",
+    "20260831_ziliao_gd_flash_01-Q06",
+    "20260831_ziliao_gd_flash_01-Q07",
+    "20260831_ziliao_gd_flash_01-Q08",
+    "20260831_ziliao_gd_flash_01-Q09",
+    "20260831_ziliao_gd_flash_01-Q10",
+    "20260831_ziliao_gd_flash_01-Q11",
+    "20260831_ziliao_gd_flash_01-Q12",
+    "20260831_ziliao_gd_flash_01-Q13",
+    "20260831_ziliao_gd_flash_01-Q14",
+    "20260831_ziliao_gd_flash_01-Q15",
+    "20260831_ziliao_gd_flash_01-Q16",
+    "20260831_ziliao_gd_flash_01-Q17",
+    "20260831_ziliao_gd_flash_01-Q18",
+    "20260831_ziliao_gd_flash_01-Q19",
+    "20260831_ziliao_gd_flash_01-Q20"
+  ],
+  "correctness": {
+    "path": "evidence/correctness.json",
+    "sha256": "4c7ad1b8fa049d030de1a79a1960aaa4ca567b03115f14f64292d35325cef385",
+    "route": "B"
+  },
+  "quality": {
+    "path": "evidence/quality.json",
+    "sha256": "736af839b02c3adc7c258a67b3635d24f6c20c37f5713348ea51e30b4c7be877",
+    "evaluation_context_ids": [
+      "refctx-274fa7948a304f87be6dee3f4a964114",
+      "refctx-6506c02052ec4594b2d2b1af3c0d1f2f",
+      "refctx-90cee83c171246c0928618c2aa850258",
+      "refctx-ae1cf4846c0e4f85af30efd8ab6d428d",
+      "refctx-c26db617ec944fde903146055a6a3dd4",
+      "refctx-fd21f4f3d8b4466a9f48436f2c16a097"
+    ]
+  },
+  "visual_quality": {
+    "path": "evidence/ziliao-visual-quality.json",
+    "sha256": "dde74ee14db0ae97dc73951e972db774c844779c7c8377cbc8016e76153aaff6",
+    "model": "gemini-3.7-flash-high",
+    "mobile_width": 320
+  }
+}

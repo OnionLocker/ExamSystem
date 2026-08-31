@@ -18,6 +18,30 @@ const parseQuestion = (row) => {
   return out;
 };
 
+const parseJson = (v, fallback) => {
+  if (typeof v !== 'string') return v ?? fallback;
+  try { return JSON.parse(v); } catch { return fallback; }
+};
+
+const attachMaterials = (rows) => {
+  const ids = [...new Set(rows.map((r) => r.material_id).filter(Boolean))];
+  const matMap = new Map();
+  if (ids.length) {
+    const mats = db
+      .prepare(`SELECT id, content, images FROM materials WHERE id IN (${ids.map(() => '?').join(',')})`)
+      .all(...ids);
+    for (const m of mats) {
+      matMap.set(m.id, { id: m.id, content: m.content, images: parseJson(m.images, []) });
+    }
+  }
+  return rows.map((row) => {
+    const q = parseQuestion(row);
+    const mat = q.material_id ? matMap.get(q.material_id) : null;
+    if (mat) q.material = mat;
+    return q;
+  });
+};
+
 // ─────────────────────────────────────────────
 // GET /api/questions
 //   ?category=   ?sub_category=   ?batch_id=
@@ -35,7 +59,13 @@ router.get('/', (req, res) => {
   if (batch_id) { where.push('batch_id = ?'); params.push(batch_id); }
 
   const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
-  const order = random === '1' ? 'ORDER BY RANDOM()' : 'ORDER BY id ASC';
+  const grouped = batch_id && db
+    .prepare('SELECT 1 AS x FROM questions WHERE batch_id = ? AND material_id IS NOT NULL LIMIT 1')
+    .get(batch_id);
+  // 资料分析一组材料绑多题：乱序会把同一份材料拆开，左边跟着跳。
+  const order = grouped
+    ? 'ORDER BY material_id, id'
+    : random === '1' ? 'ORDER BY RANDOM()' : 'ORDER BY id ASC';
 
   const rows = db
     .prepare(
@@ -47,7 +77,7 @@ router.get('/', (req, res) => {
     )
     .all(...params, lim);
 
-  res.json({ items: rows.map(parseQuestion), total: rows.length });
+  res.json({ items: attachMaterials(rows), total: rows.length });
 });
 
 // ─────────────────────────────────────────────
@@ -131,6 +161,7 @@ router.delete('/batch/:batchId', (req, res) => {
     // 两边都是 CASCADE，先删哪个都不会留孤儿行
     const s = db.prepare('DELETE FROM practice_sessions WHERE category = ?').run(batchId);
     const q = db.prepare('DELETE FROM questions WHERE batch_id = ?').run(batchId);
+    db.prepare('DELETE FROM materials WHERE batch_id = ?').run(batchId);
     return { sessions: s.changes, questions: q.changes };
   });
 

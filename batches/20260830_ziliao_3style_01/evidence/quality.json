@@ -1,0 +1,41 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260830_ziliao_3style_01-Q01",
+    "20260830_ziliao_3style_01-Q02",
+    "20260830_ziliao_3style_01-Q03",
+    "20260830_ziliao_3style_01-Q04",
+    "20260830_ziliao_3style_01-Q05",
+    "20260830_ziliao_3style_01-Q06",
+    "20260830_ziliao_3style_01-Q07",
+    "20260830_ziliao_3style_01-Q08",
+    "20260830_ziliao_3style_01-Q09",
+    "20260830_ziliao_3style_01-Q10",
+    "20260830_ziliao_3style_01-Q11",
+    "20260830_ziliao_3style_01-Q12",
+    "20260830_ziliao_3style_01-Q13",
+    "20260830_ziliao_3style_01-Q14",
+    "20260830_ziliao_3style_01-Q15"
+  ],
+  "evaluation_context_ids": [
+    "refctx-e59ec79d73cb42b39a8a45b7f97fff36"
+  ],
+  "checks": [
+    "考点单一",
+    "信息边界",
+    "真题密度",
+    "干扰项",
+    "历史回归",
+    "卷种句式与篇幅",
+    "独立B路复算唯一解"
+  ],
+  "rubric": [
+    2,
+    2,
+    1,
+    2,
+    2,
+    2
+  ],
+  "reviewer": "independent-quality"
+}

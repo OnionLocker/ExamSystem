@@ -1,0 +1,51 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260831_ziliao_gd_flash_01-Q01",
+    "20260831_ziliao_gd_flash_01-Q02",
+    "20260831_ziliao_gd_flash_01-Q03",
+    "20260831_ziliao_gd_flash_01-Q04",
+    "20260831_ziliao_gd_flash_01-Q05",
+    "20260831_ziliao_gd_flash_01-Q06",
+    "20260831_ziliao_gd_flash_01-Q07",
+    "20260831_ziliao_gd_flash_01-Q08",
+    "20260831_ziliao_gd_flash_01-Q09",
+    "20260831_ziliao_gd_flash_01-Q10",
+    "20260831_ziliao_gd_flash_01-Q11",
+    "20260831_ziliao_gd_flash_01-Q12",
+    "20260831_ziliao_gd_flash_01-Q13",
+    "20260831_ziliao_gd_flash_01-Q14",
+    "20260831_ziliao_gd_flash_01-Q15",
+    "20260831_ziliao_gd_flash_01-Q16",
+    "20260831_ziliao_gd_flash_01-Q17",
+    "20260831_ziliao_gd_flash_01-Q18",
+    "20260831_ziliao_gd_flash_01-Q19",
+    "20260831_ziliao_gd_flash_01-Q20"
+  ],
+  "evaluation_context_ids": [
+    "refctx-fd21f4f3d8b4466a9f48436f2c16a097",
+    "refctx-90cee83c171246c0928618c2aa850258",
+    "refctx-c26db617ec944fde903146055a6a3dd4",
+    "refctx-ae1cf4846c0e4f85af30efd8ab6d428d",
+    "refctx-274fa7948a304f87be6dee3f4a964114",
+    "refctx-6506c02052ec4594b2d2b1af3c0d1f2f"
+  ],
+  "checks": [
+    "\u72ec\u7acb\u7ec8\u5ba112/12\uff0c\u65e0\u963b\u65ad\u9879",
+    "\u56db\u7bc7\u57474\u6bb5\u3001440\u2014462\u5b57\uff0c\u6570\u5b57\u5bc6\u5ea6\u4e0e\u5e7f\u4e1c\u7edf\u8ba1\u516c\u62a5\u4f53\u5408\u683c",
+    "20\u9898\u7ed3\u6784\u8986\u76d6\u67e5\u627e\u3001\u57fa\u671f\u3001\u6bd4\u91cd\u3001\u5e73\u5747\u3001\u6bd4\u8f83\u3001\u8d21\u732e\u7387\u3001\u5bb9\u65a5\u4e0e\u56fe\u5f62\u9009\u9879",
+    "\u5e72\u6270\u9879\u53ef\u8bca\u65ad\uff0c\u672a\u53d1\u73b0R005\u6216R009\u540c\u6784\u6362\u76ae\u786c\u4f24",
+    "7\u5f20\u56fe\u7247\u9010\u5f20\u89c6\u89c9\u5ba1\u67e5\u901a\u8fc7\uff0c\u79fb\u52a8\u7aef\u5b57\u53f7\u3001\u5355\u4f4d\u3001\u523b\u5ea6\u65e0\u91cd\u53e0",
+    "6\u7ec4\u751f\u6210context\u4e0e6\u7ec4evaluation context\u6309\u4e3b\u6807\u7b7e\u5b8c\u6574\u8986\u76d6\u4e14\u6837\u672c\u9694\u79bb",
+    "M03\u67f1\u72b6\u56fe\u5df2\u5728\u539f\u59cb480px\u4e0e\u79fb\u52a8\u7aef320px\u5c3a\u5bf8\u4e0b\u72ec\u7acb\u590d\u6838\uff1a\u6240\u6709\u67f1\u9876\u6570\u5b57\u4e0e\u67f1\u5f62\u3001\u7f51\u683c\u7ebf\u3001\u5750\u6807\u8f74\u53ca\u5176\u4ed6\u6807\u7b7e\u4e92\u4e0d\u906e\u6321\uff0c\u7ed3\u8bbaPASS"
+  ],
+  "rubric": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "reviewer": "independent-quality-final:2918d1b8-ecd4-4b70-ae65-1062f03c56ee"
+}

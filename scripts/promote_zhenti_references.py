@@ -149,12 +149,22 @@ def iter_candidates(zhenti_dir: Path) -> list[dict[str, object]]:
             if not category:
                 continue
             skip = ""
+            stem = compact(question.get("stem")).replace("[依托材料]", "").strip()
+            # PDF 文字层抽不出表/图，资料分析进库考生做不了
+            if category == "资料分析":
+                skip = "ziliao_incomplete"
             if question.get("has_figure"):
-                skip = "has_figure"
+                skip = skip or "has_figure"
+            if re.search(r"题干缺失|全力以赴征集|第一时间上传", stem):
+                skip = skip or "placeholder"
+            # 国考文章阅读只留下设问、原文没挂上
+            if category == "言语理解与表达" and len(stem) < 90 and re.search(
+                r"这篇文章|本文|原文|文中|填入文中哪个位置|最适合做这篇文章|与原文相符"
+            , stem):
+                skip = skip or "orphan_passage"
             answer = compact(question.get("correct_answer")).upper()
             if not answer:
                 skip = skip or "no_answer"
-            stem = compact(question.get("stem")).replace("[依托材料]", "").strip()
             if not stem:
                 skip = skip or "empty_stem"
             options = options_of(question.get("options"))
@@ -165,7 +175,7 @@ def iter_candidates(zhenti_dir: Path) -> list[dict[str, object]]:
                 if answer not in {"T", "F"}:
                     skip = skip or "bad_judge_answer"
                 options = []
-            elif len(options) < 2:
+            elif len(options) < 4:
                 skip = skip or "broken_options"
                 question_type = "single"
             else:
@@ -294,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
         f"去重 {stats.get('dedup', 0)}"
     )
     print(
-        f"跳过 缺图 {stats.get('has_figure', 0)}｜"
+        f"跳过 资料分析残缺 {stats.get('ziliao_incomplete', 0)}｜"
+        f"缺图 {stats.get('has_figure', 0)}｜"
+        f"占位稿 {stats.get('placeholder', 0)}｜"
         f"无答案 {stats.get('no_answer', 0)}｜"
         f"选项残缺 {stats.get('broken_options', 0)}"
     )

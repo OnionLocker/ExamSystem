@@ -1,0 +1,24 @@
+{
+  "verdict": "PASS",
+  "question_ids": [
+    "20260829_panduan_fanyi_02_01",
+    "20260829_panduan_fanyi_02_02",
+    "20260829_panduan_fanyi_02_03",
+    "20260829_panduan_fanyi_02_04",
+    "20260829_panduan_fanyi_02_05",
+    "20260829_panduan_fanyi_02_06",
+    "20260829_panduan_fanyi_02_07",
+    "20260829_panduan_fanyi_02_08",
+    "20260829_panduan_fanyi_02_09",
+    "20260829_panduan_fanyi_02_10"
+  ],
+  "evaluation_context_ids": [
+    "refctx-bb6d59a4a2bc48659e47c1be39b0670c"
+  ],
+  "checks": [
+    "针对性强化：专攻【除非...否则...】与【德摩根否定肯定】句式辨析",
+    "信息边界闭合：题干字数110-150字，设问符合省考行测标准",
+    "干扰项可诊断：针对否前、肯后、选言单肯等高频误区",
+    "无LaTeX代码泄露，全Unicode符号"
+  ]
+}

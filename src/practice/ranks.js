@@ -130,6 +130,13 @@ export const SUB_BASE_MS = {
   growthShareEst:       5000,
   twoPeriodRatioDiff:   5500,
   mixtureRateEstimate:  6000,
+  // readSpot 读题反应（读题+定位，不算式；王者基线偏紧）
+  spotZiliao:  8000,
+  spotQuant:   9000,
+  spotLogic:   8000,
+  spotVerbal: 10000,
+  findBasic:  18000,
+  findAdv:    28000,
 };
 
 export const getBaseMs = (subId) => SUB_BASE_MS[subId] || 15000;

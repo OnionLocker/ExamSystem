@@ -315,7 +315,7 @@ const MarkdownMessage = memo(function MarkdownMessage({
   return (
     <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
         rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
         components={renderedComponents}
       >

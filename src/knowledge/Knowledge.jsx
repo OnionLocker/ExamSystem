@@ -295,7 +295,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
               {cardToMarkdown(view) && (
                 <div className="katex-inline-host text-[17px]">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkMath]}
+                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
                     rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
                     components={CARD_MD}
                   >

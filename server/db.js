@@ -393,6 +393,9 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_practice_evidence
     ON kaodian_events(kaodian, question_id, session_id, evidence_type)
     WHERE session_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_exam_item
+    ON kaodian_events(session_id, question_id, evidence_type)
+    WHERE evidence_type = 'exam' AND session_id IS NOT NULL AND question_id IS NOT NULL;
   UPDATE kaodian_profile
      SET mastery = CAST(ROUND(correct * 100.0 / attempts) AS INTEGER)
    WHERE mastery IS NULL AND attempts > 0

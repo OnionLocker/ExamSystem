@@ -76,7 +76,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   const cat = CATEGORIES.find((c) => c.id === catId);
   const sub = getSub(catId, subId) || cat?.subs?.[0];
-  const availableCats = useMemo(() => CATEGORIES.filter((c) => c.available), []);
+  const availableCats = useMemo(() => CATEGORIES.filter((c) => c.available && c.kind !== 'selfReport'), []);
 
   // stealth: 伪装模式（低调主题、可隐藏题目内容）
   const [stealth, setStealth] = useState(false);

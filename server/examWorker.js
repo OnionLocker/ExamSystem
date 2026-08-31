@@ -157,6 +157,9 @@ const segmentPrompt = (index, total, offsetSec, kind) => {
       "stem": "画面上能看清的原题题干+选项，尽量原文；看不清的部分用[看不清]",
       "draft": "草稿纸、手写、划线、演算里实际写了什么，按出现顺序列出；没有草稿填空字符串",
       "process": "这题怎么做的：先看了哪、算了什么、点了哪个选项、有没有回头改",
+      "timeline": [
+        {"at_sec": 真实秒, "seen": "这一刻画面上刚发生的事，一句"}
+      ],
       "final_answer": "离开此题前最后一次看到被勾选/高亮的选项字母；选项圆点填实或变色就算选了，即使下一秒翻页。全程没看到勾选才填 null",
       "answer_changes": 改动答案的次数,
       "behaviors": ["从下列词里选：划线、反复滚动、长时间盯着不动、来回翻页、跳过、回头重做、快速作答、写草稿、看解析"]
@@ -169,76 +172,251 @@ const segmentPrompt = (index, total, offsetSec, kind) => {
 }
 
 注意：
-- 只记录你真正看到的。题干、草稿看不清就写[看不清]，不要编。
-- 原题和草稿是重点，尽量抄画面上的字，不要只写行为标签。
+- 只记录你真正看到的，不要诊断、不要评价好坏、不要猜他在想什么。
+- timeline 按时间顺序列出本题里每个能看清的动作：进入本题、划线、开写、停住、滚动、翻页、跳走、回来、点选项、改选项、离开。每条一句，能写秒数就写。
+- 原题和草稿尽量抄画面上的字。题干、草稿看不清就写[看不清]，不要编。
 - "划线"指在题干上划但没有写出算式；"写草稿"指出现了数字、式子或步骤。
 - 勾选判定只看选项圆点/高亮，不要根据草稿上的得数反推。
 - 切题很快也要回头看离开前最后一两秒：圆点填实过就记下来。`;
 };
 
-const summaryHeader = (meta, segments) => `## 场次信息
+const gradePdfPrompt = () => `这是一份带作答记录的行测练习/模考 PDF。常见字段是「你的答案」「正确答案」，或答题卡对错标记。
+只根据 PDF 原文判分。禁止推理，禁止用常识或解析改答案。
+
+只输出 JSON：
+{
+  "total": 题数,
+  "correct": 做对数,
+  "wrong": 做错数,
+  "blank": 未选或空数,
+  "questions": [
+    {"number": 1, "user_answer": "C", "correct_answer": "B", "is_correct": false}
+  ]
+}
+
+规则：
+- 空、未作答、没有你的答案 → user_answer 为 ""，计入 blank，is_correct 为 false
+- 多选按 PDF 原样，如 "BD"
+- questions 必须覆盖 PDF 里每一题，题号与 PDF 一致
+- 不要解释`;
+
+const normalizeGrade = (grade) => {
+  const questions = Array.isArray(grade?.questions) ? grade.questions : [];
+  let correct = 0;
+  let wrong = 0;
+  let blank = 0;
+  const items = questions.map((q) => {
+    const user = String(q.user_answer ?? '').trim();
+    const key = String(q.correct_answer ?? '').trim();
+    const empty = !user;
+    const ok = !empty && (key ? user === key : Boolean(q.is_correct));
+    if (empty) blank += 1;
+    else if (ok) correct += 1;
+    else wrong += 1;
+    return {
+      number: Number(q.number),
+      user_answer: user,
+      correct_answer: key,
+      is_correct: ok,
+    };
+  }).filter((q) => Number.isFinite(q.number));
+  return {
+    total: items.length,
+    correct,
+    wrong,
+    blank,
+    questions: items,
+  };
+};
+
+export const formatGradeMd = (grade) => {
+  if (!grade?.questions?.length) return '';
+  const rows = grade.questions.map((q) =>
+    `| ${q.number} | ${q.user_answer || '未选'} | ${q.correct_answer || '—'} | ${q.is_correct ? '对' : (q.user_answer ? '错' : '空')} |`
+  ).join('\n');
+  return `## 判分（只认本表，来自答案 PDF）
+共 ${grade.total} 题：对 ${grade.correct} · 错 ${grade.wrong} · 空 ${grade.blank || 0}
+
+| 题 | 你的答案 | 正确答案 | 对错 |
+|---|---|---|---|
+${rows}
+
+`;
+};
+
+const gradeFromPdfText = (text) => {
+  const keys = [...text.matchAll(/正确答案[:：]\s*([A-Z]+)/g)].map((m) => m[1]);
+  const yours = [...text.matchAll(/你的答案[:：]\s*([A-Z]*)/g)].map((m) => m[1] || '');
+  if (keys.length < 3 || yours.length !== keys.length) return null;
+  return normalizeGrade({
+    questions: keys.map((key, i) => ({
+      number: i + 1,
+      user_answer: yours[i],
+      correct_answer: key,
+      is_correct: Boolean(yours[i]) && yours[i] === key,
+    })),
+  });
+};
+
+const extractPdfText = async (pdfPath) => {
+  const { stdout } = await run('python3', ['-c', `
+import fitz, sys
+doc = fitz.open(sys.argv[1])
+print("\\n".join(p.get_text() for p in doc))
+`, pdfPath], { maxBuffer: 1 << 24, timeout: 60 * 1000 });
+  return stdout;
+};
+
+export const gradeFromPdf = async (pdfPath) => {
+  try {
+    const local = gradeFromPdfText(await extractPdfText(pdfPath));
+    if (local?.questions?.length) return local;
+  } catch { /* 抽不出字再交给模型 */ }
+  const { text } = await askGemini(
+    [{ text: gradePdfPrompt() }, filePart(pdfPath, 'application/pdf')],
+    { minTokens: 80, timeoutMs: 6 * 60 * 1000 },
+  );
+  const grade = normalizeGrade(pickJson(text));
+  if (!grade.questions.length) throw new Error('答案 PDF 没有读出逐题对错');
+  return grade;
+};
+
+const summaryPrompt = (meta, segments, grade) => `你是行测教练。下面先有一份 PDF 判分表，再有录屏里抽出的做法和草稿。
+
+## 场次
 - 名称：${meta.title}
-- 类型：${meta.kind === 'taoti' ? '套题解析' : '真题复盘'}
+- 类型：${meta.kind === 'taoti' ? '套题' : '真题模考'}
 - 日期：${meta.exam_date || '未填'}
 - 全程时长：${Math.round(meta.duration_sec / 60)} 分钟
 
-## 从录屏逐题提取的内容（做法、草稿、勾选）
+${formatGradeMd(grade) || '（没有 PDF 判分，对错不要编）'}
+
+## 录屏提取（只用来写做法和草稿，不能改上面的对错）
 ${JSON.stringify(segments, null, 1).slice(0, 120000)}
 
-解析 PDF 已作为文件附上（没有则为空）。原题、材料表、图、选项、标准答案和解析以 PDF 为准；写入报告时把原题题干和选项从 PDF 抄全，不要只用录屏摘抄。
-`;
+答案 PDF 已作为文件附上。原题、材料表、图、选项从 PDF 抄全。
 
-const summaryPromptZhenti = (meta, segments) => `你是一位带过很多考公学生的行测教练。下面是一场**真题模考**的录屏提取结果。请按题目复盘，不要写成空泛的时间统计。
-
-${summaryHeader(meta, segments)}
-
-请输出 Markdown，严格按下面结构。每一题都要写出：原题（从 PDF 抄原文）、这题怎么做的、草稿写了什么。不要空话。
-
-## 一、逐题复盘
-按题号从小到大，每题用这个小结构：
+输出 Markdown。开篇不要写短处清单、知识点总表，也不要重新统计分数。
+按题号输出，每题只用这个结构：
 
 ### 第 N 题
-- 原题：从 PDF 抄题干和选项；PDF 没有再注明录屏摘抄
-- 做法：录屏里实际怎么做的（先看哪、算了什么、选了什么、有没有改）
-- 草稿：草稿纸/手写/划线里写了什么；没写就说「无草稿」
-- 用时与对错：用了多久、最终选项、结合 PDF 判断对不对
-- 这一题的问题：卡在哪、草稿缺哪一步、值不值得花这么久
+- 原题：从 PDF 抄题干和选项
+- 作答结果：原样抄判分表的 你的答案 / 正确答案 / 对错；用时从录屏
+- 做法：录屏里先看哪、算了什么、有没有改；看不清就写看不清
+- 草稿：录屏里实际写了什么；没有就写「无草稿」
 
-题号和 PDF 对不上时，以 PDF 为准，并在该题注明。
+禁止用录屏勾选或「标准解法」推翻 PDF 对错。
+不要写「共性」「短处与致命失分点」「下场三条规矩」这种总表。
+不要写诊断、差距或更好解法；那些留给之后的对话复盘。`;
 
-## 二、共性
-从各题做法和草稿里归纳 3～5 条反复出现的问题。
+const BEHAVIOR_HEAD = '## 录屏行为记录（只记事实，不诊断）';
 
-## 三、下场三条硬规矩
-只给三条，必须是当场能执行的动作。不要写「提高效率」。`;
+const fmtClock = (sec) => {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+};
 
-const summaryPromptTaoti = (meta, segments) => `你是一位带过很多考公学生的行测教练。下面是一场**套题练习 / 看解析**的录屏提取结果。请按题目做解析式复盘。
+const collectQuestions = (segments) => {
+  const map = new Map();
+  for (const seg of segments || []) {
+    for (const q of seg.questions || []) {
+      const n = Number(q.number);
+      if (!Number.isFinite(n)) continue;
+      const cur = {
+        number: n,
+        start_sec: q.start_sec,
+        end_sec: q.end_sec,
+        draft: String(q.draft || '').trim(),
+        process: String(q.process || '').trim(),
+        answer_changes: Number(q.answer_changes) || 0,
+        behaviors: Array.isArray(q.behaviors) ? q.behaviors.filter(Boolean) : [],
+        timeline: Array.isArray(q.timeline) ? q.timeline : [],
+      };
+      const prev = map.get(n);
+      if (!prev) {
+        map.set(n, cur);
+        continue;
+      }
+      const starts = [prev.start_sec, cur.start_sec].filter((x) => x != null);
+      const ends = [prev.end_sec, cur.end_sec].filter((x) => x != null);
+      if (starts.length) prev.start_sec = Math.min(...starts);
+      if (ends.length) prev.end_sec = Math.max(...ends);
+      prev.answer_changes = Math.max(prev.answer_changes, cur.answer_changes);
+      prev.behaviors = [...new Set([...prev.behaviors, ...cur.behaviors])];
+      prev.timeline = [...prev.timeline, ...cur.timeline];
+      if (cur.process && !prev.process.includes(cur.process)) {
+        prev.process = [prev.process, cur.process].filter(Boolean).join('；');
+      }
+      if (cur.draft && !prev.draft.includes(cur.draft)) {
+        prev.draft = [prev.draft, cur.draft].filter(Boolean).join('；');
+      }
+    }
+  }
+  return [...map.values()].sort((a, b) => a.number - b.number);
+};
 
-${summaryHeader(meta, segments)}
+export const formatBehaviorLog = (segments) => {
+  const qs = collectQuestions(segments);
+  const idle = (segments || []).flatMap((s) => s.idle_periods || []);
+  const lines = [BEHAVIOR_HEAD, ''];
+  if (!qs.length) {
+    lines.push('（本场没有抽出逐题行为）', '');
+    return lines.join('\n');
+  }
+  for (const q of qs) {
+    const timed = q.start_sec != null && q.end_sec != null;
+    const span = timed ? `${fmtClock(q.start_sec)}–${fmtClock(q.end_sec)} · ${q.end_sec - q.start_sec}秒` : '时间不明';
+    lines.push(`### 第 ${q.number} 题 · ${span}`);
+    if (q.behaviors.length) lines.push(`- 标签：${q.behaviors.join('、')}`);
+    lines.push(`- 改选项：${q.answer_changes} 次`);
+    for (const ev of q.timeline) {
+      const t = ev.at_sec != null ? fmtClock(ev.at_sec) : '?';
+      const seen = ev.seen || ev.what || '';
+      if (seen) lines.push(`- ${t} ${seen}`);
+    }
+    if (q.process) lines.push(`- 过程：${q.process}`);
+    lines.push(`- 草稿：${q.draft || '无草稿'}`);
+    lines.push('');
+  }
+  if (idle.length) {
+    lines.push('### 题间/空档');
+    for (const p of idle) {
+      const what = p.what || '';
+      lines.push(`- ${fmtClock(p.start_sec)}–${fmtClock(p.end_sec)}${what ? ` ${what}` : ''}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+};
 
-请输出 Markdown，严格按下面结构。重点是「每一题的原题 + 做法 + 草稿」，不要先写整场时间表。
+export const injectBehaviorLog = (md, segments) => {
+  const log = formatBehaviorLog(segments).trim();
+  const body = String(md || '')
+    .replace(/## 录屏行为记录（只记事实，不诊断）[\s\S]*?(?=\n## |$)/, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  const cut = body.indexOf('\n## ');
+  if (cut >= 0) return `${body.slice(0, cut)}\n\n${log}\n${body.slice(cut)}`;
+  const qcut = body.search(/\n### /);
+  if (qcut >= 0) return `${body.slice(0, qcut)}\n\n${log}\n${body.slice(qcut)}`;
+  return `${body}\n\n${log}\n`;
+};
 
-## 一、逐题解析
-按题号从小到大，每题用这个小结构：
-
-### 第 N 题
-- 原题：从 PDF 抄题干和选项；有材料表/图把关键数字也抄上
-- 你怎么做的：录屏里的步骤，先看哪、怎么想、选了什么
-- 草稿怎么写的：画面上的演算、标注、划线，按顺序写；没有就写「没写草稿」
-- 标准解法：结合 PDF 解析，这题正确步骤是什么
-- 差距：你的做法/草稿和标准解法差在哪一步
-
-题号和 PDF 对不上时，以 PDF 为准，并在该题注明。
-
-## 二、草稿习惯
-专门评草稿：哪些题草稿能还原思路，哪些题该写没写，下次这类题草稿最少该写下哪几笔。
-
-## 三、下次做套题的三条规矩
-只给三条，针对「怎么写草稿、做到哪一步再看解析」，必须能当场执行。`;
-
-const summaryPrompt = (meta, segments) => (
-  meta.kind === 'taoti' ? summaryPromptTaoti(meta, segments) : summaryPromptZhenti(meta, segments)
-);
+export const refreshBehaviorLogs = () => {
+  const rows = db.prepare("SELECT id, segments, result FROM exam_analyses WHERE status = 'done'").all();
+  let n = 0;
+  for (const row of rows) {
+    let segs;
+    let result;
+    try { segs = JSON.parse(row.segments || 'null'); } catch { continue; }
+    try { result = JSON.parse(row.result || '{}'); } catch { continue; }
+    if (!segs || !result.markdown) continue;
+    result.markdown = injectBehaviorLog(result.markdown, segs);
+    setState(row.id, { result: JSON.stringify(result) });
+    n += 1;
+  }
+  return n;
+};
 
 const dropVideo = (named) => {
   if (!named) return;
@@ -300,10 +478,20 @@ const processOne = async (id) => {
 
     setState(id, { segments: JSON.stringify(results), stage: '结合答案生成复盘', progress: 85 });
 
-    const prompt = summaryPrompt({ ...row, duration_sec: duration }, results);
+    let grade = null;
+    if (pdfPath && fs.existsSync(pdfPath)) {
+      setState(id, { stage: '判读答案 PDF', progress: 82 });
+      grade = await gradeFromPdf(pdfPath);
+    }
+
+    setState(id, { stage: '结合过程生成复盘', progress: 88 });
+    const prompt = summaryPrompt({ ...row, duration_sec: duration }, results, grade);
     const parts = [{ text: prompt }];
     if (pdfPath && fs.existsSync(pdfPath)) parts.push(filePart(pdfPath, 'application/pdf'));
-    const { text: md } = await askGemini(parts, { minTokens: 50, timeoutMs: 10 * 60 * 1000 });
+    const { text: body } = await askGemini(parts, { minTokens: 50, timeoutMs: 10 * 60 * 1000 });
+    const table = formatGradeMd(grade);
+    const rawMd = table && !body.includes('判分（只认本表') ? table + body : body;
+    const md = injectBehaviorLog(rawMd, results);
 
     const allQ = results.flatMap((r) => r.questions || []);
     const seen = new Set();
@@ -313,7 +501,10 @@ const processOne = async (id) => {
       return true;
     });
     const stats = {
-      questions: uniq.length || allQ.length,
+      questions: grade?.total || uniq.length || allQ.length,
+      correct: grade?.correct,
+      wrong: grade?.wrong,
+      blank: grade?.blank,
       idle_count: results.reduce((n, r) => n + (r.idle_periods?.length || 0), 0),
       changed: uniq.filter((q) => (q.answer_changes || 0) > 0).length,
       slowest: [...uniq]
@@ -327,7 +518,7 @@ const processOne = async (id) => {
       status: 'done',
       stage: '已完成',
       progress: 100,
-      result: JSON.stringify({ markdown: md, stats }),
+      result: JSON.stringify({ markdown: md, stats, grade }),
     });
     dropVideo(named);
     setState(id, { video_deleted: 1 });
@@ -358,6 +549,30 @@ const pump = async () => {
 
 export const enqueue = () => {
   setImmediate(() => { void pump(); });
+};
+
+export const regradeExisting = async (id) => {
+  const row = db.prepare('SELECT * FROM exam_analyses WHERE id = ?').get(id);
+  if (!row) throw new Error('找不到这场复盘');
+  const pdfPath = row.pdf_file ? path.join(PDF_DIR, row.pdf_file) : null;
+  if (!pdfPath || !fs.existsSync(pdfPath)) throw new Error('这场没有答案 PDF');
+  const grade = await gradeFromPdf(pdfPath);
+  let result = {};
+  try { result = JSON.parse(row.result || '{}'); } catch { result = {}; }
+  const body = String(result.markdown || '').replace(/^## 判分（只认本表[\s\S]*?(?=\n## |$)/, '').replace(/^\n+/, '');
+  result.grade = grade;
+  let segs = null;
+  try { segs = JSON.parse(row.segments || 'null'); } catch { /* ignore */ }
+  result.markdown = injectBehaviorLog(formatGradeMd(grade) + body, segs);
+  result.stats = {
+    ...(result.stats || {}),
+    questions: grade.total,
+    correct: grade.correct,
+    wrong: grade.wrong,
+    blank: grade.blank,
+  };
+  setState(id, { result: JSON.stringify(result) });
+  return grade;
 };
 
 export const resumePending = () => {

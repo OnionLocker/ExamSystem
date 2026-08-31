@@ -1,0 +1,56 @@
+{
+  "batch_id": "20260829_panduan_fanyi_02",
+  "source": "广东省考行测 · 判断推理翻译推理靶向提速二",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-b869ccfd1303427d9d93dc6cc2aeda99",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q51",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q57",
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q72",
+          "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q115",
+          "zhenti-2026年国家公务员录用考试行测题行政执法卷网友回忆版-Q107"
+        ],
+        "question_ids": [
+          "20260829_panduan_fanyi_02_01",
+          "20260829_panduan_fanyi_02_02",
+          "20260829_panduan_fanyi_02_03",
+          "20260829_panduan_fanyi_02_04",
+          "20260829_panduan_fanyi_02_05",
+          "20260829_panduan_fanyi_02_06",
+          "20260829_panduan_fanyi_02_07",
+          "20260829_panduan_fanyi_02_08",
+          "20260829_panduan_fanyi_02_09",
+          "20260829_panduan_fanyi_02_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-bb6d59a4a2bc48659e47c1be39b0670c",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q54",
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q69",
+          "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q58"
+        ],
+        "question_ids": [
+          "20260829_panduan_fanyi_02_01",
+          "20260829_panduan_fanyi_02_02",
+          "20260829_panduan_fanyi_02_03",
+          "20260829_panduan_fanyi_02_04",
+          "20260829_panduan_fanyi_02_05",
+          "20260829_panduan_fanyi_02_06",
+          "20260829_panduan_fanyi_02_07",
+          "20260829_panduan_fanyi_02_08",
+          "20260829_panduan_fanyi_02_09",
+          "20260829_panduan_fanyi_02_10"
+        ]
+      }
+    ]
+  }
+}

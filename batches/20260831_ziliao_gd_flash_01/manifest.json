@@ -1,0 +1,158 @@
+{
+  "batch_id": "20260831_ziliao_gd_flash_01",
+  "source": "AI\u6a21\u62df\u00b7\u5e7f\u4e1c\u7701\u8003\u98ce\u683c\u8d44\u6599\u5206\u6790\u4e13\u9879\uff084\u7bc720\u9898\uff09",
+  "region": "\u5e7f\u4e1c-\u6a21\u62df",
+  "year": 2025,
+  "license": "\u4ec5\u7528\u4e8e\u5b66\u4e60\u4e0e\u9898\u5e93\u5185\u90e8\u8bc4\u6d4b",
+  "created_at": "2026-08-31",
+  "notes": "\u6750\u6599\u6570\u636e\u5747\u4e3a\u6a21\u62df\u6570\u636e\uff0c\u4e0d\u4ee3\u8868\u5e7f\u4e1c\u6216\u5176\u4ed6\u5730\u533a\u5b98\u65b9\u7edf\u8ba1\u7ed3\u679c\uff1b\u672c\u6279\u6b21\u4ec5\u7ec4\u88c5\uff0c\u672a\u5bfc\u5165\u6570\u636e\u5e93\u3002",
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-09081326e4a640b6987f63de7a1476c9",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q05",
+          "20260830_ziliao_style_01-Q03"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q01",
+          "20260831_ziliao_gd_flash_01-Q04",
+          "20260831_ziliao_gd_flash_01-Q07",
+          "20260831_ziliao_gd_flash_01-Q13",
+          "20260831_ziliao_gd_flash_01-Q19"
+        ]
+      },
+      {
+        "context_id": "refctx-0af84e339e864116b378b699503d25a1",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q01",
+          "20260830_ziliao_style_01-Q01"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q11"
+        ]
+      },
+      {
+        "context_id": "refctx-110b540b5a6644e98ed23ecccd8c06e0",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q02",
+          "20260830_ziliao_style_01-Q07"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q03",
+          "20260831_ziliao_gd_flash_01-Q09",
+          "20260831_ziliao_gd_flash_01-Q17",
+          "20260831_ziliao_gd_flash_01-Q18"
+        ]
+      },
+      {
+        "context_id": "refctx-b94b75228cc54bd2abbcbf0e297181fd",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q07",
+          "20260830_ziliao_style_01-Q08"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q05",
+          "20260831_ziliao_gd_flash_01-Q06",
+          "20260831_ziliao_gd_flash_01-Q15",
+          "20260831_ziliao_gd_flash_01-Q16"
+        ]
+      },
+      {
+        "context_id": "refctx-636ec38c1d2949498a3bd1b6a33e7521",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q08"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q02",
+          "20260831_ziliao_gd_flash_01-Q08",
+          "20260831_ziliao_gd_flash_01-Q14",
+          "20260831_ziliao_gd_flash_01-Q20"
+        ]
+      },
+      {
+        "context_id": "refctx-07dfc8b9c19641eb8b4d68f4ce281707",
+        "reference_ids": [
+          "20260830_ziliao_gd_01-Q09",
+          "20260830_ziliao_style_01-Q05"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q10",
+          "20260831_ziliao_gd_flash_01-Q12"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-fd21f4f3d8b4466a9f48436f2c16a097",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q04"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q01",
+          "20260831_ziliao_gd_flash_01-Q04",
+          "20260831_ziliao_gd_flash_01-Q07",
+          "20260831_ziliao_gd_flash_01-Q13",
+          "20260831_ziliao_gd_flash_01-Q19"
+        ]
+      },
+      {
+        "context_id": "refctx-90cee83c171246c0928618c2aa850258",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q11"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q11"
+        ]
+      },
+      {
+        "context_id": "refctx-c26db617ec944fde903146055a6a3dd4",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q08"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q03",
+          "20260831_ziliao_gd_flash_01-Q09",
+          "20260831_ziliao_gd_flash_01-Q17",
+          "20260831_ziliao_gd_flash_01-Q18"
+        ]
+      },
+      {
+        "context_id": "refctx-ae1cf4846c0e4f85af30efd8ab6d428d",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q09"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q05",
+          "20260831_ziliao_gd_flash_01-Q06",
+          "20260831_ziliao_gd_flash_01-Q15",
+          "20260831_ziliao_gd_flash_01-Q16"
+        ]
+      },
+      {
+        "context_id": "refctx-274fa7948a304f87be6dee3f4a964114",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q12"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q02",
+          "20260831_ziliao_gd_flash_01-Q08",
+          "20260831_ziliao_gd_flash_01-Q14",
+          "20260831_ziliao_gd_flash_01-Q20"
+        ]
+      },
+      {
+        "context_id": "refctx-6506c02052ec4594b2d2b1af3c0d1f2f",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q10"
+        ],
+        "question_ids": [
+          "20260831_ziliao_gd_flash_01-Q10",
+          "20260831_ziliao_gd_flash_01-Q12"
+        ]
+      }
+    ]
+  }
+}

@@ -89,7 +89,7 @@ ON CONFLICT(kaodian) DO UPDATE SET
 """
 
 
-SOURCE_WEIGHTS = {"practice": 1.0, "hermes": 0.7, "manual": 0.4}
+SOURCE_WEIGHTS = {"practice": 1.0, "exam": 1.0, "hermes": 0.7, "manual": 0.4}
 PRIOR_CORRECT = 2.0
 PRIOR_WRONG = 2.0
 HALF_LIFE_DAYS = 21.0
@@ -192,19 +192,35 @@ def resolve_kaodian(conn, kaodian, module="", subtype=""):
     return canonical, normalized_module, canonical_subtype
 
 
-def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0):
-    """记录一次证据并按全部历史流水重算熟练度。"""
+def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0, session_id=None, question_id=None):
+    """记录一次证据并按全部历史流水重算熟练度。
+
+    录屏/真题复盘传入 session_id=exam_analyses.id、question_id=题号、source=exam，
+    同一场同一题只落一条；重复复盘直接跳过，不增加样本。
+    """
     ensure_schema(conn)
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     c = 1 if is_correct else 0
+    source = source if source in SOURCE_WEIGHTS else "hermes"
+    if session_id is not None:
+        cur = conn.execute(
+            """INSERT OR IGNORE INTO kaodian_events
+               (kaodian, question_id, session_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
+               VALUES (?,?,?,?,?,?,?)""",
+            (kaodian, question_id, int(session_id), c, elapsed_ms, source, weight),
+        )
+        if cur.rowcount == 0:
+            return False
+    else:
+        conn.execute(
+            """INSERT INTO kaodian_events
+               (kaodian, is_correct, elapsed_ms, evidence_type, evidence_weight)
+               VALUES (?,?,?,?,?)""",
+            (kaodian, c, elapsed_ms, source, weight),
+        )
     conn.execute(RECORD, (kaodian, module, subtype, c, elapsed_ms, 1 if c else -1))
-    conn.execute(
-        """INSERT INTO kaodian_events
-           (kaodian, is_correct, elapsed_ms, evidence_type, evidence_weight)
-           VALUES (?,?,?,?,?)""",
-        (kaodian, c, elapsed_ms, source if source in SOURCE_WEIGHTS else "hermes", weight),
-    )
     recompute_mastery(conn, kaodian)
+    return True
 
 
 def register_knowledge_point(conn, kaodian, module, subtype, note=""):
@@ -284,6 +300,11 @@ def ensure_schema(conn):
         CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_practice_evidence
         ON kaodian_events(kaodian, question_id, session_id, evidence_type)
         WHERE session_id IS NOT NULL
+    """)
+    conn.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_exam_item
+        ON kaodian_events(session_id, question_id, evidence_type)
+        WHERE evidence_type = 'exam' AND session_id IS NOT NULL AND question_id IS NOT NULL
     """)
 
 
@@ -367,22 +388,24 @@ def _demo():
         dt.datetime(2026, 8, 24, tzinfo=dt.timezone.utc),
     )
     assert estimate["mastery"] == 57 and estimate["mastery_confidence"] == 8, estimate
+    translation = "判断推理-逻辑判断-翻译推理"
     for ok in (False, False, True):
         record(conn, "假言命题逆否", "判断推理", "逻辑判断-翻译推理", ok, 60000)
     for _ in range(4):
         record(conn, "两期比重差", "资料分析", "资料分析-比重", True, 45000)
     row = conn.execute(
-        "SELECT attempts, correct, streak, total_ms FROM kaodian_profile WHERE kaodian='假言命题逆否'"
+        "SELECT attempts, correct, streak, total_ms FROM kaodian_profile WHERE kaodian=?",
+        (translation,),
     ).fetchone()
     assert row == (3, 1, 1, 180000), row
     assert conn.execute("SELECT COUNT(*) FROM kaodian_events").fetchone()[0] == 7
-    weak = weak_points(conn, min_attempts=3)
-    assert weak[0][0] == "假言命题逆否", weak       # 33% 排在 100% 前面
-    assert weak[0][5] == 33.3 and weak[0][6] == 60, weak
+    weak = {row[0]: row for row in weak_points(conn, min_attempts=3)}
+    assert translation in weak and weak[translation][5] == 33.3, weak
     # 连错要累加为负
     record(conn, "两期比重差", "资料分析", "资料分析-比重", False, 50000)
     record(conn, "两期比重差", "资料分析", "资料分析-比重", False, 50000)
-    assert conn.execute("SELECT streak FROM kaodian_profile WHERE kaodian='两期比重差'").fetchone()[0] == -2
+    share_diff = "资料分析-比重类-比重趋势、比重差与比值差"
+    assert conn.execute("SELECT streak FROM kaodian_profile WHERE kaodian=?", (share_diff,)).fetchone()[0] == -2
     register_knowledge_point(
         conn,
         "政治理论-党史党建-党的组织路线",
@@ -396,9 +419,19 @@ def _demo():
     ).fetchone()
     assert pending == (0, "来源：复盘新题；待确认与组织建设表述的边界"), pending
     set_mastery(conn, "假言命题逆否", 35, "刚讲完逆否，自己做还要停很久")
-    assert conn.execute("SELECT mastery FROM kaodian_profile WHERE kaodian='假言命题逆否'").fetchone()[0] == 35
+    assert conn.execute("SELECT mastery FROM kaodian_profile WHERE kaodian=?", (translation,)).fetchone()[0] == 35
     record(conn, "假言命题逆否", "判断推理", "逻辑判断-翻译推理", True, 60000)
-    assert conn.execute("SELECT mastery, mastery_source FROM kaodian_profile WHERE kaodian='假言命题逆否'").fetchone() == (35, "manual")
+    assert conn.execute("SELECT mastery, mastery_source FROM kaodian_profile WHERE kaodian=?", (translation,)).fetchone() == (35, "manual")
+    exam_tag = translation
+    assert record(conn, exam_tag, "判断推理", "逻辑判断", False, 90000, "exam", session_id=12, question_id=7) is True
+    before = conn.execute("SELECT attempts, correct FROM kaodian_profile WHERE kaodian=?", (exam_tag,)).fetchone()
+    assert record(conn, exam_tag, "判断推理", "逻辑判断", True, 1000, "exam", session_id=12, question_id=7) is False
+    assert record(conn, "资料分析-增长率-一般增长率", "资料分析", "增长率", True, 1000, "exam", session_id=12, question_id=7) is False
+    after = conn.execute("SELECT attempts, correct FROM kaodian_profile WHERE kaodian=?", (exam_tag,)).fetchone()
+    assert after == before
+    assert conn.execute(
+        "SELECT COUNT(*) FROM kaodian_events WHERE session_id=12 AND evidence_type='exam'"
+    ).fetchone()[0] == 1
     print("demo ok")
 
 
@@ -417,20 +450,48 @@ if __name__ == "__main__":
         print(f"registered -> {tag}")
     elif "--record" in sys.argv:
         args = sys.argv[sys.argv.index("--record") + 1:]
-        if len(args) < 4:
-            raise SystemExit("用法：--record <标签> <模块> <题型/一级> <0|1> [用时毫秒] [practice|hermes|manual]")
-        tag, module, subtype, result, *rest = args
-        source = rest[1] if len(rest) > 1 else "hermes"
-        elapsed_ms = int(rest[0]) if rest and rest[0].isdigit() else 0
+        exam_id = item = None
+        cleaned = []
+        i = 0
+        while i < len(args):
+            if args[i] == "--exam-id" and i + 1 < len(args):
+                exam_id = int(args[i + 1]); i += 2
+            elif args[i] == "--item" and i + 1 < len(args):
+                item = int(args[i + 1]); i += 2
+            else:
+                cleaned.append(args[i]); i += 1
+        if len(cleaned) < 4:
+            raise SystemExit(
+                "用法：--record <标签> <模块> <题型/一级> <0|1> [用时毫秒] [practice|exam|hermes|manual] "
+                "[--exam-id 场次id --item 题号]"
+            )
+        tag, module, subtype, result, *rest = cleaned
+        elapsed_ms = 0
+        source = "hermes"
+        for tok in rest:
+            if tok in SOURCE_WEIGHTS:
+                source = tok
+            elif tok.isdigit():
+                elapsed_ms = int(tok)
+        if exam_id is not None and item is None:
+            raise SystemExit("录屏复盘必须同时给 --exam-id 和 --item")
         conn = sqlite3.connect(DB)
         ensure_schema(conn)
-        record(conn, tag, module, subtype, result in {"1", "true", "True", "对", "正确"}, elapsed_ms, source)
+        added = record(
+            conn, tag, module, subtype,
+            result in {"1", "true", "True", "对", "正确"},
+            elapsed_ms, source,
+            session_id=exam_id, question_id=item,
+        )
         conn.commit()
-        row = conn.execute(
-            "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
-            (tag,),
-        ).fetchone()
-        print(f"recorded -> {tag}: mastery={row[0]} confidence={row[1]} samples={row[2]}")
+        if not added:
+            print(f"already recorded -> exam {exam_id} item {item}")
+        else:
+            row = conn.execute(
+                "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
+                (tag,),
+            ).fetchone()
+            print(f"recorded -> {tag}: mastery={row[0]} confidence={row[1]} samples={row[2]}")
     elif "--recompute" in sys.argv:
         args = sys.argv[sys.argv.index("--recompute") + 1:]
         conn = sqlite3.connect(DB)

@@ -965,16 +965,25 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     sendingRef.current = true;
     const images = pendingImages;
     const review = pendingReview;
+    const examScoreLine = review?.grade
+      ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
+      : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
     const examReviewLead = review
       ? [
           `下面这个 Markdown 是我那场《${review.title}》的录屏复盘报告，请先打开。`,
           review.path,
           '',
-          '不要复述报告。请对照我的知识点体系做长短处诊断：',
-          '1. 每一题先标「本题考察知识点：模块-一级知识点-二级知识点」。优先用广东老师知识库的固定词表（gd-gongkao-coach / 知识点页那套），不要写「综合」「常识题」等泛标签。',
-          '2. 结合报告里的原题、做法、草稿，指出我的长处和短处，必须落到具体知识点和题号。',
-          '3. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '4. 复盘完用 scripts/kaodian_profile.py 的 record() / register_knowledge_point() 写入 data/exam.db；掌握度由统计算法自动重算，不要凭感觉使用 --mastery。',
+          examScoreLine,
+          '回复的第一行必须是 `### 01 · 题型名`。禁止先写「一、全卷知识点对照标定」「短处与致命失分点」「长短处诊断」或任何知识点总表。直接按题讲，口吻必须和 AI 练题复盘一样。',
+          '复盘必须同时用三份材料：① 报告开头 PDF 判分表和原题；② 「录屏行为记录」里每题的停留、标签、过程、时间线；③ 各题草稿。对错、你的答案、正确答案只抄 PDF 判分表。报告里旧的「差距」「你怎么做的」若和判分表或行为记录冲突，以判分表和行为记录为准。',
+          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
+          '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`（对错抄判分表），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。知识点不要开篇罗列，只在后台写入画像；用户可见处最多在作答结果后写一行 `本题考察知识点：模块-一级-二级`。',
+          '3. `#### 草稿诊断` 必须先写：结合行为记录、草稿和 PDF，卡在审题、方法、推理、计算还是检查。要点出本题实际发生过的行为（停留偏长、跳过、回头、改选项、只划线没列式等），不要另开「行为分析」标题。',
+          '4. 正确题不能按对错直接跳过。用时偏长、改过选项、草稿乱、方法绕、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`，给出能压缩步骤的动作。禁止用「确认通过」「没问题」打发。',
+          '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
+          '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特等包装。',
+          '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
+          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号、行为或草稿，禁止空话和知识点总表。建议仍是考场动作。',
           '',
         ].join('\n')
       : '';
@@ -1013,6 +1022,15 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           'Never call kaodian_profile.py record/register/set-master, never insert or update kaodian_profile or kaodian_events, and never rewrite question tags during this review.',
           'Repeated reviews of the same practice session must produce analysis only and must not change the learner profile or knowledge-point catalog.',
         ].join('\n')
+      : review?.kind === 'exam'
+      ? [
+          'This is a screen-recording / mock-exam review. Unlike AI Practice review, you MUST write the learner profile once. Video analysis itself does not write anything.',
+          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          '对每一道能判断对错的题立刻写入，不要等提醒。必须带场次和题号，来源用 exam：',
+          `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 exam --exam-id ${review.id} --item 题号`,
+          '做对填 1，做错填 0；用时用报告里的毫秒，没有就填 0。新考点先 --register 再 --record。',
+          `命令打印 already recorded 或同一 --exam-id ${review.id} 同一 --item 已写过，就跳过，禁止换标签再记一次。没有明确对错的题不要写。`,
+        ].join('\n')
       : [
           'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
           '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
@@ -1025,10 +1043,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ? [
           'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
           "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
-          `Default batch is 10: first run python3 ${projectRoot}/scripts/reference_style.py practice --tag '<规范主标签>' --count 2 and put those origin=zhenti items into questions.json unchanged. Then generate 8 new questions. If practice returns fewer than 2, generate more so the batch still has 10.`,
+          `Default non-data-analysis batch is 10: first run python3 ${projectRoot}/scripts/reference_style.py practice --tag '<规范主标签>' --count 2 and put those origin=zhenti items into questions.json unchanged. Then generate 8 new questions. If the user explicitly requests 全原创/all-original, generate all 10 and do not insert real questions. Data analysis remains 4 Guangdong materials × 5 questions = 20 original questions.`,
           `Before writing any generated stem, run python3 ${projectRoot}/scripts/reference_style.py context --role generate with the target category/sub-category/tag and use the returned GONGKAO-STYLE reference pack. Copy 省考 length and ask-style; do not write easier than the shallowest 国考 cognitive steps in the pack. The independent quality reviewer must separately request --role evaluate.`,
+          `For data analysis, feed Gemini Flash the complete common+gd sections of quiz-pipeline/references/ziliao-paper-styles.md and the active R001/R005/R006/R007/R009/R016/R017/R018 rules. Default each material to 4 paragraphs and 420-650 Chinese characters; omit simulation disclaimers and slogan filler. Use data from at least 3 paragraphs, give every wrong option a distinct reproducible error path, reject cross-material formula/stem/error-path clones, and use images=yes holdout references for chart questions.`,
           'The AI-generated batch manifest must record style_marker plus generation/evaluation context arrays that cover every generated question only. zhenti- items are not gated and must not appear in context question_ids.',
-          'Use the exact knowledge point requested by the user. Run the correctness gate and quality gate for every question; a single-choice question must have exactly one valid answer.',
+          `Use the exact requested knowledge point. For B-route items write calculations.json; for image-dependent D-route items write image-specs.json with IMAGE_FACTS and MUST_DERIVE. Run python3 ${projectRoot}/scripts/generation_gate.py issue <batch>; ExamSystem itself performs A/B/C/D correctness checks and the independent real-exam quality review. Never handwrite PASS evidence.`,
+          'If the system gate rejects, read evidence/system-quality.json, revise only the rejected items, refresh both reference-context mappings when IDs change, and rerun the complete gate. Replace an item after its second failed revision.',
           'questions.json tags[0] must be the canonical 模块-一级-二级 card tag. For permutation questions use 基础原理/特殊模型/反面容斥, never 数量关系-数学运算-排列组合. knowledge_point is only a fallback; the stored field is tags.',
           'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
         ].join('\n')
@@ -1306,13 +1326,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setBanner('');
     try {
       const info = await api(`/api/exam-analyses/${id}/md`);
+      const g = info.grade;
+      const score = g
+        ? `对 ${g.correct}/${g.total}`
+        : '';
       setPendingReview({
         id,
         kind: 'exam',
         path: info.path,
         name: info.name,
         title: info.title || info.name,
-        label: info.title || info.name,
+        label: score ? `${info.title || info.name} · ${score}` : (info.title || info.name),
+        grade: g || null,
       });
       setShowReview(false);
       stickToBottom.current = true;
@@ -1568,18 +1593,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5"
                 title="会话列表"
               >
-                <MessageSquare size={14} />
+                <MessageSquare size={18} />
               </button>
             )}
             {onToggleFullscreen && (
               <button
                 onClick={onToggleFullscreen}
                 title={fullscreen ? '退出全屏，显示导航' : '全屏阅读'}
-                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors shrink-0 ${
+                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold transition-colors shrink-0 ${
                   fullscreen ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]'
                 }`}
               >
-                {fullscreen ? <Minimize2 size={11} /> : <Maximize2 size={11} />}
+                {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
                 <span>{fullscreen ? '退出全屏' : '全屏'}</span>
               </button>
             )}
@@ -1587,21 +1612,21 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               <button
                 onClick={toggleOsFullscreen}
                 title={osFs ? '退出浏览器全屏' : '隐藏浏览器地址栏'}
-                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors shrink-0 ${
+                className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold transition-colors shrink-0 ${
                   osFs ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5 hover:text-[#1a1a1a]'
                 }`}
               >
-                {osFs ? <Shrink size={11} /> : <Expand size={11} />}
+                {osFs ? <Shrink size={16} /> : <Expand size={16} />}
                 <span>{osFs ? '退出顶栏' : '隐藏顶栏'}</span>
               </button>
             )}
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${connColor}`} />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#999] shrink-0">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${connColor}`} />
+            <span className="text-[15px] font-black tracking-widest text-[#999] shrink-0">
               {connLabel}
             </span>
             {status && (
-              <span className="flex items-center space-x-1.5 text-[10px] font-bold text-[#6b5428] truncate">
-                <Loader2 size={10} className="animate-spin shrink-0" />
+              <span className="flex items-center space-x-1.5 text-[15px] font-bold text-[#6b5428] truncate">
+                <Loader2 size={15} className="animate-spin shrink-0" />
                 <span className="truncate">{status}</span>
               </span>
             )}
@@ -1614,29 +1639,29 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               onClick={openPicker}
               disabled={attaching}
               title="选择一次 AI 练题结果进行复盘"
-              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
               {attaching
-                ? <Loader2 size={11} className="animate-spin" />
-                : <FileText size={11} />}
+                ? <Loader2 size={16} className="animate-spin" />
+                : <FileText size={16} />}
               <span>AI练题复盘</span>
             </button>
             <button
               onClick={openUploadPicker}
               disabled={attaching}
               title="带上资料上传里的练习卷"
-              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
-              <Upload size={11} />
+              <Upload size={16} />
               <span>资料上传</span>
             </button>
             <button
               onClick={openReviewPicker}
               disabled={attaching}
               title="带上某场模考的录屏行为复盘"
-              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
             >
-              <ScanSearch size={11} />
+              <ScanSearch size={16} />
               <span>真题复盘</span>
             </button>
             <div className="flex items-center rounded-lg overflow-hidden">
@@ -1644,7 +1669,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 onClick={() => setFontScale((v) => FONT_STEPS[Math.max(0, FONT_STEPS.indexOf(v) - 1)])}
                 disabled={fontScale === FONT_STEPS[0]}
                 title={`缩小正文（现在 ${fontScale}%）`}
-                className="px-1.5 py-1 rounded-lg text-[10px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
+                className="px-1.5 py-1 rounded-lg text-[15px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
               >
                 A-
               </button>
@@ -1652,7 +1677,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 onClick={() => setFontScale((v) => FONT_STEPS[Math.min(FONT_STEPS.length - 1, FONT_STEPS.indexOf(v) + 1)])}
                 disabled={fontScale === FONT_STEPS[FONT_STEPS.length - 1]}
                 title={`放大正文（现在 ${fontScale}%）`}
-                className="px-1.5 py-1 rounded-lg text-[12px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
+                className="px-1.5 py-1 rounded-lg text-[17px] font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-30"
               >
                 A+
               </button>
@@ -1660,11 +1685,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             <button
               onClick={() => setShowThinking((v) => !v)}
               title="显示/隐藏思考过程"
-              className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
+              className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold transition-colors ${
                 showThinking ? 'bg-[#1a1a1a] text-white' : 'text-[#999] hover:bg-black/5'
               }`}
             >
-              <Brain size={11} />
+              <Brain size={16} />
               <span>思考</span>
             </button>
           </div>

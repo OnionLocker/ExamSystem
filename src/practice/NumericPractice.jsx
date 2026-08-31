@@ -19,6 +19,7 @@ import {
   Zap,
   Crosshair,
   Binary,
+  ScanSearch,
 } from 'lucide-react';
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
@@ -34,6 +35,7 @@ import { pickWrong, recordWrong, recordRecallCorrect } from './wrongPool.js';
 import WeakSpots from './WeakSpots.jsx';
 import ErrorBreakdown from './ErrorBreakdown.jsx';
 import { loadHistory, saveHistory } from './history.js';
+import SelfReportSession from './SelfReportSession.jsx';
 const RACE_SIZE_DEFAULT = 10;
 const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 const RACE_SIZE_MIN = 1;
@@ -52,6 +54,7 @@ const categoryIcons = {
   data: BarChart3,
   speedOps: Zap,
   dataKill: Crosshair,
+  readSpot: ScanSearch,
 };
 
 const fmtMs = (ms) => {
@@ -135,6 +138,7 @@ const NumericPractice = () => {
       startedAt: 0,
       questionStartedAt: 0,
       records: [],
+      kind: currentCat.kind || 'input',
     });
     setView('session');
   };
@@ -165,6 +169,7 @@ const NumericPractice = () => {
       avgMs: Math.round(totalMs / records.length),
       records,
       rankChange, // { before, after }
+      selfReport: CATEGORIES.find((c) => c.id === catId)?.kind === 'selfReport',
     };
     const list = loadHistory();
     list.unshift(result);
@@ -202,9 +207,10 @@ const NumericPractice = () => {
         onOpenHistory={openHistory}
       />
     );
-  if (view === 'session')
+  if (view === 'session') {
+    const SessionCmp = session?.kind === 'selfReport' ? SelfReportSession : SessionView;
     return (
-      <SessionView
+      <SessionCmp
         session={session}
         setSession={setSession}
         onExit={() => {
@@ -214,6 +220,7 @@ const NumericPractice = () => {
         onFinishRace={finishRace}
       />
     );
+  }
   if (view === 'result')
     return (
       <ResultView
@@ -506,14 +513,22 @@ const SubsView = ({
         </div>
         <ModeOption
           label="训练模式"
-          desc="不限题数，专注练习。按 Esc 可跳过，随时可退出。成绩不计入段位。"
+          desc={
+            cat.kind === 'selfReport'
+              ? '不限题数。点完成看答案，自己点对或错。成绩不计入段位。'
+              : '不限题数，专注练习。按 Esc 可跳过，随时可退出。成绩不计入段位。'
+          }
           checked={mode === 'train'}
           onClick={() => onPickMode('train')}
           color="#22c55e"
         />
         <ModeOption
           label="晋升模式"
-          desc={`${raceSize} 题限时挑战，计入段位统计。达到速度 + 准度双标即可晋升。`}
+          desc={
+            cat.kind === 'selfReport'
+              ? `${raceSize} 题计时。对错全凭自觉，计入段位。速度看点完成，准确看你点的对错。`
+              : `${raceSize} 题限时挑战，计入段位统计。达到速度 + 准度双标即可晋升。`
+          }
           checked={mode === 'race'}
           onClick={() => onPickMode('race')}
           color="#8d7348"
@@ -521,6 +536,11 @@ const SubsView = ({
         />
         {mode === 'race' && (
           <RaceSizePicker value={raceSize} onChange={onPickRaceSize} />
+        )}
+        {cat.kind === 'selfReport' && (
+          <p className="text-xs font-medium text-slate-500 pt-1">
+            不自动判对错：想好后点「完成」看答案，再点「对」或「错」。晋升模式计入段位。
+          </p>
         )}
       </div>
 
@@ -532,6 +552,7 @@ const SubsView = ({
           <Play size={16} />
           <span>开始练习</span>
         </button>
+        {cat.kind !== 'selfReport' && (
         <button
           onClick={openPopup}
           title="悬浮小窗练习（Chrome/Edge 支持无边框悬浮窗）"
@@ -540,6 +561,7 @@ const SubsView = ({
           <PictureInPicture2 size={14} />
           <span className="hidden sm:inline">小窗练习</span>
         </button>
+        )}
         <button
           onClick={onOpenHistory}
           className="px-8 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
@@ -1333,7 +1355,13 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
         </div>
       </div>
 
-      <ErrorBreakdown records={result.records} />
+      {result.selfReport ? (
+        <p className="text-xs font-medium text-slate-500 text-center">
+          本场对错为自觉申报，不计键盘错因。
+        </p>
+      ) : (
+        <ErrorBreakdown records={result.records} />
+      )}
 
       {/* 段位评定卡片（基于 ladderRank + LP） */}
       {lpRes && (

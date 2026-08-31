@@ -12,7 +12,28 @@ from collections import Counter
 from pathlib import Path
 
 from kaodian_profile import recompute_mastery
-from kaodian_taxonomy import canonicalize, kaodian_family, parse_tags
+from kaodian_taxonomy import (
+    ZILIAO_ALT_PACK,
+    ZILIAO_DEFAULT_PACK,
+    ZILIAO_FINALE_TAGS,
+    ZILIAO_FORMS,
+    ZILIAO_LIGHT_TAGS,
+    ZILIAO_QUESTION_TAGS,
+    assign_ziliao_answers,
+    canonicalize,
+    kaodian_family,
+    normalize_module,
+    parse_tags,
+)
+
+ZILIAO_FOREIGN_MODULES = {
+    "数量关系",
+    "判断推理",
+    "言语理解与表达",
+    "政治理论",
+    "常识判断",
+    "科学推理",
+}
 
 
 DB = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "data" / "exam.db")
@@ -278,6 +299,238 @@ def _compact_target_line(item: dict) -> str:
     )
 
 
+def _ziliao_rank(tag: str, by_tag: dict, mistakes: dict) -> tuple:
+    row = by_tag.get(tag) or {}
+    mastery = row["mastery"] if row.get("mastery") is not None else 50
+    conf = row.get("confidence") or 0
+    streak = row.get("streak") or 0
+    debt = mistakes.get(tag, 0)
+    if ((mastery < 60 or streak <= -2) and conf >= 40) or debt:
+        return (0, mastery, -conf, -debt)
+    if row and conf < 40:
+        return (1, mastery, -conf, -debt)
+    if row:
+        return (2, mastery, -conf, -debt)
+    return (3, 50, 0, 0)
+
+
+def _ziliao_recent(tag: str, by_tag: dict) -> bool:
+    days = (by_tag.get(tag) or {}).get("days_since")
+    return days is not None and days <= 1
+
+
+def _slot_row(tag: str, reason: str, by_tag: dict) -> dict:
+    row = by_tag.get(tag) or {}
+    return {
+        "tag": tag,
+        "reason": reason,
+        "mastery": row.get("mastery"),
+        "confidence": row.get("confidence"),
+        "attempts": row.get("attempts"),
+        "days_since": row.get("days_since"),
+    }
+
+
+def select_ziliao_slots(
+    by_tag: dict,
+    mistakes: dict | None = None,
+    avoid: set | None = None,
+    used: list[str] | None = None,
+    recent: set | None = None,
+) -> list[dict]:
+    """按画像组 1 篇材料的 5 个知识库主标签。"""
+    mistakes = mistakes or {}
+    used_counts = Counter(used or avoid or ())
+    recent = set(recent or ())
+    if not by_tag and not mistakes:
+        default_hits = sum(used_counts[tag] for tag in ZILIAO_DEFAULT_PACK)
+        alt_hits = sum(used_counts[tag] for tag in ZILIAO_ALT_PACK)
+        skeleton = ZILIAO_ALT_PACK if default_hits > alt_hits else ZILIAO_DEFAULT_PACK
+        return [_slot_row(tag, "默认骨架", by_tag) for tag in skeleton]
+
+    picked: list[str] = []
+    reasons: list[str] = []
+
+    def usage_key(tag: str) -> tuple:
+        return (used_counts[tag], tag in recent)
+
+    def take(candidates, reason: str, allow_recent: bool = False) -> bool:
+        for tag in candidates:
+            if tag in picked or tag not in ZILIAO_QUESTION_TAGS:
+                continue
+            if not allow_recent and _ziliao_recent(tag, by_tag):
+                continue
+            picked.append(tag)
+            reasons.append(reason)
+            return True
+        return False
+
+    def take_lenient(candidates, reason: str) -> bool:
+        return take(candidates, reason) or take(candidates, reason, allow_recent=True)
+
+    light = sorted(
+        ZILIAO_LIGHT_TAGS,
+        key=lambda tag: (*usage_key(tag), _ziliao_recent(tag, by_tag), _ziliao_rank(tag, by_tag, mistakes)),
+    )
+    take_lenient(light, "槽1较轻")
+
+    weak_order = sorted(
+        ZILIAO_QUESTION_TAGS,
+        key=lambda tag: (*usage_key(tag), _ziliao_rank(tag, by_tag, mistakes)),
+    )
+    for _ in range(3):
+        take_lenient(weak_order, "画像弱项")
+
+    finale = sorted(
+        (*ZILIAO_FINALE_TAGS, *(tag for tag in weak_order if tag not in ZILIAO_FINALE_TAGS)),
+        key=lambda tag: (*usage_key(tag), 0 if tag in ZILIAO_FINALE_TAGS else 1, _ziliao_rank(tag, by_tag, mistakes)),
+    )
+    take_lenient(finale, "槽5收束")
+
+    for tag in (*ZILIAO_DEFAULT_PACK, *ZILIAO_ALT_PACK, *ZILIAO_QUESTION_TAGS):
+        if len(picked) >= 5:
+            break
+        if tag not in picked:
+            picked.append(tag)
+            reasons.append("补齐骨架")
+
+    return [_slot_row(tag, reason, by_tag) for tag, reason in zip(picked[:5], reasons[:5])]
+
+
+def select_ziliao_paper(
+    by_tag: dict,
+    mistakes: dict | None = None,
+    rng=None,
+) -> list[dict]:
+    """广东日常 4 篇 × 5 题。形态均衡；考点按画像，跨篇尽量不重复。"""
+    used: list[str] = []
+    recent: set[str] = set()
+    materials = []
+    empty = not by_tag and not mistakes
+    for index, (form, label) in enumerate(ZILIAO_FORMS):
+        if empty:
+            pack = ZILIAO_DEFAULT_PACK if index % 2 == 0 else ZILIAO_ALT_PACK
+            slots = [_slot_row(tag, "默认骨架", by_tag) for tag in pack]
+        else:
+            slots = select_ziliao_slots(by_tag, mistakes, used=used, recent=recent)
+        recent = {slot["tag"] for slot in slots}
+        used.extend(slot["tag"] for slot in slots)
+        materials.append({"form": form, "form_label": label, "slots": slots})
+    for material, plan in zip(materials, assign_ziliao_answers(len(materials), rng=rng)):
+        material["answer_kind"] = plan["kind"]
+        material["answer_label"] = plan["label"]
+        material["answers"] = plan["answers"]
+        for slot, key in zip(material["slots"], plan["answers"]):
+            slot["answer"] = key
+    return materials
+
+
+def collect_ziliao_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
+    conn.row_factory = sqlite3.Row
+    today = dt.datetime.now(TZ).date()
+    alias_map = {
+        row["alias"]: row["canonical"]
+        for row in conn.execute("SELECT alias,canonical FROM kaodian_aliases")
+    }
+    by_tag: dict[str, dict] = {}
+    for row in conn.execute(
+        """
+        SELECT kaodian,module,subtype,attempts,correct,total_ms,last_seen,
+               streak,mastery,mastery_confidence,mastery_samples
+          FROM kaodian_profile
+        """
+    ):
+        raw = row["kaodian"] or ""
+        module = row["module"] or ""
+        head = normalize_module(module or raw.split("-")[0])
+        if head in ZILIAO_FOREIGN_MODULES:
+            continue
+        tag = canonicalize(raw, module)
+        if tag not in ZILIAO_QUESTION_TAGS:
+            alias = alias_map.get(raw)
+            tag = canonicalize(alias or raw.split("-")[-1], "资料分析")
+        if tag not in ZILIAO_QUESTION_TAGS:
+            continue
+        compact = compact_profile(row, today)
+        compact["kaodian"] = tag
+        prev = by_tag.get(tag)
+        if prev is None:
+            by_tag[tag] = compact
+            continue
+        prev_n = prev.get("attempts") or 0
+        cur_n = compact.get("attempts") or 0
+        if cur_n and not prev_n:
+            by_tag[tag] = compact
+        elif cur_n and prev_n and (compact.get("mastery") or 50) < (prev.get("mastery") or 50):
+            by_tag[tag] = compact
+
+    mistakes: dict[str, int] = Counter()
+    for row in conn.execute("SELECT kaodian, wrong_count FROM kaodian_debts WHERE mastered=0"):
+        tag = canonicalize(alias_map.get(row["kaodian"]) or row["kaodian"] or "", "资料分析")
+        if tag in ZILIAO_QUESTION_TAGS:
+            mistakes[tag] += int(row["wrong_count"] or 0)
+    for row in conn.execute(
+        """
+        SELECT q.tags, q.category, q.sub_category
+          FROM mistakes m
+          JOIN questions q ON q.id=m.question_id
+         WHERE m.mastered=0
+        """
+    ):
+        tags = parse_tags(row["tags"])
+        if not tags:
+            continue
+        tag = canonicalize(alias_map.get(tags[0]) or tags[0], row["category"] or "资料分析")
+        if tag in ZILIAO_QUESTION_TAGS:
+            mistakes[tag] += 1
+    return by_tag, dict(mistakes)
+
+
+def build_ziliao_pack(conn: sqlite3.Connection) -> dict:
+    by_tag, mistakes = collect_ziliao_state(conn)
+    practiced = {
+        tag: row for tag, row in by_tag.items()
+        if (row.get("attempts") or 0) > 0
+    }
+    materials = select_ziliao_paper(practiced, mistakes)
+    return {
+        "empty_profile": not practiced and not mistakes,
+        "paper_style": "gd",
+        "materials": materials,
+        "slots": [slot for material in materials for slot in material["slots"]],
+    }
+
+
+def render_ziliao_pack(pack: dict) -> str:
+    lines = [
+        "资料分析20题包（广东日常 4篇×5题；用户未点名三级，按画像组合；未点名拔高）"
+    ]
+    question_no = 0
+    for index, material in enumerate(pack.get("materials") or [], start=1):
+        answers = "".join(material.get("answers") or [])
+        kind = material.get("answer_label") or ""
+        lines.append(f"第{index}篇｜{material['form']}｜{material['form_label']}｜答案{answers}（{kind}）")
+        for slot in material.get("slots") or []:
+            question_no += 1
+            extra = ""
+            if slot.get("mastery") is not None:
+                extra = f"｜掌握{slot['mastery']} 置信{slot.get('confidence') or 0}"
+                if slot.get("days_since") is not None:
+                    extra += f" {slot['days_since']}天前"
+            answer = slot.get("answer") or ""
+            lines.append(f"  {question_no}. {slot['tag']} ｜{slot['reason']}｜答{answer}{extra}")
+    lines.append(
+        "纪律：paper_style=gd，除非用户显式点名国考/深圳/拔高；"
+        "tags[0] 必须是上列知识库主标签（07-ziliao.md）；"
+        "禁止资料分析-综合分析-综合判断；"
+        "每篇末题可出综合判断句，标签打在正确项最重的那张卡；"
+        "速算/每题四步只写解析，不单独占槽；"
+        "先算定值，再把正确项排到指定字母，不要算完再改数字去凑答案；"
+        "4篇须恰好3篇为ABCD各一+1随机，1篇故意打散。"
+    )
+    return "\n".join(lines)
+
+
 def render_compact(snapshot: dict) -> str:
     summary = snapshot["summary"]
     lines = [
@@ -321,12 +574,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=Path, default=DB)
     parser.add_argument("--compact", action="store_true")
+    parser.add_argument("--ziliao-pack", action="store_true")
     args = parser.parse_args()
     conn = sqlite3.connect(args.db)
     try:
         snapshot = build_snapshot(conn)
+        pack = build_ziliao_pack(conn) if args.ziliao_pack else None
     finally:
         conn.close()
+    if args.ziliao_pack:
+        if args.compact:
+            print(snapshot["compact"])
+            print()
+        print(render_ziliao_pack(pack or {"slots": []}))
+        return 0
     print(snapshot["compact"] if args.compact else json.dumps(snapshot, ensure_ascii=False, indent=2))
     return 0
 

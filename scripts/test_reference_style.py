@@ -143,6 +143,14 @@ def main() -> int:
               FROM reference_questions WHERE external_id = 'ref-00'
             """
         )
+        conn.execute(
+            "UPDATE reference_questions SET imported_by = ? WHERE external_id = ?",
+            ("approved-ai-holdout", "ref-gk-05"),
+        )
+        conn.execute(
+            "UPDATE reference_questions SET imported_by = ? WHERE external_id = ?",
+            ("approved-ai-generate", "ref-gk-04"),
+        )
         conn.commit()
         conn.close()
 
@@ -153,6 +161,18 @@ def main() -> int:
         assert status["pending"] == 0
         assert status["excluded"] == 1
         assert status["holdout"] >= 1
+        conn = sqlite3.connect(db_path)
+        forced_status = conn.execute(
+            "SELECT status FROM reference_digest_items WHERE external_id = ?",
+            ("ref-gk-05",),
+        ).fetchone()[0]
+        generation_status = conn.execute(
+            "SELECT status FROM reference_digest_items WHERE external_id = ?",
+            ("ref-gk-04",),
+        ).fetchone()[0]
+        conn.close()
+        assert forced_status == "holdout"
+        assert generation_status == "accepted"
         profile = (output_dir / "reference-style-profile.md").read_text(encoding="utf-8")
         assert "默认目标分位" in profile
         assert "国考拔高分位" in profile

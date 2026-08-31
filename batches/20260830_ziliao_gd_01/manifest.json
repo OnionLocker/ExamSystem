@@ -1,0 +1,103 @@
+{
+  "batch_id": "20260830_ziliao_gd_01",
+  "source": "广东省考行测 · 资料分析专项（3篇广东文字材料×各5题）",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-a0b9de485bb64f499c0e72b1c671b148",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q01"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q01",
+          "20260830_ziliao_gd_01-Q11"
+        ]
+      },
+      {
+        "context_id": "refctx-1c3b308fe0f84acf8ea89f2980820e50",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q02",
+          "20260830_ziliao_style_01-Q07"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q02",
+          "20260830_ziliao_gd_01-Q04",
+          "20260830_ziliao_gd_01-Q06",
+          "20260830_ziliao_gd_01-Q13"
+        ]
+      },
+      {
+        "context_id": "refctx-70e9662382c743a692e0e00407c62770",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q04"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q03",
+          "20260830_ziliao_gd_01-Q09"
+        ]
+      },
+      {
+        "context_id": "refctx-55a44a538071439cac5e2e58d9ced266",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q10"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q05",
+          "20260830_ziliao_gd_01-Q10",
+          "20260830_ziliao_gd_01-Q15"
+        ]
+      },
+      {
+        "context_id": "refctx-38161c96c5c440c2b4dfbbf7ac429aa5",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q06"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q07",
+          "20260830_ziliao_gd_01-Q14"
+        ]
+      },
+      {
+        "context_id": "refctx-d08f5af4c82e43ef836e8ca35e19792d",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q09",
+          "20260830_ziliao_style_01-Q06"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q08",
+          "20260830_ziliao_gd_01-Q12"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-c4cc18f6b4344a29bab96feffa7ad0b1",
+        "reference_ids": [
+          "20260830_ziliao_style_01-Q05",
+          "20260830_ziliao_style_01-Q08"
+        ],
+        "question_ids": [
+          "20260830_ziliao_gd_01-Q01",
+          "20260830_ziliao_gd_01-Q02",
+          "20260830_ziliao_gd_01-Q03",
+          "20260830_ziliao_gd_01-Q04",
+          "20260830_ziliao_gd_01-Q05",
+          "20260830_ziliao_gd_01-Q06",
+          "20260830_ziliao_gd_01-Q07",
+          "20260830_ziliao_gd_01-Q08",
+          "20260830_ziliao_gd_01-Q09",
+          "20260830_ziliao_gd_01-Q10",
+          "20260830_ziliao_gd_01-Q11",
+          "20260830_ziliao_gd_01-Q12",
+          "20260830_ziliao_gd_01-Q13",
+          "20260830_ziliao_gd_01-Q14",
+          "20260830_ziliao_gd_01-Q15"
+        ]
+      }
+    ]
+  }
+}

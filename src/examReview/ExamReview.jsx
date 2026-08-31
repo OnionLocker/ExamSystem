@@ -39,7 +39,7 @@ const KINDS = {
   zhenti: {
     label: '真题',
     title: '真题复盘',
-    desc: '传一场模考的屏幕录像和带答案的 PDF，后台会把你的做题过程拆出来：时间花在哪、哪些动作是白费的、哪些题慢而且还错。跑完想追问就去 Hermes 带上这份复盘。',
+    desc: '传一场模考的屏幕录像和带答案的 PDF，后台按题记下停留、动作和草稿，不做诊断。跑完想追问就去 Hermes 带上这份复盘。',
     placeholder: '标题，例如：粉笔周模考 12 季',
     fallbackTitle: (d) => `模考复盘 ${d}`,
     empty: '还没有复盘记录',
@@ -47,7 +47,7 @@ const KINDS = {
   taoti: {
     label: '套题',
     title: '套题解析',
-    desc: '传一套练习题的屏幕录像和带答案的 PDF，后台会把你的做题过程拆出来：时间花在哪、哪些动作是白费的、哪些题慢而且还错。跑完想追问就去 Hermes 带上这份复盘。',
+    desc: '传一套练习题的屏幕录像和带答案的 PDF，后台按题记下停留、动作和草稿，不做诊断。跑完想追问就去 Hermes 带上这份复盘。',
     placeholder: '标题，例如：华图行测 第 8 套',
     fallbackTitle: (d) => `套题复盘 ${d}`,
     empty: '还没有套题复盘记录',
@@ -277,7 +277,9 @@ const ExamReview = () => {
           <div className="flex flex-wrap gap-x-8 gap-y-2 mt-5 text-xs font-bold text-white/60">
             <span>{detail.exam_date}</span>
             <span>全程 {fmtDur(detail.duration_sec)}</span>
-            {stats?.questions ? <span>识别 {stats.questions} 道题</span> : null}
+            {stats?.correct != null && stats?.questions
+              ? <span>PDF 判分 {stats.correct}/{stats.questions}</span>
+              : stats?.questions ? <span>识别 {stats.questions} 道题</span> : null}
             {stats?.changed ? <span>改过答案 {stats.changed} 题</span> : null}
             {stats?.idle_count ? <span>停滞片段 {stats.idle_count} 处</span> : null}
           </div>

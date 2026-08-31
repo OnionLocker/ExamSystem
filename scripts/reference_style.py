@@ -29,6 +29,8 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+from kaodian_taxonomy import canonicalize
+
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "data" / "exam.db"
@@ -39,6 +41,8 @@ DEFAULT_OUTPUT_DIR = (
 DIGEST_VERSION = "GONGKAO-STYLE-v1"
 PROFILE_NAME = "reference-style-profile.md"
 STATUS_NAME = "reference-style-status.json"
+EVALUATION_ONLY_IMPORTER = "approved-ai-holdout"
+GENERATION_ONLY_IMPORTER = "approved-ai-generate"
 PRINCIPLES_NAME = "reference-style-principles.md"
 CANONICAL_GUIDE = ROOT / "docs" / "AI_PRACTICE_STYLE_GUIDE.md"
 
@@ -131,7 +135,7 @@ def effective_tags(row: sqlite3.Row | dict[str, Any]) -> list[Any]:
 
 
 def canonical_payload(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
-    return {
+    out = {
         "external_id": row["external_id"],
         "category": row["category"],
         "sub_category": row["sub_category"],
@@ -148,6 +152,7 @@ def canonical_payload(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
         "year": row["year"],
         "region": compact_text(row["region"]),
     }
+    return out
 
 
 def content_hash(row: sqlite3.Row | dict[str, Any]) -> str:
@@ -293,9 +298,9 @@ def load_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def load_legacy_rows(category: str) -> list[dict[str, Any]]:
-    """读取旧结构化真题作缺类回退，主要补 reference_questions 尚无的资料分析。"""
+    """读取旧结构化真题作缺类回退。资料分析 PDF 只抽出导语、丢掉表/图，不能当参考。"""
     rows: list[dict[str, Any]] = []
-    if not ZHENTI_DIR.is_dir() or not category:
+    if category == "资料分析" or not ZHENTI_DIR.is_dir() or not category:
         return rows
     for source_path in sorted(ZHENTI_DIR.glob("*.json")):
         try:
@@ -405,8 +410,34 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
                 "note": f"与 {ranked[0]['external_id']} 整题重复",
             }
 
+    evaluation_only_ids = {
+        row["external_id"]
+        for row in usable
+        if row["imported_by"] == EVALUATION_ONLY_IMPORTER
+    }
+    generation_only_ids = {
+        row["external_id"]
+        for row in usable
+        if row["imported_by"] == GENERATION_ONLY_IMPORTER
+    }
+    for row in usable:
+        if row["external_id"] in evaluation_only_ids:
+            assignments[row["external_id"]] = {
+                "status": "holdout",
+                "source_tier": source_tier(row),
+                "note": "approved batch evaluation-only",
+            }
+        elif row["external_id"] in generation_only_ids:
+            assignments[row["external_id"]] = {
+                "status": "accepted",
+                "source_tier": source_tier(row),
+                "note": "approved batch generation-only",
+            }
+
     by_group: dict[tuple[str, str], list[sqlite3.Row]] = defaultdict(list)
     for row in usable:
+        if row["external_id"] in evaluation_only_ids or row["external_id"] in generation_only_ids:
+            continue
         by_group[(row["category"], row["sub_category"] or "未细分")].append(row)
 
     for group_rows in by_group.values():
@@ -433,6 +464,22 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
                 "source_tier": source_tier(row),
                 "note": "独立风格评测留出集" if row["external_id"] in holdout_ids else "",
             }
+
+    by_category: dict[str, list[sqlite3.Row]] = defaultdict(list)
+    for row in usable:
+        by_category[row["category"]].append(row)
+    for category_rows in by_category.values():
+        if len(category_rows) < 6 or any(
+            assignments[row["external_id"]]["status"] == "holdout"
+            for row in category_rows
+        ):
+            continue
+        row = min(category_rows, key=content_hash)
+        assignments[row["external_id"]] = {
+            "status": "holdout",
+            "source_tier": source_tier(row),
+            "note": "独立风格评测留出集",
+        }
 
     return assignments
 
@@ -880,9 +927,67 @@ def match_level(
 ) -> int:
     if category and row["category"] != category:
         return -1
+    if sub_category and row["sub_category"] and row["sub_category"] != sub_category:
+        return -1
     row_tags = [str(tag) for tag in effective_tags(row) if str(tag).strip()]
+    if target_tag and category == "言语理解与表达":
+        def yanyu_family(value: str) -> str:
+            if "逻辑填空" in value:
+                if any(word in value for word in ("词语辨析", "词的辨析", "实词", "成语", "混搭")):
+                    return "逻辑填空-词语"
+                if any(word in value for word in ("逻辑对应", "对应关系", "解释说明", "转折", "并列")):
+                    return "逻辑填空-对应"
+                if "宏观" in value:
+                    return "逻辑填空-宏观"
+                return "逻辑填空-其他"
+            if "语句排序" in value:
+                return "语句排序"
+            if any(word in value for word in ("语句填入", "语句填空", "语句衔接")):
+                return "语句填入"
+            if "标题" in value:
+                return "标题"
+            if any(word in value for word in ("下文推断", "承接叙述")):
+                return "下文推断"
+            if "细节" in value:
+                return "细节判断"
+            if "意图" in value:
+                return "意图判断"
+            if any(word in value for word in ("主旨", "中心理解")):
+                return "主旨概括"
+            return ""
+
+        target_family = yanyu_family(target_tag)
+        row_families = {yanyu_family(tag) for tag in row_tags}
+        if target_family and target_family in row_families:
+            return 6
+        return 0
+    if target_tag and sub_category in {"科学推理", "图形推理", "逻辑判断"}:
+        def semantic_parts(value: str) -> list[str]:
+            parts = tag_parts(value)
+            if len(parts) > 1 and parts[0] == "判断推理" and parts[1] in {"科学推理", "图形推理", "逻辑判断"}:
+                return parts[1:]
+            return parts
+
+        target_parts = semantic_parts(target_tag)
+        best = 0
+        for row_tag in row_tags:
+            parts = semantic_parts(row_tag)
+            if parts == target_parts:
+                return 6
+            common = 0
+            for left, right in zip(target_parts, parts):
+                if left != right:
+                    break
+                common += 1
+            if common >= 2:
+                best = max(best, 5 if common == min(len(target_parts), len(parts)) else 4)
+            elif target_parts and parts and target_parts[0] == parts[0] and set(target_parts[1:]) & set(parts[1:]):
+                best = max(best, 2)
+        return best
     if target_tag:
-        if target_tag in row_tags:
+        target_canon = canonicalize(target_tag, category or row["category"] or "")
+        row_canons = [canonicalize(tag, row["category"] or category or "") for tag in row_tags]
+        if target_tag in row_tags or (target_canon and target_canon in row_canons):
             return 6
         target_parts = tag_parts(target_tag)
         best = 0
@@ -937,7 +1042,7 @@ def row_for_context(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
                 "images": with_local(json_list(option.get("images"))),
             }
         )
-    out = {
+    return {
         "external_id": row["external_id"],
         "category": row["category"],
         "sub_category": row["sub_category"],

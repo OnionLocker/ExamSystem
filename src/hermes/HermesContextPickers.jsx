@@ -122,7 +122,7 @@ export default function HermesContextPickers({
             </div>
             <div className="px-5 py-3 border-t border-black/5">
               <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
-                不是上传。选一场已完成的复盘，会带上报告（模型读过解析 PDF 后写进报告的原题和标准解法）。不占输入框。发送后还在这个会话里接着聊。
+                不是上传。选一场已完成的复盘，会带上报告（PDF 判分、录屏行为记录、各题草稿）。不占输入框。发送后还在这个会话里接着聊。
               </p>
             </div>
           </div>

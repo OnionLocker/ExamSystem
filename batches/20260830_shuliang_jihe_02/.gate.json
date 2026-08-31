@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "batch_id": "20260830_shuliang_jihe_02",
+  "issued_at": "2026-08-30T15:48:02+00:00",
+  "manifest_sha256": "b96e84845fd42386b271b6e7bbce8753d1c895eb2bd1d6e4d830b301bcfa63f1",
+  "questions_sha256": "440bd05e3750ca451cfb753fd0a02b64dc67a788a8ea827324767a9d82abe079",
+  "question_ids": [
+    "20260830_shuliang_jihe_02-q01",
+    "20260830_shuliang_jihe_02-q02",
+    "20260830_shuliang_jihe_02-q03",
+    "20260830_shuliang_jihe_02-q04",
+    "20260830_shuliang_jihe_02-q05",
+    "20260830_shuliang_jihe_02-q06",
+    "20260830_shuliang_jihe_02-q07",
+    "20260830_shuliang_jihe_02-q08",
+    "20260830_shuliang_jihe_02-q09",
+    "20260830_shuliang_jihe_02-q10"
+  ],
+  "correctness": {
+    "path": "evidence/correctness.json",
+    "sha256": "94d590750d1c16e0faafadd9ff1efff367a0ce5f83f2868c0e1467c947011d43",
+    "route": "B"
+  },
+  "quality": {
+    "path": "evidence/quality.json",
+    "sha256": "4807f30c58b780009c3b208a1a59ab72aa149fac85beff9b5046e00c10a4b904",
+    "evaluation_context_ids": [
+      "refctx-bb707c2750854e9f9d7f30ad46da6817"
+    ]
+  }
+}

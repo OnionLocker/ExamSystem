@@ -292,11 +292,11 @@ const TopBarTimer = ({ onOpen }) => {
             open ? 'border-[#1a1a1a]' : 'border-[#e8d5b0] hover:border-[#1a1a1a]'
           }`}
         >
-          <TimerIcon size={14} className="text-slate-400" />
-          <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <TimerIcon size={16} className="text-slate-400" />
+          <span className="text-[15px] font-black tracking-widest text-slate-500">
             番茄钟
           </span>
-          <span className="text-[10px] font-bold text-slate-400 tabular-nums">{workMin}分</span>
+          <span className="text-sm font-bold text-slate-400 tabular-nums">{workMin}分</span>
         </button>
         {panel}
       </div>
@@ -317,10 +317,10 @@ const TopBarTimer = ({ onOpen }) => {
         title="番茄钟"
         className="flex items-center space-x-2"
       >
-        <span className="text-[10px] font-black uppercase tracking-widest opacity-70">
+        <span className="text-[15px] font-black tracking-widest opacity-70">
           {PHASE_LABELS[phase]}
         </span>
-        <span className={`text-sm font-black tabular-nums ${accent}`}>{fmtHMS(remaining)}</span>
+        <span className={`text-base font-black tabular-nums ${accent}`}>{fmtHMS(remaining)}</span>
       </button>
       <button
         type="button"

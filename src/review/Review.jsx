@@ -25,9 +25,6 @@ import {
 import { api } from '../api.js';
 import {
   dropCachedReviewImage,
-  getCachedObjectUrl,
-  prefetchModuleImages,
-  prefetchReviewImage,
   withReviewToken,
 } from './prefetchReviewImages.js';
 
@@ -44,37 +41,9 @@ const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 const withToken = withReviewToken;
 
-/** 优先用 Cache API 本地缓存，没有则走网络（并触发单张预取） */
-const CachedReviewImg = ({ url, ...props }) => {
-  const [src, setSrc] = useState(() => withToken(url));
-
-  useEffect(() => {
-    let revoked = null;
-    let cancelled = false;
-
-    (async () => {
-      const cached = await getCachedObjectUrl(url);
-      if (cancelled) {
-        if (cached) URL.revokeObjectURL(cached);
-        return;
-      }
-      if (cached) {
-        revoked = cached;
-        setSrc(cached);
-        return;
-      }
-      setSrc(withToken(url));
-      prefetchReviewImage(url);
-    })();
-
-    return () => {
-      cancelled = true;
-      if (revoked) URL.revokeObjectURL(revoked);
-    };
-  }, [url]);
-
-  return <img src={src} {...props} />;
-};
+const CachedReviewImg = ({ url, ...props }) => (
+  <img src={withToken(url)} {...props} />
+);
 
 const fileToBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -120,7 +89,7 @@ const Review = () => {
     try {
       return { rows: (await api('/api/review-modules')) || [], error: '' };
     } catch (e) {
-      if (e.status === 401) return null; // 401 由 api 层统一处理，这里静默
+      if (e.status === 401) return { rows: [], error: '' };
       return { rows: null, error: e.message || '加载失败' };
     }
   }, []);
@@ -128,7 +97,6 @@ const Review = () => {
   // 供刷新按钮 / 子组件手动调用
   const loadModules = useCallback(async () => {
     const res = await fetchModules();
-    if (!res) return;
     if (res.rows) setModules(res.rows);
     setError(res.error);
     setLoading(false);
@@ -138,7 +106,7 @@ const Review = () => {
     let alive = true;
     (async () => {
       const res = await fetchModules();
-      if (!alive || !res) return;
+      if (!alive) return;
       if (res.rows) setModules(res.rows);
       setError(res.error);
       setLoading(false);
@@ -152,10 +120,7 @@ const Review = () => {
     return (
       <ModuleViewer
         module={activeModule}
-        onBack={() => {
-          setActiveModule(null);
-          loadModules();
-        }}
+        onBack={() => setActiveModule(null)}
         onModuleUpdate={(m) => setActiveModule(m)}
       />
     );
@@ -498,13 +463,6 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
     };
   }, [fetchImages, applyImages]);
 
-  // 进入模块后后台把本模块图片全部预取进浏览器缓存
-  useEffect(() => {
-    if (!images.length) return;
-    const urls = images.map((img) => img.url).filter(Boolean);
-    prefetchModuleImages(urls);
-  }, [images]);
-
   const go = useCallback(
     (delta) => {
       if (!images.length) return;
@@ -577,7 +535,6 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
         ...module,
         image_count: rows?.length || 0,
       });
-      prefetchModuleImages((rows || []).map((r) => r.url));
       if (skipped > 0) {
         setUploadProgress('');
         alert(`已上传 ${ok} 张图片，跳过 ${skipped} 个非图片文件`);
@@ -1002,6 +959,7 @@ const ModuleViewer = ({ module, onBack, onModuleUpdate }) => {
                     <CachedReviewImg
                       url={img.url}
                       alt=""
+                      loading="lazy"
                       className="w-full h-full object-cover"
                       draggable={false}
                     />

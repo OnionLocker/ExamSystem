@@ -1,0 +1,650 @@
+[
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q01",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M01",
+    "stem": "2024\u5e74\u5168\u7701\u653f\u52a1\u670d\u52a1\u597d\u8bc4\u7387\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "99.6%"
+      },
+      {
+        "key": "B",
+        "text": "100.0%"
+      },
+      {
+        "key": "C",
+        "text": "99.4%"
+      },
+      {
+        "key": "D",
+        "text": "99.2%"
+      }
+    ],
+    "answer": "D",
+    "explanation": "2024\u5e74\u597d\u8bc4\u7387=99.6%-0.4\u4e2a\u767e\u5206\u70b9=99.2%\uff0c\u56e0\u6b64\u9009D\u3002A\u9879\u76f4\u63a5\u4f7f\u75282025\u5e74\u597d\u8bc4\u7387\u3002B\u9879\u628a\u63d0\u9ad80.4\u4e2a\u767e\u5206\u70b9\u8bef\u4f5c\u5411\u524d\u76f8\u52a0\u3002C\u9879\u53ea\u51cf\u53bb0.2\u4e2a\u767e\u5206\u70b9\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u57fa\u7840\u77e5\u8bc6-\u7edf\u8ba1\u672f\u8bed\u4e0e\u5e38\u8003\u6982\u5ff5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q02",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M01",
+    "stem": "2025\u5e74\u4e2a\u4eba\u9ad8\u9891\u4fbf\u6c11\u670d\u52a1\u529e\u4ef6\u91cf\u5bf9\u5168\u7701\u653f\u52a1\u670d\u52a1\u603b\u529e\u4ef6\u91cf\u589e\u957f\u7684\u8d21\u732e\u7387\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "33.3%"
+      },
+      {
+        "key": "B",
+        "text": "53.3%"
+      },
+      {
+        "key": "C",
+        "text": "66.7%"
+      },
+      {
+        "key": "D",
+        "text": "80.0%"
+      }
+    ],
+    "answer": "B",
+    "explanation": "\u603b\u529e\u4ef6\u589e\u91cf=7500-6000=1500\u4e07\u4ef6\uff0c\u4e2a\u4eba\u9ad8\u9891\u4fbf\u6c11\u670d\u52a1\u589e\u91cf=2400-2400/1.5=800\u4e07\u4ef6\uff0c\u8d21\u732e\u7387=800/1500\u224853.3%\uff0c\u56e0\u6b64\u9009B\u3002A\u9879\u7528\u6d89\u4f01\u670d\u52a1\u589e\u91cf500\u4e07\u4ef6\u9664\u4ee5\u603b\u589e\u91cf\u3002C\u9879\u8bef\u7528\u79fb\u52a8\u7aef\u589e\u91cf1200\u4e07\u4ef6\u4f5c\u5206\u6bcd\u3002D\u9879\u8bef\u7528\u8de8\u57df\u901a\u529e\u57fa\u671f1000\u4e07\u4ef6\u4f5c\u5206\u6bcd\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u7279\u6b8a\u8003\u70b9-\u62c9\u52a8\u589e\u957f\u3001\u8d21\u732e\u7387\u4e0e\u5bb9\u65a5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q03",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M01",
+    "stem": "2024\u5e74\u5168\u7701\u6d89\u4f01\u670d\u52a1\u529e\u4ef6\u91cf\u5360\u653f\u52a1\u670d\u52a1\u603b\u529e\u4ef6\u91cf\u7684\u6bd4\u91cd\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "33.3%"
+      },
+      {
+        "key": "B",
+        "text": "40.0%"
+      },
+      {
+        "key": "C",
+        "text": "41.7%"
+      },
+      {
+        "key": "D",
+        "text": "50.0%"
+      }
+    ],
+    "answer": "C",
+    "explanation": "2024\u5e74\u6d89\u4f01\u670d\u52a1\u91cf=3000/1.2=2500\u4e07\u4ef6\uff0c\u5360\u6bd4=2500/6000\u224841.7%\uff0c\u56e0\u6b64\u9009C\u3002A\u9879\u7528PC\u7aef\u57fa\u671f2000\u4e07\u4ef6\u9664\u4ee5\u603b\u91cf6000\u4e07\u4ef6\u3002B\u9879\u8ba1\u7b97\u7684\u662f2025\u5e74\u6d89\u4f01\u670d\u52a1\u73b0\u671f\u5360\u6bd43000/7500\u3002D\u9879\u6df7\u7528\u73b0\u671f\u6d89\u4f01\u670d\u52a13000\u4e07\u4ef6\u548c\u57fa\u671f\u603b\u91cf6000\u4e07\u4ef6\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u91cd\u7c7b-\u73b0\u671f\u3001\u57fa\u671f\u4e0e\u9694\u7ea7\u6bd4\u91cd",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q04",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M01",
+    "stem": "2025\u5e74\u5168\u7701\u79fb\u52a8\u7aef\u653f\u52a1\u670d\u52a1\u529e\u4ef6\u91cf\u7ea6\u662fPC\u7aef\u7684\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "1.26\u500d"
+      },
+      {
+        "key": "B",
+        "text": "2.26\u500d"
+      },
+      {
+        "key": "C",
+        "text": "2.60\u500d"
+      },
+      {
+        "key": "D",
+        "text": "3.26\u500d"
+      }
+    ],
+    "answer": "B",
+    "explanation": "\u79fb\u52a8\u7aef\u529e\u4ef6\u91cf\u662fPC\u7aef\u76845200/2300\u22482.26\u500d\uff0c\u9009\u62e9B\u3002A\u9879\u8ba1\u7b97\u7684\u662f\u79fb\u52a8\u7aef\u6bd4PC\u7aef\u591a\u51fa\u7684\u500d\u6570\uff0c\u5373(5200-2300)/2300\u3002C\u9879\u8bef\u7528PC\u7aef2024\u5e74\u57fa\u671f\u91cf2300/1.15=2000\u4e07\u4ef6\uff1bD\u9879\u7528\u5e73\u53f0\u603b\u529e\u4ef6\u91cf7500\u4e07\u4ef6\u9664\u4ee5PC\u7aef\u529e\u4ef6\u91cf\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u57fa\u7840\u77e5\u8bc6-\u7edf\u8ba1\u672f\u8bed\u4e0e\u5e38\u8003\u6982\u5ff5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q05",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M01",
+    "stem": "\u6839\u636e\u6750\u6599\uff0c\u4e0b\u5217\u8bf4\u6cd5\u6b63\u786e\u7684\u662f\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "\u5e73\u5747\u6bcf\u4e2a\u8de8\u90e8\u95e8\u6570\u636e\u5171\u4eab\u63a5\u53e3\u5168\u5e74\u8c03\u7528\u7ea62.57\u4e07\u6b21"
+      },
+      {
+        "key": "B",
+        "text": "\u7535\u5b50\u8bc1\u7167\u8c03\u7528\u91cf\u540c\u6bd4\u589e\u52a0\u8d85\u8fc75000\u4e07\u6b21"
+      },
+      {
+        "key": "C",
+        "text": "\u514d\u8bc1\u529e\u7406\u8986\u76d6\u4e8b\u9879\u8f83\u4e0a\u5e74\u589e\u957f\u7ea620%"
+      },
+      {
+        "key": "D",
+        "text": "48\u5c0f\u65f6\u5185\u54cd\u5e94\u7387\u9ad8\u4e8e\u653f\u52a1\u670d\u52a1\u597d\u8bc4\u7387"
+      }
+    ],
+    "answer": "A",
+    "explanation": "\u5e73\u5747\u6bcf\u4e2a\u63a5\u53e3\u8c03\u7528\u6b21\u6570=3.6\u4ebf\u6b21/1.4\u4e07\u4e2a\u22482.57\u4e07\u6b21\uff0cA\u9879\u6b63\u786e\u3002B\u9879\u589e\u91cf=1.8-1.8/1.28\u22480.394\u4ebf\u6b21\uff0c\u4e0d\u8db35000\u4e07\u6b21\u3002C\u9879\u589e\u5e45=460/(3200-460)\u224816.8%\uff1bD\u987996.8%\u4f4e\u4e8e99.6%\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u5e73\u5747\u7c7b-\u4e00\u822c\u5e73\u5747\u503c\u4e0e\u5e74\u5747\u589e\u901f/\u589e\u91cf",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q06",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M02",
+    "stem": "2025\u5e74\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u5e73\u5747\u6bcf\u5bb6\u5b9e\u73b0\u8425\u4e1a\u6536\u5165\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "8000\u4e07\u5143"
+      },
+      {
+        "key": "B",
+        "text": "5400\u4e07\u5143"
+      },
+      {
+        "key": "C",
+        "text": "6480\u4e07\u5143"
+      },
+      {
+        "key": "D",
+        "text": "6667\u4e07\u5143"
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u5e73\u5747\u8425\u4e1a\u6536\u5165=10000\u4ebf\u5143/15000\u5bb6\u22480.6667\u4ebf\u5143/\u5bb6=6667\u4e07\u5143/\u5bb6\uff0c\u9009\u62e9D\u3002A\u9879\u7528\u73b0\u671f\u6536\u5165\u9664\u4ee5\u57fa\u671f\u4f01\u4e1a\u657012500\u5bb6\u3002B\u9879\u6df7\u7528\u57fa\u671f\u6536\u516510000/1.235\u4ebf\u5143\u4e0e\u73b0\u671f\u4f01\u4e1a\u6570\uff1bC\u9879\u8ba1\u7b97\u7684\u662f2024\u5e74\u6237\u5747\u8425\u4e1a\u6536\u5165\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u5e73\u5747\u7c7b-\u4e00\u822c\u5e73\u5747\u503c\u4e0e\u5e74\u5747\u589e\u901f/\u589e\u91cf",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q07",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M02",
+    "stem": "2025\u5e74\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4e2d\u5c0f\u4f01\u4e1a\u5e73\u5747\u7814\u53d1\u6295\u5165\u5f3a\u5ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "8.3%"
+      },
+      {
+        "key": "B",
+        "text": "6.5%"
+      },
+      {
+        "key": "C",
+        "text": "1.8%"
+      },
+      {
+        "key": "D",
+        "text": "4.7%"
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u4e2d\u5c0f\u4f01\u4e1a\u5e73\u5747\u7814\u53d1\u6295\u5165\u5f3a\u5ea6=6.5%-1.8\u4e2a\u767e\u5206\u70b9=4.7%\uff0c\u9009\u62e9D\u3002A\u9879\u98a0\u5012\u201c\u9ad8\u4e8e\u201d\u5173\u7cfb\u800c\u76f8\u52a0\u3002B\u9879\u76f4\u63a5\u91c7\u7528\u201c\u5c0f\u5de8\u4eba\u201d\u4f01\u4e1a\u76846.5%\uff1bC\u9879\u628a\u4e24\u8005\u7684\u5dee\u503c\u5f53\u6210\u76ee\u6807\u503c\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u57fa\u7840\u77e5\u8bc6-\u7edf\u8ba1\u672f\u8bed\u4e0e\u5e38\u8003\u6982\u5ff5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q08",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M02",
+    "stem": "2025\u5e74\u73e0\u4e09\u89d2\u5730\u533a\u4f01\u4e1a\u6570\u589e\u957f\u62c9\u52a8\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u6570\u589e\u957f\u7ea6\u591a\u5c11\u4e2a\u767e\u5206\u70b9\uff1f",
+    "options": [
+      {
+        "key": "A",
+        "text": "6.7\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "B",
+        "text": "8.0\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "C",
+        "text": "12.5\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "D",
+        "text": "40.0\u4e2a\u767e\u5206\u70b9"
+      }
+    ],
+    "answer": "B",
+    "explanation": "\u73e0\u4e09\u89d2\u4f01\u4e1a\u589e\u91cf=9000-9000/1.125=1000\u5bb6\uff0c\u5168\u7701\u57fa\u671f\u4f01\u4e1a\u6570=15000/1.2=12500\u5bb6\uff0c\u62c9\u52a8\u589e\u957f=1000/12500=8.0\u4e2a\u767e\u5206\u70b9\uff0c\u56e0\u6b64\u9009B\u3002A\u9879\u8bef\u7528\u5168\u7701\u73b0\u671f15000\u5bb6\u4f5c\u5206\u6bcd\u3002C\u9879\u662f\u73e0\u4e09\u89d2\u81ea\u8eab\u540c\u6bd4\u589e\u901f\u3002D\u9879\u662f\u73e0\u4e09\u89d2\u589e\u91cf\u5bf9\u5168\u7701\u589e\u91cf\u7684\u8d21\u732e\u73871000/2500\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u7279\u6b8a\u8003\u70b9-\u62c9\u52a8\u589e\u957f\u3001\u8d21\u732e\u7387\u4e0e\u5bb9\u65a5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q09",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M02",
+    "stem": "2025\u5e74\u73e0\u4e09\u89d2\u5730\u533a\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u8425\u4e1a\u6536\u5165\u5360\u5168\u7701\u603b\u8425\u4e1a\u6536\u5165\u7684\u6bd4\u91cd\u6bd42024\u5e74\u7ea6\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "\u4e0b\u964d2.1\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "B",
+        "text": "\u4e0a\u53472.1\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "C",
+        "text": "\u4e0b\u964d2.0\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "D",
+        "text": "\u4e0b\u964d3.5\u4e2a\u767e\u5206\u70b9"
+      }
+    ],
+    "answer": "A",
+    "explanation": "2024\u5e74\u6bd4\u91cd=\uff087200/1.2\uff09\u00f7\uff0810000/1.235\uff09\u224874.1%\uff0c2025\u5e74\u6bd4\u91cd=7200/10000=72.0%\uff0c\u4e0b\u964d\u7ea62.1\u4e2a\u767e\u5206\u70b9\uff0c\u56e0\u6b64\u9009A\u3002B\u9879\u628a\u4e0b\u964d\u65b9\u5411\u5224\u65ad\u53cd\u4e86\u3002C\u9879\u5148\u628a\u57fa\u671f\u6bd4\u91cd\u7c97\u7565\u53d6\u6574\u4e3a74%\u518d\u76f8\u51cf\u3002D\u9879\u76f4\u63a5\u7528\u5206\u9879\u589e\u901f20%\u4e0e\u603b\u4f53\u589e\u901f23.5%\u7684\u5dee\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u91cd\u7c7b-\u73b0\u671f\u3001\u57fa\u671f\u4e0e\u9694\u7ea7\u6bd4\u91cd",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q10",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M02",
+    "stem": "\u6839\u636e\u6750\u6599\uff0c\u4e0b\u5217\u8bf4\u6cd5\u6b63\u786e\u7684\u662f\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "2025\u5e74\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u7814\u53d1\u8d39\u7528\u540c\u6bd4\u589e\u957f\u8d85\u8fc720%"
+      },
+      {
+        "key": "B",
+        "text": "2025\u5e74\u4e0a\u5e02\u540e\u5907\u4f01\u4e1a\u8f83\u4e0a\u5e74\u589e\u52a0\u8d85\u8fc7100\u5bb6"
+      },
+      {
+        "key": "C",
+        "text": "2025\u5e74\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u6237\u5747\u6709\u6548\u53d1\u660e\u4e13\u5229\u8d85\u8fc75\u4ef6"
+      },
+      {
+        "key": "D",
+        "text": "2025\u5e74\u83b7\u5f97\u4fe1\u7528\u8d37\u6b3e\u7684\u4f01\u4e1a\u5360\u5168\u7701\u4e13\u7cbe\u7279\u65b0\u4f01\u4e1a\u603b\u6570\u7684\u4e00\u534a\u4ee5\u4e0a"
+      }
+    ],
+    "answer": "C",
+    "explanation": "\u6750\u6599\u7ed9\u51fa\u6237\u5747\u6709\u6548\u53d1\u660e\u4e13\u5229\u7ea65.1\u4ef6\uff0c\u8d85\u8fc75\u4ef6\uff0cC\u9879\u6b63\u786e\u3002A\u9879\u7814\u53d1\u8d39\u7528\u589e\u957f18.5%\uff0c\u672a\u8d85\u8fc720%\u3002B\u9879\u4e0a\u5e02\u540e\u5907\u4f01\u4e1a\u589e\u52a090\u5bb6\uff1bD\u9879\u5360\u6bd4=6200/15000\u224841.3%\uff0c\u4e0d\u8db3\u4e00\u534a\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u8f83\u7c7b-\u53cc\u7ebf\u6cd5\u4e0e\u589e\u91cf\u6bd4\u8f83",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q11",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M03",
+    "stem": "2024\u5e74\u5168\u7701\u4e61\u9547\u536b\u751f\u9662\u8bca\u7597\u4eba\u6b21\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "2.0\u4ebf\u4eba\u6b21"
+      },
+      {
+        "key": "B",
+        "text": "2.4\u4ebf\u4eba\u6b21"
+      },
+      {
+        "key": "C",
+        "text": "1.92\u4ebf\u4eba\u6b21"
+      },
+      {
+        "key": "D",
+        "text": "2.88\u4ebf\u4eba\u6b21"
+      }
+    ],
+    "answer": "A",
+    "explanation": "2024\u5e74\u4e61\u9547\u536b\u751f\u9662\u8bca\u7597\u4eba\u6b21=2.4/\uff081+20%\uff09=2.0\u4ebf\u4eba\u6b21\uff0c\u56e0\u6b64\u9009A\u3002B\u9879\u76f4\u63a5\u4f7f\u75282025\u5e74\u73b0\u671f\u91cf\u3002C\u9879\u75282.4\u00d7\uff081-20%\uff09\u5012\u63a8\u3002D\u9879\u63092.4\u00d7\uff081+20%\uff09\u7ee7\u7eed\u589e\u957f\u4e00\u5e74\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-ABRX\u7c7b-\u57fa\u671f\u91cf\u8ba1\u7b97\u4e0e\u6bd4\u8f83",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q12",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M03",
+    "stem": "2023\u20142025\u5e74\uff0c\u5168\u7701\u57fa\u5c42\u533b\u7597\u536b\u751f\u673a\u6784\u8d22\u653f\u8865\u52a9\u540c\u6bd4\u589e\u91cf\u9ad8\u4e8e\u4e0a\u5e74\u540c\u6bd4\u589e\u91cf\u7684\u5e74\u4efd\u662f\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "\u4ec52023\u5e74"
+      },
+      {
+        "key": "B",
+        "text": "\u4ec52025\u5e74"
+      },
+      {
+        "key": "C",
+        "text": "2023\u5e74\u548c2025\u5e74"
+      },
+      {
+        "key": "D",
+        "text": "2023\u5e74\u30012024\u5e74\u548c2025\u5e74"
+      }
+    ],
+    "answer": "C",
+    "explanation": "\u540c\u6bd4\u589e\u91cf=\u672c\u5e74\u8865\u52a9\u989d-\u4e0a\u5e74\u8865\u52a9\u989d\uff0c2022\u20142025\u5e74\u4f9d\u6b21\u4e3a20\u300130\u300130\u300140\u4ebf\u5143\u30022023\u5e74\u589e\u91cf\u9ad8\u4e8e2022\u5e74\uff0c2024\u5e74\u4e0e2023\u5e74\u6301\u5e73\uff0c2025\u5e74\u9ad8\u4e8e2024\u5e74\uff0c\u56e0\u6b64\u9009\u62e9C\u3002A\u9879\u6f0f\u63892025\u5e74\uff1bB\u9879\u6f0f\u63892023\u5e74\uff1bD\u9879\u628a\u589e\u91cf\u6301\u5e73\u76842024\u5e74\u4e5f\u8ba1\u5165\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u8f83\u7c7b-\u53cc\u7ebf\u6cd5\u4e0e\u589e\u91cf\u6bd4\u8f83",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q13",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M03",
+    "stem": "2025\u5e74\u5168\u7701\u5bb6\u5ead\u533b\u751f\u7b7e\u7ea6\u4eba\u6570\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "6000\u4e07\u4eba"
+      },
+      {
+        "key": "B",
+        "text": "4800\u4e07\u4eba"
+      },
+      {
+        "key": "C",
+        "text": "6250\u4e07\u4eba"
+      },
+      {
+        "key": "D",
+        "text": "12500\u4e07\u4eba"
+      }
+    ],
+    "answer": "A",
+    "explanation": "\u7b7e\u7ea6\u4eba\u6570=1.25\u4ebf\u00d748%=0.6\u4ebf=6000\u4e07\u4eba\uff0c\u56e0\u6b64\u9009A\u3002B\u9879\u8bef\u628a\u5e38\u4f4f\u4eba\u53e3\u63091\u4ebf\u4eba\u8ba1\u7b97\u3002C\u9879\u8bef\u5c06\u8986\u76d6\u7387\u53d6\u4e3a50%\u3002D\u9879\u76f4\u63a5\u628a\u5e38\u4f4f\u4eba\u53e3\u603b\u6570\u5f53\u4f5c\u7b7e\u7ea6\u4eba\u6570\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u57fa\u7840\u77e5\u8bc6-\u7edf\u8ba1\u672f\u8bed\u4e0e\u5e38\u8003\u6982\u5ff5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q14",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M03",
+    "stem": "2025\u5e74\u5168\u7701\u540c\u65f6\u5c5e\u4e8e\u8001\u5e74\u4eba\u548c\u6162\u6027\u75c5\u60a3\u8005\u7684\u91cd\u70b9\u4eba\u7fa4\u7b7e\u7ea6\u4eba\u6570\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "100\u4e07\u4eba"
+      },
+      {
+        "key": "B",
+        "text": "500\u4e07\u4eba"
+      },
+      {
+        "key": "C",
+        "text": "2400\u4e07\u4eba"
+      },
+      {
+        "key": "D",
+        "text": "2900\u4e07\u4eba"
+      }
+    ],
+    "answer": "B",
+    "explanation": "\u6750\u6599\u660e\u786e\u91cd\u70b9\u4eba\u7fa4\u53ea\u542b\u8001\u5e74\u4eba\u548c\u6162\u6027\u75c5\u60a3\u8005\u4e24\u7c7b\uff0c\u4ea4\u96c6=1500+1400-2400=500\u4e07\u4eba\uff0c\u56e0\u6b64\u9009B\u3002A\u9879\u628a\u4e24\u7c7b\u4eba\u6570\u4e4b\u5dee100\u4e07\u4eba\u5f53\u6210\u4ea4\u96c6\u3002C\u9879\u628a\u53bb\u91cd\u5e76\u96c62400\u4e07\u4eba\u76f4\u63a5\u5f53\u6210\u4ea4\u96c6\u3002D\u9879\u628a\u4e24\u7c7b\u4eba\u6570\u76f4\u63a5\u76f8\u52a0\uff0c\u672a\u6263\u9664\u91cd\u590d\u4eba\u5458\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u7279\u6b8a\u8003\u70b9-\u62c9\u52a8\u589e\u957f\u3001\u8d21\u732e\u7387\u4e0e\u5bb9\u65a5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q15",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M03",
+    "stem": "\u6839\u636e\u6750\u6599\uff0c\u4e0b\u5217\u8bf4\u6cd5\u6b63\u786e\u7684\u662f\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "2025\u5e74\u5c45\u6c11\u7535\u5b50\u5065\u5eb7\u6863\u6848\u5f00\u653e\u7387\u9ad8\u4e8e\u5efa\u6863\u7387"
+      },
+      {
+        "key": "B",
+        "text": "2025\u5e74\u8001\u5e74\u4eba\u5065\u5eb7\u4f53\u68c0\u4eba\u6570\u5360\u8001\u5e74\u7b7e\u7ea6\u4eba\u6570\u7684\u4e5d\u6210\u4ee5\u4e0a"
+      },
+      {
+        "key": "C",
+        "text": "2025\u5e74\u9ad8\u8840\u538b\u60a3\u8005\u89c4\u8303\u7ba1\u7406\u7387\u4f4e\u4e8e\u7cd6\u5c3f\u75c5\u60a3\u8005"
+      },
+      {
+        "key": "D",
+        "text": "2025\u5e74\u5065\u5eb7\u6559\u80b2\u6d3b\u52a8\u5e73\u5747\u6bcf\u573a\u8986\u76d6\u7ea6200\u4eba\u6b21"
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u5065\u5eb7\u6559\u80b2\u6d3b\u52a8\u5e73\u5747\u6bcf\u573a\u8986\u76d6\u4eba\u6b21=5600\u4e07\u4eba\u6b21/28\u4e07\u573a\u6b21=200\u4eba\u6b21\uff0cD\u9879\u6b63\u786e\u3002A\u987982.0%\u4f4e\u4e8e94.4%\u3002B\u98791320/1500=88%\uff0c\u4e0d\u8db3\u4e5d\u6210\uff1bC\u9879\u9ad8\u8840\u538b\u89c4\u8303\u7ba1\u7406\u738776.0%\uff0c\u9ad8\u4e8e\u7cd6\u5c3f\u75c5\u768474.0%\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u5e73\u5747\u7c7b-\u4e00\u822c\u5e73\u5747\u503c\u4e0e\u5e74\u5747\u589e\u901f/\u589e\u91cf",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q16",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M04",
+    "stem": "2025\u5e74\u5168\u7701\u5e73\u5747\u6bcf\u573a\u5e02\u573a\u5316\u4f53\u80b2\u8d5b\u4e8b\u5e26\u52a8\u6d88\u8d39\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "485\u4ebf\u5143"
+      },
+      {
+        "key": "B",
+        "text": "0.34\u4ebf\u5143"
+      },
+      {
+        "key": "C",
+        "text": "1.34\u4ebf\u5143"
+      },
+      {
+        "key": "D",
+        "text": "1.52\u4ebf\u5143"
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u5e73\u5747\u6bcf\u573a\u8d5b\u4e8b\u5e26\u52a8\u6d88\u8d39=485\u4ebf\u5143/320\u573a\u22481.52\u4ebf\u5143/\u573a\uff0c\u9009\u62e9D\u3002A\u9879\u76f4\u63a5\u4f7f\u7528\u5168\u5e74\u6d88\u8d39\u603b\u989d\uff0c\u672a\u6c42\u5e73\u5747\u6570\u3002B\u9879\u8bef\u628a\u73b0\u573a\u89c2\u8d5b1420\u4e07\u4eba\u6b21\u5f53\u4f5c\u8d5b\u4e8b\u573a\u6570\u4f5c\u5206\u6bcd\uff1bC\u9879\u8bef\u628a\u4f53\u80b2\u5f69\u7968\u9500\u552e\u989d428.5\u4ebf\u5143\u5f53\u4f5c\u8d5b\u4e8b\u5e26\u52a8\u6d88\u8d39\u989d\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u5e73\u5747\u7c7b-\u4e00\u822c\u5e73\u5747\u503c\u4e0e\u5e74\u5747\u589e\u901f/\u589e\u91cf",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q17",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M04",
+    "stem": "2025\u5e74\u4f53\u80b2\u670d\u52a1\u4e1a\u589e\u52a0\u503c\u5360\u5168\u7701\u4f53\u80b2\u4ea7\u4e1a\u589e\u52a0\u503c\u7684\u6bd4\u91cd\u6bd4\u4e0a\u5e74\u7ea6\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "\u63d0\u9ad818.4\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "B",
+        "text": "\u63d0\u9ad88.8\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "C",
+        "text": "\u4e0b\u964d8.8\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "D",
+        "text": "\u63d0\u9ad812.0\u4e2a\u767e\u5206\u70b9"
+      }
+    ],
+    "answer": "B",
+    "explanation": "\u73b0\u671f\u6bd4\u91cd=1800/2500=72.0%\uff0c\u57fa\u671f\u6bd4\u91cd=\uff081800/1.5\uff09\u00f7\uff081200+500+200\uff09\u224863.2%\uff0c\u7ea6\u63d0\u9ad88.8\u4e2a\u767e\u5206\u70b9\uff0c\u56e0\u6b64\u9009B\u3002A\u9879\u76f4\u63a5\u7528\u5206\u9879\u589e\u901f50%\u51cf\u603b\u4f53\u589e\u901f31.6%\u3002C\u9879\u628a\u6bd4\u91cd\u53d8\u5316\u65b9\u5411\u5224\u65ad\u53cd\u4e86\u3002D\u9879\u8bef\u628a\u5168\u7701\u57fa\u671f\u589e\u52a0\u503c\u53d6\u4e3a2000\u4ebf\u5143\uff0c\u5f97\u523072%-60%=12\u4e2a\u767e\u5206\u70b9\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u91cd\u7c7b-\u73b0\u671f\u3001\u57fa\u671f\u4e0e\u9694\u7ea7\u6bd4\u91cd",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q18",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M04",
+    "stem": "2025\u5e74\u4f53\u80b2\u670d\u52a1\u4e1a\u589e\u52a0\u503c\u7387\u6bd4\u4f53\u80b2\u5236\u9020\u4e1a\u9ad8\u7ea6\u591a\u5c11\u4e2a\u767e\u5206\u70b9\uff1f",
+    "options": [
+      {
+        "key": "A",
+        "text": "16.0\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "B",
+        "text": "8.0\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "C",
+        "text": "30.0\u4e2a\u767e\u5206\u70b9"
+      },
+      {
+        "key": "D",
+        "text": "15.0\u4e2a\u767e\u5206\u70b9"
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u4f53\u80b2\u670d\u52a1\u4e1a\u589e\u52a0\u503c\u7387=1800/4500=40%\uff0c\u4f53\u80b2\u5236\u9020\u4e1a\u589e\u52a0\u503c\u7387=600/2400=25%\uff0c\u524d\u8005\u9ad815.0\u4e2a\u767e\u5206\u70b9\uff0c\u9009\u62e9D\u3002A\u9879\u628a\u4e24\u7c7b\u589e\u52a0\u503c\u4e4b\u5dee\u9664\u4ee5\u5168\u4ea7\u4e1a\u603b\u4ea7\u51fa\uff1bB\u9879\u7528\u670d\u52a1\u4e1a\u589e\u52a0\u503c\u7387\u51cf\u5236\u9020\u4e1a\u603b\u4ea7\u51fa\u5360\u6bd42400/7500\uff1bC\u9879\u76f4\u63a5\u7528\u4e24\u7c7b\u603b\u4ea7\u51fa\u589e\u901f50%-20%\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u6bd4\u91cd\u7c7b-\u73b0\u671f\u3001\u57fa\u671f\u4e0e\u9694\u7ea7\u6bd4\u91cd",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q19",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M04",
+    "stem": "2025\u5e74\u5168\u7701\u5730\u533a\u751f\u4ea7\u603b\u503c\u7ea6\u4e3a\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "text": "0.45\u4e07\u4ebf\u5143"
+      },
+      {
+        "key": "B",
+        "text": "15.2\u4e07\u4ebf\u5143"
+      },
+      {
+        "key": "C",
+        "text": "13.9\u4e07\u4ebf\u5143"
+      },
+      {
+        "key": "D",
+        "text": "1.39\u4e07\u4ebf\u5143"
+      }
+    ],
+    "answer": "C",
+    "explanation": "\u5730\u533a\u751f\u4ea7\u603b\u503c=\u4f53\u80b2\u4ea7\u4e1a\u589e\u52a0\u503c/\u5360\u6bd4=2500\u4ebf\u5143/1.80%\u2248138889\u4ebf\u5143\u224813.9\u4e07\u4ebf\u5143\uff0c\u56e0\u6b64\u9009C\u3002A\u9879\u628a1.80%\u8bef\u4f5c1.8\u4e0e2500\u4ebf\u5143\u76f8\u4e58\u3002B\u9879\u6df7\u7528\u4e0a\u5e74\u5360\u6bd41.65%\u4e0e2025\u5e74\u589e\u52a0\u503c\u3002D\u9879\u5728\u4ebf\u5143\u6362\u7b97\u4e3a\u4e07\u4ebf\u5143\u65f6\u5c11\u9664\u4e00\u4e2a10\u3002",
+    "difficulty": 2,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u57fa\u7840\u77e5\u8bc6-\u7edf\u8ba1\u672f\u8bed\u4e0e\u5e38\u8003\u6982\u5ff5",
+      "paper_style:gd"
+    ]
+  },
+  {
+    "external_id": "20260831_ziliao_gd_flash_01-Q20",
+    "category": "\u8d44\u6599\u5206\u6790",
+    "question_type": "single",
+    "material_id": "20260831_ziliao_gd_flash_01-M04",
+    "stem": "\u4e0b\u5217\u67f1\u72b6\u56fe\u80fd\u591f\u51c6\u786e\u53cd\u66202025\u5e74\u4f53\u80b2\u670d\u52a1\u4e1a\u3001\u4f53\u80b2\u5236\u9020\u4e1a\u3001\u4f53\u80b2\u8bbe\u65bd\u5efa\u8bbe\u5bf9\u5168\u7701\u4f53\u80b2\u4ea7\u4e1a\u603b\u4ea7\u51fa\u589e\u91cf\u8d21\u732e\u7387\u7684\u662f\uff08  \uff09\u3002",
+    "options": [
+      {
+        "key": "A",
+        "images": [
+          "images/q-20-opt-A.png"
+        ]
+      },
+      {
+        "key": "B",
+        "images": [
+          "images/q-20-opt-B.png"
+        ]
+      },
+      {
+        "key": "C",
+        "images": [
+          "images/q-20-opt-C.png"
+        ]
+      },
+      {
+        "key": "D",
+        "images": [
+          "images/q-20-opt-D.png"
+        ]
+      }
+    ],
+    "answer": "D",
+    "explanation": "\u4e09\u7c7b\u603b\u4ea7\u51fa\u57fa\u671f\u5206\u522b\u4e3a3000\u30012000\u3001500\u4ebf\u5143\uff0c\u589e\u91cf\u5206\u522b\u4e3a1500\u3001400\u3001100\u4ebf\u5143\uff1b\u603b\u589e\u91cf=2000\u4ebf\u5143\uff0c\u8d21\u732e\u7387\u4f9d\u6b21\u4e3a75%\u300120%\u30015%\uff0c\u56e0\u6b64\u9009D\u3002A\u56fe60%\u300132%\u30018%\u662f\u4e09\u7c7b2025\u5e74\u73b0\u671f\u603b\u4ea7\u51fa\u6bd4\u91cd\u3002B\u56fe50%\u300120%\u300120%\u662f\u4e09\u7c7b\u540c\u6bd4\u589e\u901f\u3002C\u56fe54.5%\u300136.4%\u30019.1%\u662f\u4e09\u7c7b\u57fa\u671f\u603b\u4ea7\u51fa\u6bd4\u91cd\u3002",
+    "difficulty": 3,
+    "tags": [
+      "\u8d44\u6599\u5206\u6790-\u7279\u6b8a\u8003\u70b9-\u62c9\u52a8\u589e\u957f\u3001\u8d21\u732e\u7387\u4e0e\u5bb9\u65a5",
+      "paper_style:gd"
+    ]
+  }
+]
