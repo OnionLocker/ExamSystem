@@ -23,13 +23,19 @@ def q(qid, category, sub, tag, answer="A", options=None, stem="题干", **extra)
     return d
 
 
+def _balance(items):
+    for i, it in enumerate(items):        # 默认答案轮换均衡，避免触发 balance gate
+        it["answer"] = "ABCD"[i % 4]
+    return items
+
+
 def shuliang_paper(seq=5):
     items = []
     for i in range(seq):
         items.append(q(f"S{i}", "数量关系", "数字推理", "数量关系-数字推理-数字推理"))
     for i in range(15 - seq):
         items.append(q(f"M{i}", "数量关系", "数学运算", "数量关系-能“七十二变”的行程问题-基础行程、平均速度与相对运动"))
-    return items
+    return _balance(items)
 
 
 def ziliao_paper(distinct=True):
@@ -65,7 +71,7 @@ def science_paper(n=5, with_images=True):
         if with_images:
             item["stem_images"] = [f"images/k{i}.png"]
         out.append(item)
-    return out
+    return _balance(out)
 
 
 def panduan_paper(g=5, lg=15):
@@ -74,7 +80,7 @@ def panduan_paper(g=5, lg=15):
         out.append(q(f"G{i}", "判断推理", "图形推理", "判断推理-图形推理-位置规律"))
     for i in range(lg):
         out.append(q(f"L{i}", "判断推理", "逻辑判断", "判断推理-逻辑判断-支持与前提假设"))
-    return out
+    return _balance(out)
 
 
 class ShuliangTest(unittest.TestCase):
@@ -197,6 +203,42 @@ class ScienceTest(unittest.TestCase):
     def test_wrong_count_rejected(self):
         with self.assertRaisesRegex(ValueError, "科学推理须为 5 题"):
             validate_paper_hard_rules({}, science_paper(4, with_images=True))
+
+
+class AnswerBalanceTest(unittest.TestCase):
+    def test_shuliang_skew_rejected(self):
+        p = shuliang_paper(5)
+        for q in p:                       # 全部答 B → 15/15 远超 40%
+            q["answer"] = "B"
+        with self.assertRaisesRegex(ValueError, "扎堆"):
+            validate_paper_hard_rules({}, p)
+
+    def test_shuliang_balanced_passes(self):
+        p = shuliang_paper(5)
+        for i, q in enumerate(p):         # ABCD 轮流 → 最多 4/15，通过
+            q["answer"] = "ABCD"[i % 4]
+        validate_paper_hard_rules({}, p)
+
+    def test_cap_is_forty_percent(self):
+        p = shuliang_paper(5)
+        for i, q in enumerate(p):         # 7 个 A（>6）应拦下
+            q["answer"] = "A" if i < 7 else "ABCD"[i % 4]
+        with self.assertRaisesRegex(ValueError, "扎堆"):
+            validate_paper_hard_rules({}, p)
+
+
+class ScienceLevelTest(unittest.TestCase):
+    def test_overlevel_rejected(self):
+        sp = science_paper(5, with_images=True)
+        sp[0]["stem"] = "如图，一定质量的理想气体经历等温过程，求末状态压强。"
+        with self.assertRaisesRegex(ValueError, "初中难度"):
+            validate_paper_hard_rules({}, sp)
+
+    def test_momentum_rejected(self):
+        sp = science_paper(5, with_images=True)
+        sp[1]["stem"] = "如图，两滑块碰撞，由动量守恒求碰后速度。"
+        with self.assertRaisesRegex(ValueError, "初中难度"):
+            validate_paper_hard_rules({}, sp)
 
 
 class PanduanLayoutTest(unittest.TestCase):

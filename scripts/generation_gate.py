@@ -455,6 +455,8 @@ def validate_evidence(
 
 _KEGANG_WORDS = ("本题考察", "本题考查", "秒杀模型", "秒杀技巧")
 _JUDGE_MARKERS = ("可以判断属实", "不能从", "无法从", "能够从", "正确的有", "推出的是")
+# 科学推理应为广东/初中难度：以下高中/大学内容禁入
+_SCIENCE_OVERLEVEL = ("理想气体", "状态方程", "动量守恒", "动量定理", "洛伦兹力", "麦克斯韦", "波尔", "薛定谔")
 
 
 def _judge_form(stem: str) -> str:
@@ -561,6 +563,12 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         for q in science:
             if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
                 raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
+            stem = str(q.get("stem") or "")
+            hit = next((w for w in _SCIENCE_OVERLEVEL if w in stem), None)
+            if hit:
+                raise ValueError(
+                    f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
+                    "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
     # 8) 判断推理 20 题，兼容两种模型：
     #    目标模型（科学独立）：判断 20 = 图形 5 + 逻辑 15；
     #    既有模型（科学作判断卷后 5）：交给 panduan_pack.validate_panduan_paper。
@@ -579,6 +587,21 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
             tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
             if "因此亟须" in tail:
                 raise ValueError(f"言语题禁止“因此亟须…”作文腔表述：{question.get('external_id')}")
+    # 10) 答案字母均衡（非资料卷；资料另用 3篇ABCD各一+1、1篇打散）：单卷任一字母 ≤ 约 40%
+    nonziliao = [q for q in generated
+                 if str(q.get("category") or "") != "资料分析"
+                 and str(q.get("question_type") or "single") == "single"]
+    if len(nonziliao) >= 15:
+        counts: dict[str, int] = {}
+        for q in nonziliao:
+            ans = str(q.get("answer") or "")
+            counts[ans] = counts.get(ans, 0) + 1
+        cap = int(len(nonziliao) * 0.40)   # 15→6、20→8、25→10
+        top = max(counts, key=counts.get)
+        if counts[top] > cap:
+            raise ValueError(
+                f"答案字母扎堆：'{top}' 出现 {counts[top]}/{len(nonziliao)} 次，超过约 40% 上限({cap})；"
+                "请按 answer_plan 均衡放置正确项")
 
 
 def issue(
