@@ -195,7 +195,7 @@ class ScienceTest(unittest.TestCase):
             validate_paper_hard_rules({}, science_paper(5, with_images=False))
 
     def test_wrong_count_rejected(self):
-        with self.assertRaisesRegex(ValueError, "独立 5 题"):
+        with self.assertRaisesRegex(ValueError, "科学推理须为 5 题"):
             validate_paper_hard_rules({}, science_paper(4, with_images=True))
 
 

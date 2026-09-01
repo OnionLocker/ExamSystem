@@ -547,11 +547,12 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         all_forms = [f for forms in forms_by_material.values() for f in forms]
         if len(set(all_forms)) < 2:
             raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
-    # 7) 科学推理：独立 5 题、5 学科互不相同、每题必带图
-    science = [q for q in generated if str(q.get("category") or "") == "科学推理"]
+    # 7) 科学推理 5 题（独立模块，或既有模型中作判断卷后 5 题）：5 学科去重、每题必带图
+    science = [q for q in generated
+               if "科学推理" in (str(q.get("category") or "") + str(q.get("sub_category") or ""))]
     if science:
         if len(science) != 5:
-            raise ValueError(f"科学推理为独立 5 题模块，当前 {len(science)} 题")
+            raise ValueError(f"科学推理须为 5 题（独立模块或判断卷后 5 题），当前 {len(science)} 题")
         buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
         if any(not b for b in buckets):
             raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
@@ -560,13 +561,18 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         for q in science:
             if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
                 raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
-    # 8) 判断推理：20 题须图形 5 + 逻辑 15
+    # 8) 判断推理 20 题，兼容两种模型：
+    #    目标模型（科学独立）：判断 20 = 图形 5 + 逻辑 15；
+    #    既有模型（科学作判断卷后 5）：交给 panduan_pack.validate_panduan_paper。
     panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
     if len(panduan) == 20:
-        g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
-        lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
-        if g != 5 or lg != 15:
-            raise ValueError(f"广东判断 20 题须图形 5 + 逻辑 15，当前 {g}/{lg}")
+        if any("科学推理" in str(q.get("sub_category") or "") for q in panduan):
+            validate_panduan_paper(panduan)
+        else:
+            g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
+            lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
+            if g != 5 or lg != 15:
+                raise ValueError(f"广东判断 20 题（科学独立模型）须图形 5 + 逻辑 15，当前 {g}/{lg}")
     # 9) 言语：禁“因此亟须”作文腔
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
