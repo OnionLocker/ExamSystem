@@ -100,6 +100,7 @@ python3 /home/ubuntu/ExamSystem/scripts/learner_snapshot.py --ziliao-pack
 
     skill_view("quiz-pipeline", "references/reference-style-principles.md")
     skill_view("quiz-pipeline", "references/reference-style-profile.md")
+    skill_view("quiz-pipeline", "references/module-hard-rules.md")  # 广东各模块卷面硬规则+【GATE】清单，出题必读
     # ������ԭ��������ʱǿ�ƶ�ȡ
 
 `reference-style-principles.md` 是从参��题归纳的命题动作与禁忌＄1�7
