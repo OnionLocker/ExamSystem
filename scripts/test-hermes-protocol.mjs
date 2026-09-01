@@ -72,4 +72,21 @@ const kept = normalizeOriginalQuestionOptions(places);
 assert.match(kept, /从A、B、C三个地点同时出发，到达D地。/);
 assert.doesNotMatch(kept, /> \*\*A\.\*\* B、C三个地点/);
 
+const datacenter = normalizeOriginalQuestionOptions(
+  '> **原题** 某大型数据中心运行准则规定：只有配备双路市电与自备发电机组，才能获批承接金融核心业务。已知某数据中心未配备双路市电与自备发电机组。由此可以推出： A. 该数据中心不能承接金融核心业务 B. 该数据中心签署了严苛的SLA容灾协议 C. 该数据中心未签署严苛的SLA容灾协议 D. 只要签署了SLA容灾协议，就能承接金融核心业务',
+);
+assert.match(datacenter, /> \*\*A\.\*\* 该数据中心不能承接金融核心业务/);
+assert.match(datacenter, /> \*\*B\.\*\* 该数据中心签署了严苛的SLA容灾协议/);
+assert.doesNotMatch(datacenter, /A\. 该数据中心不能承接金融核心业务 B\./);
+
+const dottedStem = normalizeOriginalQuestionOptions(
+  '> **原题** 从A. 甲地、B. 乙地、C. 丙地同时出发，到达D地。由此可以推出： A. 甲先到 B. 乙先到 C. 丙先到 D. 同时到',
+);
+assert.match(dottedStem, /从A\. 甲地、B\. 乙地、C\. 丙地同时出发/);
+assert.match(dottedStem, /> \*\*A\.\*\* 甲先到/);
+
+const compactPlaces = normalizeOriginalQuestionOptions('> **原题** 地点A.B.C.D同时出发。由此可以推出： A. 甲 B. 乙 C. 丙 D. 丁');
+assert.match(compactPlaces, /地点A\.B\.C\.D同时出发/);
+assert.match(compactPlaces, /> \*\*A\.\*\* 甲/);
+
 console.log('review option normalize: ok');

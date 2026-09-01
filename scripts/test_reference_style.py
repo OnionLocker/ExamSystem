@@ -257,6 +257,28 @@ def main() -> int:
         assert evaluated["role"] == "evaluate"
         assert set(evaluated["reference_ids"]).isdisjoint(generated["reference_ids"])
 
+        skipped = json.loads(
+            run(
+                db_path,
+                output_dir,
+                "context",
+                "--role",
+                "evaluate",
+                "--category",
+                "判断推理",
+                "--sub-category",
+                "科学推理",
+                "--tag",
+                "科学推理-地理-等高线",
+                "--count",
+                "1",
+                "--images",
+                "yes",
+            ).stdout
+        )
+        assert skipped.get("skipped") == "no_holdout_syllabus_mock"
+        assert skipped.get("reference_ids") == []
+
         conn = sqlite3.connect(db_path)
         conn.execute(
             "UPDATE reference_questions SET content = content || '（更新）' WHERE external_id = 'ref-01'"
@@ -285,6 +307,32 @@ def main() -> int:
         assert refreshed["generation_uses"] == 9
         assert refreshed["evaluation_uses"] == 1
         # practice 只更新 last_used，不计入 generation_uses
+
+    from reference_style import match_level, prefer_family_candidates
+
+    def row(eid, tags):
+        return {
+            "external_id": eid,
+            "category": "判断推理",
+            "sub_category": "科学推理",
+            "tags": tags,
+            "content": "",
+            "source": "广东",
+            "region": "广东",
+            "year": 2026,
+        }
+
+    contour = "科学推理-地理-等高线"
+    exact = row("e", '["科学推理-地理-等高线"]')
+    parent = row("p", '["科学推理-地理"]')
+    assert match_level(exact, "判断推理", "科学推理", contour) == 6
+    assert match_level(parent, "判断推理", "科学推理", contour) == 4
+    kept = prefer_family_candidates(
+        "evaluate",
+        contour,
+        [(parent, {}, 4, 0), (exact, {}, 6, 1)],
+    )
+    assert [item[2] for item in kept] == [6]
 
     print("reference style pipeline: ok")
     return 0

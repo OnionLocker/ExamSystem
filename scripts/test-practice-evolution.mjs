@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 import express from 'express';
 
@@ -43,8 +44,10 @@ const call = async (pathname, body) => {
   return data;
 };
 
+const sessions = [];
 const submit = async (index, userAnswer) => {
   const session = await call('/api/practice/sessions', { category: `test-${index}` });
+  sessions.push(session);
   return call(`/api/practice/sessions/${session.id}/submit`, {
     duration_sec: 10,
     answers: [{
@@ -58,6 +61,23 @@ const submit = async (index, userAnswer) => {
 await submit(1, 'B');
 await submit(2, 'A');
 await submit(3, 'A');
+
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM kaodian_events').get().n, 0);
+assert.equal(db.prepare('SELECT kaodian FROM kaodian_profile WHERE kaodian=?').get(canonical), undefined);
+assert.equal(db.prepare('SELECT kaodian FROM kaodian_debts WHERE kaodian=?').get(canonical), undefined);
+
+const record = (sessionId, ok) => {
+  const result = spawnSync('python3', [
+    'scripts/kaodian_profile.py',
+    '--record', alias, '数量关系', '逢考必有的排列组合与概率', ok, '10000', 'hermes',
+    '--practice-id', String(sessionId),
+    '--item', String(question.id),
+  ], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+  assert.equal(result.status, 0, (result.stderr || '') + (result.stdout || ''));
+};
+record(sessions[0].id, '0');
+record(sessions[1].id, '1');
+record(sessions[2].id, '1');
 
 const debt = db.prepare(
   'SELECT wrong_count,recovery_streak,mastered FROM kaodian_debts WHERE kaodian=?',
@@ -73,6 +93,23 @@ assert.equal(
 );
 assert.equal(
   db.prepare('SELECT attempts FROM kaodian_profile WHERE kaodian=?').get(canonical).attempts,
+  3,
+);
+
+const sealed = spawnSync('python3', [
+  'scripts/kaodian_profile.py', '--seal-practice', String(sessions[0].id),
+], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+assert.equal(sealed.status, 0, (sealed.stderr || '') + (sealed.stdout || ''));
+const blocked = spawnSync('python3', [
+  'scripts/kaodian_profile.py',
+  '--record', alias, '数量关系', '逢考必有的排列组合与概率', '0', '10000', 'hermes',
+  '--practice-id', String(sessions[0].id),
+  '--item', String(question.id),
+], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+assert.equal(blocked.status, 0, (blocked.stderr || '') + (blocked.stdout || ''));
+assert.match(blocked.stdout, /already sealed/);
+assert.equal(
+  db.prepare('SELECT COUNT(*) AS n FROM kaodian_events WHERE kaodian=?').get(canonical).n,
   3,
 );
 assert.equal(db.pragma('integrity_check', { simple: true }), 'ok');

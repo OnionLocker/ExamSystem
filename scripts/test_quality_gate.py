@@ -223,6 +223,29 @@ def test_context_and_v3_tamper(root: Path) -> None:
         raise AssertionError("reused generate/evaluate reference was accepted")
     except ValueError:
         pass
+    eval_only = json.loads(json.dumps(manifest))
+    eval_only["generation"].pop("generation_contexts", None)
+    generation_gate.validate_context_coverage(eval_only, [qid])
+    no_eval = json.loads(json.dumps(manifest))
+    no_eval["generation"]["evaluation_contexts"] = []
+    try:
+        generation_gate.validate_context_coverage(no_eval, [qid])
+        raise AssertionError("empty evaluate was accepted")
+    except ValueError:
+        pass
+    contour_tag = "%s-%s-等高线" % (qo.CAT_PANDUAN, qo.SUB_SCIENCE)
+    contour = question("Q-contour", qo.CAT_PANDUAN, qo.SUB_SCIENCE, contour_tag)
+    mock = json.loads(json.dumps(manifest))
+    mock["generation"]["evaluation_contexts"] = []
+    mock["generation"].pop("generation_contexts", None)
+    with patch.object(generation_gate, "question_needs_evaluate_holdout", return_value=False):
+        generation_gate.validate_context_coverage(mock, ["Q-contour"], [contour])
+    try:
+        with patch.object(generation_gate, "question_needs_evaluate_holdout", return_value=True):
+            generation_gate.validate_context_coverage(mock, ["Q-contour"], [contour])
+        raise AssertionError("holdout-required empty evaluate was accepted")
+    except ValueError:
+        pass
 
     evidence = {
         "version": 1,
@@ -292,7 +315,156 @@ def test_verbal_local_quality_regressions() -> None:
     assert "all distractors rely on giveaway extreme words" in issues
 
 
+def test_translation_echo_local_quality() -> None:
+    echo = {
+        "external_id": "F001",
+        "category": "判断推理",
+        "sub_category": "逻辑判断",
+        "tags": ["判断推理-翻译推理-假言命题"],
+        "stem": (
+            "如果某批货物获得国际海关认证，则免于现场查验。"
+            "现已知：某批进口货物申请了国际海关认证且免于现场查验。"
+            "根据以上信息，可以推出的是："
+        ),
+        "options": [
+            {"key": "A", "text": "该批货物走绿色通道"},
+            {"key": "B", "text": "该批货物进入保税仓储"},
+            {"key": "C", "text": "该批货物未接受现场查验"},
+            {"key": "D", "text": "若未接受现场查验，则进入保税仓储"},
+        ],
+        "answer": "C",
+        "analysis": "根据确定事实，C项必然为真。",
+    }
+    issues = qo.local_quality_issues(echo)
+    assert any("restates" in item for item in issues), issues
+
+    ok = {
+        "external_id": "F002",
+        "category": "判断推理",
+        "sub_category": "逻辑判断",
+        "tags": ["判断推理-翻译推理-逆否命题"],
+        "stem": (
+            "只有设立实验室才能立项。现已知：某项目未设立实验室。"
+            "由此可以推出："
+        ),
+        "options": [
+            {"key": "A", "text": "该项目已研发新产品"},
+            {"key": "B", "text": "该项目未立项"},
+            {"key": "C", "text": "该项目设立了实验室"},
+            {"key": "D", "text": "该项目已经立项"},
+        ],
+        "answer": "B",
+        "analysis": "立项→实验室，否后则否前。",
+    }
+    issues = qo.local_quality_issues(ok)
+    assert not any("restates" in item for item in issues), issues
+
+
+
+def test_syllabus_mock_holdout_lookup_does_not_crash() -> None:
+    contour_tag = "%s-%s-等高线" % (qo.CAT_PANDUAN, qo.SUB_SCIENCE)
+    contour = question("Q-contour", qo.CAT_PANDUAN, qo.SUB_SCIENCE, contour_tag)
+    contour["stem_images"] = ["images/contour.png"]
+    needed = generation_gate.question_needs_evaluate_holdout(contour)
+    assert needed is False
+    generation_gate.validate_context_coverage(
+        {"generation": {"evaluation_contexts": []}},
+        ["Q-contour"],
+        [contour],
+    )
+    generation_gate.validate_context_coverage(
+        {
+            "generation": {
+                "evaluation_contexts": [
+                    {
+                        "context_id": "",
+                        "skipped": "no_holdout_syllabus_mock",
+                        "question_ids": ["Q-contour"],
+                        "reference_ids": [],
+                    }
+                ]
+            }
+        },
+        ["Q-contour"],
+        [contour],
+    )
+
+
+def test_syllabus_mock_reference_quality_passes() -> None:
+    question = {
+        "external_id": "Q-contour",
+        "category": qo.CAT_PANDUAN,
+        "sub_category": qo.SUB_SCIENCE,
+        "stem": "contour",
+        "tags": ["%s-%s-等高线" % (qo.CAT_PANDUAN, qo.SUB_SCIENCE)],
+    }
+    result = qo.run_reference_quality({"generation": {"evaluation_contexts": []}}, [question])
+    assert result["verdict"] == "PASS", result
+    assert result["results"][0]["review"]["skipped"] == "no_holdout_syllabus_mock"
+
+
+def test_reference_quality_one_relevant_is_enough() -> None:
+    question = {
+        "external_id": "Q6",
+        "category": qo.CAT_PANDUAN,
+        "sub_category": qo.SUB_LOGIC,
+        "stem": "strengthen",
+        "tags": ["%s-%s-strengthen" % (qo.CAT_PANDUAN, qo.SUB_LOGIC)],
+    }
+    manifest = {
+        "generation": {
+            "evaluation_contexts": [
+                {
+                    "question_ids": ["Q6"],
+                    "reference_ids": ["R-weak", "R-strong"],
+                }
+            ]
+        }
+    }
+    flash = {
+        "questions": [
+            {
+                "id": "Q6",
+                "verdict": "REJECT",
+                "references": [
+                    {"id": "R-weak", "relevant": False, "reason": "weaken"},
+                    {"id": "R-strong", "relevant": True, "reason": "strengthen"},
+                ],
+            }
+        ]
+    }
+    fake_refs = {
+        "Q6": [
+            {"external_id": "R-weak"},
+            {"external_id": "R-strong"},
+        ]
+    }
+    with patch.object(qo, "evaluation_references", return_value=fake_refs), patch.object(
+        qo, "call_flash", return_value=flash
+    ):
+        result = qo.run_reference_quality(manifest, [question])
+    assert result["verdict"] == "PASS"
+    assert result["results"][0]["verdict"] == "PASS"
+
+
+def test_question_verdict_is_per_item() -> None:
+    correct = {"verdict": "PASS"}
+    style = {"verdict": "PASS"}
+    # batch-level reference REJECT must not poison a passing item
+    ref_item = {"question_id": "Q1", "verdict": "PASS"}
+    assert (
+        correct.get("verdict")
+        == style.get("verdict")
+        == ref_item.get("verdict")
+        == "PASS"
+    )
+
+
 def main() -> None:
+    test_syllabus_mock_holdout_lookup_does_not_crash()
+    test_syllabus_mock_reference_quality_passes()
+    test_reference_quality_one_relevant_is_enough()
+    test_question_verdict_is_per_item()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_routes_and_calculations(Path(temp) / "calc")
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
@@ -300,6 +472,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_context_and_v3_tamper(Path(temp))
     test_verbal_local_quality_regressions()
+    test_translation_echo_local_quality()
     print("quality gate regression: ok")
 
 

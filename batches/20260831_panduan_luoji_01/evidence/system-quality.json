@@ -1,0 +1,974 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260831_panduan_luoji_01",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T13:28:56+00:00",
+  "verdict": "PASS",
+  "routes": {
+    "A": 2,
+    "B": 0,
+    "C": 8,
+    "D": 0
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "answer_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": []
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "20260831_panduan_luoji_01_01",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_01",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q64",
+              "relevant": true,
+              "reason": "两题均属于逻辑判断中的加强支持题型，均通过阐明底层生物学/生理学作用机制（解释机制）来有力支持论点结论。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_02",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_02",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q57",
+              "relevant": true,
+              "reason": "两题均属于逻辑判断中的加强支持类题目，核心考察对因果关联与增产增效推论的有效支持。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_03",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_03",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题县级卷网友回忆版-Q59",
+              "relevant": true,
+              "reason": "两题均属于削弱论证题型，均考察通过指出关键阻碍因素或边界漏洞来直接削弱方案/对策的有效性。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_04",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_04",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q66",
+              "relevant": true,
+              "reason": "两题均属于削弱质疑题型，均考查通过指出实际应用环境与理论假设/实验条件的差异来否定结论或建议。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_05",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_05",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q51",
+              "relevant": true,
+              "reason": "两题均属于假言命题翻译推理题，均考察充分条件与必要条件的符号化翻译及逆否推理规则。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_06",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_06",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q56",
+              "relevant": true,
+              "reason": "两题均属于复合命题翻译推理题，均考察根据已知事实结合条件命题和选言命题进行有效推导。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_07",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_07",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q75",
+              "relevant": true,
+              "reason": "两题均属于论证结构相似/平行推理题型，均考察对题干形式逻辑推理结构和模式的抽象识别与匹配。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_08",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_08",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q65",
+              "relevant": true,
+              "reason": "两题均属于原因解释题型，均考查寻找合理解释以消除表面看似矛盾的统计现象或管理结果。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_09",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_09",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q72",
+              "relevant": true,
+              "reason": "两题均属于因果/归因论证的削弱题型，考察对统计相关性推导因果关系结论的逻辑漏洞识别与削弱。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_luoji_01_10",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_10",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q64",
+              "relevant": true,
+              "reason": "两题均属于前提假设题型，考察寻找使论点成立所不可或缺的必要前提条件。"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "questions_sha256": "77be339b3c03c7d4d598f2aea8d8a9969ccc75be3ab13c159369c500823e2bc9",
+  "manifest_sha256": "8edcb3a7aed68f1d34a4b1a7160fe9e28b2516316eb471decd8b7a60dcc7e615",
+  "results": [
+    {
+      "question_id": "20260831_panduan_luoji_01_01",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_01",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "A项解释了中等强度有氧运动延缓认知功能衰退的生物学机理（刺激因子分泌、促进突触再生与维持神经连接），属于“解释机制”的强支持；B项指出可能存在低糖低脂饮食的混杂因素，属于削弱/另有他因；C项下肢力量和心肺耐力与认知衰退无直接逻辑关联；D项无氧力量训练与题干有氧运动结论无关。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_01",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "A项通过揭示中等强度有氧运动刺激BDNF分泌、促进突触再生并维持神经元连接的生物学微观机理，从因果机制上直接有力地支持了结论；B项引入了清淡饮食这一混杂因素（另有他因），削弱了结论的纯粹性；C项下肢力量和心肺耐力与认知功能无关；D项无氧力量训练与题干有氧运动结论无关。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_01",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "引入混淆变量（将认知功能维持归因于清淡饮食习惯，分散因果力度）",
+            "C": "无关属性/论题不一致（将大脑认知衰退偷换为骨骼肌力量与心肺耐力）",
+            "D": "弱相关比较（对比高强度无氧训练，无法直接支持有氧运动相对于久坐能延缓衰退）"
+          },
+          "reference_ids": [
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q64"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_02",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_02",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "B项明确解释了新型生物有机复合肥如何同时实现“提升产量”（活化土壤中难溶性养分）和“增强抗病能力”（诱导产生广谱抗病物质）的内在机制，有力支持了结论；A项品质指标与产量和抗病能力无关；C项原料来源与功效无关；D项传统化肥长期使用的危害不能直接说明该实验中新型肥料的增产抗病效果。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_02",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "B项从作用机制上解释了新型生物有机复合肥如何通过功能菌群诱导抗病物质和活化土壤难溶养分，解释了增产和抗病的因果链条，属于解释因果的强支持项；A项品质指标、C项原料来源、D项传统化肥的缺点均不能直接有力支持该新型肥料本身提升产量和抗病能力。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_02",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "无关指标/偷换论题（讨论稻米蛋白质与外观品质，脱离产量与抗病性）",
+            "C": "无关背景/原料溯源（说明有机肥原料来源，与能否增产抗病无直接逻辑联系）",
+            "D": "诉诸对照组弊端（说明传统化肥过量的潜在危害，未能直接解释新型有机肥本身的增产抗病机制）"
+          },
+          "reference_ids": [
+            "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q57"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_03",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_03",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "校方认为系统能“彻底杜绝占座，实现资源公平高效流转”。C项指出学生通过物理锁占桌面，导致即使线上释放座位，线下其他人也无法使用，直接切断了系统规则与实际杜绝占座之间的因果链条，构成了直接削弱；A项成本、B项使用频次、D项预约量增长均无法削弱占座是否被杜绝的核心论点。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_03",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "题干观点是该智能系统能够“彻底杜绝占座现象，实现公平高效流转”。C项指出学生使用物理手段（锁链、厚重书本）强行占座，即使线上系统释放座位，线下其他人也无法实际入座，直接针对措施的有效性进行了致命削弱；A、B、D项均无法削弱该系统杜绝占座的核心结论。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_03",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "无关成本（讨论系统运维与硬件成本，脱离占座治理效果本身）",
+            "B": "无关背景/需求波动（指出考试周使用频次高，不影响系统是否能杜绝占座）",
+            "D": "无关统计/正向指标（指出预约总量上升，无法证明占座现象是否被杜绝）"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题县级卷网友回忆版-Q59"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_04",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_04",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "科研团队的建议是在“北方干旱少雨农田推广”以“彻底根除微塑料残留”。D项指出该地膜在北方干燥低温的自然大田无法降解，反而碎裂成更难清理的微塑料，直接否定了建议的可行性和目的实现，构成最强削弱；A项耗电量、B项极少数轻微撕裂、C项传统地膜成本均无法针对根本目的进行强力削弱。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_04",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "科研团队建议在北方干旱少雨农田推广以彻底根除微塑料污染。D项指出聚乳酸地膜在北方干燥低温的自然大田环境中无法达到降解所需条件，反而会老化碎裂形成极难清理的微塑料，直接说明该建议不仅不能达成目的，反而会适得其反，属于效果逆转的强力削弱；A、B、C项均无法有力削弱该建议的核心目的。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_04",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "无关能耗/生产成本（讨论工业生产耗电量，与田间实际降解效果无关）",
+            "B": "极微偶发操作失误（个别操作撕裂属次要问题，不能削弱整体降解治污建议）",
+            "C": "诉诸对立面成本（指出传统地膜回收成本高，脱离全生物降解地膜在北方大田的实际降解效果）"
+          },
+          "reference_ids": [
+            "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q66"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_05",
+      "route": "A",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "A",
+        "verdict": "PASS",
+        "answer": "C",
+        "runs": [
+          {
+            "reviewer": "formalizer_1",
+            "formalization": {
+              "id": "20260831_panduan_luoji_01_05",
+              "premises": [
+                "获得种子资金 -> 通过技术答辩",
+                "(获得种子资金 | 入选孵化项目) -> 组建研发团队",
+                "(!组建研发团队 | !取得知识产权) -> !申报专项奖励",
+                "申报专项奖励"
+              ],
+              "options": {
+                "A": "入选孵化项目",
+                "B": "!获得种子资金 -> !通过技术答辩",
+                "C": "组建研发团队",
+                "D": "!组建研发团队 | !取得知识产权"
+              }
+            },
+            "result": {
+              "id": "20260831_panduan_luoji_01_05",
+              "variables": [
+                "入选孵化项目",
+                "取得知识产权",
+                "申报专项奖励",
+                "组建研发团队",
+                "获得种子资金",
+                "通过技术答辩"
+              ],
+              "premise_models": 6,
+              "options": {
+                "A": {
+                  "entailed": false,
+                  "formula": "入选孵化项目",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得知识产权": true,
+                    "申报专项奖励": true,
+                    "组建研发团队": true,
+                    "获得种子资金": false,
+                    "通过技术答辩": false
+                  }
+                },
+                "B": {
+                  "entailed": false,
+                  "formula": "!获得种子资金 -> !通过技术答辩",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得知识产权": true,
+                    "申报专项奖励": true,
+                    "组建研发团队": true,
+                    "获得种子资金": false,
+                    "通过技术答辩": true
+                  }
+                },
+                "C": {
+                  "entailed": true,
+                  "formula": "组建研发团队"
+                },
+                "D": {
+                  "entailed": false,
+                  "formula": "!组建研发团队 | !取得知识产权",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得知识产权": true,
+                    "申报专项奖励": true,
+                    "组建研发团队": true,
+                    "获得种子资金": false,
+                    "通过技术答辩": false
+                  }
+                }
+              },
+              "entailed_options": [
+                "C"
+              ],
+              "claimed_answer": "C",
+              "verdict": "ok",
+              "reason": "恰好一个选项能被前提必然推出：C"
+            }
+          },
+          {
+            "reviewer": "formalizer_2",
+            "formalization": {
+              "id": "20260831_panduan_luoji_01_05",
+              "premises": [
+                "获种子资金 -> 通过技术答辩",
+                "(获种子资金 | 入选孵化项目) -> 组建核心团队",
+                "(!组建核心团队 | !取得自主知识产权) -> !申报专项奖励",
+                "申报专项奖励"
+              ],
+              "options": {
+                "A": "入选孵化项目",
+                "B": "!获种子资金 -> !通过技术答辩",
+                "C": "组建核心团队",
+                "D": "!组建核心团队 | !取得自主知识产权"
+              }
+            },
+            "result": {
+              "id": "20260831_panduan_luoji_01_05",
+              "variables": [
+                "入选孵化项目",
+                "取得自主知识产权",
+                "申报专项奖励",
+                "组建核心团队",
+                "获种子资金",
+                "通过技术答辩"
+              ],
+              "premise_models": 6,
+              "options": {
+                "A": {
+                  "entailed": false,
+                  "formula": "入选孵化项目",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得自主知识产权": true,
+                    "申报专项奖励": true,
+                    "组建核心团队": true,
+                    "获种子资金": false,
+                    "通过技术答辩": false
+                  }
+                },
+                "B": {
+                  "entailed": false,
+                  "formula": "!获种子资金 -> !通过技术答辩",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得自主知识产权": true,
+                    "申报专项奖励": true,
+                    "组建核心团队": true,
+                    "获种子资金": false,
+                    "通过技术答辩": true
+                  }
+                },
+                "C": {
+                  "entailed": true,
+                  "formula": "组建核心团队"
+                },
+                "D": {
+                  "entailed": false,
+                  "formula": "!组建核心团队 | !取得自主知识产权",
+                  "counterexample": {
+                    "入选孵化项目": false,
+                    "取得自主知识产权": true,
+                    "申报专项奖励": true,
+                    "组建核心团队": true,
+                    "获种子资金": false,
+                    "通过技术答辩": false
+                  }
+                }
+              },
+              "entailed_options": [
+                "C"
+              ],
+              "claimed_answer": "C",
+              "verdict": "ok",
+              "reason": "恰好一个选项能被前提必然推出：C"
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_05",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "肯定后件推肯定前件（由已组建研发团队推测必然入选高新技术孵化项目）",
+            "B": "否定前件推否定后件（由未获得种子资金推出未通过答辩）",
+            "D": "德摩根定律混淆/矛盾结论（将推出的“组建且取得”错误否定为“非A或非B”）"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q51"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_06",
+      "route": "A",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "A",
+        "verdict": "PASS",
+        "answer": "B",
+        "runs": [
+          {
+            "reviewer": "formalizer_1",
+            "formalization": {
+              "id": "20260831_panduan_luoji_01_06",
+              "premises": [
+                "受聘带头人 -> 通过诚信审核",
+                "发表顶刊论文 | 主持国家课题",
+                "受聘带头人 -> 发表顶刊论文",
+                "!发表顶刊论文"
+              ],
+              "options": {
+                "A": "!通过诚信审核",
+                "B": "主持国家课题",
+                "C": "受聘带头人",
+                "D": "!主持国家课题"
+              }
+            },
+            "result": {
+              "id": "20260831_panduan_luoji_01_06",
+              "variables": [
+                "主持国家课题",
+                "发表顶刊论文",
+                "受聘带头人",
+                "通过诚信审核"
+              ],
+              "premise_models": 2,
+              "options": {
+                "A": {
+                  "entailed": false,
+                  "formula": "!通过诚信审核",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表顶刊论文": false,
+                    "受聘带头人": false,
+                    "通过诚信审核": true
+                  }
+                },
+                "B": {
+                  "entailed": true,
+                  "formula": "主持国家课题"
+                },
+                "C": {
+                  "entailed": false,
+                  "formula": "受聘带头人",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表顶刊论文": false,
+                    "受聘带头人": false,
+                    "通过诚信审核": false
+                  }
+                },
+                "D": {
+                  "entailed": false,
+                  "formula": "!主持国家课题",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表顶刊论文": false,
+                    "受聘带头人": false,
+                    "通过诚信审核": false
+                  }
+                }
+              },
+              "entailed_options": [
+                "B"
+              ],
+              "claimed_answer": "B",
+              "verdict": "ok",
+              "reason": "恰好一个选项能被前提必然推出：B"
+            }
+          },
+          {
+            "reviewer": "formalizer_2",
+            "formalization": {
+              "id": "20260831_panduan_luoji_01_06",
+              "premises": [
+                "受聘学术带头人 -> 通过伦理审核",
+                "发表两篇顶刊 | 主持国家课题",
+                "受聘学术带头人 -> 发表两篇顶刊",
+                "!发表两篇顶刊"
+              ],
+              "options": {
+                "A": "!通过伦理审核",
+                "B": "主持国家课题",
+                "C": "受聘学术带头人",
+                "D": "!主持国家课题"
+              }
+            },
+            "result": {
+              "id": "20260831_panduan_luoji_01_06",
+              "variables": [
+                "主持国家课题",
+                "发表两篇顶刊",
+                "受聘学术带头人",
+                "通过伦理审核"
+              ],
+              "premise_models": 2,
+              "options": {
+                "A": {
+                  "entailed": false,
+                  "formula": "!通过伦理审核",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表两篇顶刊": false,
+                    "受聘学术带头人": false,
+                    "通过伦理审核": true
+                  }
+                },
+                "B": {
+                  "entailed": true,
+                  "formula": "主持国家课题"
+                },
+                "C": {
+                  "entailed": false,
+                  "formula": "受聘学术带头人",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表两篇顶刊": false,
+                    "受聘学术带头人": false,
+                    "通过伦理审核": false
+                  }
+                },
+                "D": {
+                  "entailed": false,
+                  "formula": "!主持国家课题",
+                  "counterexample": {
+                    "主持国家课题": true,
+                    "发表两篇顶刊": false,
+                    "受聘学术带头人": false,
+                    "通过伦理审核": false
+                  }
+                }
+              },
+              "entailed_options": [
+                "B"
+              ],
+              "claimed_answer": "B",
+              "verdict": "ok",
+              "reason": "恰好一个选项能被前提必然推出：B"
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_06",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "否定前件推否定后件（由未受聘主管学术带头人推出未通过伦理审核）",
+            "C": "与充分条件逆否规则直接矛盾（忽略了“未发表顶刊”必逆否推出“未受聘”）",
+            "D": "相容选言推理规则误用（将“否一推一”错误逆转为“未能主持课题”）"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q56"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_07",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_07",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "题干的逻辑结构为三段论的传递推理：所有A都是B，所有B都是C；所以，所有A都是C。A项为“所有A是B，所有B是C；所以所有A是C”，结构完全一致；B项大小前提包含“有些”；C项为肯定后件；D项为否定前件。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_07",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "题干的论证形式为：所有A都是B，所有B都是C；所以，所有A都是C（全称肯定三段论递推）。A项完全符合该形式（所有A是B，所有B是C，所以所有A是C）；B项大小前提包含“有些”，形式不符；C项为“所有A是B，x是B，所以x是A”（肯定后件）；D项为“所有A是B，x非A，所以x非B”（否定前件）。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_07",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "偷换量项/特称推全称（前提为“有些”却在结论得出“所有”）",
+            "C": "三段论肯定后件/中项不周延（所有A是B，C是B推出C是A）",
+            "D": "否定前件推否定后件（所有A是B，C非A推出C非B）"
+          },
+          "reference_ids": [
+            "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q75"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_08",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_08",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "矛盾现象为加装护栏的路段夜间事故数反而更高。D项指出加装护栏的路段本身就是地形险要、车流大、历史事故率极高的多发路段，说明存在基数/选样偏差，合理合理解释了为何事故总数仍然较高；A项造价成本、B项部分新手司机、C项白天车速均无法解释夜间事故总数的对比差异。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_08",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "题干矛盾在于：加装护栏的路段夜间事故数反而比未加装的高出20%。D项指出加装路段本身就是地形险要、车流大、原本事故率极高的高危路段，说明两组路段在初始基线背景上存在巨大差异（选择偏倚），合理解释了事故总数更高的现象；A、B、C项均未解释两类路段事故差异的矛盾。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_08",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "无关财务成本（讨论护栏造价与养护成本，无法解释事故数量差异）",
+            "B": "普遍行为归因（新手司机依赖辅助驾驶为普遍现象，无法解释加装路段与未加装路段的事故率差异）",
+            "C": "时空条件不匹配（白天晴朗路况的车速变化无法解释夜间追尾刮擦事故高发）"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q65"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_09",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_09",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "分析师归因为“移动支付无感便捷降低了花钱痛感导致储蓄下降”。A项指出高普及率地区储蓄率低是由于经济发达、商业密集、青年人口多导致的高消费需求，属于“另有他因”，直接质疑了分析师的因果归因；B项强化了移动支付促进消费的论述；C、D项为无关细节。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_09",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "分析师归因于“移动支付无感便捷削弱痛感导致储蓄下降”。A项指出移动支付普及率高的地区本身属于中心城区，年轻人多、消费场景密，储蓄率低是由高消费需求这一根本经济人口结构驱动的（另有他因/混淆变量），直接否定了分析师对移动支付心理痛感的归因；B项说明移动支付优惠吸引年轻人，在一定程度上支持或不削弱；C、D项均与因果解释无关。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_09",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "同向解释/无法削弱（指出支付平台促销吸引消费，未能削弱便捷无痛感导致低储蓄的归因）",
+            "C": "少数边缘样本（偏远农村老年人用现金属个别群体，无法反驳宏观区县统计归因）",
+            "D": "无关未来趋势（低普及率县区铺设网络属于未来动态，与当前储蓄率差异归因无关）"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q72"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_luoji_01_10",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_panduan_luoji_01_10",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "结论为大面积推广种植能遏制风蚀沙化。运用否定代入法：如果大面积种植后该植物会因水分竞争而大面积死亡，无法在风蚀季形成植被覆盖，那么结论就无法成立，因此B项是必须依赖的前提假设；A、C、D项均非结论成立所不可或缺的逻辑前提。"
+          },
+          {
+            "id": "20260831_panduan_luoji_01_10",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "B项为必要假设，采用否定代入法：若大面积种植后该植物因水分竞争而大面积死亡，无法在风蚀季形成植被覆盖，则结论“大面积推广能够有效遏制风蚀沙化”必然不能成立，因此B项是论证成立不可或缺的前提；A项历史引种情况、C项饲料种植意愿、D项成本高低均非该生态学因果结论所必需的前提。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_luoji_01_10",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "非必要历史条件（区域内以往是否引种过其他物种不影响当前物种的固沙逻辑）",
+            "C": "非必要经济用途（农牧民是否用作牲畜饲料属于经济利用，非生态固沙成立的必要前提）",
+            "D": "非必要成本对比（与工程治沙的成本比较不属于生物措施遏制风蚀的必要前提）"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q64"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    }
+  ]
+}

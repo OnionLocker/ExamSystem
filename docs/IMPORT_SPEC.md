@@ -103,7 +103,7 @@ npm run import:batch   -- path/to/batch-dir   # 校验 + 写入 DB + 拷图片
 
 - context 必须由 `scripts/reference_style.py context` 现场生成，不得手写或复用。
 - 同考点多题可以共用一个 context；不同考点应分别检索。
-- `generation_contexts` 与 `evaluation_contexts` 都必须覆盖本批全部**生成题**。
+- `evaluation_contexts` 覆盖本批**有 holdout 的生成题**。库中抽不到同家族 holdout 的题按考纲模拟题入库，不写 evaluate 包。`generation_contexts` 可省略；若填写，不得与 evaluate 复用 context/样本，也不必盖全。
   `origin: "zhenti"` 或 `external_id` 以 `zhenti-` 开头的真题只入库给用户做，不进闸门、不要求挂参考包。
 - `import:batch` 会反查 context 的角色、内化版本和 reference IDs，并在成功后绑定 batch_id。
 

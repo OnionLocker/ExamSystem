@@ -1,0 +1,706 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260831_yanyu_gd_01",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T13:27:25+00:00",
+  "verdict": "PASS",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 10,
+    "D": 0
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "answer_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": []
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "20260831_yanyu_gd_01_01",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_01",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+              "relevant": true,
+              "reason": "两道题目同属于言语理解与表达中的逻辑填空题型，考查实词的词语辨析与语境搭配能力，认知考点完全一致。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_02",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_02",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "两题均属于逻辑填空（成语/实词填空），核心考查基于语境反义对应与固定搭配的逻辑推断能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_03",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_03",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q19",
+              "relevant": true,
+              "reason": "两题均考查多空逻辑填空中基于语境宏观语义把握、并列/递进逻辑呼应关系的词语辨析。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_04",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_04",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+              "relevant": true,
+              "reason": "两题均为语句表达中的语句排序题，均考查利用首句特征、指代词/关联词衔接及行文逻辑脉络重构句序的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_05",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_05",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+              "relevant": true,
+              "reason": "两题均为语句表达中的语句填入题（接语/居中填空），考查把握文段上下文语境连贯性与逻辑承接关系的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_06",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_06",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21",
+              "relevant": true,
+              "reason": "两题均为中心理解/主旨意图题，均考查通过分析行文脉络、识别对策句/条件句提炼文段核心观点的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_07",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_07",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q7",
+              "relevant": true,
+              "reason": "两题均为片段阅读中的标题拟定题，考查概括文段核心主旨并据此拟定契合主旨与文体的标题的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_08",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_08",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+              "relevant": true,
+              "reason": "两题均为意图判断题，均通过分析问题与背景推导作者意在强调的对策与核心意图。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_09",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_09",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+              "relevant": true,
+              "reason": "两题均为下文推断题（承接叙述题），均考查根据文段尾句提出的对策/研究方向预测后续展开内容的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_gd_01_10",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_10",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q47",
+              "relevant": true,
+              "reason": "两题均为细节判断题，均考查根据科普/科技说明性文段进行文意比对与选项正误甄别的能力。"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "questions_sha256": "469b81d2b7fea4f174fd8a973b00c73105e218c737522289dd16642c59c1e657",
+  "manifest_sha256": "c27db5e2e1e37cd0eaa7e7e0e6bc8099f028228f314468aebb6cecc4dbda8d99",
+  "results": [
+    {
+      "question_id": "20260831_yanyu_gd_01_01",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_01",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空搭配微观缺陷的产生，“抑制”或“遏制”均可；第二空与“服役寿命”搭配，固定搭配为“延长寿命”。综合选C。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_01",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空搭配“产生”，常用“抑制/遏制/防范”，“抑制产生”或“遏制产生”均可；第二空与“寿命”搭配，“延长寿命”为固定搭配，“拉长”、“延缓”（多搭配衰老/恶化）、“延展”均不搭配。故选C。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_01",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "搭配不当/语义过重：“遏止”强调彻底停止，微观缺陷无法在锻造中彻底杜绝；“拉长”多用于物理长度或具体时间跨度，与“服役寿命”搭配不当",
+            "B": "搭配不当：“延缓”常与衰老、进程搭配，不能直接与“服役寿命”搭配构成延长寿命之意",
+            "D": "词义偏离：“防范”侧重事前防备，不能与“工艺产生缺陷”形成直接制约动作；“延展”多指空间或内涵的扩展，与“寿命”不搭配"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_02",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_02",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与“碎片化手段”呼应，“零敲碎打”最恰当；第二空对应“系统思维”、“整体性”，填入“协同治理”语境契合。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_02",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空对应“头痛医头、脚痛医脚”和“碎片化”，填入“零敲碎打”最恰当；第二空对应“系统思维”、“整体性”、“统筹”，填入“协同治理”完全符合语境。故选A。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_02",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "反向逻辑/语义不符：“隔靴搔痒”侧重未抓住要害，不能对应“碎片化”；第二空“各自为政”是错误做法，与统筹推进的正面要求相悖",
+            "C": "语义偏离：“各行其是”侧重各自按自己想法做，无法直接对应“头痛医头、脚痛医脚”的零散性；第二空“对症下药”无法呼应上下游左右岸的联动",
+            "D": "语义偏离：“浅尝辄止”侧重不深入，与文段强调的碎片化、局部化不符"
+          },
+          "reference_ids": [
+            "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_03",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_03",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空搭配“文脉”，文脉“断裂”为常见规范搭配；第二、三空分别表达历史与现代、传统与时尚的融合与增益，“相得益彰”和“水乳交融”准确且语意积极。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_03",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空搭配“文脉”，“文脉断裂”为常见固定表达；后两空分别用“相得益彰”和“水乳交融”形容历史与现代、传统与时尚的完美融合互补。A项“分庭抗礼”含对立义，B项“泾渭分明”表界限分明，C项“并驾齐驱”表不分高下，均不合语境。故选D。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_03",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "语义过重/感情色彩不符：“烟消云散”多指事物消失殆尽，且第三空“分庭抗礼”多含对立、平起平坐竞争意味，不符合融合语境",
+            "B": "反向逻辑：“泾渭分明”指界限分明，与文段强调的历史与现代相融合的积极语境完全相悖",
+            "C": "搭配不当：“并驾齐驱”侧重发展速度或地位不相上下，不能很好体现历史与现代互相配合、相得益彰的协调关系"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q19"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_04",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_04",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "②句引出算力需求爆发的背景；③⑤两句对比东部与西部的资源与需求矛盾；⑥句用“这种算力供需的区域不平衡”承接总结③⑤；①句推导出对策必然选择；④句最终落脚到“东数西算”工程的应运而生。正确排序为②③⑤⑥①④。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_04",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "②句提出算力需求爆发的背景；③句“然而”引出东部算力需求大但资源紧缺；⑤句“相比之下”引出西部能源充裕但需求有限；⑥句“这种算力供需的区域不平衡”总结③⑤两句；①句以“因此”得出推动跨区域配置的结论；④句点题“东数西算”工程落地。逻辑连贯，语序为②③⑤⑥①④。故选C。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_04",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "因果倒置/指代脱节：④在背景未完全展开时过早出现，导致后面的③⑤⑥与④脱节",
+            "B": "首句逻辑错误：③以转折词“然而”开头，缺少前置铺垫，不能作为首句",
+            "D": "首句与尾句逻辑错误：④包含指代词“这种供需空间格局”，无法作为首句；且①⑥逻辑顺序颠倒"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_05",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_05",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前论述开阔大洋因温跃层阻隔导致表层营养匮乏；横线后出现指代词“这种强烈的上升流”，因此横线处必须引出“上升流”，A项承上启下，衔接最为紧密。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_05",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前说明开阔大洋中深层营养盐无法向表层输送造成表层贫瘠的僵局；横线后直接紧跟代词“这种强烈的上升流”，故横线处必须引出“上升流”并起到承上启下的转折过渡作用。A项完全契合后文指代对象及语境脉络。故选A。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_05",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "缺少下文引出词：仅总结前文开阔大洋的匮乏，无法承接后句“这种强烈的上升流”所指代的对象",
+            "C": "主题偏离：概括的是浮游植物的纬度与季节波动，与后文上升流带来冷水源、形成渔场无逻辑承接",
+            "D": "话题跳跃：突然转向深海微生物自养代谢，脱离了浮游植物依靠阳光与上升流营养盐的主线"
+          },
+          "reference_ids": [
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_06",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_06",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段分析了当前无障碍设施“重建设、轻管理”导致的种种梗阻问题，尾句通过“只有建管并重、精细治理，才能让无障碍设施持续发挥作用”提出对策，B项为中心句的同义转述。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_06",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段提出无障碍设施“重建设、轻管理”导致梗阻的问题，尾句通过“既要……更离不开……”、“只有建管并重、精细治理，才能……”明确提出对策与中心论点，强调建管并重与精细化治理，对应B项。故选B。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_06",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "与文意相悖：文段明确批评“重建轻管”，强调不能只看硬件数量",
+            "C": "片面非对策：仅复述文段提出的问题表象，未体现尾句对策核心",
+            "D": "偷换逻辑/以偏概全：将“文明使用习惯”这一辅助条件夸大为“前提”，忽视了精细监管和建管并重的主干对策"
+          },
+          "reference_ids": [
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_07",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_07",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段由贝壳珍珠层的微观结构引申出研究人员借鉴其思路开发仿生多层界面金属复合材料，从而提高抗裂和耐疲劳性能，D项精准概括了核心内容。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_07",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段首句先介绍贝壳珍珠层的多层界面耗能抗裂机理，接着阐明研究人员借鉴该结构原理（仿生）设计新型金属复合材料，改善了金属材料的抗裂与耐疲劳性能。D项兼顾了仿生结构和金属抗疲劳性能提升两大核心要素，最适合作为标题。故选D。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_07",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "主体偏离/引子项：仅停留在贝壳珍珠层的天然机理，未涵盖后文核心“金属仿生材料”",
+            "B": "曲解文意：文段强调的是多层界面设计耗散裂纹能量，而非单纯“增加硬质成分”",
+            "C": "过度推断/绝对化：文段仅提及提供新思路，未提到“将取代传统结构金属”"
+          },
+          "reference_ids": [
+            "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q7"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_08",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_08",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段指出微短剧野蛮生长的诸多乱象，尾句点明主旨与对策，即必须守住合规经营与健康价值底线，C项切中作者意图。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_08",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段指出了微短剧行业为追求短期流量而出现不良内容、诱导付费等急功近利乱象，尾句通过必要条件“必须守住合规经营与健康价值的底线”提出核心对策，C项是文段意图的同义替换。故选C。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_08",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "背景表象/非重点：属于文段引出话题的铺垫内容，非作者意图",
+            "B": "以偏概全：算法推荐仅是诱导消费的具体手段之一，文段主旨是针对整个微短剧行业的发展提出合规对策",
+            "D": "问题表象：仅停留在乱象侵害权益的问题层面，未触及尾句对策"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_09",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_09",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段尾句落在“为了攻克这一界面阻抗过高的共性难题，科研团队正从界面修饰与新型电解质合成等路径展开系统性攻坚”，下文最可能具体阐述降低界面传输阻抗的技术攻关路径，选B。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_09",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段尾句提出“为了攻克这一界面阻抗过高的共性难题，科研团队正从界面修饰与新型电解质合成等路径展开系统性攻坚”，按照话题衔接原则，下文最可能具体阐述降低固-固界面传输阻抗的具体技术攻坚路径，对应B项。故选B。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_09",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "前文已述/偏离主体：文段前文已对比过传统液态锂电池，文末重心已转移至全固态电池界面难题攻关",
+            "C": "话题跳跃：文末落脚点为“界面修饰与新型电解质合成”等阻抗攻关技术，而非原材料成本",
+            "D": "无关对比：引入未提及的燃料电池，脱离文末针对固-固界面阻抗攻坚的具体语境"
+          },
+          "reference_ids": [
+            "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q56"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_gd_01_10",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_gd_01_10",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "根据文段“研究人员通常先用现代降水和洞穴滴水监测确定这些因素与同位素变化的关系，再结合铀系定年和连续取样，解释石笋所记录的气候变化”，可知D项正确。A项过于绝对，B项定年不是测氧同位素，C项与文末“同一同位素变化可能被赋予错误的气候含义”相悖。"
+          },
+          {
+            "id": "20260831_yanyu_gd_01_10",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "由“在特定区域，研究人员通常先用现代降水和洞穴滴水监测确定这些因素与同位素变化的关系，再结合铀系定年和连续取样，解释石笋所记录的气候变化”可知，D项表述正确；A项无中生有且过于绝对；B项偷换概念，铀系定年用于确定年龄而非测定同位素比值；C项与文段末句“若忽略局部过程可能赋予错误含义”相悖。故选D。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_gd_01_10",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "绝对化/忽略多因素：同位素组成受水汽来源、路径、洞内蒸发等多种因素影响，不能单一直接判定降水增加",
+            "B": "曲解文意/功能混淆：铀系定年用于确定年代，而非测定氧同位素比值",
+            "C": "与文意相悖：文段明确指出忽略洞穴通风等局部过程会导致对同位素记录的错误解释，即会影响记录解读"
+          },
+          "reference_ids": [
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q47"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    }
+  ]
+}

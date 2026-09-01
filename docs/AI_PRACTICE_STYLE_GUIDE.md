@@ -6,16 +6,18 @@
 
 ## 1. 每次出题怎么使用
 
-1. 先由用户指定、考点画像和广东考情确定“练什么”，再调用
-   `scripts/reference_style.py context --role generate`。
-2. 默认参考包是 **省考 3 道定题面 + 同考点国考 1–2 道垫高**。没有同考点国考就只用省考。
-   题干长度、设问、信息披露抄省考；认知步数和干扰深度不得低于包内最浅的那道国考。
+1. 先由用户指定、考点画像和广东考情确定“练什么”，再实际读取
+   `reference-style-principles.md` 和 `reference-style-profile.md`（`GONGKAO-STYLE-v1`）。
+   出题以内化提纲和题型分位为准，不要为每道原创再调用
+   `scripts/reference_style.py context --role generate` 堆真题。
+2. 题干长度、设问、信息披露抄省考分位；认知步数和干扰深度不得低于同题型画像里的国考下限。
    定义判断、类比推理不进入广东批次。
-3. 带图参考必须打开返回的全部本地图片。小图片可能是公式、编号或选项碎片；
-   必须结合题干顺序重建含义，不能只看第一张。
+3. 写带图题时，抽检阶段打开同考点 evaluate 包（`--images yes`）的全部本地图片。
+   小图片可能是公式、编号或选项碎片；必须结合题干顺序重建含义，不能只看第一张。
 4. 写题前列出 `TARGET_SKILL`、`FACTS`、`MUST_DERIVE` 和 `DISTRACTOR_PATHS`。
-5. 正确性通过后，由独立审查者调用 `--role evaluate` 取得未参与生成的留出真题。
-   evaluate **优先省考 holdout**，审像不像广东题。
+5. 草稿写完后，按主标签调用 `--role evaluate --count 1` 取得未参与出题的 holdout。
+   evaluate **优先省考、同认知家族**；有 holdout 才写入 `evaluation_contexts`。库中没有同家族 holdout 时按考纲出模拟题，不要求 evaluate 包。
+   `generation_contexts` 可省略；若存在，其样本不得与 evaluate 重叠。
 
 ## 2. 证据优先级
 
@@ -189,7 +191,7 @@
 7. 与生成参考题没有换皮、连续措辞或结构性抄袭；
 8. 独立留出真题对照与历史质量回归通过；
 9. 图片题图文一致、信息中立、路径可用且移动端清楚；
-10. manifest 的两类 context 覆盖本批全部题并通过导入器反查。
+10. 有 holdout 的生成题映射 `evaluation_contexts`；无 holdout 的考纲模拟题不映射也能过闸门入库；`generation_contexts` 可省略。
 
 ## 12. 已知数据缺陷
 

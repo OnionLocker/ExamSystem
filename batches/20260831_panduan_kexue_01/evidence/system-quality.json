@@ -1,0 +1,826 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260831_panduan_kexue_01",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T13:06:37+00:00",
+  "verdict": "REJECT",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 4,
+    "D": 6
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "answer_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": []
+    }
+  },
+  "reference_quality": {
+    "verdict": "REJECT",
+    "rejected_question_ids": [
+      "20260831_panduan_kexue_01_02",
+      "20260831_panduan_kexue_01_03",
+      "20260831_panduan_kexue_01_04",
+      "20260831_panduan_kexue_01_06",
+      "20260831_panduan_kexue_01_07",
+      "20260831_panduan_kexue_01_10"
+    ],
+    "results": [
+      {
+        "question_id": "20260831_panduan_kexue_01_01",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_01",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "粉笔-2025-广东-科学推理-67",
+              "relevant": true,
+              "reason": "两题均考查多块木块竖直夹起匀速运动/静止时的受力分析与静摩擦力方向与大小的平衡判定，考查相同的科学原理与题型家族。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_02",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_02",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "粉笔-2025-广东-科学推理-67",
+              "relevant": false,
+              "reason": "生成题目考查滑轮组的省力原理、绳端拉力与做功计算；而参考题考查夹物器夹持木块时的静摩擦力与受力平衡，分属不同的物理模型和知识体系。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_03",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_03",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "粉笔-2025-上海B类-科学推理-74",
+              "relevant": false,
+              "reason": "生成题目考查U形管连通器中互不相溶双液体的静液压平衡与密度计算；参考题考查固体山体的重力压力与花岗岩抗压极限强度估算，核心原理不符。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_04",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_04",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "粉笔-2025-上海B类-科学推理-74",
+              "relevant": false,
+              "reason": "生成题目考查浸没物体受到的阿基米德浮力及容器底部液体压力压强变化；参考题考查山体等效圆锥体的固体自重压强极限，科学原理与题型家族完全不同。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_05",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_05",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "粉笔-2025-上海B类-科学推理-75",
+              "relevant": true,
+              "reason": "两题均基于三棱镜对复色光的色散原理，考查不同色光在介质中的偏折、折射率及光谱分析等光学性质。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_06",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_06",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q71",
+              "relevant": false,
+              "reason": "生成题目考查白光经三棱镜色散的折射率与光速规律（光学）；参考题考查分子无规则热运动与扩散现象（热学/分子动理论），知识模块与认知原理完全不一致。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_07",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_07",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "粉笔-2024-广东-科学推理-69",
+              "relevant": false,
+              "reason": "生成题目考查含滑动变阻器的动态电路欧姆定律及电表示数变化分析；参考题考查多开关联动的实际应用逻辑电路设计与识别，题目类型与考查能力不同。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_08",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_08",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "粉笔-2024-广东-科学推理-69",
+              "relevant": true,
+              "reason": "两题均考查根据实际工况条件和开关状态逻辑要求设计并判定串并联电路的连接方式。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_09",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_09",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "粉笔-2025-广东-科学推理-66",
+              "relevant": true,
+              "reason": "两题均通过常见生活溶液的pH值考查酸碱性、酸碱中和反应原理及在日常生活中的应用判断。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_panduan_kexue_01_10",
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260831_panduan_kexue_01_10",
+          "verdict": "REJECT",
+          "references": [
+            {
+              "id": "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q82",
+              "relevant": false,
+              "reason": "生成题目考查人体血糖平衡调节与胰岛素的体液调节生理机制；参考题考查神经系统反射的概念与应激性辨析，分属体液调节与神经调节的不同生物学原理。"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "questions_sha256": "7848b99f66178946e492dac6d22702edc102c6b69e943c00f1467c797b91f43c",
+  "manifest_sha256": "e3b235f9ed8336736eed30a594a45635785ea39ddb31e941a68bf5325ecfbb00",
+  "results": [
+    {
+      "question_id": "20260831_panduan_kexue_01_01",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "C",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_01",
+          "answer": "C",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_01",
+          "verdict": "PASS",
+          "issues": []
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_01",
+          "image_facts": [
+            "左右两侧夹物器夹紧三个木块A、B、C",
+            "木块A、B、C呈竖直排列且表面粗糙",
+            "整体以恒定速度v匀速向上运动"
+          ],
+          "image_only_facts": [
+            "左右两侧夹物器对称施加水平夹力F，且木块B处于中间夹在A与C之间",
+            "木块A、B、C整体向上做速度为v的匀速直线运动，向上运动方向标在图中"
+          ],
+          "must_derive": [
+            "三木块整体竖直方向受力平衡，两边夹持器向上的静摩擦力之和等于3个木块总重力",
+            "左侧夹持器对木块A向上的静摩擦力大小等于 1.5mg，即总重力的二分之一",
+            "木块B受重力mg和A、C对B向上的静摩擦力各0.5mg保持平衡",
+            "增大水平夹力F不改变竖直方向静摩擦力大小"
+          ]
+        },
+        "image_sha256": {
+          "images/q-01-stem.png": "2824aa70be2557bdad5afc5bc7cd2dc32e9e0e1d6b7891a552d7ccf17f124052"
+        },
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_01",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "混淆作用力与反作用力的施力物体与受力方向，误将A对B的向上支持摩擦力当成向下",
+            "B": "忽略中间木块自身重力需要摩擦力提供竖直平衡，误认为两端受压中间无相对滑动趋势即无摩擦",
+            "D": "混淆静摩擦力平衡条件与最大静摩擦力/滑动摩擦力公式，误认为增大夹力压力必然导致静摩擦力增大"
+          },
+          "reference_ids": [
+            "粉笔-2025-广东-科学推理-67"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_02",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "A",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_02",
+          "answer": "A",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_02",
+          "verdict": "PASS",
+          "issues": []
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_02",
+          "image_facts": [
+            "天花板上悬挂一个定滑轮",
+            "定滑轮下方设有一个动滑轮，动滑轮下方挂有重物G",
+            "绳子一端固定在天花板上，向下绕过动滑轮，再向上绕过定滑轮",
+            "绳子自由端在右侧受竖直向下的拉力F"
+          ],
+          "image_only_facts": [
+            "绳子固定端固定在天花板挂钩上而非动滑轮支架上",
+            "承担重物G及动滑轮的绳子段数为两股平行竖直绳",
+            "拉力F在定滑轮右侧竖直向下施加"
+          ],
+          "must_derive": [
+            "承担重物G和动滑轮G0的有效绳子股数n=2",
+            "在匀速提升时，绳端拉力大小为 F = (G + G0) / 2",
+            "重物提升高度h时，绳端移动距离 s = 2h",
+            "定滑轮重力G1由天花板支架承受，不影响拉力F"
+          ]
+        },
+        "image_sha256": {
+          "images/q-02-stem.png": "6c42153cb614c331db62f046b24c90f0d6a54c207756ee95b19e10d1df788013"
+        },
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_02",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "忽略滑轮组动滑轮承担绳子股数（n=2），误将绳端移动距离当作物重上升高度h",
+            "C": "忽略动滑轮自重克服重力所做的额外功，误将有用功等同于拉力做的总功",
+            "D": "混淆定滑轮与动滑轮的受力位置，误将天花板承担的定滑轮重力计入绳子拉力平衡方程"
+          },
+          "reference_ids": [
+            "粉笔-2025-广东-科学推理-67"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_03",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "D",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_03",
+          "answer": "D",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_03",
+          "verdict": "REJECT",
+          "issues": [
+            "Figure text labels contain font rendering errors/missing glyph boxes (tofu) for subscripts: 'h₁' and 'h₂' are displayed as 'h⊠'."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_03",
+          "image_facts": [
+            "竖直放置的粗细均匀U形玻璃管，左右两端开口通大气",
+            "管内装有互不相溶的甲、乙两种液体，底部相连通并处于静止状态",
+            "左侧管内甲液柱高度为h1，右侧管内乙液柱高度为h2，右侧液面高于左侧液面（h2 > h1）",
+            "以左侧液体分界面为水平基准面"
+          ],
+          "image_only_facts": [
+            "左管液面低于右管液面，且左管内液体为甲、右管内液体为乙",
+            "基准面处左管为甲乙交界面，高度差标定h1与h2满足 h2 > h1"
+          ],
+          "must_derive": [
+            "连通器在同一静止液体的同一水平基准面上总压强相等",
+            "p0 + ρ1 · g · h1 = p0 + ρ2 · g · h2，即 ρ1 · h1 = ρ2 · h2",
+            "因 h2 > h1，推导得甲液体密度大于乙液体密度（ρ1 > ρ2）",
+            "两液体密度之比 ρ1 / ρ2 = h2 / h1"
+          ]
+        },
+        "image_sha256": {
+          "images/q-03-stem.png": "f606a5532caeaf85c42fb39fb883ec737a1f039e18a42e4e69c3e8c644eec57b"
+        },
+        "issues": [
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_03",
+          "score": 10,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "错误根据液面高度大小反推密度大小，忽视压强平衡下高度与密度成反比的规律",
+            "B": "误将分界面处压强理解为仅由单侧液柱产生而不满足连通静止平衡条件",
+            "C": "误认为注入液体后破坏了连通器同种连续液体同一水平面的压强平衡规律"
+          },
+          "reference_ids": [
+            "粉笔-2025-上海B类-科学推理-74"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_04",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "B",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_04",
+          "answer": "B",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_04",
+          "verdict": "PASS",
+          "issues": []
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_04",
+          "image_facts": [
+            "圆柱形容器中盛有水，水面高度未满未溢出",
+            "容器底部装有镂空透水支架",
+            "实心圆柱体置于透水支架上方，全部浸没在水中"
+          ],
+          "image_only_facts": [
+            "圆柱体置于底部镂空透水支架上，下表面与水完全流通接触无封闭贴合",
+            "圆柱体完全没入水面以下，未漂浮且未露出水面"
+          ],
+          "must_derive": [
+            "圆柱体排开水的体积等于圆柱体体积V",
+            "根据阿基米德原理，圆柱体受到的浮力 F_浮 = ρgV",
+            "水面上升高度 Δh = V / S，水对容器底部的压力增加量 ΔF = ρgV"
+          ]
+        },
+        "image_sha256": {
+          "images/q-04-stem.png": "c6b521bc7492d27a6a5699655ca80a05b783b45627c227d99adf7f3aa19259a4"
+        },
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_04",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "混淆沉底静止状态与漂浮/悬浮状态，误将浮力直接等同于物体自身重力mg",
+            "C": "混淆整体法容器对桌面的压力增加量与液体对容器底部的压力增加量，误将水底压力增量记为mg",
+            "D": "忽视物体排开水导致水面上升Δh进而引起水对容器底部液体压强增大"
+          },
+          "reference_ids": [
+            "粉笔-2025-上海B类-科学推理-74"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_05",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "B",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_05",
+          "answer": "B",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_05",
+          "verdict": "PASS",
+          "issues": []
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_05",
+          "image_facts": [
+            "三棱镜放置在光路中",
+            "一束平行复色白光从左侧斜射入三棱镜",
+            "白光经两次折射后色散分离为a、b两束单色光"
+          ],
+          "image_only_facts": [
+            "光线a位于上方偏折程度较小，光线b位于下方偏折程度较大",
+            "从左侧入射点到右侧出射面，光线b向下偏折角明显大于光线a"
+          ],
+          "must_derive": [
+            "偏折程度越大对应折射率越大，因此三棱镜对光线a的折射率小于对光线b的折射率（n1 < n2）",
+            "光线a为红光，光线b为紫光",
+            "介质中光速 v = c / n，因此光线a在三棱镜中光速大于光线b（v1 > v2）"
+          ]
+        },
+        "image_sha256": {
+          "images/q-05-stem.png": "17adba242d88b43f4d285f29655b9c1de0a5b593e36f1d735e11c97fb4f2eb0a"
+        },
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_05",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "颠倒红光与紫光的偏折程度规律，误把偏折角较小的光线a判定为紫光",
+            "C": "混淆折射率与介质中光速公式v=c/n的反比关系，误认为折射率小的光传播速度更小",
+            "D": "混淆介质光速与真空中光速，忽视所有色光在真空中传播速度均为恒定光速c"
+          },
+          "reference_ids": [
+            "粉笔-2025-上海B类-科学推理-75"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_06",
+      "route": "C",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_panduan_kexue_01_06",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "白光色散中，紫光频率最高、三棱镜对其折射率最大、偏折程度最大；由 $v=c/n$ 可知，折射率越大的光在介质中传播速度越小，故紫光在玻璃中的速度小于红光。C项正确。"
+          },
+          {
+            "id": "20260831_panduan_kexue_01_06",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "在可见光谱中，紫光的频率高于红光，介质对其折射率大于红光，因此紫光的偏折程度最大；由介质中光速公式v=c/n可知，折射率越大传播速度越小，故紫光在玻璃中的传播速度小于红光。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_06",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "错误将红光偏折程度最小记成最大，且光速与折射率关系推导错误",
+            "B": "误认为紫光波长较长、折射率较小，将色散顺序完全颠倒",
+            "D": "混淆真空中与介质中的光速传播特性，忽视色散介质中各色光折射率不同导致波速不同"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q71"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_07",
+      "route": "D",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "D",
+        "candidate": {
+          "id": "20260831_panduan_kexue_01_07",
+          "answer": "D",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260831_panduan_kexue_01_07",
+          "verdict": "REJECT",
+          "issues": [
+            "Figure text labels contain font rendering errors/missing glyph boxes (tofu) for subscripts: 'R₁' and 'R₂' are displayed as 'R⊠'.",
+            "The sliding rheostat is incorrectly wired: the circuit connects across both ends of the resistor body rather than through slider P, so moving P would not alter circuit resistance."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260831_panduan_kexue_01_07",
+          "image_facts": [
+            "电源两端提供恒定电压",
+            "定值电阻R1、滑动变阻器R2、电流表A与开关S组成串联回路",
+            "电压表V并联在滑动变阻器R2两端",
+            "滑动变阻器滑片P上有向右移动的箭头指示"
+          ],
+          "image_only_facts": [
+            "滑动变阻器R2接入左端接线柱，滑片P向右移动时接入电阻丝长度增加",
+            "电压表V跨接在滑动变阻器R2两端测R2分压，电流表A串联在回路中测总电流"
+          ],
+          "must_derive": [
+            "滑片P向右移动导致滑动变阻器R2连入电路阻值增大",
+            "串联总电阻 R_总 = R1 + R2 增大，总电流 I = U / R_总 减小，电流表A示数变小",
+            "定值电阻R1两端电压 U1 = I · R1 减小",
+            "滑动变阻器两端电压 U2 = U - U1 增大，电压表V示数变大"
+          ]
+        },
+        "image_sha256": {
+          "images/q-07-stem.png": "8f9a58bfec4e8c3b7ac1aa10dfc694c9060219fd1f6dc4c018963fa1b4e2803b"
+        },
+        "issues": [
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_07",
+          "score": 10,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "误认为滑片向右移动接入电阻减小，导致总电流和定值电阻分压均判断相反",
+            "B": "错误分析串联总电阻变化，且未正确使用分压原理分析滑动变阻器端电压",
+            "C": "虽然正确分析了总电流变小，但错误将滑动变阻器电压判断为变小（忽视了定值电阻分压变小导致滑动变阻器分压变大）"
+          },
+          "reference_ids": [
+            "粉笔-2024-广东-科学推理-69"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_08",
+      "route": "C",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_panduan_kexue_01_08",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "根据题意，S₁断开时整个电路均不工作，说明S₁在总干路上；S₁闭合时警示灯L始终发光，而风机M受S₂独立控制，说明S₂与M串联在一条支路上，该支路与警示灯L所在支路并联。A项表述完全符合要求。"
+          },
+          {
+            "id": "20260831_panduan_kexue_01_08",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "火警传感器S₁断开时全部用电器停止工作，说明S₁位于总干路；S₁闭合后警示灯L始终发光，而排烟风机M受S₂独立控制，说明L与（S₂串联M）两条支路相互并联。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_08",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "错把局部控制开关S₂置于干路，导致断开S₂时警示灯也被切断无法独立发光",
+            "C": "将两个执行用电器设计为串联，导致无法实现风机停转而警示灯单独正常工作的要求",
+            "D": "将S₁和S₂均串在总干路上，造成任何一个开关断开即全部断电的错误逻辑"
+          },
+          "reference_ids": [
+            "粉笔-2024-广东-科学推理-69"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_09",
+      "route": "C",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_panduan_kexue_01_09",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "胃酸的主要成分为盐酸，呈强酸性；食醋的主要成分为乙酸，同样呈酸性。胃酸分泌过多的患者空腹饮用食醋会进一步刺激胃黏膜，加重不适，不存在所谓的“酸酸中和”。D项说法明显错误，符合题意。"
+          },
+          {
+            "id": "20260831_panduan_kexue_01_09",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "食醋呈酸性（pH 2.8~3.0），不存在“酸酸中和”；胃酸过多患者大量饮用食醋会加剧胃酸分泌并刺激胃黏膜，该说法在科学原理上明显错误。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_09",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "混淆强酸强碱中和产物pH性质，误认为中和生成的溶液仍保留酸性或碱性",
+            "B": "不理解食醋弱酸性对皮蛋强碱性物质的实际调和中和去涩机理",
+            "C": "不理解草木灰水（碱性）改良酸性土壤的常见农用酸碱中和原理"
+          },
+          "reference_ids": [
+            "粉笔-2025-广东-科学推理-66"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_panduan_kexue_01_10",
+      "route": "C",
+      "verdict": "REJECT",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_panduan_kexue_01_10",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "A项胰岛素由胰岛B细胞分泌而非肝脏；B项胰岛素为蛋白质类激素，口服会被消化道酶水解而失效；C项进食后血糖升高刺激胰岛素分泌增加以加速葡萄糖摄取与利用，表述正确；D项促进肝糖原分解为葡萄糖是胰高血糖素的作用，胰岛素促进合成肝糖原。"
+          },
+          {
+            "id": "20260831_panduan_kexue_01_10",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "进食后血糖上升刺激胰岛B细胞分泌胰岛素，促进组织细胞摄取、利用和储存葡萄糖；胰岛素由胰岛B细胞而非肝脏合成（A错），作为蛋白质类激素口服会被水解失效（B错），其作用是抑制肝糖原分解、促进合成（D错）。"
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_panduan_kexue_01_10",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "混淆激素分泌器官，将胰腺胰岛B细胞误记为肝脏",
+            "B": "忽视胰岛素为蛋白质类大分子，口服会在胃肠道被消化酶水解变性失去活性",
+            "D": "混淆胰岛素与胰高血糖素的靶向作用，把降低血糖误记为促进肝糖原分解升高血糖"
+          },
+          "reference_ids": [
+            "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q82"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    }
+  ]
+}

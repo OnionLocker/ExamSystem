@@ -1,0 +1,165 @@
+{
+  "batch_id": "20260831_yanyu_comprehensive_01",
+  "source": "广东省考行测 · 言语理解全维度诊断精练",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "batch_constraints": {
+      "all_original": false,
+      "question_count": 8,
+      "tag_counts": {
+        "言语理解-逻辑填空-词语辨析": 2,
+        "言语理解-逻辑填空-逻辑对应": 2,
+        "言语理解-中心理解题-五种常见结构分析": 1,
+        "言语理解-意图判断-意图判断": 1,
+        "言语理解-片段阅读-语句填入": 1,
+        "言语理解-片段阅读-语句排序": 1
+      },
+      "no_images": true,
+      "answer_max_per_letter": 5,
+      "answer_min_letters": 3
+    },
+    "generation_contexts": [
+      {
+        "context_id": "refctx-3a6ebebfe64f4ae68382dd5b6b6a00d4",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q5",
+          "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q1",
+          "zhenti-2026年国家公务员录用考试行测题地市级网友回忆版-Q50"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q003",
+          "20260831_yanyu_comprehensive_01-Q004"
+        ]
+      },
+      {
+        "context_id": "refctx-b8e9b8755fc74aba81245f33076b6806",
+        "reference_ids": [
+          "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q5",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q19",
+          "粉笔-2026-国家-逻辑填空-44"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q005",
+          "20260831_yanyu_comprehensive_01-Q006"
+        ]
+      },
+      {
+        "context_id": "refctx-c3de65c593bc4667839c4fb0f64e32dd",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q29",
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q22",
+          "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q41"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q007"
+        ]
+      },
+      {
+        "context_id": "refctx-af4f4bac4d794dc5ad9e6d9b67a8d406",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q21",
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q23",
+          "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q55"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q008"
+        ]
+      },
+      {
+        "context_id": "refctx-1df4ae3404c64893abe73f04eaf33ff3",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q28",
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q21",
+          "zhenti-2025年国家公务员录用考试行测题副省级网友回忆版-Q49"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q009"
+        ]
+      },
+      {
+        "context_id": "refctx-f4a28deac5a64d6f962fc47d696fe097",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q30",
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q30",
+          "zhenti-2026年国家公务员录用考试行测题行政执法卷网友回忆版-Q58"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q010"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-c6ccdbfe8e9544b9b004e86c1d3eb2d9",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q3"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q003",
+          "20260831_yanyu_comprehensive_01-Q004"
+        ]
+      },
+      {
+        "context_id": "refctx-133ef919a33640509be047cd62129498",
+        "reference_ids": [
+          "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+          "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q40",
+          "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q28"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q005",
+          "20260831_yanyu_comprehensive_01-Q006"
+        ]
+      },
+      {
+        "context_id": "refctx-9a996d071af2459d90bba5909d7243a1",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q7",
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q8",
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q007"
+        ]
+      },
+      {
+        "context_id": "refctx-9336e86eae1e49b0baff87ad09c53e51",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+          "zhenti-2025年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+          "zhenti-2026年国家公务员录用考试行测题地市级网友回忆版-Q63"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q008"
+        ]
+      },
+      {
+        "context_id": "refctx-3d50f93fea5a4cb7a71721f9abe7f640",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+          "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q52",
+          "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q54"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q009"
+        ]
+      },
+      {
+        "context_id": "refctx-b92fa0ff5c104bf3856c9b21431790f0",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+          "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q51",
+          "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q46"
+        ],
+        "question_ids": [
+          "20260831_yanyu_comprehensive_01-Q010"
+        ]
+      }
+    ]
+  }
+}

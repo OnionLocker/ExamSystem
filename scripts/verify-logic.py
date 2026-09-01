@@ -217,6 +217,29 @@ def _char_kind(ch):
     return 'ascii' if ch.isascii() else 'other'
 
 
+
+def is_instance_fact(node):
+    """已知实例：原子或其否定、以及它们的合取。选言/假言算规则，不当成已知复述。"""
+    kind = node[0]
+    if kind == 'var':
+        return True
+    if kind == '!':
+        return is_instance_fact(node[1]) and node[1][0] in ('var', '!')
+    if kind == '&':
+        return is_instance_fact(node[1]) and is_instance_fact(node[2])
+    return False
+
+
+def entailed_by(premises, option, names):
+    models = []
+    for combo in product([False, True], repeat=len(names)):
+        env = dict(zip(names, combo))
+        if all(evaluate(p, env) for p in premises):
+            models.append(env)
+    if not models:
+        return False
+    return all(evaluate(option, env) for env in models)
+
 def lint_variables(names, occurrences, premise_count):
     """返回一串警告。空列表 = 变元表看上去是正常形式化的产物。
 
@@ -355,6 +378,14 @@ def verify(payload):
             result['reason'] = ('唯一能推出的是 %s，但题目标注的答案是 %s'
                                % (correct[0], claimed))
             return result, 1
+        fact_premises = [node for node in premises if is_instance_fact(node)]
+        if fact_premises and entailed_by(fact_premises, options[correct[0]], names):
+            result['verdict'] = 'echo_given_fact'
+            result['reason'] = (
+                '正确项 %s 只是在复述题干已知实例，没有走假言/选言规则。'
+                '真题不会把已知条件改写后当作答案。' % correct[0]
+            )
+            return result, 1
         result['verdict'] = 'ok'
         result['reason'] = '恰好一个选项能被前提必然推出：%s' % correct[0]
         return result, 0
@@ -401,5 +432,46 @@ def main():
     return worst
 
 
+
+def _selfcheck():
+    echo, code = verify({
+        'premises': ['!认证 -> 查验', '查验 -> !绿色通道', '绿色通道 | 保税仓储', '认证', '!查验'],
+        'options': {
+            'A': '绿色通道',
+            'B': '保税仓储',
+            'C': '!查验',
+            'D': '!查验 -> 保税仓储',
+        },
+        'claimed_answer': 'C',
+    })
+    assert code == 1 and echo['verdict'] == 'echo_given_fact', echo
+    ok, code = verify({
+        'premises': ['立项 -> 实验室', '!实验室'],
+        'options': {
+            'A': '研发',
+            'B': '!立项',
+            'C': '实验室',
+            'D': '立项',
+        },
+        'claimed_answer': 'B',
+    })
+    assert code == 0 and ok['verdict'] == 'ok', ok
+    disj, code = verify({
+        'premises': ['乙 | 丙', '!乙'],
+        'options': {
+            'A': '甲',
+            'B': '丙',
+            'C': '乙',
+            'D': '!丙',
+        },
+        'claimed_answer': 'B',
+    })
+    assert code == 0 and disj['verdict'] == 'ok', disj
+    print('verify-logic echo check: ok')
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    if '--selfcheck' in sys.argv:
+        _selfcheck()
+    else:
+        sys.exit(main())

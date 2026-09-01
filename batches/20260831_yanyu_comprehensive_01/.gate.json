@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "batch_id": "20260831_yanyu_comprehensive_01",
+  "issued_at": "2026-08-31T14:08:57+00:00",
+  "manifest_sha256": "48b6fa9c0e74e0c1d6b7f121720f8048f36de0eca59f2751acd898f0d61b4d05",
+  "questions_sha256": "c7b4f9e37c455a3973e3034cff6c65f0f4fcfea5835c082adb2ad12ef65130e5",
+  "artifacts": {},
+  "reference_contexts": {
+    "refctx-133ef919a33640509be047cd62129498": "a3e3688a2e38f1968634d1ab4568608ae51cc792d104b20f1fa9e828ccd01984",
+    "refctx-1df4ae3404c64893abe73f04eaf33ff3": "e5d970d5e57349d4742eb21d1dce62b5f064943145d98f8f6fe698ce364a2c66",
+    "refctx-3a6ebebfe64f4ae68382dd5b6b6a00d4": "31a6949554a2ae1e52da4022b50b676e7320bc5bc06760824a4f225cc1670eb8",
+    "refctx-3d50f93fea5a4cb7a71721f9abe7f640": "215fe805868ff23553e6b2a6b1da4baa1d971ddc29f99396592f866509ad69a5",
+    "refctx-9336e86eae1e49b0baff87ad09c53e51": "60cb4616da898488cb9d0d0110da1dd3b5aa577c3836aeb15bfa333287bcb50a",
+    "refctx-9a996d071af2459d90bba5909d7243a1": "ea9a9851745458299288d73d2d5b35b58367572adbdd123aa79ec52c4610cb27",
+    "refctx-af4f4bac4d794dc5ad9e6d9b67a8d406": "9077e6318467d8e6ee649fa6b83e409273f18869274f3f5541d81184f0a75022",
+    "refctx-b8e9b8755fc74aba81245f33076b6806": "6c9871a059e941a5d8aadbc21c0670b3bebd700c226867eddbeba76f890b4f4b",
+    "refctx-b92fa0ff5c104bf3856c9b21431790f0": "1bd236e75b379aab243d058d6fa5a58d1746e2d46d2e0e5f974beec7c69ecff2",
+    "refctx-c3de65c593bc4667839c4fb0f64e32dd": "f2869a105a4ce746e781e8782a937dcabe01fe9bd1eb5de0e6d69513cc9284bf",
+    "refctx-c6ccdbfe8e9544b9b004e86c1d3eb2d9": "1f6ae8ea07a12e48b02189d7e114a9c00e7ea82297a29bf4775c4ef3a3266ccc",
+    "refctx-f4a28deac5a64d6f962fc47d696fe097": "cb0372568933a9ba47dae262bd8d8b7006de241715854a3fd5d4a94411bdbc0d"
+  },
+  "question_ids": [
+    "20260831_yanyu_comprehensive_01-Q003",
+    "20260831_yanyu_comprehensive_01-Q004",
+    "20260831_yanyu_comprehensive_01-Q005",
+    "20260831_yanyu_comprehensive_01-Q006",
+    "20260831_yanyu_comprehensive_01-Q007",
+    "20260831_yanyu_comprehensive_01-Q008",
+    "20260831_yanyu_comprehensive_01-Q009",
+    "20260831_yanyu_comprehensive_01-Q010"
+  ],
+  "system_quality": {
+    "path": "evidence/system-quality.json",
+    "sha256": "349f3694e777370299459fe3d2fe27f75e4bbef897d76b5208c69639d678bb5c",
+    "model": "gemini-3.7-flash-high"
+  }
+}

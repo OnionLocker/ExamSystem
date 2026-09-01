@@ -1,92 +1,217 @@
-// AI 练题 — 批次列表首页
-//
-// 展示 Hermes 出完题并 import 进库的所有批次，含历史做题数据。
-
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Target, RefreshCw, ChevronRight, BookOpen, Loader2, Sparkles, Clock, Trash2, AlertTriangle } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Clock,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Target,
+  Trash2,
+} from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
 
-// 相对时间（"3天前" 等）
-const relTime = (iso) => {
-  if (!iso) return null;
-  const diff = Date.now() - new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).getTime();
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return '刚刚';
-  if (min < 60) return `${min} 分钟前`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `${h} 小时前`;
-  const d = Math.floor(h / 24);
-  if (d < 30) return `${d} 天前`;
-  return `${Math.floor(d / 30)} 个月前`;
+const MODULES = ['言语理解与表达', '判断推理', '数量关系', '资料分析'];
+const TIME_TAB = '时间';
+
+const STATUS_META = {
+  imported: { label: '已导入', className: 'border-green-200 bg-green-50 text-green-700' },
+  completed: { label: '已完成', className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+  scheduled: { label: '等待生成', className: 'border-slate-200 bg-slate-50 text-slate-500' },
+  running: { label: '生成中', className: 'border-amber-200 bg-amber-50 text-amber-700' },
+  failed: { label: '生成失败', className: 'border-red-200 bg-red-50 text-red-600' },
 };
 
-// 正确率文字颜色
-const accColor = (rate) => {
+const statusOf = (batch) => batch.status || (Number(batch.count) > 0 ? 'imported' : 'scheduled');
+const moduleOf = (batch) => {
+  if (MODULES.includes(batch.module)) return batch.module;
+  if (MODULES.includes(batch.category)) return batch.category;
+  const text = `${batch.module || ''} ${batch.category || ''} ${batch.source || ''} ${batch.batch_id || ''}`.toLowerCase();
+  if (text.includes('言语理解与表达') || text.includes('yanyu') || text.includes('verbal')) return MODULES[0];
+  if (text.includes('判断推理') || text.includes('panduan') || text.includes('judg')) return MODULES[1];
+  if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[2];
+  if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[3];
+  return '';
+};
+
+const dailyDateOf = (batch) => {
+  const planned = String(batch.daily_plan_date || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(planned) ? planned : '';
+};
+
+const nameOf = (batch) => {
+  const date = dailyDateOf(batch);
+  const module = moduleOf(batch);
+  if (date && module) return `广东省考行测-${module}-${date.replaceAll('-', '')}`;
+  return batch.source || batch.batch_id || '未命名题组';
+};
+
+const createdOf = (batch) => batch.created_at || '';
+
+const formatDotDate = (date) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date || '';
+  const [year, month, day] = date.split('-');
+  return `${year}.${Number(month)}.${Number(day)}`;
+};
+
+const relativeTime = (iso) => {
+  if (!iso) return null;
+  const timestamp = new Date(iso).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes} 分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  return days < 30 ? `${days} 天前` : `${Math.floor(days / 30)} 个月前`;
+};
+
+const accuracyClass = (rate) => {
   if (rate >= 0.8) return 'text-green-600';
   if (rate >= 0.6) return 'text-[#6b5428]';
   return 'text-red-500';
 };
 
-// 展示用的题组名。batch_id 是入库时的技术标识（路径/主键那一类），
-// 不该露到界面上；真正给人看的是 Hermes 出题时写的题集名（source）。
-// 这两个字段语义不同，这里只是在 source 缺失时退回 batch_id，免得卡片没标题。
-const nameOf = (b) => b.source || b.batch_id;
+const tabClass = (selected) =>
+  `rounded-2xl border px-4 py-3 text-sm font-black transition-colors ${
+    selected
+      ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+      : 'border-[#e8d5b0] bg-white text-[#6b5428] hover:border-[#6b5428]'
+  }`;
 
-const AIQuizHome = ({ onAnalyzeWithHermes }) => {
+const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled }) => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  // 正在打开的题组：{ batchId, reviewSessionId }。
-  // reviewSessionId 不为空 = 这组以前交过卷，点进去先看当时的做题情况
+  const [activeModule, setActiveModule] = useState(TIME_TAB);
+  const [timeDate, setTimeDate] = useState('');
   const [active, setActive] = useState(null);
-  const [deleting, setDeleting] = useState(null);   // 正在删除的 batch_id
+  const [deleting, setDeleting] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [errMsg, setErrMsg] = useState('');
+  const handledInitial = useRef(null);
 
-  const reload = () => {
+  const loadBatches = useCallback(async () => {
     setLoading(true);
-    fetchBatches();
-  };
+    setErrMsg('');
+    try {
+      const rows = await api('/api/questions/meta/batches?include_scheduled=1');
+      setBatches(Array.isArray(rows) ? rows : []);
+    } catch (error) {
+      setErrMsg(error?.message || '题组加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const fetchBatches = () => {
+  useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const rows = await api('/api/questions/meta/batches');
+    api('/api/questions/meta/batches?include_scheduled=1')
+      .then((rows) => {
         if (!cancelled) setBatches(Array.isArray(rows) ? rows : []);
-      } catch {
-        if (!cancelled) setBatches([]);
-      } finally {
+      })
+      .catch((error) => {
+        if (!cancelled) setErrMsg(error?.message || '题组加载失败');
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!initialBatchId || loading || handledInitial.current === initialBatchId) return undefined;
+    const batch = batches.find((item) => item.batch_id === initialBatchId);
+    if (!batch) return undefined;
+    handledInitial.current = initialBatchId;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      const module = moduleOf(batch);
+      if (module) setActiveModule(module);
+      if (statusOf(batch) === 'imported') {
+        setActive({ batchId: batch.batch_id, reviewSessionId: batch.last_session_id || null });
       }
-    })();
-    return () => { cancelled = true; };
+      onInitialBatchHandled?.();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [batches, initialBatchId, loading, onInitialBatchHandled]);
+
+  const moduleCounts = useMemo(
+    () => Object.fromEntries(
+      MODULES.map((module) => [
+        module,
+        batches.filter((batch) => moduleOf(batch) === module).length,
+      ]),
+    ),
+    [batches],
+  );
+
+  const dailyBatches = useMemo(
+    () => batches.filter((batch) => dailyDateOf(batch)),
+    [batches],
+  );
+
+  const dailyDates = useMemo(
+    () => [...new Set(dailyBatches.map(dailyDateOf))].sort((a, b) => b.localeCompare(a)),
+    [dailyBatches],
+  );
+
+  useEffect(() => {
+    if (activeModule !== TIME_TAB) return;
+    if (timeDate && dailyDates.includes(timeDate)) return;
+    setTimeDate(dailyDates[0] || '');
+  }, [activeModule, dailyDates, timeDate]);
+
+  const visibleBatches = useMemo(() => {
+    if (activeModule === TIME_TAB) {
+      return dailyBatches
+        .filter((batch) => dailyDateOf(batch) === timeDate)
+        .sort((a, b) => {
+          const rank = (item) => {
+            const index = MODULES.indexOf(moduleOf(item));
+            return index < 0 ? 99 : index;
+          };
+          return rank(a) - rank(b) || createdOf(b).localeCompare(createdOf(a));
+        });
+    }
+    return batches
+      .filter((batch) => moduleOf(batch) === activeModule)
+      .sort((a, b) => createdOf(b).localeCompare(createdOf(a)));
+  }, [activeModule, batches, dailyBatches, timeDate]);
+
+  const openBatch = (batch) => {
+    if (statusOf(batch) !== 'imported') return;
+    setActive({
+      batchId: batch.batch_id,
+      reviewSessionId: batch.last_session_id || null,
+    });
   };
 
-  useEffect(fetchBatches, []);
-
-  // 删除整个题组（题目 + 作答记录一起删，练废的测试批次不该留着占列表）
-  const requestDelete = (b, e) => {
-    // The card itself opens the quiz, so keep the nested delete action isolated.
-    e.stopPropagation();
-    e.preventDefault();
-    if (!deleting) setDeleteTarget(b);
+  const requestDelete = (batch, event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    if (!deleting) setDeleteTarget(batch);
   };
 
   const confirmDelete = async () => {
-    const b = deleteTarget;
-    if (!b || deleting) return;
-
-    setDeleting(b.batch_id);
+    const batch = deleteTarget;
+    if (!batch || deleting) return;
+    setDeleting(batch.batch_id);
     setErrMsg('');
     try {
-      await api(`/api/questions/batch/${encodeURIComponent(b.batch_id)}`, { method: 'DELETE' });
-      setBatches((prev) => prev.filter((x) => x.batch_id !== b.batch_id));
+      await api(`/api/questions/batch/${encodeURIComponent(batch.batch_id)}`, { method: 'DELETE' });
+      setBatches((current) => current.filter((item) => item.batch_id !== batch.batch_id));
       setDeleteTarget(null);
-    } catch (err) {
+    } catch (error) {
       setDeleteTarget(null);
-      setErrMsg(err?.message || '删除失败');
+      setErrMsg(error?.message || '删除失败');
     } finally {
       setDeleting(null);
     }
@@ -95,14 +220,20 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
   if (active) {
     return createPortal(
       <div
-        className="fixed inset-0 z-[80] bg-white overflow-hidden overscroll-none"
+        className="fixed inset-0 z-[80] overflow-hidden overscroll-none bg-white"
         style={{ height: '100dvh' }}
       >
         <AIQuizSession
           batchId={active.batchId}
-          batchName={nameOf(batches.find((b) => b.batch_id === active.batchId) || { batch_id: active.batchId })}
+          batchName={nameOf(
+            batches.find((batch) => batch.batch_id === active.batchId)
+            || { batch_id: active.batchId },
+          )}
           reviewSessionId={active.reviewSessionId}
-          onExit={() => { setActive(null); reload(); }}
+          onExit={() => {
+            setActive(null);
+            loadBatches();
+          }}
           onAnalyzeWithHermes={onAnalyzeWithHermes}
         />
       </div>,
@@ -110,141 +241,249 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
     );
   }
 
+  const showModule = activeModule === TIME_TAB;
+  const emptyTitle = activeModule === TIME_TAB
+    ? (dailyDates.length ? '这一天还没有定时题组' : '还没有定时任务题组')
+    : '这个模块还没有题组';
+  const emptyHint = activeModule === TIME_TAB
+    ? '只有定时任务产生的题组会出现在这里。普通题组请到所属模块里找。'
+    : '题组按出题时间排列。定时任务的题也会出现在「时间」里。';
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* 页头 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
+    <div className="mx-auto max-w-4xl space-y-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1a1a1a] text-white">
             <Target size={18} />
           </div>
-          <div>
-            <h3 className="text-base font-black tracking-tight">AI 专项练题</h3>
-            <p className="text-[11px] text-slate-400 font-medium">
-              让 Hermes 出完题，在这里刷
-            </p>
+          <div className="min-w-0">
+            <h3 className="text-base font-black tracking-tight">AI 练题</h3>
+            <p className="text-[11px] font-medium text-slate-400">按模块找题组，定时任务也可按日期找</p>
           </div>
         </div>
         <button
-          onClick={reload}
+          type="button"
+          onClick={loadBatches}
           disabled={loading}
-          className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-black text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
-          title="刷新"
+          className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
         >
-          {loading ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-          <span>刷新</span>
+          {loading
+            ? <Loader2 size={13} className="animate-spin" />
+            : <RefreshCw size={13} />}
+          刷新
         </button>
       </div>
 
-      {errMsg && (
-        <div className="px-4 py-2 rounded-xl bg-red-50 border border-red-200 text-xs font-bold text-red-700 flex justify-between">
-          <span>{errMsg}</span>
-          <button onClick={() => setErrMsg('')} className="ml-3 text-red-400 hover:text-red-700">✕</button>
+      <div className="overflow-x-auto pb-1">
+        <div className="flex min-w-max gap-2" role="tablist" aria-label="练题分类">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeModule === TIME_TAB}
+            onClick={() => setActiveModule(TIME_TAB)}
+            className={tabClass(activeModule === TIME_TAB)}
+          >
+            {TIME_TAB}
+            <span
+              className={`ml-2 text-[10px] ${
+                activeModule === TIME_TAB ? 'text-white/60' : 'text-slate-400'
+              }`}
+            >
+              {dailyDates.length}
+            </span>
+          </button>
+          {MODULES.map((module) => (
+            <button
+              key={module}
+              type="button"
+              role="tab"
+              aria-selected={activeModule === module}
+              onClick={() => setActiveModule(module)}
+              className={tabClass(activeModule === module)}
+            >
+              {module}
+              <span
+                className={`ml-2 text-[10px] ${
+                  activeModule === module ? 'text-white/60' : 'text-slate-400'
+                }`}
+              >
+                {moduleCounts[module] || 0}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {activeModule === TIME_TAB && dailyDates.length > 0 && (
+        <div className="overflow-x-auto pb-1">
+          <div className="flex min-w-max gap-2" role="tablist" aria-label="定时日期">
+            {dailyDates.map((date) => {
+              const selected = timeDate === date;
+              return (
+                <button
+                  key={date}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setTimeDate(date)}
+                  className={`rounded-xl border px-3 py-2 text-xs font-black transition-colors ${
+                    selected
+                      ? 'border-[#6b5428] bg-[#1a1a1a] text-white'
+                      : 'border-[#e8d5b0] bg-white text-[#6b5428] hover:border-[#6b5428]'
+                  }`}
+                >
+                  {formatDotDate(date)}
+                  <span className={`ml-1.5 text-[10px] ${selected ? 'text-white/60' : 'text-slate-400'}`}>
+                    {` ${dailyBatches.filter((batch) => dailyDateOf(batch) === date).length} 组`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* 批次列表 */}
-      {loading && batches.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#e8d5b0]">
-          <Loader2 size={24} className="mx-auto text-[#6b5428] animate-spin mb-3" />
-          <p className="text-sm font-black uppercase tracking-widest text-slate-400">加载中…</p>
-        </div>
-      ) : batches.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-10 text-center shadow-sm border border-[#e8d5b0]">
-          <div className="w-14 h-14 mx-auto rounded-2xl bg-[#e8d5b0] text-slate-400 flex items-center justify-center mb-4">
-            <Sparkles size={24} />
-          </div>
-          <h3 className="text-lg font-black italic mb-2">还没有 AI 出题批次</h3>
-          <p className="text-sm text-slate-500 leading-relaxed mb-5 max-w-xs mx-auto">
-            去 <strong>Hermes</strong> 对话框，输入你想练习的知识点，Hermes 会自动出题、验证并入库。
-          </p>
-          <div className="bg-[#e8d5b0] rounded-2xl p-4 text-left text-xs font-mono text-slate-600 mb-5">
-            <p className="font-black text-[#1a1a1a] mb-1">示例指令（在 Hermes 里输入）：</p>
-            <p>/quiz-pipeline 出5道翻译推理题，题集名 20260803_翻译推理强化一</p>
-          </div>
-          <button onClick={reload}
-            className="bg-[#1a1a1a] text-white font-black px-6 py-3 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs">
-            刷新检查
+      {errMsg && (
+        <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+          <span>{errMsg}</span>
+          <button
+            type="button"
+            onClick={() => setErrMsg('')}
+            className="ml-3 text-red-500"
+            aria-label="关闭提示"
+          >
+            ×
           </button>
+        </div>
+      )}
+
+      {loading && batches.length === 0 ? (
+        <div className="rounded-[2rem] border border-[#e8d5b0] bg-white p-10 text-center shadow-sm">
+          <Loader2 size={24} className="mx-auto mb-3 animate-spin text-[#6b5428]" />
+          <p className="text-sm font-black text-slate-400">正在加载题组…</p>
+        </div>
+      ) : visibleBatches.length === 0 ? (
+        <div className="rounded-[2rem] border border-[#e8d5b0] bg-white p-10 text-center shadow-sm">
+          <Sparkles size={24} className="mx-auto mb-3 text-[#6b5428]" />
+          <h4 className="font-black">{emptyTitle}</h4>
+          <p className="mt-2 text-sm text-slate-500">{emptyHint}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {batches.map((b) => {
-            const acc = b.attempt_count > 0 ? b.correct_count / b.attempt_count : null;
-            const progress = b.count > 0 ? b.done_count / b.count : 0;
-            const timeStr = relTime(b.last_answered_at);
-
-            const isDeleting = deleting === b.batch_id;
-            // 做过的点进去是复盘，没做过的直接开做
-            const open = { batchId: b.batch_id, reviewSessionId: b.last_session_id || null };
+          {visibleBatches.map((batch) => {
+            const status = statusOf(batch);
+            const meta = STATUS_META[status] || {
+              label: status,
+              className: 'border-slate-200 bg-slate-50 text-slate-500',
+            };
+            const canOpen = status === 'imported' || status === 'completed';
+            const progress = Number(batch.count) > 0
+              ? Number(batch.done_count || 0) / Number(batch.count)
+              : 0;
+            const accuracy = Number(batch.attempt_count) > 0
+              ? Number(batch.correct_count || 0) / Number(batch.attempt_count)
+              : null;
+            const createdAt = relativeTime(createdOf(batch));
+            const isDeleting = deleting === batch.batch_id;
+            const action = batch.last_session_id
+              ? '复盘'
+              : Number(batch.done_count) > 0 ? '继续练习' : '开始练习';
+            const moduleName = moduleOf(batch);
 
             return (
-              // 卡片原来是 <button>，但删除按钮必须是真的 <button>，而 button 不能嵌
-              // button（HTML 非法 + 点击行为打架）。所以外层降级成 div + role/键盘处理。
               <div
-                key={b.batch_id}
-                role="button"
-                tabIndex={0}
-                onClick={() => { if (!isDeleting) setActive(open); }}
-                onKeyDown={(e) => {
-                  if (isDeleting) return;
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setActive(open);
+                key={batch.batch_id}
+                role={canOpen ? 'button' : undefined}
+                tabIndex={canOpen ? 0 : undefined}
+                onClick={() => openBatch(batch)}
+                onKeyDown={(event) => {
+                  if (canOpen && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    openBatch(batch);
                   }
                 }}
-                className={`w-full text-left bg-white rounded-[1.75rem] p-6 shadow-sm border border-[#e8d5b0] transition-all group cursor-pointer focus:outline-none focus-visible:border-[#6b5428] focus-visible:ring-2 focus-visible:ring-[#6b5428]/40 ${
-                  isDeleting ? 'opacity-40 pointer-events-none' : 'hover:border-[#6b5428] hover:shadow-md'
-                }`}
+                className={`rounded-[1.75rem] border bg-white p-5 shadow-sm transition-all ${
+                  canOpen
+                    ? 'cursor-pointer border-[#e8d5b0] hover:border-[#6b5428] hover:shadow-md'
+                    : 'cursor-not-allowed border-black/5 opacity-75'
+                } ${isDeleting ? 'pointer-events-none opacity-40' : ''}`}
               >
-                {/* 上行：图标 + 名称 + 删除 + 箭头 */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-[#e8d5b0] group-hover:bg-[#2c261c] group-hover:text-white text-[#1a1a1a] flex items-center justify-center transition-colors flex-shrink-0">
-                      <BookOpen size={16} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-black truncate">{nameOf(b)}</p>
-                    </div>
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                      canOpen
+                        ? 'bg-[#e8d5b0] text-[#1a1a1a]'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {status === 'running'
+                      ? <Loader2 size={15} className="animate-spin" />
+                      : <BookOpen size={15} />}
                   </div>
-                  <div className="flex items-center flex-shrink-0 ml-3">
-                    {/* 删除题组：测试用的批次留在列表里很碍事。
-                        iPad 没有 hover，所以按钮常驻显示，不做 hover 才出现。 */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="min-w-0 truncate text-sm font-black">
+                        {nameOf(batch)}
+                      </p>
+                      {showModule && moduleName && (
+                        <span className="rounded-full border border-[#e8d5b0] bg-[#fcfaf6] px-2 py-0.5 text-[10px] font-black text-[#6b5428]">
+                          {moduleName}
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${meta.className}`}
+                      >
+                        {meta.label}
+                      </span>
+                    </div>
+                    {canOpen ? (
+                      <>
+                        <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#e8d5b0]">
+                          <div
+                            className="h-full rounded-full bg-[#2c261c]"
+                            style={{ width: `${Math.min(100, progress * 100)}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] font-black text-slate-400">
+                          <span>{batch.done_count || 0}/{batch.count || 0} 题</span>
+                          {accuracy !== null && (
+                            <span className={accuracyClass(accuracy)}>
+                              正确率 {Math.round(accuracy * 100)}%
+                            </span>
+                          )}
+                          {createdAt && (
+                            <span className="flex items-center gap-1">
+                              <Clock size={10} />{createdAt}
+                            </span>
+                          )}
+                          <span className="ml-auto text-[#6b5428]">{action} →</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-500">
+                        {status === 'failed'
+                          ? batch.error_message
+                            || batch.message
+                            || '生成未完成，请稍后重试。'
+                          : status === 'running'
+                            ? '题组正在生成，完成后即可开始练习。'
+                            : '题组已列入计划，尚未开始生成。'}
+                      </p>
+                    )}
+                  </div>
+                  {canOpen && (
                     <button
                       type="button"
-                      onClick={(e) => requestDelete(b, e)}
+                      onClick={(event) => requestDelete(batch, event)}
                       disabled={isDeleting}
-                      title="删除这个题组"
-                      aria-label={`删除题组 ${nameOf(b)}`}
-                      className="p-2 -m-0.5 rounded-xl text-[#ccc] hover:bg-red-50 hover:text-[#ef5350] active:bg-red-100 transition-colors disabled:opacity-50"
+                      title="删除题组"
+                      aria-label={`删除题组 ${nameOf(batch)}`}
+                      className="shrink-0 rounded-xl p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
                     >
                       {isDeleting
                         ? <Loader2 size={15} className="animate-spin" />
                         : <Trash2 size={15} />}
                     </button>
-                    <ChevronRight size={16} className="text-[#ccc] group-hover:text-[#1a1a1a] transition-colors ml-1" />
-                  </div>
-                </div>
-
-                {/* 进度条 */}
-                <div className="h-1 bg-[#e8d5b0] rounded-full overflow-hidden mb-3">
-                  <div
-                    className="h-full bg-[#2c261c] rounded-full transition-all"
-                    style={{ width: `${progress * 100}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center text-[11px] font-black">
-                  {acc !== null && (
-                    <span className={accColor(acc)}>
-                      正确率 {Math.round(acc * 100)}%
-                    </span>
-                  )}
-                  {timeStr && (
-                    <span className="ml-auto flex items-center space-x-1 text-slate-400">
-                      <Clock size={10} />
-                      <span>{timeStr}</span>
-                    </span>
                   )}
                 </div>
               </div>
@@ -253,31 +492,40 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
         </div>
       )}
 
-      {batches.length > 0 && (
-        <p className="text-center text-[10px] font-black uppercase tracking-widest text-slate-300">
-          共 {batches.length} 个批次 · 每次随机抽30题
-        </p>
-      )}
-
       {deleteTarget && createPortal(
-        <div className="fixed inset-0 z-[9998] flex items-center justify-center p-5" role="dialog" aria-modal="true" aria-labelledby="delete-batch-title">
+        <div
+          className="fixed inset-0 z-[9998] flex items-center justify-center p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-batch-title"
+        >
           <button
             type="button"
             aria-label="取消删除"
             className="absolute inset-0 bg-black/35 backdrop-blur-[3px]"
-            onClick={() => { if (!deleting) setDeleteTarget(null); }}
+            onClick={() => {
+              if (!deleting) setDeleteTarget(null);
+            }}
           />
           <div className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-2xl">
             <div className="p-6 pb-5">
-              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-[#ef5350]">
+              <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-500">
                 <AlertTriangle size={20} />
               </div>
-              <h3 id="delete-batch-title" className="text-lg font-black tracking-tight">删除这个题组？</h3>
-              <p className="mt-1.5 truncate text-sm font-bold text-[#6b5428]">{nameOf(deleteTarget)}</p>
+              <h3 id="delete-batch-title" className="text-lg font-black tracking-tight">
+                删除这个题组？
+              </h3>
+              <p className="mt-1.5 truncate text-sm font-bold text-[#6b5428]">
+                {nameOf(deleteTarget)}
+              </p>
               <p className="mt-4 rounded-2xl bg-[#f7f3ea] px-4 py-3 text-sm leading-relaxed text-slate-600">
-                将删除 <strong className="text-[#1a1a1a]">{deleteTarget.count} 道题</strong>
-                {deleteTarget.attempt_count > 0 && (
-                  <>及 <strong className="text-[#1a1a1a]">{deleteTarget.attempt_count} 条作答记录</strong></>
+                将删除 <strong className="text-[#1a1a1a]">
+                  {deleteTarget.count || 0} 道题
+                </strong>
+                {Number(deleteTarget.attempt_count) > 0 && (
+                  <>和 <strong className="text-[#1a1a1a]">
+                    {deleteTarget.attempt_count} 条作答记录
+                  </strong></>
                 )}，删除后无法恢复。
               </p>
             </div>
@@ -287,17 +535,19 @@ const AIQuizHome = ({ onAnalyzeWithHermes }) => {
                 autoFocus
                 disabled={!!deleting}
                 onClick={() => setDeleteTarget(null)}
-                className="flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-black text-[#666] hover:bg-black/[0.03] disabled:opacity-50"
+                className="flex-1 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-black text-[#666] disabled:opacity-50"
               >
-                先留着
+                取消
               </button>
               <button
                 type="button"
                 disabled={!!deleting}
                 onClick={confirmDelete}
-                className="flex-1 rounded-2xl bg-[#ef5350] px-4 py-3 text-sm font-black text-white shadow-lg shadow-red-200 hover:bg-[#e54848] disabled:opacity-60"
+                className="flex-1 rounded-2xl bg-red-500 px-4 py-3 text-sm font-black text-white disabled:opacity-60"
               >
-                {deleting ? <Loader2 size={16} className="mx-auto animate-spin" /> : '确认删除'}
+                {deleting
+                  ? <Loader2 size={16} className="mx-auto animate-spin" />
+                  : '确认删除'}
               </button>
             </div>
           </div>

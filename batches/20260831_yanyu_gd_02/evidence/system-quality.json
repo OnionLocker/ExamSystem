@@ -1,0 +1,820 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260831_yanyu_gd_02",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T14:16:51+00:00",
+  "verdict": "PASS",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 8,
+    "D": 0
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "answer_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": []
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "Q003",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q003",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q2",
+              "relevant": true,
+              "reason": "同属于逻辑填空中的实词搭配与语境辨析题型，考察根据上下文语境及固定搭配选择恰当词语的认知能力。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+              "relevant": true,
+              "reason": "同属于逻辑填空实词辨析题型，考察语境语意呼应与词语搭配。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "同属于两空实词辨析题型，考察动宾搭配与语境逻辑关系分析。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q004",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q004",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+              "relevant": true,
+              "reason": "同属于语句表达中的语句排序题型，考察首句判断、关联词衔接与话题一致性分析能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q47",
+              "relevant": true,
+              "reason": "同属于6句语句排序题型，考察行文逻辑、首句筛选与指代词/关联词捆绑分析能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q51",
+              "relevant": true,
+              "reason": "同属于语句排序题型，考察段落脉络重构与逻辑衔接推断能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q005",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q005",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+              "relevant": true,
+              "reason": "同属于语句表达中的语句填入（语句衔接）题型，考察承上启下及文段核心主旨归纳补全能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q36",
+              "relevant": true,
+              "reason": "同属于语句填空题型，考察结合前后文语境推断空缺处核心观点的能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q50",
+              "relevant": true,
+              "reason": "同属于语句填入题型，考察文段总起/转折核心句的匹配与归纳能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q006",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q006",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q7",
+              "relevant": true,
+              "reason": "同属于片段阅读中的主旨概括/中心理解题型，考察转折/对策句的提取与文段核心主旨归纳。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q8",
+              "relevant": true,
+              "reason": "同属于中心理解题型，考察文段行文脉络梳理与核心主题词提取。"
+            },
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21",
+              "relevant": true,
+              "reason": "同属于主旨概括题型，考察把握文段尾句对策及核心观点的认知能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q007",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q007",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+              "relevant": true,
+              "reason": "同属于片段阅读中的意图判断题型，考察从文段问题/现象中推断作者核心意图与对策的能力。"
+            },
+            {
+              "id": "zhenti-2026年国家公务员录用考试行测题行政执法卷网友回忆版-Q52",
+              "relevant": true,
+              "reason": "同属于意图判断题型，考察分析文段问题原因并推导合理对策的认知过程。"
+            },
+            {
+              "id": "zhenti-2025年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+              "relevant": true,
+              "reason": "同属于意图判断题型，考察抓取结论对策词并提炼作者意图的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q008",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q008",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q7",
+              "relevant": true,
+              "reason": "同属于片段阅读中的标题拟定题型，考察提炼文段中心论点并选择高度概括且具吸引力的标题的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q009",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q009",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q45",
+              "relevant": true,
+              "reason": "同属于片段阅读中的细节判断题型，考察文意比对、概念偷换与逻辑关系严谨性检验能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q47",
+              "relevant": true,
+              "reason": "同属于科技说明类细节判断题型，考察将选项表述与原文具体科学机制进行精准对照验证的能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "Q010",
+        "verdict": "PASS",
+        "review": {
+          "id": "Q010",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q39",
+              "relevant": true,
+              "reason": "同属于语句表达中的下文推断（接语选择）题型，考察分析文段尾句落脚点并推导后续行文逻辑的能力。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+              "relevant": true,
+              "reason": "同属于下文推断题型，考察基于尾句提出的对策/命题合理衔接后续具体展开路径的能力。"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "questions_sha256": "4ad983fbeb0b951ef54a74bad35710cf4751f9f55fb7dfb1576a7194321cdf38",
+  "manifest_sha256": "f66100cc79360b405a98135d5ef9acce95c6e47d7ce0bcd549b4c6b5cfa0f4cf",
+  "results": [
+    {
+      "question_id": "Q003",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "Q003",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "“弘扬科学精神”与“遏制滋生蔓延”均为规范且最贴切的习惯搭配，B项完全正确。"
+          },
+          {
+            "id": "Q003",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与“科学精神”搭配，最常用且贴切的是“弘扬”；第二空修饰“滋生蔓延”，“遏制……滋生蔓延”为固定规范搭配。“抵挡”侧重于抵抗外力；“阻断”侧重切断路径，与“滋生”不搭；“消除”表彻底去除，与表示趋势与动态过程的“滋生蔓延”搭配不当。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "“培育精神”在部分语境下可通。",
+                "fatal_defect": "第二空“抵挡”指挡住压力或进攻，不能与“滋生蔓延”搭配。"
+              },
+              "B": {
+                "stands": true,
+                "basis": "“弘扬科学精神”与“遏制伪科学与谣言的滋生蔓延”均为规范、地道的常用搭配，语意完整通畅。",
+                "fatal_defect": ""
+              },
+              "C": {
+                "stands": false,
+                "basis": "“树立精神”在某些语境下可见（通常搭配观念/意识）。",
+                "fatal_defect": "第二空“阻断”常搭配“传播途径/渠道”，无法直接与“滋生”（内部产生）形成合乎逻辑的动宾搭配。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "“阐释科学精神”符合逻辑。",
+                "fatal_defect": "第二空“消除”指使不存在，语义过重，且与表示发展势头的动词性短语“滋生蔓延”搭配不当（应为“遏制/抑制蔓延”）。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q003",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "“抵挡”与“滋生蔓延”搭配不当，且词义偏向被动防守，程度偏轻",
+            "C": "“阻断”常与“渠道/路径”搭配，与“滋生蔓延”搭配不当且不合逻辑",
+            "D": "“阐释”与“精神”搭配偏狭窄，且“消除”程度过重，无法彻底消除蔓延"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q2",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q004",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "Q004",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "①句指出传统模式面临的挑战，引出话题；④句提出新型管网监测系统；②句“不仅能……”与⑤句“还能……”构成递进关联词结构，紧承④句；③句“这种……网络”对前文系统进行指代总结；⑥句总结升华。正确语序为①④②⑤③⑥。"
+          },
+          {
+            "id": "Q004",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "句②与句⑤由关联词“不仅能……还能……”构成递进关系，紧密相连，其共同主语为句④中的“新型管网监测系统”，故④②⑤构成固定捆绑；句③中的指代词“这种全天候、数字化的智能感知网络”指代前文④②⑤所描述的网络系统，故③应置于④②⑤之后；句①提出传统管网治理模式面临的挑战，作为背景引入置于首句最为适宜；句⑥总结升华至“智慧地下空间治理”，适宜作为尾句。综合排序为①④②⑤③⑥，对应A项。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "①引出传统模式的困境，④提出新型管网监测系统，②⑤递进阐述其功能，③进行阶段性指代评价，⑥升华总结，逻辑层层递进、衔接严密。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "尝试将④作为首句引出技术。",
+                "fatal_defect": "句①阐述传统治理面临挑战（问题），插在④②⑤（对策功能）与③（对策评价）之间割裂了“这种……网络”对前文的承接指代，逻辑顺序倒置。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "尝试以①引入背景后接③。",
+                "fatal_defect": "句①阐述的是传统的“人工巡检+被动维修”模式，句③中的“这种全天候、数字化的智能感知网络”在其前缺乏指代对象，存在指代缺失。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "尝试以④提出新型系统，然后插入背景①。",
+                "fatal_defect": "句①强行插入主语④与分句②⑤之间，割裂了“新型管网监测系统不仅能……还能……”的完整语义结构。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q004",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "④作首句引出技术缺少前置背景铺垫，且①插在⑤之后切断了②⑤与③的指代链条",
+            "C": "③中的指示代词“这种...感知网络”紧接①之后，在首句中缺乏明确的前置指代对象",
+            "D": "①插在④与②之间打断了“不仅...还能...”对新型管网监测系统的递进说明"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+            "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q47",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q51"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q005",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "Q005",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前指出过度依赖科技仪器与化学药剂的弊端，横线后指出要在尊重传统与科技手段间找到平衡点，因此横线处应得出“科技手段介入须遵循适度/最小干预原则”的结论，B项承上启下最恰当。"
+          },
+          {
+            "id": "Q005",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前指出‘过度依赖仪器检测与化学药剂反而可能破坏古籍’，横线后指出‘唯有在尊重传统形制与借助科技手段之间找到最佳平衡点’，因此横线处应得出关于科技手段应用需‘适度、克制’的结论。B项‘科技手段的介入必须遵循适度与最小干预的原则’精准承接上文的‘过度依赖’并启下‘最佳平衡点’。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "能够概括前文科技的负面风险。",
+                "fatal_defect": "A项为客观事实描述而非针对‘过度依赖’提出的对策/要求，且‘文物保护领域’泛化了语境，不能与后文的‘最佳平衡点’紧密衔接。"
+              },
+              "B": {
+                "stands": true,
+                "basis": "针对前文‘过度依赖...反而可能破坏’，得出‘必须适度’的规范性结论，下启‘找到最佳平衡点’，逻辑与行文极其严密。",
+                "fatal_defect": ""
+              },
+              "C": {
+                "stands": false,
+                "basis": "强调了传统技艺的重要性。",
+                "fatal_defect": "文段强调的是传统与科技之间的‘最佳平衡’，而非偏向将传统手工技艺定为‘核心’，偏离文意。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "对策句形式符合总结句特征。",
+                "fatal_defect": "‘建立规范化的修复标准’在文段中无前因后果依据，属于无中生有。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q005",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "停留在“双刃剑”的现象描述层面，缺乏“因此”所引出的针对性行为准则与对策",
+            "C": "片面强调传统手工技艺为核心，与后文“科技与传统之间找到平衡点”脱节",
+            "D": "“建立规范化标准”脱离了前文“防止过度依赖科技药剂”的语境，属于泛化对策"
+          },
+          "reference_ids": [
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+            "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q36",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q50"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q006",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "Q006",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段先指出很多企业将数字化转型简单等同于购买工具的误区，后强调真正的数字化转型本质是组织变革与业务重组，A项准确概括了文段主旨。"
+          },
+          {
+            "id": "Q006",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段首先指出传统企业将数字化转型简单等同于工具采购的误区，接着通过转折词“然而”说明单纯引入工具的局限性，最后提出核心观点：“真正的数字化转型，本质上是一场深刻的组织变革与业务重组”。A项完整准确地概括了从“工具采购”向“组织与业务变革”转变的核心论点。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "准确契合文段末句的核心对策/结论，即数字化转型不应停留于技术工具层面，而应深入到组织变革与业务重组。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "试图将文段中对纯软硬件投入局限性的描述作为论点。",
+                "fatal_defect": "表述过于绝对（文段称其为“物理起点”，并未全盘否定其价值），且未体现文段的核心对策（组织与业务变革）。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "抓取了文段中“数据要素无法在各部门间高效流转”和“打破内部信息孤岛”等词句。",
+                "fatal_defect": "属于分述句中的局部细节，不能概括全文主旨。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "概括了反面论证中提到的假设性问题（层级固化、业务流程未重塑）。",
+                "fatal_defect": "偏离主旨，文段重点在于通过问题引出“真正的数字化转型应如何进行”的对策，而非仅描述困境。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q006",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "表述过于绝对且仅对应文段转折前的反面反思，非全文主旨对策",
+            "C": "仅对应文段尾句分述的其中一个要素，属于以偏概全的细节干扰",
+            "D": "属于转折前分析企业现有困境与误区的内容，非文段强调的核心结论"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q7",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q8",
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q007",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "Q007",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段指出各类科技助眠产品可能加重焦虑，且无法替代科学诊疗与生活节奏调整，意在提示公众改善睡眠不能过度依赖此类“助眠神器”，A项符合题意。"
+          },
+          {
+            "id": "Q007",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段首先指出各类“助眠”科技产品热销，接着通过“然而”转折指出这些产品不仅难以改善睡眠，还可能加重焦虑，最后引用医学专家观点说明失眠原因复杂，外在辅助工具无法替代科学诊疗与生活节奏调整。文段意在强调不能过度依赖这些所谓的“助眠神器”，对应A项。B项“虚假宣传”“市场监管”文段未提及；C项“主因”无中生有；D项“彻底根治”表述过于绝对。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "转折后强调助眠产品效果有限且可能加重焦虑，专家指出外在辅助工具无法替代科学诊疗与生活节奏调整，核心观点即改善睡眠不能过度依赖此类产品。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "文段提到产品难以达到预期效果。",
+                "fatal_defect": "“虚假宣传”和“亟待市场监管介入”在文段中均未提及，属于无中生有的过度推断。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "文段提到“过度的心理暗示加重了焦虑感”。",
+                "fatal_defect": "偷换概念且夸大事实。文段指出失眠诱因包含“生理、心理及生活习惯等复杂因素”，心理暗示仅是产品带来的附加影响之一，并非“主因”。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "文段提到“科学的医学诊疗与生活节奏调整”是外在工具无法替代的。",
+                "fatal_defect": "“彻底根治”表述过于绝对，文段仅表明其不可被外在工具替代，并未承诺可以“彻底根治”。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q007",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "无中生有，“虚假宣传”与“市场监管”文段完全未提及",
+            "C": "强加因果，文段仅指出心理暗示会加重焦虑，并未认定其为睡眠障碍的“主因”",
+            "D": "夸大程度，“彻底根治”表述过于绝对，偏离作者意图"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+            "zhenti-2026年国家公务员录用考试行测题行政执法卷网友回忆版-Q52",
+            "zhenti-2025年国家公务员录用考试行测题行政执法卷网友回忆版-Q56"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q008",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "Q008",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段通过转折强调湿地不仅是普通的沼泽荒滩，更是功能强大、庇护全球众多物种的“超级枢纽”，呼吁重新认识并守护湿地。A项概括全面生动，最适合作为标题。"
+          },
+          {
+            "id": "Q008",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段首先指出人们常把湿地简单看作风景优美的荒滩（被低估），随后用转折词“但事实上”引出湿地的多种重要生态功能，并用“更重要的是”强调其是“维系全球生态平衡不可或缺的超级枢纽”，文末总结呼吁“重新认识湿地、守护这一绿色屏障”。A项“被低估的‘生态超级枢纽’”高度概括了文段核心脉络，最适合作为标题。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "准确概括了文段由认知误区（低估）到核心定位（生态超级枢纽/重新认识）的整体论述。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "尝试从文段提及的“调节气候”和“应对生态挑战”来拟题。",
+                "fatal_defect": "无中生有。文段并未提出守护湿地要“从应对气候变化开始”，气候调节仅是湿地诸多功能之一。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "尝试从“地球之肾”这一称谓拟题。",
+                "fatal_defect": "偏离主题。文段完全没有阐述湿地的“演化历程”与“治理困境”。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "尝试从文段提及的“植物根系与微生物降解污染物”拟题。",
+                "fatal_defect": "以偏概全。降解污染物仅是湿地多项功能中的细节之一，无法涵盖全文核心。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q008",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "以偏概全，“应对气候变化”仅为湿地功能之一，无法涵盖全文核心",
+            "C": "无中生有，文段并未论述湿地的“演化历程”与“治理困境”",
+            "D": "片面狭窄，仅概括了湿地净化水质这一局部机制，偏离整体生态地位"
+          },
+          "reference_ids": [
+            "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q7"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q009",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "Q009",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "由文段末句“在植株生长密集的环境下信号传递效率更高”可知，植株分布密度确实会影响预警网络的传递效率，C项表述准确。"
+          },
+          {
+            "id": "Q009",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "C项是对文段末尾“在植株生长密集的环境下信号传递效率更高”的同义替换，完全符合文意。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "无合理依据。",
+                "fatal_defect": "曲解文意且绝对化。文段仅表述遭受啃咬时会释放特定的VOCs，并未提及此前完全不释放VOCs。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "无合理依据。",
+                "fatal_defect": "曲解文意。原文是“促使其提前启动防御机制——例如合成更多抗虫单宁或释放招引寄生蜂的次生代谢物”，而非“可直接杀死”。"
+              },
+              "C": {
+                "stands": true,
+                "basis": "文段明确指出“在植株生长密集的环境下信号传递效率更高”，直接说明密度会影响传递效率。",
+                "fatal_defect": ""
+              },
+              "D": {
+                "stands": false,
+                "basis": "无合理依据。",
+                "fatal_defect": "与原文直接矛盾。文段明确指出“存在明确的距离边界，在数米范围内响应最为灵敏”。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q009",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "无中生有与绝对化，文段仅说明受啃咬时会释放，并未断言啃咬前绝对不释放",
+            "B": "曲解文意，文段说明的是合成抗虫单宁或招引寄生蜂，而非“直接杀死”",
+            "D": "与文意相悖，文段明确指出预警网络存在“明确的距离边界”"
+          },
+          "reference_ids": [
+            "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q45",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q47"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "Q010",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "Q010",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段尾句落在“如何在拥抱技术红利的同时构建负责任的生成式人工智能治理框架”这一核心命题上，接下来最可能围绕如何构建该治理框架的具体路径与举措展开，D项符合逻辑。"
+          },
+          {
+            "id": "Q010",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段尾句提出了亟待解答的核心问题——“如何在拥抱技术红利的同时构建负责任的生成式人工智能治理框架”。按照行文逻辑，下文应承接尾句提出的核心命题，具体阐述构建生成式AI治理框架的对策、路径与举措。D项与尾句核心论题直接对应。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "若是说明AI技术的具体原理，可承接前文的技术背景。",
+                "fatal_defect": "前文首句已提及技术赋能，属于前文已述且非尾句核心落脚点，逻辑倒退。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "若是举例说明问题，可承接转折后的问题罗列部分。",
+                "fatal_defect": "文段在提出问题后已进一步升华并提出“构建治理框架”这一最终设问，下文应聚焦于解决问题而非回退去举例论证既有问题。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "若是讲个体应对，可关联AI对内容创作生产范式的冲击。",
+                "fatal_defect": "脱离了尾句“构建生成式人工智能治理框架”的宏观制度与规则层面，主体狭隘且偏离主题。"
+              },
+              "D": {
+                "stands": true,
+                "basis": "直接承接尾句“如何构建负责任的生成式人工智能治理框架”这一核心命题，展开阐述具体路径与举措，逻辑最为紧密顺畅。",
+                "fatal_defect": ""
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "Q010",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "技术原理属于前文已完成铺垫的内容，偏离尾句落脚的核心治理问题",
+            "B": "纠纷案例属于前文问题分析的局部细枝末节，无法承接尾句提出的全局治理框架",
+            "C": "职业转型偏离了尾句落脚的“人工智能治理框架”这一宏观产学界议题"
+          },
+          "reference_ids": [
+            "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q39",
+            "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q56"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""签发并校骄1�71ￄ1�77 AI 题组正确怄1�71ￄ1�77/质量闸门回执〄1�71ￄ1�77"""
+"""签发并校骄1�71ￄ1�771ￄ1�71ￄ1�777 AI 题组正确怄1�71ￄ1�771ￄ1�71ￄ1�777/质量闸门回执〄1�71ￄ1�771ￄ1�71ￄ1�777"""
 
 from __future__ import annotations
 
@@ -19,6 +19,8 @@ from kaodian_taxonomy import (
     validate_ai_primary_tag,
     validate_ziliao_paper_answers,
 )
+from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
+from panduan_pack import is_panduan_paper, validate_panduan_paper
 from reference_style import has_images, match_level
 
 
@@ -90,14 +92,14 @@ def validate_ziliao_visual_evidence(batch_dir: Path, evidence: dict, image_paths
     if str(evidence.get("verdict") or "").upper() != "PASS":
         raise ValueError("资料分析多模态视觉质棢�未��过")
     if evidence.get("batch_id") != read_json(batch_dir / "manifest.json").get("batch_id"):
-        raise ValueError("视觉质检 batch_id 不一臄1�71ￄ1�77")
+        raise ValueError("视觉质检 batch_id 不一臄1�71ￄ1�771ￄ1�71ￄ1�777")
     if int(evidence.get("mobile_width") or 0) != 320 or "flash" not in str(evidence.get("model") or "").lower():
-        raise ValueError("视觉质检必须甄1�71ￄ1�77 Gemini Flash 同时棢�查原图和 320px 考生视图")
+        raise ValueError("视觉质检必须甄1�71ￄ1�771ￄ1�71ￄ1�777 Gemini Flash 同时棢�查原图和 320px 考生视图")
     expected = {str(path.relative_to(batch_dir.resolve())): digest(path) for path in image_paths}
     results = evidence.get("images") or []
     actual = {str(item.get("path") or ""): item for item in results if isinstance(item, dict)}
     if set(actual) != set(expected):
-        raise ValueError("视觉质检未覆盖批次全部资料分析图牄1�71ￄ1�77")
+        raise ValueError("视觉质检未覆盖批次全部资料分析图牄1�71ￄ1�771ￄ1�71ￄ1�777")
     required = ("complete", "no_overlap", "units_mapped", "mobile_readable", "context_consistent")
     for relative, sha in expected.items():
         item = actual[relative]
@@ -122,7 +124,7 @@ def run_ziliao_visual_gate(batch_dir: Path, image_paths: list[Path]) -> Path | N
         raise ValueError(f"Gemini Flash 多模态视觉质棢�失败：{detail[-1200:]}")
     evidence = read_json(output)
     if not isinstance(evidence, dict):
-        raise ValueError("视觉质检证据必须昄1�71ￄ1�77 JSON 对象")
+        raise ValueError("视觉质检证据必须昄1�71ￄ1�771ￄ1�71ￄ1�777 JSON 对象")
     validate_ziliao_visual_evidence(batch_dir, evidence, image_paths)
     return output
 
@@ -164,7 +166,7 @@ def reference_context_digests(batch_dir: Path, manifest: dict) -> dict[str, str]
                         option.get("images") for option in question.get("options") or []
                     )):
                         if target.get("image_mode") != "yes":
-                            raise ValueError(f"带图题必须使甄1�71ￄ1�77 images=yes 参��上下文：{context_id}/{qid}")
+                            raise ValueError(f"带图题必须使甄1�71ￄ1�771ￄ1�71ￄ1�777 images=yes 参��上下文：{context_id}/{qid}")
                 recorded_ids = json.loads(row["reference_ids"] or "[]")
                 if recorded_ids != (item.get("reference_ids") or []):
                     raise ValueError(f"参��上下文题目列表不一致：{context_id}")
@@ -210,10 +212,10 @@ def reference_context_digests(batch_dir: Path, manifest: dict) -> dict[str, str]
 def validate_batch_constraints(manifest: dict, questions: list[dict]) -> None:
     constraints = (manifest.get("generation") or {}).get("batch_constraints")
     if not isinstance(constraints, dict) or not constraints:
-        raise ValueError("v3 批次必须圄1�71ￄ1�77 generation.batch_constraints 固化用户要求")
+        raise ValueError("v3 批次必须圄1�71ￄ1�771ￄ1�71ￄ1�777 generation.batch_constraints 固化用户要求")
     generated = [question for question in questions if not is_zhenti_question(question)]
     if constraints.get("all_original") is True and len(generated) != len(questions):
-        raise ValueError("全原创批次不得混入真预1�71ￄ1�77")
+        raise ValueError("全原创批次不得混入真预1�71ￄ1�771ￄ1�71ￄ1�777")
     expected_count = int(constraints.get("question_count") or 0)
     if expected_count and len(generated) != expected_count:
         raise ValueError(f"原创题数量不符合 batch_constraints：{len(generated)}/{expected_count}")
@@ -239,7 +241,9 @@ def validate_batch_constraints(manifest: dict, questions: list[dict]) -> None:
     max_per_letter = int(constraints.get("answer_max_per_letter") or len(generated))
     min_letters = int(constraints.get("answer_min_letters") or 1)
     if answers and (max(answers.values()) > max_per_letter or len(answers) < min_letters):
-        raise ValueError(f"答案位置分布不符各1�71ￄ1�77 batch_constraints：{answers}")
+        raise ValueError(f"答案位置分布不符各1�71ￄ1�771ￄ1�71ￄ1�777 batch_constraints：{answers}")
+
+    validate_daily_paper_order(str(manifest.get("batch_id") or ""), questions)
 
 
 def all_image_paths_for_question(question: dict) -> list[str]:
@@ -250,21 +254,67 @@ def all_image_paths_for_question(question: dict) -> list[str]:
     return relatives
 
 
-def validate_context_coverage(manifest: dict, ids: list[str]) -> None:
+def question_needs_evaluate_holdout(question: dict) -> bool:
+    from kaodian_taxonomy import question_primary_tag
+    from normalize_ai_batch import has_question_images
+    from reference_style import has_evaluate_holdout
+
+    db_path = Path(os.environ.get("EXAM_DB", Path(__file__).resolve().parents[1] / "data" / "exam.db"))
+    if not db_path.is_file():
+        return False
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        return has_evaluate_holdout(
+            connection,
+            category=str(question.get("category") or ""),
+            sub_category=str(question.get("sub_category") or ""),
+            target_tag=question_primary_tag(question),
+            image_mode="yes" if has_question_images(question) else "any",
+        )
+    finally:
+        connection.close()
+
+
+def validate_context_coverage(manifest: dict, ids: list[str], questions: list[dict] | None = None) -> None:
     generation = manifest.get("generation") or {}
     expected = set(ids)
-    context_sets = {}
-    reference_sets = {}
-    for role in ("generation_contexts", "evaluation_contexts"):
-        contexts = generation.get(role) or []
-        covered = [str(qid) for item in contexts for qid in item.get("question_ids") or []]
-        if set(covered) != expected or len(covered) != len(expected):
-            raise ValueError(f"{role} 必须无重复覆盖全部生成题")
-        context_sets[role] = {str(item.get("context_id") or "") for item in contexts}
-        reference_sets[role] = {str(ref) for item in contexts for ref in item.get("reference_ids") or []}
-    if context_sets["generation_contexts"] & context_sets["evaluation_contexts"]:
+    eval_contexts = [
+        item for item in (generation.get("evaluation_contexts") or [])
+        if str(item.get("context_id") or "").strip()
+    ]
+    eval_covered = [str(qid) for item in eval_contexts for qid in item.get("question_ids") or []]
+    extra = set(eval_covered) - expected
+    if extra:
+        raise ValueError("evaluation_contexts 绑定了不存在的生成题")
+    if len(eval_covered) != len(set(eval_covered)):
+        raise ValueError("evaluation_contexts 不得重复绑定同一生成题")
+    missing = expected - set(eval_covered)
+    by_id = {str(question.get("external_id") or ""): question for question in (questions or [])}
+    must = []
+    for qid in missing:
+        question = by_id.get(qid)
+        if question is None or question_needs_evaluate_holdout(question):
+            must.append(qid)
+    if must:
+        raise ValueError("evaluation_contexts 必须覆盖有 holdout 的生成题")
+    gen_contexts = generation.get("generation_contexts") or []
+    gen_covered = [str(qid) for item in gen_contexts for qid in item.get("question_ids") or []]
+    extra = set(gen_covered) - expected
+    if extra:
+        raise ValueError("generation_contexts 绑定了不存在的生成题")
+    if len(gen_covered) != len(set(gen_covered)):
+        raise ValueError("generation_contexts 不得重复绑定同一生成题")
+    gen_ctx = {str(item.get("context_id") or "") for item in gen_contexts}
+    eval_ctx = {str(item.get("context_id") or "") for item in eval_contexts}
+    gen_ctx.discard("")
+    if "" in eval_ctx:
+        raise ValueError("evaluation_contexts 缺少 context_id")
+    if gen_ctx & eval_ctx:
         raise ValueError("generate/evaluate context 不得复用")
-    if reference_sets["generation_contexts"] & reference_sets["evaluation_contexts"]:
+    gen_refs = {str(ref) for item in gen_contexts for ref in item.get("reference_ids") or []}
+    eval_refs = {str(ref) for item in eval_contexts for ref in item.get("reference_ids") or []}
+    if gen_refs & eval_refs:
         raise ValueError("generate/evaluate 真题样本不得复用")
 
 
@@ -279,13 +329,13 @@ def validate_system_quality(batch_dir: Path, evidence: dict, ids: list[str]) -> 
         raise ValueError(f"ExamSystem 系统质检未��过：{rejected}")
     manifest = read_json(batch_dir / "manifest.json")
     if evidence.get("batch_id") != manifest.get("batch_id"):
-        raise ValueError("系统质检 batch_id 不一臄1�71ￄ1�77")
+        raise ValueError("系统质检 batch_id 不一臄1�71ￄ1�771ￄ1�71ￄ1�777")
     if "flash" not in str(evidence.get("model") or "").lower():
-        raise ValueError("系统质检必须甄1�71ￄ1�77 Gemini Flash 执行")
+        raise ValueError("系统质检必须甄1�71ￄ1�771ￄ1�71ￄ1�777 Gemini Flash 执行")
     if evidence.get("questions_sha256") != digest(batch_dir / "questions.json"):
-        raise ValueError("系统质检后的 questions.json 已变匄1�71ￄ1�77")
+        raise ValueError("系统质检后的 questions.json 已变匄1�71ￄ1�771ￄ1�71ￄ1�777")
     if evidence.get("manifest_sha256") != digest(batch_dir / "manifest.json"):
-        raise ValueError("系统质检后的 manifest.json 已变匄1�71ￄ1�77")
+        raise ValueError("系统质检后的 manifest.json 已变匄1�71ￄ1�771ￄ1�71ￄ1�777")
     results = evidence.get("results") or []
     actual = {str(item.get("question_id") or ""): item for item in results if isinstance(item, dict)}
     if set(actual) != set(ids):
@@ -311,7 +361,7 @@ def run_system_quality_gate(batch_dir: Path, ids: list[str]) -> Path:
         raise ValueError(f"ExamSystem 系统质检失败：{detail[-2000:]}")
     evidence = read_json(output)
     if not isinstance(evidence, dict):
-        raise ValueError("系统质检证据必须昄1�71ￄ1�77 JSON 对象")
+        raise ValueError("系统质检证据必须昄1�71ￄ1�771ￄ1�71ￄ1�777 JSON 对象")
     validate_system_quality(batch_dir, evidence, ids)
     return output
 
@@ -335,13 +385,13 @@ def atomic_json(path: Path, value: dict) -> None:
 def question_ids(batch_dir: Path) -> list[str]:
     questions = read_json(batch_dir / "questions.json")
     if not isinstance(questions, list):
-        raise ValueError("questions.json 必须是数组1�71ￄ1�77")
+        raise ValueError("questions.json 必须是数组1�71ￄ1�771ￄ1�71ￄ1�777")
     ids = [str(question.get("external_id") or "") for question in questions]
     if not ids or any(not value for value in ids) or len(set(ids)) != len(ids):
-        raise ValueError("questions.json external_id 缺失或重处1�71ￄ1�77")
+        raise ValueError("questions.json external_id 缺失或重处1�71ￄ1�771ￄ1�71ￄ1�777")
     for index, question in enumerate(questions):
         if not isinstance(question, dict):
-            raise ValueError(f"questions[{index}] 必须是对豄1�71ￄ1�77")
+            raise ValueError(f"questions[{index}] 必须是对豄1�71ￄ1�771ￄ1�71ￄ1�777")
         if is_zhenti_question(question):
             continue
         try:
@@ -353,7 +403,14 @@ def question_ids(batch_dir: Path) -> list[str]:
             ident = question.get("external_id") or index
             raise ValueError(f"questions[{ident}] {exc}") from exc
     _validate_ziliao_answer_layout(questions)
+    _validate_panduan_layout(questions)
     return [str(question.get("external_id") or "") for question in questions if not is_zhenti_question(question)]
+
+
+def _validate_panduan_layout(questions: list) -> None:
+    generated = generated_questions(questions)
+    if is_panduan_paper(generated):
+        validate_panduan_paper(generated)
 
 
 def _validate_ziliao_answer_layout(questions: list) -> None:
@@ -379,14 +436,14 @@ def validate_evidence(
     expected_context_ids: set[str] | None = None,
 ) -> None:
     if str(evidence.get("verdict") or "").upper() != "PASS":
-        raise ValueError(f"{kind} evidence verdict 必须丄1�71ￄ1�77 PASS")
+        raise ValueError(f"{kind} evidence verdict 必须丄1�71ￄ1�771ￄ1�71ￄ1�777 PASS")
     ids = [str(value) for value in evidence.get("question_ids") or []]
     if set(ids) != set(expected_ids) or len(ids) != len(expected_ids):
         raise ValueError(f"{kind} evidence 未覆盖本批全部题")
     if kind == "quality":
         contexts = {str(value) for value in evidence.get("evaluation_context_ids") or []}
         if contexts != (expected_context_ids or set()):
-            raise ValueError("quality evidence 的1�71ￄ1�77 evaluation_context_ids 丄1�71ￄ1�77 manifest 不一臄1�71ￄ1�77")
+            raise ValueError("quality evidence 的1�71ￄ1�771ￄ1�71ￄ1�777 evaluation_context_ids 丄1�71ￄ1�771ￄ1�71ￄ1�777 manifest 不一臄1�71ￄ1�771ￄ1�71ￄ1�777")
     checks = evidence.get("checks")
     if not isinstance(checks, list) or not checks:
         raise ValueError(f"{kind} evidence 必须列出实际棢�查项")
@@ -401,11 +458,13 @@ def issue(
     questions_path = batch_dir / "questions.json"
     manifest = read_json(manifest_path)
     if not isinstance(manifest, dict) or manifest.get("kind") != "ai-generated":
-        raise ValueError("只有 kind=ai-generated 的批次需要签叄1�71ￄ1�77")
+        raise ValueError("只有 kind=ai-generated 的批次需要签叄1�71ￄ1�771ￄ1�71ￄ1�777")
+    normalize_batch(batch_dir)
+    manifest = read_json(manifest_path)
     ids = question_ids(batch_dir)
     questions = read_json(questions_path)
     validate_batch_constraints(manifest, questions)
-    validate_context_coverage(manifest, ids)
+    validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
     system_path = run_system_quality_gate(batch_dir, ids)
     image_paths = ziliao_image_paths(batch_dir)
@@ -449,25 +508,25 @@ def safe_child(batch_dir: Path, relative: str) -> Path:
 def verify(batch_dir: Path) -> dict:
     receipt_path = batch_dir / RECEIPT
     if not receipt_path.is_file():
-        raise ValueError(f"缺少 {RECEIPT}；AI 生成批次未完成可审计双闸闄1�71ￄ1�77")
+        raise ValueError(f"缺少 {RECEIPT}；AI 生成批次未完成可审计双闸闄1�71ￄ1�771ￄ1�71ￄ1�777")
     receipt = read_json(receipt_path)
     manifest_path = batch_dir / "manifest.json"
     questions_path = batch_dir / "questions.json"
     if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION}:
-        raise ValueError("闸门回执版本不支挄1�71ￄ1�77")
+        raise ValueError("闸门回执版本不支挄1�71ￄ1�771ￄ1�71ￄ1�777")
     manifest = read_json(manifest_path)
     ids = question_ids(batch_dir)
     if receipt.get("batch_id") != manifest.get("batch_id"):
-        raise ValueError("闸门回执 batch_id 不一臄1�71ￄ1�77")
+        raise ValueError("闸门回执 batch_id 不一臄1�71ￄ1�771ￄ1�71ￄ1�777")
     if receipt.get("question_ids") != ids:
-        raise ValueError("闸门回执题目列表不一臄1�71ￄ1�77")
+        raise ValueError("闸门回执题目列表不一臄1�71ￄ1�771ￄ1�71ￄ1�777")
     if receipt.get("manifest_sha256") != digest(manifest_path):
-        raise ValueError("manifest 在闸门签发后被修攄1�71ￄ1�77")
+        raise ValueError("manifest 在闸门签发后被修攄1�71ￄ1�771ￄ1�71ￄ1�777")
     if receipt.get("questions_sha256") != digest(questions_path):
-        raise ValueError("questions 在闸门签发后被修攄1�71ￄ1�77")
+        raise ValueError("questions 在闸门签发后被修攄1�71ￄ1�771ￄ1�71ￄ1�777")
     version = receipt.get("version")
     if version == VERSION and receipt.get("reference_contexts") != reference_context_digests(batch_dir, manifest):
-        raise ValueError("参��上下文或其真题内容在闸门签发后被修攄1�71ￄ1�77")
+        raise ValueError("参��上下文或其真题内容在闸门签发后被修攄1�71ￄ1�771ￄ1�71ￄ1�777")
     if version in LEGACY_VERSIONS:
         for kind in ("correctness", "quality"):
             meta = receipt.get(kind) or {}
@@ -476,7 +535,7 @@ def verify(batch_dir: Path) -> dict:
                 raise ValueError(f"{kind} 证据缺失或被修改")
     if version in {2, VERSION}:
         if receipt.get("artifacts") != artifact_digests(batch_dir):
-            raise ValueError("材料、计算清单��图片或找数侧车在闸门签发后被修攄1�71ￄ1�77")
+            raise ValueError("材料、计算清单��图片或找数侧车在闸门签发后被修攄1�71ￄ1�771ￄ1�71ￄ1�777")
         image_paths = ziliao_image_paths(batch_dir)
         if image_paths:
             meta = receipt.get("visual_quality") or {}

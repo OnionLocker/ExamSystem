@@ -43,9 +43,27 @@ const withToken = (url) => `${url}${url.includes('?') ? '&' : '?'}token=${encode
 
 const typeLabelOf = (t) => (t === 'multi' ? '多选题' : t === 'judge' ? '判断题' : '单选题');
 
-const keepMaterialGroups = (items) => {
-  if (!items.some((q) => q.material_id)) return items;
-  return [...items].sort((a, b) => (a.material_id || 0) - (b.material_id || 0) || a.id - b.id);
+const keepMaterialGroups = (items, batchId = '') => {
+  const daily = String(batchId).startsWith('daily-');
+  const blob = (q) => `${q.sub_category || ''}${JSON.stringify(q.tags || [])}`;
+  const rank = (q) => {
+    const cat = String(q.category || '');
+    const text = blob(q);
+    if (cat === '数量关系') return text.includes('数字推理') ? 1 : 2;
+    if (cat === '判断推理') {
+      if (text.includes('科学推理')) return 3;
+      if (text.includes('图形推理')) return 1;
+      return 2;
+    }
+    if (cat === '言语理解与表达') return text.includes('逻辑填空') ? 1 : 2;
+    return 0;
+  };
+  if (!daily && !items.some((q) => q.material_id)) return items;
+  return [...items].sort((a, b) =>
+    (daily ? rank(a) - rank(b) : 0)
+    || (a.material_id || 0) - (b.material_id || 0)
+    || a.id - b.id
+  );
 };
 
 const isZhenti = (q) =>
@@ -440,13 +458,14 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           return;
         }
 
-        const params = new URLSearchParams({ batch_id: batchId, random: '1', limit: '30' });
+        const params = new URLSearchParams({ batch_id: batchId, limit: '50' });
+        if (!String(batchId).startsWith('daily-')) params.set('random', '1');
         const [qres, hist] = await Promise.all([
           api('/api/questions?' + params.toString()),
           api('/api/questions/meta/history?batch_id=' + encodeURIComponent(batchId)).catch(() => ({})),
         ]);
         if (aborted) return;
-        const items = keepMaterialGroups(qres?.items || []);
+        const items = keepMaterialGroups(qres?.items || [], batchId);
         if (items.length === 0) { setPhase('empty'); return; }
         const s = await api('/api/practice/sessions', { method: 'POST', body: { category: batchId } });
         if (aborted) return;

@@ -47,6 +47,27 @@ const attachMaterials = (rows) => {
 //   ?category=   ?sub_category=   ?batch_id=
 //   ?random=1    ?limit=30
 // ─────────────────────────────────────────────
+
+const isDailyBatch = (batchId) => String(batchId || '').startsWith('daily-');
+const paperBlob = (q) => `${q.sub_category || ''}${JSON.stringify(q.tags || [])}`;
+const paperRank = (q) => {
+  const cat = String(q.category || '');
+  const blob = paperBlob(q);
+  if (cat === '\u6570\u91cf\u5173\u7cfb') return blob.includes('\u6570\u5b57\u63a8\u7406') ? 1 : 2;
+  if (cat === '\u5224\u65ad\u63a8\u7406') {
+    if (blob.includes('\u79d1\u5b66\u63a8\u7406')) return 3;
+    if (blob.includes('\u56fe\u5f62\u63a8\u7406')) return 1;
+    return 2;
+  }
+  if (cat === '\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe') return blob.includes('\u903b\u8f91\u586b\u7a7a') ? 1 : 2;
+  return 0;
+};
+const sortDailyPaper = (items) => [...items].sort((a, b) =>
+  paperRank(a) - paperRank(b)
+  || (a.material_id || 0) - (b.material_id || 0)
+  || a.id - b.id
+);
+
 router.get('/', (req, res) => {
   const { category, sub_category, batch_id, random, limit } = req.query;
   const lim = Math.min(200, Math.max(1, parseInt(limit) || 30));
@@ -63,7 +84,8 @@ router.get('/', (req, res) => {
     .prepare('SELECT 1 AS x FROM questions WHERE batch_id = ? AND material_id IS NOT NULL LIMIT 1')
     .get(batch_id);
   // 资料分析一组材料绑多题：乱序会把同一份材料拆开，左边跟着跳。
-  const order = grouped
+  const daily = isDailyBatch(batch_id);
+  const order = grouped || daily
     ? 'ORDER BY material_id, id'
     : random === '1' ? 'ORDER BY RANDOM()' : 'ORDER BY id ASC';
 
@@ -77,7 +99,9 @@ router.get('/', (req, res) => {
     )
     .all(...params, lim);
 
-  res.json({ items: attachMaterials(rows), total: rows.length });
+  let items = attachMaterials(rows);
+  if (daily) items = sortDailyPaper(items);
+  res.json({ items, total: items.length });
 });
 
 // ─────────────────────────────────────────────
@@ -104,31 +128,47 @@ router.get('/meta/categories', (_req, res) => {
 //   correct_count: 累计答对次数（含重复刷）
 //   last_answered_at: 最近一次作答时间
 // ─────────────────────────────────────────────
-router.get('/meta/batches', (_req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT
-         q.batch_id,
-         MAX(q.source)                          AS source,
-         COUNT(DISTINCT q.id)                   AS count,
-         COUNT(DISTINCT pa.question_id)          AS done_count,
-         COALESCE(SUM(pa.is_correct), 0)         AS correct_count,
-         COUNT(pa.id)                            AS attempt_count,
-         MAX(pa.answered_at)                     AS last_answered_at,
-         -- 没交卷的残局（ended_at IS NULL）不算一次，所以重做到一半跑了不会盖掉旧成绩
-         (SELECT ps.id FROM practice_sessions ps
-           WHERE ps.category = q.batch_id
-             AND ps.ended_at IS NOT NULL
-             AND ps.total > 0
-           ORDER BY ps.ended_at DESC
-           LIMIT 1)                              AS last_session_id
-       FROM questions q
-       LEFT JOIN practice_answers pa ON pa.question_id = q.id
-       WHERE q.batch_id IS NOT NULL AND q.batch_id != ''
-       GROUP BY q.batch_id
-       ORDER BY COALESCE(MAX(pa.answered_at), MAX(q.created_at)) DESC`,
-    )
-    .all();
+router.get('/meta/batches', (req, res) => {
+  const includeScheduled = ['1', 'true'].includes(String(req.query.include_scheduled || '').toLowerCase());
+  const module = req.query.module ? String(req.query.module) : null;
+  const date = req.query.date ? String(req.query.date) : null;
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  const where = [includeScheduled ? '1 = 1' : 'b.count > 0'];
+  const params = [];
+  if (module) { where.push('COALESCE(r.module, b.category) = ?'); params.push(module); }
+  const planDate = `COALESCE(r.plan_date, CASE WHEN substr(b.batch_id, 1, 8) GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' THEN substr(b.batch_id, 1, 4) || '-' || substr(b.batch_id, 5, 2) || '-' || substr(b.batch_id, 7, 2) END, date(b.created_at, '+8 hours'))`;
+  if (date) { where.push(`${planDate} = ?`); params.push(date); }
+  const rows = db.prepare(
+    `WITH question_batches AS (
+       SELECT q.batch_id, MAX(q.source) AS source, MAX(q.category) AS category,
+              MAX(q.created_at) AS created_at, COUNT(DISTINCT q.id) AS count,
+              COUNT(DISTINCT pa.question_id) AS done_count,
+              COALESCE(SUM(pa.is_correct), 0) AS correct_count,
+              COUNT(pa.id) AS attempt_count, MAX(pa.answered_at) AS last_answered_at
+         FROM questions q LEFT JOIN practice_answers pa ON pa.question_id = q.id
+        WHERE q.batch_id IS NOT NULL AND q.batch_id != '' GROUP BY q.batch_id
+     ), batch_ids AS (
+       SELECT batch_id FROM question_batches UNION
+       SELECT batch_id FROM ai_daily_batch_runs WHERE batch_id IS NOT NULL AND batch_id != '' AND status != 'deleted'
+     ), batches AS (
+       SELECT ids.batch_id, qb.source, qb.category, qb.created_at,
+              COALESCE(qb.count, 0) AS count, COALESCE(qb.done_count, 0) AS done_count,
+              COALESCE(qb.correct_count, 0) AS correct_count,
+              COALESCE(qb.attempt_count, 0) AS attempt_count, qb.last_answered_at
+         FROM batch_ids ids LEFT JOIN question_batches qb ON qb.batch_id = ids.batch_id
+     )
+     SELECT b.batch_id, COALESCE(b.source, r.source) AS source, b.count, b.done_count,
+            b.correct_count, b.attempt_count, b.last_answered_at,
+            (SELECT ps.id FROM practice_sessions ps WHERE ps.category = b.batch_id AND ps.ended_at IS NOT NULL AND ps.total > 0 ORDER BY ps.ended_at DESC LIMIT 1) AS last_session_id,
+            COALESCE(b.category, r.module) AS category, COALESCE(r.module, b.category) AS module,
+            ${planDate} AS plan_date, r.plan_date AS daily_plan_date,
+            COALESCE(b.created_at, r.imported_at, r.created_at) AS created_at,
+            COALESCE(r.status, 'imported') AS status
+       FROM batches b LEFT JOIN ai_daily_batch_runs r ON r.id = (
+         SELECT ar.id FROM ai_daily_batch_runs ar WHERE ar.batch_id = b.batch_id ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
+       ) WHERE ${where.join(' AND ')}
+       ORDER BY COALESCE(b.last_answered_at, r.imported_at, b.created_at, r.created_at) DESC`,
+  ).all(...params);
   res.json(rows);
 });
 
@@ -162,6 +202,7 @@ router.delete('/batch/:batchId', (req, res) => {
     const s = db.prepare('DELETE FROM practice_sessions WHERE category = ?').run(batchId);
     const q = db.prepare('DELETE FROM questions WHERE batch_id = ?').run(batchId);
     db.prepare('DELETE FROM materials WHERE batch_id = ?').run(batchId);
+    db.prepare("UPDATE ai_daily_batch_runs SET status='deleted', error=NULL, updated_at=datetime('now') WHERE batch_id=?").run(batchId);
     return { sessions: s.changes, questions: q.changes };
   });
 

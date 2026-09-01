@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""把真题参考库整理成 Hermes 可复用的风格提纲，并按考点选择少量样本。
+"""把真题参考库整理戄� Hermes 可复用的风格提纲，并按��点选择少量样本〄�
 
-用法：
+用法＄�
   python3 scripts/reference_style.py build
   python3 scripts/reference_style.py status
   python3 scripts/reference_style.py context --role generate \
     --category 判断推理 --sub-category 逻辑判断 \
     --tag 判断推理-逻辑判断-加强论证 --count 5
 
-不调用外部模型。定量画像和逐题内容哈希由本脚本生成；定性命题规则维护在
-quiz-pipeline/references/reference-style-principles.md。
+不调用外部模型��定量画像和逐题内容哈希由本脚本生成；定性命题规则维护在
+quiz-pipeline/references/reference-style-principles.md〄�
 """
 
 from __future__ import annotations
@@ -56,23 +56,23 @@ SOURCE_TIER_SCORE = {
 }
 SOURCE_TIER_LABEL = {
     "gd-real": "广东/深圳/广州真题",
-    "gd-mock": "广东地区模拟题",
-    "national-real": "国考真题",
+    "gd-mock": "广东地区模拟预�",
+    "national-real": "国��真预�",
     "other-real": "其他地区真题",
-    "other-mock": "其他模拟题",
-    "unknown": "来源待确认",
+    "other-mock": "其他模拟预�",
+    "unknown": "来源待确讄�",
 }
 TAG_OVERRIDES = {
-    "粉笔-2022-上海B类-马克思主义-91": ["政治理论-马克思主义-唯物史观"],
+    "粉笔-2022-上海B籄�-马克思主乄�-91": ["政治理论-马克思主乄�-唯物史观"],
 }
 GD_GENERATE_BLOCK = ("定义判断", "类比推理")
 MANUAL_EXCLUSIONS = {
-    "粉笔-2026-福建-片段阅读-48": "回忆文本末句语义疑似错字，不能作为生成范本",
+    "粉笔-2026-福建-片段阅读-48": "回忆文本末句语义疑似错字，不能作为生成范朄�",
     "粉笔-2024-青海-语句表达-48": "回忆文本中的时代顺序疑似错置",
-    "粉笔-2025-四川-语句表达-44": "回忆文本存在明显语病或漏字",
+    "粉笔-2025-四川-语句表达-44": "回忆文本存在明显语病或漏孄�",
     "粉笔-2026-国家-语句表达-48": "关键希腊字母在导入时丢失",
-    "粉笔-2026-浙江C类-数学运算-58": "部门总人数与选派人数边界疑似缺失",
-    "粉笔-2024-黑龙江-逻辑判断-96": "选项文字被截断",
+    "粉笔-2026-浙江C籄�-数学运算-58": "部门总人数与选派人数边界疑似缺失",
+    "粉笔-2024-黑龙汄�-逻辑判断-96": "选项文字被截斄�",
 }
 
 SCHEMA = """
@@ -163,7 +163,7 @@ def content_hash(row: sqlite3.Row | dict[str, Any]) -> str:
 
 
 def duplicate_signature(row: sqlite3.Row | dict[str, Any]) -> str:
-    # 同一句通用图推题干配不同图片不是重复题，所以图片路径也参与签名。
+    # 同一句��用图推题干配不同图片不是重复题，所以图片路径也参与签名〄�
     payload = canonical_payload(row)
     raw = json.dumps(
         {
@@ -229,13 +229,28 @@ def pick_mixed(
     return chosen[:count]
 
 
+def prefer_family_candidates(
+    role: str,
+    target_tag: str,
+    candidates: list[tuple],
+) -> list[tuple]:
+    """Evaluate packs keep the tightest family that still has items. Do not pad with siblings."""
+    if role != "evaluate" or not target_tag or not candidates:
+        return candidates
+    for floor in (6, 5):
+        kept = [item for item in candidates if item[2] >= floor]
+        if kept:
+            return kept
+    return candidates
+
+
 def source_tier(row: sqlite3.Row | dict[str, Any]) -> str:
     source = compact_text(row["source"])
     region = compact_text(row["region"])
     joined = f"{source} {region}"
-    is_mock = any(word in joined for word in ("模拟", "模考"))
+    is_mock = any(word in joined for word in ("模拟", "模�ￄ�"))
     is_gd = any(word in joined for word in ("广东", "深圳", "广州"))
-    is_national = region == "国家" or "国家公务员" in joined or "国考" in joined
+    is_national = region == "国家" or "国家公务呄�" in joined or "国�ￄ�" in joined
     if is_gd:
         return "gd-mock" if is_mock else "gd-real"
     if is_national and not is_mock:
@@ -298,7 +313,7 @@ def load_rows(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 
 
 def load_legacy_rows(category: str) -> list[dict[str, Any]]:
-    """读取旧结构化真题作缺类回退。资料分析 PDF 只抽出导语、丢掉表/图，不能当参考。"""
+    """读取旧结构化真题作缺类回逢�。资料分构� PDF 只抽出导语��丢掉表/图，不能当参考�ￄ�"""
     rows: list[dict[str, Any]] = []
     if category == "资料分析" or not ZHENTI_DIR.is_dir() or not category:
         return rows
@@ -312,7 +327,7 @@ def load_legacy_rows(category: str) -> list[dict[str, Any]]:
         region = (
             "广东"
             if "广东" in title
-            else ("国家" if "国家公务员" in title else compact_text(document.get("exam")))
+            else ("国家" if "国家公务呄�" in title else compact_text(document.get("exam")))
         )
         materials = {
             compact_text(item.get("ref")): str(item.get("text") or "")
@@ -323,7 +338,7 @@ def load_legacy_rows(category: str) -> list[dict[str, Any]]:
             if not isinstance(question, dict) or question.get("module") != category:
                 continue
             if question.get("has_figure"):
-                # 旧 JSON 只有 figure_note，没有可读取的实际切图，不能冒充视觉参考。
+                # 旄� JSON 只有 figure_note，没有可读取的实际切图，不能冒充视觉参���ￄ�
                 continue
             raw_options = question.get("options") or {}
             if isinstance(raw_options, dict):
@@ -365,7 +380,7 @@ def load_legacy_rows(category: str) -> list[dict[str, Any]]:
                     "explanation_images": "[]",
                     "difficulty": 3,
                     "tags": json.dumps(tags, ensure_ascii=False),
-                    "source": f"{title} 第{question.get('number')}题",
+                    "source": f"{title} 第{question.get('number')}预�",
                     "year": year,
                     "region": region,
                     "material": material,
@@ -407,7 +422,7 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
             assignments[duplicate["external_id"]] = {
                 "status": "excluded",
                 "source_tier": source_tier(duplicate),
-                "note": f"与 {ranked[0]['external_id']} 整题重复",
+                "note": f"丄� {ranked[0]['external_id']} 整题重复",
             }
 
     evaluation_only_ids = {
@@ -438,7 +453,7 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
     for row in usable:
         if row["external_id"] in evaluation_only_ids or row["external_id"] in generation_only_ids:
             continue
-        by_group[(row["category"], row["sub_category"] or "未细分")].append(row)
+        by_group[(row["category"], row["sub_category"] or "未细刄�")].append(row)
 
     for group_rows in by_group.values():
         holdout_ids = {
@@ -446,10 +461,10 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
             for row in group_rows
             if int(content_hash(row)[:8], 16) % 100 < 15
         }
-        # 每个有一定规模的题型至少留一题做独立风格评测。
+        # 每个有一定规模的题型至少留一题做独立风格评测〄�
         if len(group_rows) >= 6 and not holdout_ids:
             holdout_ids.add(min(group_rows, key=lambda row: content_hash(row))["external_id"])
-        # 小样本题型最多留 20%，避免可检索样本被切得过薄。
+        # 小样本题型最多留 20%，避免可棢�索样本被切得过薄〄�
         max_holdout = max(1, round(len(group_rows) * 0.2))
         if len(holdout_ids) > max_holdout:
             ordered = sorted(
@@ -462,7 +477,7 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
             assignments[row["external_id"]] = {
                 "status": "holdout" if row["external_id"] in holdout_ids else "accepted",
                 "source_tier": source_tier(row),
-                "note": "独立风格评测留出集" if row["external_id"] in holdout_ids else "",
+                "note": "独立风格评测留出雄�" if row["external_id"] in holdout_ids else "",
             }
 
     by_category: dict[str, list[sqlite3.Row]] = defaultdict(list)
@@ -478,7 +493,7 @@ def choose_assignments(rows: list[sqlite3.Row]) -> dict[str, dict[str, str]]:
         assignments[row["external_id"]] = {
             "status": "holdout",
             "source_tier": source_tier(row),
-            "note": "独立风格评测留出集",
+            "note": "独立风格评测留出雄�",
         }
 
     return assignments
@@ -512,7 +527,7 @@ def question_tail(content: Any) -> str:
         return ""
     ask_pattern = re.compile(
         r"((?:下列|以下|关于|根据|依次填入|填入|将以上|请问|这段文字|上述文字|"
-        r"最可能|最能够|最能)[^。！？?：:]{2,110}(?:[。！？?：:]|$))"
+        r"朢�可能|朢�能够|朢�胄�)[^。！＄�?＄�:]{2,110}(?:[。！＄�?＄�:]|$))"
     )
     asks = [compact_text(match.group(1)) for match in ask_pattern.finditer(text)]
     if asks:
@@ -520,7 +535,7 @@ def question_tail(content: Any) -> str:
     if len(text) <= 90:
         return text
     tail = text[-150:]
-    cuts = [match.end() for match in re.finditer(r"[。！？?；;]", tail[:-8])]
+    cuts = [match.end() for match in re.finditer(r"[。！＄�?＄�;]", tail[:-8])]
     if cuts:
         tail = tail[cuts[-1] :]
     tail = tail.strip()
@@ -579,7 +594,7 @@ def summarize_rows(rows: list[sqlite3.Row]) -> dict[str, Any]:
 
 
 def markdown_escape(text: str) -> str:
-    return text.replace("|", "｜").replace("\n", " ")
+    return text.replace("|", "ｄ�").replace("\n", " ")
 
 
 def render_profile(
@@ -600,55 +615,55 @@ def render_profile(
     target_summary = summarize_rows(gd_rows) if gd_rows else None
     by_group: dict[tuple[str, str], list[sqlite3.Row]] = defaultdict(list)
     for row in included:
-        by_group[(row["category"], row["sub_category"] or "未细分")].append(row)
+        by_group[(row["category"], row["sub_category"] or "未细刄�")].append(row)
 
     lines = [
-        "# 真题参考库风格数据档",
+        "# 真题参��库风格数据桄�",
         "",
         f"> 内化标记：`{DIGEST_VERSION}`  ",
         f"> 构建时间：`{built_at}`  ",
         f"> 语料哈希：`{corpus_hash}`  ",
-        f"> 已处理：{len(rows)}｜生成参考：{counts['accepted']}｜评测留出：{counts['holdout']}｜排除：{counts['excluded']}｜待处理：0",
+        f"> 已处理：{len(rows)}｜生成参考：{counts['accepted']}｜评测留出：{counts['holdout']}｜排除：{counts['excluded']}｜待处理＄�0",
         "",
-        "本文件由 `scripts/reference_style.py build` 根据参考库重建。它给出真实题面的定量边界；",
-        "定性命题规则见同目录 `reference-style-principles.md`。不得把本文件中的设问样例当题干模板机械替换。",
+        "本文件由 `scripts/reference_style.py build` 根据参��库重建。它给出真实题面的定量边界；",
+        "定��命题规则见同目彄� `reference-style-principles.md`。不得把本文件中的设问样例当题干模板机械替换〄�",
         "",
         "## 使用纪律",
         "",
-        "- 生成包默认省考 3 道定题面，再混 1–2 道同考点国考作难度上限；`holdout` 只供独立质量审查，且优先省考。",
-        "- **默认目标分位只看广东真题。** 国考分位见文末「国考拔高分位」，只约束认知步数和干扰深度，不拉长题干。",
-        "- 定义判断、类比推理不进入广东批次参考包。",
-        "- 参考题用于学习认知步骤、设问、信息密度和选项关系，严禁复用实体、数字、人物关系或连续措辞。",
-        "- 带图题必须实际读取本地图片；只看通用题干不能算使用过参考题。",
-        "- 参考库没有解析，干扰项机理只能作为待复核假设，不能凭空写成“真题规律”。",
+        "- 生成包默认省耄� 3 道定题面，再淄� 1 �2 道同考点国��作难度上限；`holdout` 只供独立质量审查，且优先省���ￄ�",
+        "- **默认目标分位只看广东真题〄�** 国��分位见文末「国考拔高分位��，只约束认知步数和干扰深度，不拉长题干〄�",
+        "- 定义判断、类比推理不进入广东批次参��包〄�",
+        "- 参��题用于学习认知步骤、设问��信息密度和选项关系，严禁复用实体��数字��人物关系或连续措辞〄�",
+        "- 带图题必须实际读取本地图片；只看通用题干不能算使用过参��题〄�",
+        "- 参��库没有解析，干扰项机理只能作为待复核假设，不能凭空写成“真题规律���ￄ�",
         "",
         "## 全库概况",
         "",
-        f"- 可用样本：{all_summary['count']}（广东 {len(gd_rows)}／国考 {len(gk_rows)}）；"
-        f"含图 {all_summary['image_count']}；含解析 {all_summary['explanation_count']}。",
-        "- 来源层级："
-        + "；".join(
+        f"- 可用样本：{all_summary['count']}（广丄� {len(gd_rows)}／国耄� {len(gk_rows)}）；"
+        f"含图 {all_summary['image_count']}；含解析 {all_summary['explanation_count']}〄�",
+        "- 来源层级＄�"
+        + "＄�".join(
             f"{SOURCE_TIER_LABEL.get(tier, tier)} {count}"
             for tier, count in sorted(
                 all_summary["source_tiers"].items(),
                 key=lambda item: -SOURCE_TIER_SCORE.get(item[0], 0),
             )
         )
-        + "。",
+        + "〄�",
     ]
     if target_summary:
         lines.extend(
             [
-                f"- **默认目标分位（仅广东真题 {target_summary['count']} 道）：**"
-                f"题干 P25/P50/P75：{target_summary['stem']['p25']}/{target_summary['stem']['p50']}/{target_summary['stem']['p75']}；"
-                f"选项：{target_summary['option']['p25']}/{target_summary['option']['p50']}/{target_summary['option']['p75']}。",
+                f"- **默认目标分位（仅广东真题 {target_summary['count']} 道）＄�**"
+                f"题干 P25/P50/P75：{target_summary['stem']['p25']}/{target_summary['stem']['p50']}/{target_summary['stem']['p75']}＄�"
+                f"选项：{target_summary['option']['p25']}/{target_summary['option']['p50']}/{target_summary['option']['p75']}〄�",
                 "",
             ]
         )
     else:
-        lines.extend(["- 当前没有广东真题样本，先不要用全库混合分位当默认目标。", ""])
+        lines.extend(["- 当前没有广东真题样本，先不要用全库混合分位当默认目标〄�", ""])
 
-    lines.extend(["## 分题型画像（默认分位=广东）", ""])
+    lines.extend(["## 分题型画像（默认分位=广东＄�", ""])
 
     for (category, sub_category), group_rows in sorted(by_group.items()):
         summary = summarize_rows(group_rows)
@@ -658,38 +673,38 @@ def render_profile(
             [
                 f"### {category}｜{sub_category}",
                 "",
-                f"- 样本 {summary['count']}；年份 {summary['year_min'] or '未知'}–{summary['year_max'] or '未知'}；"
-                f"含图 {summary['image_count']}；含解析 {summary['explanation_count']}。",
-                "- 来源："
-                + "；".join(
+                f"- 样本 {summary['count']}；年仄� {summary['year_min'] or '未知'}–{summary['year_max'] or '未知'}＄�"
+                f"含图 {summary['image_count']}；含解析 {summary['explanation_count']}〄�",
+                "- 来源＄�"
+                + "＄�".join(
                     f"{SOURCE_TIER_LABEL.get(tier, tier)} {count}"
                     for tier, count in sorted(
                         summary["source_tiers"].items(),
                         key=lambda item: -SOURCE_TIER_SCORE.get(item[0], 0),
                     )
                 )
-                + "。",
+                + "〄�",
             ]
         )
         if target:
             lines.append(
-                f"- **目标分位（广东 {target['count']}）：**"
-                f"题干 P25/P50/P75：{target['stem']['p25']}/{target['stem']['p50']}/{target['stem']['p75']}；"
-                f"选项：{target['option']['p25']}/{target['option']['p50']}/{target['option']['p75']}。"
+                f"- **目标分位（广丄� {target['count']}）：**"
+                f"题干 P25/P50/P75：{target['stem']['p25']}/{target['stem']['p50']}/{target['stem']['p75']}＄�"
+                f"选项：{target['option']['p25']}/{target['option']['p50']}/{target['option']['p75']}〄�"
             )
         else:
-            lines.append("- 无广东真题样本，本小节分位不作为默认目标。")
+            lines.append("- 无广东真题样本，本小节分位不作为默认目标〄�")
         if summary["top_tags"]:
             lines.append(
-                "- 高频标签："
-                + "；".join(
-                    f"{markdown_escape(tag)}（{count}）"
+                "- 高频标签＄�"
+                + "＄�".join(
+                    f"{markdown_escape(tag)}（{count}＄�"
                     for tag, count in summary["top_tags"]
                 )
-                + "。"
+                + "〄�"
             )
         if target and target["question_tails"]:
-            lines.append("- 代表性设问收尾（只学结构，取自广东）：")
+            lines.append("- 代表性设问收尾（只学结构，取自广东）＄�")
             lines.extend(
                 f"  - {markdown_escape(tail)}" for tail in target["question_tails"]
             )
@@ -698,15 +713,15 @@ def render_profile(
     if gk_rows:
         gk_groups: dict[tuple[str, str], list[sqlite3.Row]] = defaultdict(list)
         for row in gk_rows:
-            gk_groups[(row["category"], row["sub_category"] or "未细分")].append(row)
+            gk_groups[(row["category"], row["sub_category"] or "未细刄�")].append(row)
         gk_summary = summarize_rows(gk_rows)
         lines.extend(
             [
-                "## 国考拔高分位",
+                "## 国��拔高分佄�",
                 "",
-                "只用来卡认知步数和干扰深度，不替代上面的广东目标分位。",
-                f"- 国考可用样本：{gk_summary['count']}；"
-                f"题干 P25/P50/P75：{gk_summary['stem']['p25']}/{gk_summary['stem']['p50']}/{gk_summary['stem']['p75']}。",
+                "只用来卡认知步数和干扰深度，不替代上面的广东目标分位〄�",
+                f"- 国��可用样本：{gk_summary['count']}＄�"
+                f"题干 P25/P50/P75：{gk_summary['stem']['p25']}/{gk_summary['stem']['p50']}/{gk_summary['stem']['p75']}〄�",
                 "",
             ]
         )
@@ -714,7 +729,7 @@ def render_profile(
             summary = summarize_rows(group_rows)
             lines.append(
                 f"- {category}｜{sub_category}：{summary['count']} 道；"
-                f"题干 {summary['stem']['p25']}/{summary['stem']['p50']}/{summary['stem']['p75']}。"
+                f"题干 {summary['stem']['p25']}/{summary['stem']['p50']}/{summary['stem']['p75']}〄�"
             )
         lines.append("")
 
@@ -898,7 +913,7 @@ def build_digest(conn: sqlite3.Connection, output_dir: Path) -> dict[str, Any]:
                     values,
                 )
 
-        # 只有提纲和状态文件均成功落盘，才提交逐题“已内化”标记。
+        # 只有提纲和状态文件均成功落盘，才提交逐题“已内化”标记�ￄ�
         atomic_write(
             output_dir / PRINCIPLES_NAME,
             CANONICAL_GUIDE.read_text(encoding="utf-8"),
@@ -916,7 +931,7 @@ def build_digest(conn: sqlite3.Connection, output_dir: Path) -> dict[str, Any]:
 
 
 def tag_parts(tag: str) -> list[str]:
-    return [part for part in re.split(r"[-/—>＞]+", compact_text(tag)) if part]
+    return [part for part in re.split(r"[-/ �>＞]+", compact_text(tag)) if part]
 
 
 def match_level(
@@ -930,7 +945,7 @@ def match_level(
     if sub_category and row["sub_category"] and row["sub_category"] != sub_category:
         return -1
     row_tags = [str(tag) for tag in effective_tags(row) if str(tag).strip()]
-    if target_tag and category == "言语理解与表达":
+    if target_tag and category == "訢�语理解与表达":
         def yanyu_family(value: str) -> str:
             if "逻辑填空" in value:
                 if any(word in value for word in ("词语辨析", "词的辨析", "实词", "成语", "混搭")):
@@ -980,7 +995,8 @@ def match_level(
                     break
                 common += 1
             if common >= 2:
-                best = max(best, 5 if common == min(len(target_parts), len(parts)) else 4)
+                # Prefix-only (request more specific than row) is family-adjacent, not same principle.
+                best = max(best, 5 if common >= len(target_parts) else 4)
             elif target_parts and parts and target_parts[0] == parts[0] and set(target_parts[1:]) & set(parts[1:]):
                 best = max(best, 2)
         return best
@@ -1065,16 +1081,18 @@ def row_for_context(row: sqlite3.Row | dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def select_context(
+def collect_context_candidates(
     conn: sqlite3.Connection,
     *,
     role: str,
     category: str,
     sub_category: str,
     target_tag: str,
-    count: int,
     image_mode: str,
-) -> dict[str, Any]:
+    exclude_ids: set[str] | None = None,
+) -> tuple[list[tuple], str]:
+    conn.row_factory = sqlite3.Row
+    exclude_ids = {str(value) for value in (exclude_ids or set())}
     rows = load_rows(conn)
     ledger = {
         row["external_id"]: row
@@ -1102,6 +1120,8 @@ def select_context(
             continue
         if image_mode == "no" and has_images(row):
             continue
+        if row["external_id"] in exclude_ids:
+            continue
         if blocked_gd_reference(row):
             continue
         level = match_level(row, category, sub_category, target_tag)
@@ -1111,7 +1131,7 @@ def select_context(
         source_score = SOURCE_TIER_SCORE.get(item["source_tier"], 0)
         year = int(row["year"]) if row["year"] else 0
         uses = int(item[use_column] or 0)
-        # 相关性始终优先；同等相关时近期/广东真题优先，反复用过后轮换到其他真题。
+        # 相关性始终优先；同等相关时近朄�/广东真题优先，反复用过后轮换到其他真题�ￄ�
         rank = level * 1000 + source_score * 35 + min(year, 2030) - uses * 18
         candidates.append((row, item, level, rank))
 
@@ -1130,6 +1150,8 @@ def select_context(
                     legacy_uses[str(external_id)] += 1
         for row in load_legacy_rows(category):
             if image_mode == "yes":
+                continue
+            if row["external_id"] in exclude_ids:
                 continue
             if blocked_gd_reference(row):
                 continue
@@ -1152,9 +1174,57 @@ def select_context(
             rank = level * 1000 + source_score * 35 + min(year, 2030) - uses * 18
             candidates.append((row, item, level, rank))
 
+    return candidates, selection_source
+
+
+
+def has_evaluate_holdout(
+    conn: sqlite3.Connection,
+    *,
+    category: str,
+    sub_category: str,
+    target_tag: str,
+    image_mode: str = "any",
+) -> bool:
+    try:
+        candidates, _source = collect_context_candidates(
+            conn,
+            role="evaluate",
+            category=category,
+            sub_category=sub_category,
+            target_tag=target_tag,
+            image_mode=image_mode,
+        )
+    except (sqlite3.Error, TypeError, KeyError, ValueError):
+        return False
+    return bool(candidates)
+
+
+def select_context(
+    conn: sqlite3.Connection,
+    *,
+    role: str,
+    category: str,
+    sub_category: str,
+    target_tag: str,
+    count: int,
+    image_mode: str,
+    exclude_ids: set[str] | None = None,
+) -> dict[str, Any]:
+    candidates, selection_source = collect_context_candidates(
+        conn,
+        role=role,
+        category=category,
+        sub_category=sub_category,
+        target_tag=target_tag,
+        image_mode=image_mode,
+        exclude_ids=exclude_ids,
+    )
     if not candidates:
         raise RuntimeError("没有匹配的已内化参考题；请检查 category/tag 或先运行 build")
 
+    use_column = "generation_uses" if role == "generate" else "evaluation_uses"
+    candidates = prefer_family_candidates(role, target_tag, candidates)
     chosen = pick_mixed(candidates, role, count)
     chosen_rows = [item[0] for item in chosen]
     chosen_ids = [row["external_id"] for row in chosen_rows]
@@ -1211,15 +1281,15 @@ def select_context(
             "selected": len(chosen_rows),
             "candidate_count": len(candidates),
             "source": selection_source,
-            "rule": "省考定题面（最多3道）+ 国考垫高（1–2道）；evaluate 优先省考 holdout；定义判断/类比不入包",
+            "rule": "省��定题面（最处�3道）+ 国��垫高（1 �2道）；evaluate 优先省�ￄ� holdout；定义判斄�/类比不入匄�",
         },
         "style_profile": summarize_rows(same_level_rows or chosen_rows),
         "reference_ids": chosen_ids,
         "references": [row_for_context(row) for row in chosen_rows],
         "usage": (
-            "只学习题型结构、信息边界、设问和干扰项关系；不得复用连续措辞、实体、数字或人物关系。"
+            "只学习题型结构��信息边界��设问和干扰项关系；不得复用连续措辞、实体��数字或人物关系〄�"
             if role == "generate"
-            else "仅供独立质量审查与真题风格对照，不得回传给命题者改写成模板。"
+            else "仅供独立质量审查与真题风格对照，不得回传给命题��改写成模板〄�"
         ),
     }
 
@@ -1334,12 +1404,12 @@ def ensure_current(
     if state["pending"] or state["stale"] or stale_artifacts:
         if not auto_refresh:
             raise RuntimeError(
-                f"参考库有 {state['pending']} 道待处理、{state['stale']} 条失效标记，"
-                f"提纲需重建={stale_artifacts}，请先运行 build"
+                f"参��库朄� {state['pending']} 道待处理、{state['stale']} 条失效标记，"
+                f"提纲霢�重建={stale_artifacts}，请先运衄� build"
             )
         print(
-            f"[reference-style] 检测到 {state['pending']} 道新增/修改题，"
-            f"提纲需重建={stale_artifacts}，自动增量内化",
+            f"[reference-style] 棢�测到 {state['pending']} 道新墄�/修改题，"
+            f"提纲霢�重建={stale_artifacts}，自动增量内匄�",
             file=sys.stderr,
         )
         build_digest(conn, output_dir)
@@ -1353,15 +1423,15 @@ def print_status(state: dict[str, Any], as_json: bool) -> None:
         return
     print(state["marker"])
     print(
-        f"总题数 {state['total']}｜已内化 {state['current']}｜"
-        f"生成参考 {state['accepted']}｜评测留出 {state['holdout']}｜"
+        f"总题敄� {state['total']}｜已内化 {state['current']}ｄ�"
+        f"生成参�ￄ� {state['accepted']}｜评测留凄� {state['holdout']}ｄ�"
         f"排除 {state['excluded']}｜待处理 {state['pending']}"
     )
     print(
-        f"实际选用次数：生成 {state['generation_uses']}｜评测 {state['evaluation_uses']}"
+        f"实际选用次数：生戄� {state['generation_uses']}｜评浄� {state['evaluation_uses']}"
     )
     if "artifacts_current" in state:
-        print(f"提纲文件：{'当前版本' if state['artifacts_current'] else '需要重建'}")
+        print(f"提纲文件：{'当前版本' if state['artifacts_current'] else '霢�要重廄�'}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1376,11 +1446,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("build", help="重建风格数据档并标记新增/修改题")
-    status_parser = sub.add_parser("status", help="查看内化与实际选用状态")
+    sub.add_parser("build", help="重建风格数据档并标记新增/修改预�")
+    status_parser = sub.add_parser("status", help="查看内化与实际��用状�ￄ�")
     status_parser.add_argument("--json", action="store_true")
 
-    context_parser = sub.add_parser("context", help="按目标组装生成或评测参考包")
+    context_parser = sub.add_parser("context", help="按目标组装生成或评测参��包")
     context_parser.add_argument("--role", choices=("generate", "evaluate"), required=True)
     context_parser.add_argument("--category", default="")
     context_parser.add_argument("--sub-category", default="")
@@ -1390,7 +1460,7 @@ def build_parser() -> argparse.ArgumentParser:
     context_parser.add_argument("--no-refresh", action="store_true")
     context_parser.add_argument("--output", type=Path)
 
-    practice_parser = sub.add_parser("practice", help="按知识点抽真题进 AI 练题（默认 2 道）")
+    practice_parser = sub.add_parser("practice", help="按知识点抽真题进 AI 练题（默讄� 2 道）")
     practice_parser.add_argument("--category", default="")
     practice_parser.add_argument("--sub-category", default="")
     practice_parser.add_argument("--tag", default="")
@@ -1411,8 +1481,8 @@ def main(argv: list[str] | None = None) -> int:
             result = build_digest(conn, args.output_dir)
             print(result["marker"])
             print(
-                f"已处理 {result['total']}｜生成参考 {result['accepted']}｜"
-                f"评测留出 {result['holdout']}｜排除 {result['excluded']}｜待处理 0"
+                f"已处琄� {result['total']}｜生成参耄� {result['accepted']}ｄ�"
+                f"评测留出 {result['holdout']}｜排附� {result['excluded']}｜待处理 0"
             )
             print(f"提纲数据：{result['profile']}")
             return 0
@@ -1426,18 +1496,37 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "context":
             if args.count < 1 or args.count > 8:
-                print("--count 必须是 1~8", file=sys.stderr)
+                print("--count 必须昄� 1~8", file=sys.stderr)
                 return 2
             ensure_current(conn, args.output_dir, not args.no_refresh)
-            result = select_context(
-                conn,
-                role=args.role,
-                category=compact_text(args.category),
-                sub_category=compact_text(args.sub_category),
-                target_tag=compact_text(args.tag),
-                count=args.count,
-                image_mode=args.images,
-            )
+            try:
+                result = select_context(
+                    conn,
+                    role=args.role,
+                    category=compact_text(args.category),
+                    sub_category=compact_text(args.sub_category),
+                    target_tag=compact_text(args.tag),
+                    count=args.count,
+                    image_mode=args.images,
+                )
+            except RuntimeError as exc:
+                if args.role != "evaluate":
+                    raise
+                result = {
+                    "marker": DIGEST_VERSION,
+                    "context_id": "",
+                    "role": "evaluate",
+                    "skipped": "no_holdout_syllabus_mock",
+                    "reason": str(exc),
+                    "target": {
+                        "category": compact_text(args.category) or None,
+                        "sub_category": compact_text(args.sub_category) or None,
+                        "tag": compact_text(args.tag) or None,
+                        "image_mode": args.images,
+                    },
+                    "reference_ids": [],
+                    "references": [],
+                }
             output = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
             if args.output:
                 atomic_write(args.output, output)
@@ -1460,10 +1549,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "practice":
             if args.count < 1 or args.count > 4:
-                print("--count 必须是 1~4", file=sys.stderr)
+                print("--count 必须昄� 1~4", file=sys.stderr)
                 return 2
             if not compact_text(args.tag) and not compact_text(args.category):
-                print("practice 需要 --tag 或 --category", file=sys.stderr)
+                print("practice 霢�覄� --tag 戄� --category", file=sys.stderr)
                 return 2
             ensure_current(conn, args.output_dir, not args.no_refresh)
             result = pick_practice(

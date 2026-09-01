@@ -1,0 +1,213 @@
+{
+  "batch_id": "20260831_panduan_kexue_01",
+  "source": "广东省考行测 · 科学推理专项强化",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "batch_constraints": {
+      "all_original": true,
+      "question_count": 10,
+      "tag_counts": {
+        "科学推理-力学-受力平衡": 1,
+        "科学推理-力学-杠杆滑轮": 1,
+        "科学推理-压强与浮力-液体压强": 1,
+        "科学推理-压强与浮力-阿基米德原理": 1,
+        "科学推理-热学与光学-反射折射": 2,
+        "科学推理-电学-串并联": 1,
+        "科学推理-电学-电路故障": 1,
+        "科学推理-化学-酸碱与 pH": 1,
+        "科学推理-生物-人体调节": 1
+      },
+      "image_dependent_count": 5,
+      "no_images": false,
+      "answer_max_per_letter": 4,
+      "answer_min_letters": 4
+    },
+    "generation_contexts": [
+      {
+        "context_id": "refctx-0f05e3e6ad7e4afbac7a59964f166852",
+        "reference_ids": [
+          "粉笔-2026-广东-科学推理-66"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_01"
+        ]
+      },
+      {
+        "context_id": "refctx-eecb685a8caa416ca081c8189e77bed3",
+        "reference_ids": [
+          "粉笔-2026-广东-科学推理-66"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_02"
+        ]
+      },
+      {
+        "context_id": "refctx-0c1d8a4af5004903b24d8602ecb09cee",
+        "reference_ids": [
+          "粉笔-2025-上海B类-科学推理-74"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_03"
+        ]
+      },
+      {
+        "context_id": "refctx-fb7033bdb543441795995a0e101c0c8b",
+        "reference_ids": [
+          "粉笔-2025-上海B类-科学推理-74"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_04"
+        ]
+      },
+      {
+        "context_id": "refctx-5385dbe28570426d865235b2d5fc8640",
+        "reference_ids": [
+          "粉笔-2025-上海B类-科学推理-71"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_05"
+        ]
+      },
+      {
+        "context_id": "refctx-8b491d05ead04c6ba7aa756c45f84ca0",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q84"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_06"
+        ]
+      },
+      {
+        "context_id": "refctx-8f3ea3d061c441b7aa464c960245133b",
+        "reference_ids": [
+          "粉笔-2024-广东-科学推理-69"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_07"
+        ]
+      },
+      {
+        "context_id": "refctx-b8c3a0381bc644fe906add6927d621b8",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q73"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_08"
+        ]
+      },
+      {
+        "context_id": "refctx-4501bd3138644adc8b5e57702de7d76e",
+        "reference_ids": [
+          "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q76"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_09"
+        ]
+      },
+      {
+        "context_id": "refctx-42b77fe0251849cfb88f06d7f13c1cee",
+        "reference_ids": [
+          "粉笔-2025-广东-科学推理-70"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-320f37030a2c42b2a8aaf5349d06a0b3",
+        "reference_ids": [
+          "粉笔-2025-广东-科学推理-67"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_01"
+        ]
+      },
+      {
+        "context_id": "refctx-03f8d93def8b49d6957f9ca666ff7eee",
+        "reference_ids": [
+          "粉笔-2025-广东-科学推理-67"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_02"
+        ]
+      },
+      {
+        "context_id": "refctx-f6ca39c16ea04408af94aa27bc0d7e02",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q70"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_03"
+        ]
+      },
+      {
+        "context_id": "refctx-b18257ac121a4cd7880c6712d7af0bd5",
+        "reference_ids": [
+          "粉笔-2026-广东-科学推理-67"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_04"
+        ]
+      },
+      {
+        "context_id": "refctx-54c0ce54258d44f3b47f0e7a3fc162b7",
+        "reference_ids": [
+          "粉笔-2025-上海B类-科学推理-75"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_05"
+        ]
+      },
+      {
+        "context_id": "refctx-07dbb121d03b4782b8cb3bc2a13d7926",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q71"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_06"
+        ]
+      },
+      {
+        "context_id": "refctx-97486df9f8124f9f804d4f578dddc561",
+        "reference_ids": [
+          "粉笔-2025-广东-科学推理-69"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_07"
+        ]
+      },
+      {
+        "context_id": "refctx-7553538f166d40b8a410e30dd05596a6",
+        "reference_ids": [
+          "粉笔-2025-广东-科学推理-69"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_08"
+        ]
+      },
+      {
+        "context_id": "refctx-05151d6e9b874b6e83d6c017d0a77c69",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q66"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_09"
+        ]
+      },
+      {
+        "context_id": "refctx-eb5081ac482843868b20aa802c45c033",
+        "reference_ids": [
+          "粉笔-2024-广东-科学推理-70"
+        ],
+        "question_ids": [
+          "20260831_panduan_kexue_01_10"
+        ]
+      }
+    ]
+  }
+}

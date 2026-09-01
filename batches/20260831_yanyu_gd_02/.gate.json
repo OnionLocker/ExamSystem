@@ -1,0 +1,41 @@
+{
+  "version": 3,
+  "batch_id": "20260831_yanyu_gd_02",
+  "issued_at": "2026-08-31T14:16:51+00:00",
+  "manifest_sha256": "f66100cc79360b405a98135d5ef9acce95c6e47d7ce0bcd549b4c6b5cfa0f4cf",
+  "questions_sha256": "4ad983fbeb0b951ef54a74bad35710cf4751f9f55fb7dfb1576a7194321cdf38",
+  "artifacts": {},
+  "reference_contexts": {
+    "refctx-19ea3264cb6d4db796947cb7e227d49b": "62ce0f77b97f3c02275a490e7f66e055b0ba24916ec27ad9d1ab44f532907890",
+    "refctx-1a736273da384b6fb349700a9fa8ce06": "b682a28b2df2e418435276cad5faceefc158bfe0e423468b2197d8b4efd16ebf",
+    "refctx-43b6c06426c74bc4a1040bd2119a6562": "065a3b0ec653db50cffa77329ccb65bf87144f68a24bd8292dd387a5f1a3f0f7",
+    "refctx-48f8bc63a9174b43bb5906a1269f40c9": "24901398d13cc58c764bc77c7420af5140ef41df8fd8f55ddcc8577eb5dc2fbe",
+    "refctx-535e93962f3643fa91161eccf2758393": "aba4ffe5eaad3b1b2a21fc183b2d7900ff7ae3e36a59df66aa48fa6ad7833ae9",
+    "refctx-612e29e5a9054a9c9275f612ce6a308f": "8b6113b781fd887e39de9c476a35b8a7d071b9a0314547442b69fa001fdb0509",
+    "refctx-827a32fdbd5344039e0b1fae6a10305b": "484db6dfe9627dc70d86f0b353dc875f3bce5ae54dcaebf3fc0d655fc2b754d5",
+    "refctx-9b79047e8bf94df2bcfee954fbf1725e": "c1b16d5a31411c5c1c1fe1d0bca22429c68f4f5704b019f650152f86d688b48e",
+    "refctx-b72520e7642a4486a443820ef4abfde5": "69627d437e7edbc45ef05de51f195e09e69fc306b70e4bc803ac25d251bffd50",
+    "refctx-cb3bedcac71b400b9a4dc5def9f50b2c": "eb8a959537ffbcd7594e2928bf68415f73107e8c35d825ca9b015658752331dc",
+    "refctx-d1e3c9cd6e31460da8f90055a2bfd9c0": "e9284756292f32ad689c20221fbfe634bd4bc2c3a7d8297f6155143e67f24306",
+    "refctx-dae5986951e74916bd60037973530931": "340c8f3fe4917fde9f648b5d69e5f33f84172ebfcb0cdca3482183b5643b95ab",
+    "refctx-edd189ffb3e048ed830f2e6e47ac3fd1": "6014175a80630808565bc51febff8271f85125fe1e8068e33f1fdafcfc3b8041",
+    "refctx-f4460ac0945d49779910ada45cc4bf3d": "c25224bd215102b3325a29b5e10a100f6c4e75df74721cdcdee096c8fdbb1533",
+    "refctx-f7d8aa3f8531471c8df399c031ecfd42": "6ee977758095981ff7dbe2c0ca6e3af4b6ecdd44863230613d06711bc04ba67c",
+    "refctx-ff8a2ac8ab6a4e6c84060e9f2c5806d3": "fe62454d446b607134cc8469c658130d1a4d0535be03117f9524fddf00ddd07f"
+  },
+  "question_ids": [
+    "Q003",
+    "Q004",
+    "Q005",
+    "Q006",
+    "Q007",
+    "Q008",
+    "Q009",
+    "Q010"
+  ],
+  "system_quality": {
+    "path": "evidence/system-quality.json",
+    "sha256": "d507784ff3f5f9af8050439a0dc140aecce256518c43186f53c8b8c5fa1dd56d",
+    "model": "gemini-3.7-flash-high"
+  }
+}

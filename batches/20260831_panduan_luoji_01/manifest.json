@@ -1,0 +1,209 @@
+{
+  "batch_id": "20260831_panduan_luoji_01",
+  "source": "广东省考行测 · 判断推理逻辑判断专项实战一",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "generation_contexts": [
+      {
+        "context_id": "refctx-4ae1bb84224c4c0990e77d253ed8fde2",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q68"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_01"
+        ]
+      },
+      {
+        "context_id": "refctx-f85de17fb33349d3ac53dbc2373cdef8",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q74"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_02"
+        ]
+      },
+      {
+        "context_id": "refctx-1acf5115baeb427891c001af55532a13",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q59"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_03"
+        ]
+      },
+      {
+        "context_id": "refctx-4d8b63da55ad4b92b0e54ccfb2155258",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q61"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_04"
+        ]
+      },
+      {
+        "context_id": "refctx-620fd695437b472b9c36106e7c706fd9",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q54"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_05"
+        ]
+      },
+      {
+        "context_id": "refctx-504a3a01ccb84c13a75a8d27f877587b",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q65"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_06"
+        ]
+      },
+      {
+        "context_id": "refctx-598898069e584070bb827aa799a8c728",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q65"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_07"
+        ]
+      },
+      {
+        "context_id": "refctx-cfdbaa25378248a1ba977556ab424da7",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q65"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_08"
+        ]
+      },
+      {
+        "context_id": "refctx-35688ce596954446b52fa2555a71ce97",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q70"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_09"
+        ]
+      },
+      {
+        "context_id": "refctx-f8933007d1b44486b68cecf2c9121af7",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q60"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_10"
+        ]
+      }
+    ],
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-00d9140dac1148bda8a57ec8f6165aa1",
+        "reference_ids": [
+          "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q64"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_01"
+        ]
+      },
+      {
+        "context_id": "refctx-c5e7d78ad1c745afaae61383e87fb026",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q57"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_02"
+        ]
+      },
+      {
+        "context_id": "refctx-e687a921a02441aa86041e4b4a57201a",
+        "reference_ids": [
+          "zhenti-2021年广东省公务员录用考试行测题县级卷网友回忆版-Q59"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_03"
+        ]
+      },
+      {
+        "context_id": "refctx-d14e51fc916542eea92dc1c4f2591b3f",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q66"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_04"
+        ]
+      },
+      {
+        "context_id": "refctx-b6e299866e3b44e4ac08af959d6a79db",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q51"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_05"
+        ]
+      },
+      {
+        "context_id": "refctx-5f20698638814002a81fc9e8f4eeb491",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q56"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_06"
+        ]
+      },
+      {
+        "context_id": "refctx-054dc27bfe814347b5f63444c4487ef9",
+        "reference_ids": [
+          "zhenti-2023年广东省公务员录用考试行测题县级卷网友回忆版-Q75"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_07"
+        ]
+      },
+      {
+        "context_id": "refctx-41be933324884217ae1e248488340a4b",
+        "reference_ids": [
+          "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q65"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_08"
+        ]
+      },
+      {
+        "context_id": "refctx-104767c04757496098257036539d912c",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q72"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_09"
+        ]
+      },
+      {
+        "context_id": "refctx-46a21e65df4e4548970001bb66ca9ffa",
+        "reference_ids": [
+          "zhenti-2022年广东省公务员录用考试行测题县级卷网友回忆版-Q64"
+        ],
+        "question_ids": [
+          "20260831_panduan_luoji_01_10"
+        ]
+      }
+    ],
+    "batch_constraints": {
+      "all_original": true,
+      "question_count": 10,
+      "tag_counts": {
+        "判断推理-逻辑判断-逻辑论证-支持与前提假设": 3,
+        "判断推理-逻辑判断-逻辑论证-一般质疑": 2,
+        "判断推理-逻辑判断-推出类-翻译推理与逻辑基础": 2,
+        "判断推理-逻辑判断-秒杀模型与速解技巧": 1,
+        "判断推理-逻辑判断-比例类论证与解释说明": 1,
+        "判断推理-逻辑判断-逻辑论证-归因论证": 1
+      },
+      "no_images": true,
+      "answer_max_per_letter": 4,
+      "answer_min_letters": 4
+    }
+  }
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// AI 生成批次必须真实引用 generate/evaluate 两类参考包，并覆盖整批题。
+// AI 生成批次必须真实引用 evaluate holdout；generation_contexts 可省略。
 
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -177,6 +177,35 @@ assert.deepEqual(
     'SELECT DISTINCT batch_id FROM reference_context_runs WHERE context_id IN (?, ?) ORDER BY batch_id',
   ).all(generateContext.context_id, evaluateContext.context_id),
   [{ batch_id: batchId }],
+);
+
+const evaluateOnlyContext = JSON.parse(runPython(
+  'context', '--role', 'evaluate',
+  '--category', '判断推理',
+  '--sub-category', '逻辑判断',
+  '--tag', '判断推理-逻辑判断-削弱论点',
+  '--count', '1',
+));
+const evalOnlyBatchId = 'provenance-test-eval-only';
+const evalOnlyQuestionId = `${evalOnlyBatchId}-Q001`;
+const evalOnlyDir = makeBatch(evalOnlyBatchId, {
+  style_marker: evaluateOnlyContext.marker,
+  evaluation_contexts: [{
+    context_id: evaluateOnlyContext.context_id,
+    reference_ids: evaluateOnlyContext.reference_ids,
+    question_ids: [evalOnlyQuestionId],
+  }],
+});
+issueGate(evalOnlyDir, evalOnlyQuestionId, [evaluateOnlyContext.context_id]);
+const importedEvalOnly = spawnSync(
+  process.execPath,
+  [path.join(ROOT, 'scripts', 'import-batch.mjs'), evalOnlyDir],
+  { cwd: ROOT, env: { ...process.env, EXAM_DB: dbPath }, encoding: 'utf8' },
+);
+assert.equal(importedEvalOnly.status, 0, importedEvalOnly.stderr || importedEvalOnly.stdout);
+assert.equal(
+  db.prepare('SELECT COUNT(*) AS n FROM questions WHERE external_id = ?').get(evalOnlyQuestionId).n,
+  1,
 );
 
 const badBatchId = 'provenance-test-bad';

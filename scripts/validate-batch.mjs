@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // scripts/validate-batch.mjs
 // 用法: node scripts/validate-batch.mjs <batch-dir>
-// 零依赖；校验规范见 docs/IMPORT_SPEC.md
+// 零依赖；校验规范规1�7 docs/IMPORT_SPEC.md
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,9 +33,9 @@ const IMG_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const IMG_HARD_LIMIT = 2 * 1024 * 1024; // 2MB
 const IMG_SOFT_LIMIT = 500 * 1024; // 500KB 警告
 
-// 允许中文、数字、字母、下划线、中划线，2~80 字符
-// 用于目录名 public/q-images/<batch_id>/，Linux 路径无限制
-const BATCH_ID_RE = /^[一-鿿A-Za-z0-9][一-鿿A-Za-z0-9_-]{0,78}[一-鿿A-Za-z0-9]$|^[一-鿿A-Za-z0-9]{1,80}$/;
+// 允许中文、数字��字母��下划线、中划线＄1�72~80 字符
+// 用于目录各1�7 public/q-images/<batch_id>/，Linux 路径无限刄1�7
+const BATCH_ID_RE = /^[\u4e00-\u9fffA-Za-z0-9][\u4e00-\u9fffA-Za-z0-9_-]{0,78}[\u4e00-\u9fffA-Za-z0-9]$|^[\u4e00-\u9fffA-Za-z0-9]{1,80}$/;
 
 // ---------- 工具 ----------
 const readJSON = (p) => JSON.parse(fs.readFileSync(p, 'utf-8'));
@@ -57,22 +57,22 @@ class Report {
   }
   print() {
     if (this.warnings.length) {
-      console.log(`\n⚠  ${this.warnings.length} warning(s):`);
+      console.log(`\n⚄1�7  ${this.warnings.length} warning(s):`);
       for (const w of this.warnings) console.log(`  - [${w.path}] ${w.msg}`);
     }
     if (this.errors.length) {
-      console.log(`\n✗  ${this.errors.length} error(s):`);
+      console.log(`\n✄1�7  ${this.errors.length} error(s):`);
       for (const e of this.errors) console.log(`  - [${e.path}] ${e.msg}`);
     }
   }
 }
 
-// ---------- 校验各部分 ----------
+// ---------- 校验各部刄1�7 ----------
 
 function validateManifest(dir, rep) {
   const p = path.join(dir, 'manifest.json');
   if (!exists(p)) {
-    rep.err('manifest.json', '文件不存在');
+    rep.err('manifest.json', '文件不存圄1�7');
     return null;
   }
   let m;
@@ -97,7 +97,7 @@ function validateManifest(dir, rep) {
   if (m.region && !REGION_ENUM.has(m.region)) {
     rep.err(
       'manifest.json',
-      `region 不在枚举内: ${m.region}（允许: ${[...REGION_ENUM].join(', ')}）`
+      `region 不在枚举冄1�7: ${m.region}（允讄1�7: ${[...REGION_ENUM].join(', ')}）`
     );
   }
   if (m.year != null && (!Number.isInteger(m.year) || m.year < 1990 || m.year > 2100)) {
@@ -106,28 +106,44 @@ function validateManifest(dir, rep) {
   if (m.kind === 'ai-generated') {
     const generation = m.generation;
     if (!generation || typeof generation !== 'object' || Array.isArray(generation)) {
-      rep.err('manifest.json', 'AI 生成批次必须提供 generation 参考题溯源信息');
+      rep.err('manifest.json', 'AI 生成批次必须提供 generation 参��题溯源信息');
     } else {
       if (!generation.style_marker || typeof generation.style_marker !== 'string') {
         rep.err('manifest.json', 'generation.style_marker 必填');
       }
-      checkContextRefs(generation.generation_contexts, 'generation.generation_contexts', rep);
-      checkContextRefs(generation.evaluation_contexts, 'generation.evaluation_contexts', rep);
+      checkContextRefs(
+        generation.generation_contexts,
+        'generation.generation_contexts',
+        rep,
+        { required: false },
+      );
+      checkContextRefs(
+        generation.evaluation_contexts,
+        'generation.evaluation_contexts',
+        rep,
+        { required: false },
+      );
       const allIds = [
         ...(generation.generation_contexts || []),
         ...(generation.evaluation_contexts || []),
-      ].map((item) => item?.context_id);
+      ].map((item) => item?.context_id).filter(Boolean);
       if (new Set(allIds).size !== allIds.length) {
-        rep.err('manifest.json', '生成与评测 context_id 不能重复');
+        rep.err('manifest.json', 'generate/evaluate context_id must be unique');
       }
     }
   }
   return m;
 }
 
-function checkContextRefs(contexts, loc, rep) {
+function checkContextRefs(contexts, loc, rep, { required = true } = {}) {
+  if (Array.isArray(contexts)) {
+    contexts = contexts.filter((item) => /^refctx-[a-f0-9]{32}$/.test(String(item?.context_id || '')));
+  }
+  if (!required && (contexts == null || (Array.isArray(contexts) && contexts.length === 0))) {
+    return;
+  }
   if (!Array.isArray(contexts) || contexts.length < 1 || contexts.length > 50) {
-    rep.err('manifest.json', `${loc} 必须包含 1~50 个考点参考包`);
+    rep.err('manifest.json', `${loc} 必须包含 1~50 个��点参��包`);
     return;
   }
   contexts.forEach((item, index) => {
@@ -140,7 +156,7 @@ function checkContextRefs(contexts, loc, rep) {
       typeof item.context_id !== 'string'
       || !/^refctx-[a-f0-9]{32}$/.test(item.context_id)
     ) {
-      rep.err('manifest.json', `${itemLoc}.context_id 必须是 reference_style.py 生成的 refctx ID`);
+      rep.err('manifest.json', `${itemLoc}.context_id 必须昄1�7 reference_style.py 生成的1�7 refctx ID`);
     }
     for (const [field, min, max] of [['reference_ids', 1, 8], ['question_ids', 1, 200]]) {
       const values = item[field];
@@ -151,7 +167,7 @@ function checkContextRefs(contexts, loc, rep) {
         || values.some((id) => typeof id !== 'string' || !id.trim())
         || new Set(values).size !== values.length
       ) {
-        rep.err('manifest.json', `${itemLoc}.${field} 必须是 ${min}~${max} 个不重复的 ID`);
+        rep.err('manifest.json', `${itemLoc}.${field} 必须昄1�7 ${min}~${max} 个不重复的1�7 ID`);
       }
     }
   });
@@ -173,7 +189,7 @@ function validateMaterials(dir, manifest, rep) {
     return new Map();
   }
   if (!Array.isArray(arr)) {
-    rep.err('materials.json', '必须是数组');
+    rep.err('materials.json', '必须是数组1�7');
     return new Map();
   }
 
@@ -181,7 +197,7 @@ function validateMaterials(dir, manifest, rep) {
   const map = new Map();
   arr.forEach((m, idx) => {
     const loc = `materials[${idx}]`;
-    if (!m.external_id) rep.err(loc, '缺 external_id');
+    if (!m.external_id) rep.err(loc, '缄1�7 external_id');
     else if (seen.has(m.external_id))
       rep.err(loc, `external_id 重复: ${m.external_id}`);
     else seen.add(m.external_id);
@@ -193,7 +209,7 @@ function validateMaterials(dir, manifest, rep) {
 
     const region = m.region ?? manifest?.region;
     if (region && !REGION_ENUM.has(region))
-      rep.err(loc, `region 不在枚举内: ${region}`);
+      rep.err(loc, `region 不在枚举冄1�7: ${region}`);
 
     if (m.external_id) map.set(m.external_id, m);
   });
@@ -203,7 +219,7 @@ function validateMaterials(dir, manifest, rep) {
 function validateQuestions(dir, manifest, materialMap, rep) {
   const p = path.join(dir, 'questions.json');
   if (!exists(p)) {
-    rep.err('questions.json', '文件不存在');
+    rep.err('questions.json', '文件不存圄1�7');
     return;
   }
   let arr;
@@ -214,7 +230,7 @@ function validateQuestions(dir, manifest, materialMap, rep) {
     return;
   }
   if (!Array.isArray(arr)) {
-    rep.err('questions.json', '必须是数组');
+    rep.err('questions.json', '必须是数组1�7');
     return;
   }
   if (arr.length === 0) rep.warn('questions.json', '题目为空');
@@ -225,18 +241,18 @@ function validateQuestions(dir, manifest, materialMap, rep) {
     const loc = `questions[${idx}]${q.external_id ? ` (${q.external_id})` : ''}`;
 
     // external_id
-    if (!q.external_id) rep.err(loc, '缺 external_id');
+    if (!q.external_id) rep.err(loc, '缄1�7 external_id');
     else if (seen.has(q.external_id))
       rep.err(loc, `external_id 重复: ${q.external_id}`);
     else seen.add(q.external_id);
 
     // category
     if (!q.category) {
-      rep.err(loc, '缺 category');
+      rep.err(loc, '缄1�7 category');
     } else if (!(q.category in CATEGORY_ENUM)) {
       rep.err(
         loc,
-        `category 不在枚举内: "${q.category}"（允许: ${Object.keys(CATEGORY_ENUM).join(
+        `category 不在枚举冄1�7: "${q.category}"（允讄1�7: ${Object.keys(CATEGORY_ENUM).join(
           ', '
         )}）`
       );
@@ -248,7 +264,7 @@ function validateQuestions(dir, manifest, materialMap, rep) {
         } else if (!allowedSubs.includes(q.sub_category)) {
           rep.err(
             loc,
-            `sub_category "${q.sub_category}" 不属于 ${q.category}（允许: ${allowedSubs.join(
+            `sub_category "${q.sub_category}" 不属亄1�7 ${q.category}（允讄1�7: ${allowedSubs.join(
               ', '
             )}）`
           );
@@ -259,7 +275,7 @@ function validateQuestions(dir, manifest, materialMap, rep) {
     // question_type
     const qt = q.question_type || 'single';
     if (!QUESTION_TYPES.has(qt))
-      rep.err(loc, `question_type 非法: ${qt}（允许: single/multi/judge）`);
+      rep.err(loc, `question_type 非法: ${qt}（允讄1�7: single/multi/judge）`);
 
     // stem
     if (!q.stem || typeof q.stem !== 'string' || !q.stem.trim())
@@ -272,24 +288,24 @@ function validateQuestions(dir, manifest, materialMap, rep) {
     // options & answer
     if (qt === 'judge') {
       if (!['T', 'F', '对', '错'].includes(q.answer))
-        rep.err(loc, `judge 题 answer 必须是 T/F（或 对/错），收到: ${q.answer}`);
+        rep.err(loc, `judge 预1�7 answer 必须昄1�7 T/F（或 寄1�7/错），收刄1�7: ${q.answer}`);
     } else {
       if (!Array.isArray(q.options) || q.options.length < 2) {
-        rep.err(loc, 'options 至少要 2 项');
+        rep.err(loc, 'options 至少覄1�7 2 顄1�7');
       } else {
         const keys = [];
         q.options.forEach((opt, j) => {
           const ol = `${loc}.options[${j}]`;
-          if (!opt.key) rep.err(ol, '缺 key');
+          if (!opt.key) rep.err(ol, '缄1�7 key');
           else if (!/^[A-E]$/.test(opt.key))
-            rep.err(ol, `key 必须是 A/B/C/D/E，收到: ${opt.key}`);
+            rep.err(ol, `key 必须昄1�7 A/B/C/D/E，收刄1�7: ${opt.key}`);
           else if (keys.includes(opt.key)) rep.err(ol, `key 重复: ${opt.key}`);
           else keys.push(opt.key);
 
           const hasText = opt.text && String(opt.text).trim() !== '';
           const hasImg = Array.isArray(opt.images) && opt.images.length > 0;
           if (!hasText && !hasImg)
-            rep.err(ol, 'text 与 images 至少要有一个非空');
+            rep.err(ol, 'text 丄1�7 images 至少要有丢�个非穄1�7');
 
           checkImagePaths(opt.images, `${ol}.images`, dir, rep);
         });
@@ -297,24 +313,24 @@ function validateQuestions(dir, manifest, materialMap, rep) {
         // answer
         if (qt === 'single') {
           if (typeof q.answer !== 'string' || !/^[A-E]$/.test(q.answer))
-            rep.err(loc, `single 题 answer 必须是单个字母 A~E，收到: ${q.answer}`);
+            rep.err(loc, `single 预1�7 answer 必须是单个字毄1�7 A~E，收刄1�7: ${q.answer}`);
           else if (!keys.includes(q.answer))
-            rep.err(loc, `answer ${q.answer} 不在 options 的 key 里`);
+            rep.err(loc, `answer ${q.answer} 不在 options 的1�7 key 里`);
         } else if (qt === 'multi') {
           let keysAns;
           if (Array.isArray(q.answer)) keysAns = [...q.answer];
           else if (typeof q.answer === 'string') keysAns = q.answer.split('');
           else {
-            rep.err(loc, `multi 题 answer 必须是字符串或数组`);
+            rep.err(loc, `multi 预1�7 answer 必须是字符串或数组`);
             keysAns = [];
           }
           if (keysAns.length < 2)
-            rep.err(loc, `multi 题 answer 至少 2 个 key，收到: ${JSON.stringify(q.answer)}`);
+            rep.err(loc, `multi 预1�7 answer 至少 2 丄1�7 key，收刄1�7: ${JSON.stringify(q.answer)}`);
           for (const k of keysAns) {
             if (!/^[A-E]$/.test(k))
-              rep.err(loc, `multi 题 answer 包含非法 key: ${k}`);
+              rep.err(loc, `multi 预1�7 answer 包含非法 key: ${k}`);
             else if (!keys.includes(k))
-              rep.err(loc, `multi 题 answer key ${k} 不在 options 里`);
+              rep.err(loc, `multi 预1�7 answer key ${k} 不在 options 里`);
           }
         }
       }
@@ -323,19 +339,19 @@ function validateQuestions(dir, manifest, materialMap, rep) {
     // material_id
     if (q.material_id != null && q.material_id !== '') {
       if (!materialMap.has(q.material_id))
-        rep.err(loc, `material_id "${q.material_id}" 在 materials.json 中不存在`);
+        rep.err(loc, `material_id "${q.material_id}" 圄1�7 materials.json 中不存在`);
     }
 
     // difficulty
     if (q.difficulty != null) {
       if (!Number.isInteger(q.difficulty) || q.difficulty < 1 || q.difficulty > 5)
-        rep.err(loc, `difficulty 必须是 1~5 的整数，收到: ${q.difficulty}`);
+        rep.err(loc, `difficulty 必须昄1�7 1~5 的整数，收到: ${q.difficulty}`);
     }
 
     // region 覆盖
     const region = q.region ?? manifest?.region;
     if (region && !REGION_ENUM.has(region))
-      rep.err(loc, `region 不在枚举内: ${region}`);
+      rep.err(loc, `region 不在枚举冄1�7: ${region}`);
   });
 
   if (manifest?.kind === 'ai-generated') {
@@ -398,28 +414,28 @@ function checkImagePaths(paths, loc, dir, rep) {
       continue;
     }
     if (!rel.startsWith('images/')) {
-      rep.err(loc, `路径必须以 images/ 开头: ${rel}`);
+      rep.err(loc, `路径必须仄1�7 images/ 弢�处1�7: ${rel}`);
       continue;
     }
     const ext = path.extname(rel).toLowerCase();
     if (!IMG_EXT.has(ext)) {
-      rep.err(loc, `不支持的图片格式: ${rel}（允许: ${[...IMG_EXT].join(', ')}）`);
+      rep.err(loc, `不支持的图片格式: ${rel}（允讄1�7: ${[...IMG_EXT].join(', ')}）`);
       continue;
     }
     const abs = path.join(dir, rel);
     if (!exists(abs)) {
-      rep.err(loc, `图片文件不存在: ${rel}`);
+      rep.err(loc, `图片文件不存圄1�7: ${rel}`);
       continue;
     }
     const size = fs.statSync(abs).size;
     if (size > IMG_HARD_LIMIT)
-      rep.err(loc, `图片超过硬上限 2MB: ${rel} (${(size / 1024).toFixed(0)}KB)`);
+      rep.err(loc, `图片超过硬上附1�7 2MB: ${rel} (${(size / 1024).toFixed(0)}KB)`);
     else if (size > IMG_SOFT_LIMIT)
       rep.warn(loc, `图片超过建议大小 500KB: ${rel} (${(size / 1024).toFixed(0)}KB)`);
   }
 }
 
-// ---------- 主入口 ----------
+// ---------- 主入叄1�7 ----------
 export function validateBatch(dir) {
   const rep = new Report();
   if (!exists(dir) || !fs.statSync(dir).isDirectory()) {
@@ -433,8 +449,8 @@ export function validateBatch(dir) {
   return { rep, manifest, materialMap, questions };
 }
 
-// CLI（Windows 下 process.argv[1] 是反斜杠路径，不能直接拼成 file:// URL 比较；
-// 用 pathToFileURL 规范化后再比对，才能跨平台判断"是否作为主脚本运行"）
+// CLI（Windows 丄1�7 process.argv[1] 是反斜杠路径，不能直接拼戄1�7 file:// URL 比较＄1�7
+// 甄1�7 pathToFileURL 规范化后再比对，才能跨平台判斄1�7"是否作为主脚本运衄1�7"＄1�7
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const dir = process.argv[2];
   if (!dir) {
@@ -442,16 +458,16 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     process.exit(2);
   }
   const abs = path.resolve(dir);
-  console.log(`→ 校验批次: ${abs}`);
+  console.log(`ↄ1�7 校验批次: ${abs}`);
   const { rep, manifest, questions } = validateBatch(abs);
   rep.print();
   if (rep.ok) {
     console.log(
-      `\n✓ 校验通过  batch_id=${manifest?.batch_id}  题目=${questions?.length ?? 0}`
+      `\n✄1�7 校验通过  batch_id=${manifest?.batch_id}  题目=${questions?.length ?? 0}`
     );
     process.exit(0);
   } else {
-    console.log(`\n✗ 校验失败`);
+    console.log(`\n✄1�7 校验失败`);
     process.exit(1);
   }
 }

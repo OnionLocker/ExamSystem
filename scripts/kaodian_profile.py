@@ -6,13 +6,14 @@
 按 Beta 先验、时间衰减和证据来源自动估计；遇到新考点时，先登记再记录事件。
 """
 
+import os
 import sqlite3
 import sys
 from pathlib import Path
 
 from kaodian_taxonomy import canonicalize, normalize_module
 
-DB = Path(__file__).resolve().parent.parent / "data" / "exam.db"
+DB = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parent.parent / "data" / "exam.db")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS kaodian_profile (
@@ -192,17 +193,159 @@ def resolve_kaodian(conn, kaodian, module="", subtype=""):
     return canonical, normalized_module, canonical_subtype
 
 
-def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0, session_id=None, question_id=None):
+DEBT_CLEAR = 2
+
+
+def practice_session_sealed(conn, session_id):
+    try:
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(practice_sessions)")}
+    except sqlite3.OperationalError:
+        return False
+    if "profile_reviewed_at" not in cols:
+        return False
+    row = conn.execute(
+        "SELECT profile_reviewed_at FROM practice_sessions WHERE id=?",
+        (session_id,),
+    ).fetchone()
+    return bool(row and row[0])
+
+
+def seal_practice(conn, session_id):
+    ensure_schema(conn)
+    try:
+        cur = conn.execute(
+            """UPDATE practice_sessions
+                  SET profile_reviewed_at=datetime('now')
+                WHERE id=? AND profile_reviewed_at IS NULL""",
+            (session_id,),
+        )
+        return cur.rowcount > 0
+    except sqlite3.OperationalError:
+        return False
+
+
+def apply_debt(conn, kaodian, is_correct):
+    if is_correct:
+        conn.execute(
+            """UPDATE kaodian_debts
+                  SET recovery_streak = recovery_streak + 1,
+                      last_seen_at = datetime('now'),
+                      mastered = CASE WHEN recovery_streak + 1 >= ? THEN 1 ELSE 0 END,
+                      updated_at = datetime('now')
+                WHERE kaodian = ? AND mastered = 0""",
+            (DEBT_CLEAR, kaodian),
+        )
+        return
+    conn.execute(
+        """INSERT INTO kaodian_debts
+             (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
+           VALUES (?, 1, 0, datetime('now'), datetime('now'), 0)
+           ON CONFLICT(kaodian) DO UPDATE SET
+             wrong_count = wrong_count + 1,
+             recovery_streak = 0,
+             last_wrong_at = datetime('now'),
+             last_seen_at = datetime('now'),
+             mastered = 0,
+             updated_at = datetime('now')""",
+        (kaodian,),
+    )
+
+
+def rebuild_kaodian(conn, kaodian):
+    rows = conn.execute(
+        """SELECT e.is_correct, e.elapsed_ms, e.answered_at
+             FROM kaodian_events e
+             LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+            WHERE COALESCE(a.canonical, e.kaodian)=?
+            ORDER BY e.answered_at, e.id""",
+        (kaodian,),
+    ).fetchall()
+    attempts = len(rows)
+    correct = sum(int(row[0]) for row in rows)
+    total_ms = sum(int(row[1] or 0) for row in rows)
+    streak = 0
+    wrong_count = 0
+    recovery = 0
+    mastered = 0
+    last_wrong = None
+    last_seen_at = None
+    for ok, _ms, when in rows:
+        last_seen_at = when
+        if int(ok):
+            streak = streak + 1 if streak >= 0 else 1
+            recovery += 1
+            if recovery >= DEBT_CLEAR:
+                mastered = 1
+        else:
+            streak = streak - 1 if streak <= 0 else -1
+            wrong_count += 1
+            recovery = 0
+            mastered = 0
+            last_wrong = when
+    last_seen = str(last_seen_at)[:10] if last_seen_at else None
+    conn.execute(
+        """UPDATE kaodian_profile
+              SET attempts=?, correct=?, total_ms=?, last_seen=?, streak=?,
+                  updated_at=datetime('now')
+            WHERE kaodian=?""",
+        (attempts, correct, total_ms, last_seen, streak, kaodian),
+    )
+    if attempts == 0:
+        conn.execute("DELETE FROM kaodian_debts WHERE kaodian=?", (kaodian,))
+    else:
+        conn.execute(
+            """INSERT INTO kaodian_debts
+                 (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
+               VALUES (?,?,?,?,?,?)
+               ON CONFLICT(kaodian) DO UPDATE SET
+                 wrong_count=excluded.wrong_count,
+                 recovery_streak=excluded.recovery_streak,
+                 last_wrong_at=excluded.last_wrong_at,
+                 last_seen_at=excluded.last_seen_at,
+                 mastered=excluded.mastered,
+                 updated_at=datetime('now')""",
+            (kaodian, wrong_count, recovery, last_wrong, last_seen_at, mastered),
+        )
+    recompute_mastery(conn, kaodian)
+
+
+def undo_practice_session(conn, session_id):
+    ensure_schema(conn)
+    tags = [row[0] for row in conn.execute(
+        "SELECT DISTINCT kaodian FROM kaodian_events WHERE session_id=?",
+        (session_id,),
+    )]
+    conn.execute("DELETE FROM kaodian_events WHERE session_id=?", (session_id,))
+    try:
+        conn.execute(
+            "UPDATE practice_sessions SET profile_reviewed_at=NULL WHERE id=?",
+            (session_id,),
+        )
+    except sqlite3.OperationalError:
+        pass
+    canonicals = set()
+    for tag in tags:
+        canonical, _module, _subtype = resolve_kaodian(conn, tag)
+        canonicals.add(canonical)
+    for kaodian in canonicals:
+        rebuild_kaodian(conn, kaodian)
+    return len(tags)
+
+
+def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0, session_id=None, question_id=None, practice_lock=False):
     """记录一次证据并按全部历史流水重算熟练度。
 
     录屏/真题复盘传入 session_id=exam_analyses.id、question_id=题号、source=exam，
     同一场同一题只落一条；重复复盘直接跳过，不增加样本。
     """
     ensure_schema(conn)
+    if practice_lock and session_id is not None and practice_session_sealed(conn, session_id):
+        return False
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     c = 1 if is_correct else 0
     source = source if source in SOURCE_WEIGHTS else "hermes"
     if session_id is not None:
+
         cur = conn.execute(
             """INSERT OR IGNORE INTO kaodian_events
                (kaodian, question_id, session_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
@@ -219,6 +362,7 @@ def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="her
             (kaodian, c, elapsed_ms, source, weight),
         )
     conn.execute(RECORD, (kaodian, module, subtype, c, elapsed_ms, 1 if c else -1))
+    apply_debt(conn, kaodian, c)
     recompute_mastery(conn, kaodian)
     return True
 
@@ -306,6 +450,13 @@ def ensure_schema(conn):
         ON kaodian_events(session_id, question_id, evidence_type)
         WHERE evidence_type = 'exam' AND session_id IS NOT NULL AND question_id IS NOT NULL
     """)
+
+    try:
+        ps_cols = {r[1] for r in conn.execute("PRAGMA table_info(practice_sessions)")}
+        if ps_cols and "profile_reviewed_at" not in ps_cols:
+            conn.execute("ALTER TABLE practice_sessions ADD COLUMN profile_reviewed_at TEXT")
+    except sqlite3.OperationalError:
+        pass
 
 
 def score_of(row):
@@ -450,21 +601,28 @@ if __name__ == "__main__":
         print(f"registered -> {tag}")
     elif "--record" in sys.argv:
         args = sys.argv[sys.argv.index("--record") + 1:]
-        exam_id = item = None
+        exam_id = practice_id = item = None
+        weight = 1.0
         cleaned = []
         i = 0
         while i < len(args):
             if args[i] == "--exam-id" and i + 1 < len(args):
                 exam_id = int(args[i + 1]); i += 2
+            elif args[i] == "--practice-id" and i + 1 < len(args):
+                practice_id = int(args[i + 1]); i += 2
             elif args[i] == "--item" and i + 1 < len(args):
                 item = int(args[i + 1]); i += 2
+            elif args[i] == "--weight" and i + 1 < len(args):
+                weight = float(args[i + 1]); i += 2
             else:
                 cleaned.append(args[i]); i += 1
         if len(cleaned) < 4:
             raise SystemExit(
                 "用法：--record <标签> <模块> <题型/一级> <0|1> [用时毫秒] [practice|exam|hermes|manual] "
-                "[--exam-id 场次id --item 题号]"
+                "[--weight 0.1-1.5] [--practice-id 练习场次 --item 题目id | --exam-id 场次id --item 题号]"
             )
+        if exam_id is not None and practice_id is not None:
+            raise SystemExit("--exam-id 和 --practice-id 不能一起用")
         tag, module, subtype, result, *rest = cleaned
         elapsed_ms = 0
         source = "hermes"
@@ -473,25 +631,56 @@ if __name__ == "__main__":
                 source = tok
             elif tok.isdigit():
                 elapsed_ms = int(tok)
-        if exam_id is not None and item is None:
-            raise SystemExit("录屏复盘必须同时给 --exam-id 和 --item")
+            else:
+                try:
+                    parsed = float(tok)
+                except ValueError:
+                    parsed = None
+                if parsed is not None and 0.1 <= parsed <= 1.5:
+                    weight = parsed
+        session_id = practice_id if practice_id is not None else exam_id
+        if session_id is not None and item is None:
+            raise SystemExit("带场次写入必须同时给 --item")
         conn = sqlite3.connect(DB)
         ensure_schema(conn)
-        added = record(
-            conn, tag, module, subtype,
-            result in {"1", "true", "True", "对", "正确"},
-            elapsed_ms, source,
-            session_id=exam_id, question_id=item,
-        )
-        conn.commit()
-        if not added:
-            print(f"already recorded -> exam {exam_id} item {item}")
+        if practice_id is not None and practice_session_sealed(conn, practice_id):
+            print(f"already sealed -> practice {practice_id}")
         else:
-            row = conn.execute(
-                "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
-                (tag,),
-            ).fetchone()
-            print(f"recorded -> {tag}: mastery={row[0]} confidence={row[1]} samples={row[2]}")
+            added = record(
+                conn, tag, module, subtype,
+                result in {"1", "true", "True", "对", "正确"},
+                elapsed_ms, source, weight,
+                session_id=session_id, question_id=item,
+                practice_lock=practice_id is not None,
+            )
+            conn.commit()
+            if not added:
+                print(f"already recorded -> session {session_id} item {item}")
+            else:
+                stored, _, _ = resolve_kaodian(conn, tag, module, subtype)
+                row = conn.execute(
+                    "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
+                    (stored,),
+                ).fetchone()
+                print(f"recorded -> {stored}: mastery={row[0]} confidence={row[1]} samples={row[2]}")
+    elif "--seal-practice" in sys.argv:
+        args = sys.argv[sys.argv.index("--seal-practice") + 1:]
+        if not args:
+            raise SystemExit("用法：--seal-practice <practice_sessions.id>")
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        changed = seal_practice(conn, int(args[0]))
+        conn.commit()
+        print(f"{'sealed' if changed else 'already sealed'} -> practice {args[0]}")
+    elif "--undo-practice" in sys.argv:
+        args = sys.argv[sys.argv.index("--undo-practice") + 1:]
+        if not args:
+            raise SystemExit("用法：--undo-practice <practice_sessions.id>")
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        n = undo_practice_session(conn, int(args[0]))
+        conn.commit()
+        print(f"undone practice {args[0]} -> {n} event tags")
     elif "--recompute" in sys.argv:
         args = sys.argv[sys.argv.index("--recompute") + 1:]
         conn = sqlite3.connect(DB)

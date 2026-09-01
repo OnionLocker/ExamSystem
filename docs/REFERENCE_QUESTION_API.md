@@ -149,7 +149,7 @@ npm run reference:context -- \
 
 每次选择都会写入 `reference_context_runs` 并累计实际使用次数。AI 生成批次必须在
 `manifest.json` 分别记录 `generation_contexts` 与 `evaluation_contexts`，并把每次 context
-映射到实际生成题的 `external_id`；两组都要覆盖整批题。`import:batch` 会反查，缺失、漏题、
+映射到实际生成题的 `external_id`；`evaluation_contexts` 覆盖有 holdout 的生成题，无 holdout 的考纲模拟题可省略。`generation_contexts` 可省略。`import:batch` 会反查已填写的包；缺失、漏绑已有 holdout 的题、
 复用或伪造时拒绝导入。
 
 ## 删除

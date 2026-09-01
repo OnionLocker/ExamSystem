@@ -38,22 +38,20 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-丢�
   `python3 /home/ubuntu/ExamSystem/scripts/reference_style.py practice --tag '<规范主标筄1�7>' --count 2`
   and copy those `origin: "zhenti"` items into the batch unchanged. Then generate 8 new questions
   for the same tag. If fewer than 2 real items exist, generate extra so the batch is still 10.
-- Before writing any generated stem, use `/home/ubuntu/ExamSystem/scripts/reference_style.py context --role generate`
-  with the target category / sub-category / canonical tag. This command automatically internalizes newly
-  added or changed reference questions and returns a traceable `GONGKAO-STYLE` context pack.
-  Use Guangdong items for stem form and length; treat the 1 1�72 national items as a difficulty ceiling.
-  Generation/evaluation contexts cover generated IDs only, never the `zhenti-` items.
-- The independent quality reviewer must separately call the same command with `--role evaluate`.
-  Generation examples and holdout evaluation examples must never come from the same context.
+- Before writing, read quiz-pipeline `reference-style-principles.md` and `reference-style-profile.md`
+  (`GONGKAO-STYLE-v1`). Do not call `reference_style.py context --role generate` for each stem.
+  After the draft is complete, call `--role evaluate --count 1` once per tag family as a holdout.
+  Use Guangdong profile percentiles for stem form and length; keep cognitive steps at least as
+  high as the national lower bound in the profile. evaluation_contexts cover generated IDs only,
+  never the `zhenti-` items. generation_contexts may be omitted; if present they must not share
+  samples with evaluate.
 - Every AI-generated batch manifest must set `kind: "ai-generated"`, persist the user's quantity/type/image
-  requirements in `generation.batch_constraints`, and record the style marker plus generation/evaluation
-  context arrays. Both arrays must map context and reference IDs onto every generated
-  question. Run `python3 scripts/generation_gate.py issue <batch>`; ExamSystem itself calls Gemini Flash,
+  requirements in `generation.batch_constraints`, and record the style marker plus
+  evaluation_contexts for tags that have a holdout; omit them for syllabus mocks with no holdout. generation_contexts may be omitted. Run `python3 scripts/generation_gate.py issue <batch>`; ExamSystem itself calls Gemini Flash,
   routes every generated item through A/B/C/D correctness checks and the independent style-quality review,
   and writes `evidence/system-quality.json` plus `.gate.json`. Handwritten PASS evidence is never accepted.
 - If Russell explicitly requests an all-original batch, set that mode in the batch source and generate all 10
-  questions; do not insert the default 2 real questions. Generate/evaluate contexts must still independently
-  and exactly cover all 10 generated IDs.
+  questions; do not insert the default 2 real questions. evaluation_contexts cover holdout families only; all-original items with no holdout are still imported after correctness.
 - For ordinary production, replace any rejected item and rerun the complete system gate; do not polish a failed item into a pass.
   When Russell is tuning question quality, a repaired batch is diagnostic evidence only and can never certify the prompt. Generalize each
   defect into the persistent quiz-pipeline rules, discard the failed generated items, then regenerate a fresh batch from Russell's normal

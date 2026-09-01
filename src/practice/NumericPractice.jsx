@@ -36,6 +36,11 @@ import WeakSpots from './WeakSpots.jsx';
 import ErrorBreakdown from './ErrorBreakdown.jsx';
 import { loadHistory, saveHistory } from './history.js';
 import SelfReportSession from './SelfReportSession.jsx';
+import {
+  applyNumericTodayRace,
+  litTodayCategoryIds,
+  TODAY_TASKS_REFRESH_EVENT,
+} from './todayTasks.js';
 const RACE_SIZE_DEFAULT = 10;
 const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 const RACE_SIZE_MIN = 1;
@@ -79,15 +84,36 @@ const nextQuestion = (genKey, subId, records = []) =>
   pickWrong(subId, records.map((r) => r.prompt)) || generate(genKey);
 
 // ---------------- 主组件 ----------------
-const NumericPractice = () => {
+const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateTask }) => {
   const [view, setView] = useState('home');
   const [currentCat, setCurrentCat] = useState(null);
   const [currentSubId, setCurrentSubId] = useState(null);
   const [mode, setMode] = useState('train');
   const [raceSize, setRaceSize] = useState(RACE_SIZE_DEFAULT);
+  const [activeTask, setActiveTask] = useState(null);
 
   const [session, setSession] = useState(null);
   const [sessionResult, setSessionResult] = useState(null);
+
+  useEffect(() => {
+    if (taskNavigation?.taskType !== 'numeric') return undefined;
+    const timer = setTimeout(() => {
+      const cat = CATEGORIES.find((item) => item.id === taskNavigation.catId);
+      const subId = taskNavigation.subId || cat?.subs[0]?.id;
+      if (cat?.available && cat.subs.some((sub) => sub.id === subId)) {
+        setCurrentCat(cat);
+        setCurrentSubId(subId);
+        setMode('race');
+        setRaceSize(taskNavigation.plannedCount || RACE_SIZE_DEFAULT);
+        setActiveTask(taskNavigation);
+        setSession(null);
+        setSessionResult(null);
+        setView('subs');
+      }
+      onTaskNavigationConsumed?.();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [taskNavigation, onTaskNavigationConsumed]);
 
   const goHome = () => {
     setView('home');
@@ -95,6 +121,7 @@ const NumericPractice = () => {
     setCurrentSubId(null);
     setSession(null);
     setSessionResult(null);
+    setActiveTask(null);
   };
   const openCategory = (catId) => {
     const cat = CATEGORIES.find((c) => c.id === catId);
@@ -102,6 +129,7 @@ const NumericPractice = () => {
     setCurrentCat(cat);
     setCurrentSubId(cat.subs[0]?.id);
     setMode('train');
+    setActiveTask(null);
     setView('subs');
   };
   // 从今日处方直接点进某个子项，跳过"先选分类再选子项"这一步
@@ -111,6 +139,7 @@ const NumericPractice = () => {
     setCurrentCat(cat);
     setCurrentSubId(subId || cat.subs[0]?.id);
     setMode('train');
+    setActiveTask(null);
     setView('subs');
   };
   const startSession = () => {
@@ -182,6 +211,13 @@ const NumericPractice = () => {
       correct: result.correct,
       score: scoreNumeric(result.total, result.correct),
     });
+    applyNumericTodayRace({
+      catId,
+      subId,
+      total: result.total,
+      correct: result.correct,
+      totalMs,
+    });
     setSessionResult(result);
     setView('result');
   };
@@ -189,7 +225,7 @@ const NumericPractice = () => {
 
   if (view === 'home')
     return (
-      <HomeView onPick={openCategory} onPickSub={openSub} onOpenGames={() => setView('games')} />
+      <HomeView onPick={openCategory} onPickSub={openSub} onPickTask={onNavigateTask} onOpenGames={() => setView('games')} />
     );
   if (view === 'games') return <GamesHome onBack={goHome} />;
   if (view === 'subs')
@@ -235,13 +271,25 @@ const NumericPractice = () => {
 };
 
 // ---------------- Home ----------------
-const HomeView = ({ onPick, onPickSub, onOpenGames }) => {
+const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
+  const [litCats, setLitCats] = useState(() => litTodayCategoryIds());
+
+  useEffect(() => {
+    const refresh = () => setLitCats(litTodayCategoryIds());
+    window.addEventListener(TODAY_TASKS_REFRESH_EVENT, refresh);
+    window.addEventListener('cloud-hydrated', refresh);
+    return () => {
+      window.removeEventListener(TODAY_TASKS_REFRESH_EVENT, refresh);
+      window.removeEventListener('cloud-hydrated', refresh);
+    };
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* 段位总览横幅 */}
       <RankDashboard onClickCategory={onPick} />
 
-      <WeakSpots onPickSub={onPickSub} />
+      <WeakSpots onPickSub={onPickSub} onPickTask={onPickTask} />
 
       <div>
         <h2 className="text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
@@ -321,6 +369,11 @@ const HomeView = ({ onPick, onPickSub, onOpenGames }) => {
               </div>
               <h3 className="text-xl font-black italic mb-2 flex items-center gap-2 flex-wrap">
                 <span>{cat.name}</span>
+                {litCats.has(cat.id) && (
+                  <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full not-italic bg-emerald-400/20 text-emerald-300">
+                    今日已点亮
+                  </span>
+                )}
                 {cat.tag && (
                   <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full not-italic ${
                     disabled ? 'bg-[#e8d5b0] text-slate-400' : 'bg-[#2c261c] text-white'

@@ -100,6 +100,7 @@ const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
 
 const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [taskNavigation, setTaskNavigation] = useState(null);
   const [authed, setAuthed] = useState(!!getToken());
   // 没有 token 就没什么可校验的，开局即视为"已检查完"；
   // 有 token 时由下面的 checkAuth effect 负责置位
@@ -120,6 +121,11 @@ const AppInner = () => {
   };
   const [hermesFullscreen, setHermesFullscreen] = useState(readHermesFs);
   const hermesFs = activeTab === 'hermes' && hermesFullscreen;
+  const openTodayTask = (task) => {
+    setTaskNavigation({ ...task, nonce: Date.now() });
+    setActiveTab(task.taskType === 'ai_batch' ? 'aiPractice' : 'practice');
+  };
+  const consumeTaskNavigation = () => setTaskNavigation(null);
 
   useEffect(() => {
     const go = () => setActiveTab('knowledge');
@@ -727,7 +733,13 @@ const AppInner = () => {
             <Review />
           </div>
 
-          {activeTab === 'practice' && <NumericPractice />}
+          {activeTab === 'practice' && (
+            <NumericPractice
+              taskNavigation={taskNavigation}
+              onTaskNavigationConsumed={consumeTaskNavigation}
+              onNavigateTask={openTodayTask}
+            />
+          )}
 
           {activeTab === 'flashcards' && <Flashcards />}
 
@@ -752,7 +764,13 @@ const AppInner = () => {
             />
           </div>
 
-          {activeTab === 'aiPractice' && <AIQuizHome onAnalyzeWithHermes={seedHermes} />}
+          {activeTab === 'aiPractice' && (
+            <AIQuizHome
+              onAnalyzeWithHermes={seedHermes}
+              initialBatchId={taskNavigation?.taskType === 'ai_batch' ? taskNavigation.batchId : null}
+              onInitialBatchHandled={consumeTaskNavigation}
+            />
+          )}
 
           {activeTab === 'mixer' && <Mixer />}
         </div>

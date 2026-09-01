@@ -22,6 +22,7 @@ export const SYNCED_KEYS = new Set([
   'numeric_practice_history_v1',     // 数资历史
   'numeric_rank_stats_v1',           // 数资段位
   'numeric_wrong_pool_v1',           // 数资错题池（待重出的题）
+  'numeric_today_tasks_v1',           // 数资今日任务点亮
   'exam_calendar_events',            // 重要日子倒计时
   'flashcards_progress_v1',          // 闪卡 SM2 进度
   'numeric_games_number_grid_v1',    // 点数字

@@ -218,6 +218,24 @@ CREATE TABLE IF NOT EXISTS daily_plans (
 );
 
 -- 复习模块：每个模块是一组图片（知识点/错题截图等）
+CREATE TABLE IF NOT EXISTS ai_daily_batch_runs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  plan_date     TEXT NOT NULL,
+  module        TEXT NOT NULL,
+  batch_id      TEXT,
+  status        TEXT NOT NULL DEFAULT 'scheduled',
+  error         TEXT,
+  planned_count INTEGER NOT NULL DEFAULT 0,
+  source        TEXT NOT NULL DEFAULT 'hermes',
+  generated_at  TEXT,
+  imported_at   TEXT,
+  created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (plan_date, module)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_daily_batch_runs_batch ON ai_daily_batch_runs(batch_id);
+CREATE INDEX IF NOT EXISTS idx_ai_daily_batch_runs_status ON ai_daily_batch_runs(plan_date, status);
+
 CREATE TABLE IF NOT EXISTS review_modules (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT    NOT NULL,
@@ -353,6 +371,12 @@ const mCols = new Set(db.prepare('PRAGMA table_info(mistakes)').all().map((r) =>
 if (!mCols.has('correct_streak')) {
   db.exec('ALTER TABLE mistakes ADD COLUMN correct_streak INTEGER DEFAULT 0');
 }
+
+const psCols = new Set(db.prepare('PRAGMA table_info(practice_sessions)').all().map((r) => r.name));
+if (!psCols.has('profile_reviewed_at')) {
+  db.exec('ALTER TABLE practice_sessions ADD COLUMN profile_reviewed_at TEXT');
+}
+
 
 const examCols = new Set(db.prepare('PRAGMA table_info(exam_analyses)').all().map((r) => r.name));
 if (!examCols.has('kind')) {

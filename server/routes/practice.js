@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import db from '../db.js';
-import { recomputeMastery } from '../mastery.js';
+import { reconcileDailyPlanBatch } from './dailyPlans.js';
 
 const router = Router();
 
@@ -155,11 +155,17 @@ router.get('/sessions', (req, res) => {
     .prepare(
       `SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
+         s.profile_reviewed_at,
          COALESCE(
            (SELECT NULLIF(q.source, '') FROM questions q
              WHERE q.batch_id = s.category LIMIT 1),
            s.category
          ) AS display_title,
+         (SELECT q.category FROM questions q
+           WHERE q.batch_id = s.category LIMIT 1) AS module,
+         (SELECT ar.plan_date FROM ai_daily_batch_runs ar
+           WHERE ar.batch_id = s.category
+           ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1) AS daily_plan_date,
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.is_correct = 0)          AS wrong_count,
          (SELECT COUNT(*) FROM practice_drafts pd
@@ -188,7 +194,7 @@ router.post('/sessions/:id/submit', (req, res) => {
   const sessionId = Number(req.params.id);
   const { duration_sec = 0, answers } = req.body || {};
 
-  const session = db.prepare('SELECT id, ended_at FROM practice_sessions WHERE id = ?').get(sessionId);
+  const session = db.prepare('SELECT id, ended_at, category FROM practice_sessions WHERE id = ?').get(sessionId);
   if (!session) return res.status(404).json({ error: 'session not found' });
   if (session.ended_at) return res.status(409).json({ error: '这份卷子已经交过了' });
   if (!Array.isArray(answers) || answers.length === 0) {
@@ -221,54 +227,6 @@ router.post('/sessions/:id/submit', (req, res) => {
             mastered = CASE WHEN correct_streak + 1 >= ${MISTAKE_CLEAR} THEN 1 ELSE 0 END
       WHERE question_id = ? AND mastered = 0`,
   );
-  const addKaodianDebt = db.prepare(
-    `INSERT INTO kaodian_debts
-       (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
-     VALUES (?, 1, 0, datetime('now'), datetime('now'), 0)
-     ON CONFLICT(kaodian) DO UPDATE SET
-       wrong_count = wrong_count + 1,
-       recovery_streak = 0,
-       last_wrong_at = datetime('now'),
-       last_seen_at = datetime('now'),
-       mastered = 0,
-       updated_at = datetime('now')`,
-  );
-  const clearKaodianDebt = db.prepare(
-    `UPDATE kaodian_debts
-        SET recovery_streak = recovery_streak + 1,
-            last_seen_at = datetime('now'),
-            mastered = CASE WHEN recovery_streak + 1 >= ${MISTAKE_CLEAR} THEN 1 ELSE 0 END,
-            updated_at = datetime('now')
-      WHERE kaodian = ? AND mastered = 0`,
-  );
-
-  // 考点画像：把 questions.tags 里的每个知识点单独记账，
-  // 这样能查到"哪个考点老是错"，而不是只知道"判断推理错得多"。
-  const addKdEvent = db.prepare(
-    `INSERT INTO kaodian_events
-       (kaodian, question_id, session_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
-     VALUES (?, ?, ?, ?, ?, 'practice', 1.0)
-     ON CONFLICT DO NOTHING`,
-  );
-  const getCanonicalKd = db.prepare(
-    'SELECT canonical FROM kaodian_aliases WHERE alias = ?',
-  );
-  const upsertKd = db.prepare(
-    `INSERT INTO kaodian_profile
-       (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak)
-     VALUES (@kaodian, @module, @subtype, 1, @ok, @ms, date('now'),
-             CASE WHEN @ok = 1 THEN 1 ELSE -1 END)
-     ON CONFLICT(kaodian) DO UPDATE SET
-       attempts   = attempts + 1,
-       correct    = correct + @ok,
-       total_ms   = total_ms + @ms,
-       last_seen  = date('now'),
-       streak     = CASE WHEN @ok = 1 THEN MAX(streak, 0) + 1 ELSE MIN(streak, 0) - 1 END,
-       module     = excluded.module,
-       subtype    = excluded.subtype,
-       updated_at = datetime('now')`,
-  );
-
   const grade = db.transaction((list) => {
     const results = [];
     let correct = 0;
@@ -288,30 +246,6 @@ router.post('/sessions/:id/submit', (req, res) => {
       if (!skipped) {
         if (isCorrect) clearMistake.run(q.id);
         else addMistake.run(q.id);
-
-        // IMPORT_SPEC 规定第一个 tag 是规范主考点；辅助标签不应各自生成一份掌握度。
-        const [rawKd] = parseTags(q.tags);
-        if (rawKd) {
-          const kd = getCanonicalKd.get(rawKd)?.canonical || rawKd;
-          if (isCorrect) clearKaodianDebt.run(kd);
-          else addKaodianDebt.run(kd);
-          const added = addKdEvent.run(
-            kd,
-            q.id,
-            sessionId,
-            isCorrect ? 1 : 0,
-            timeSpent * 1000,
-          );
-          if (added.changes > 0) {
-          upsertKd.run({
-            kaodian: kd,
-            module: q.category || '未分类',
-            subtype: q.sub_category || null,
-            ok: isCorrect ? 1 : 0,
-            ms: timeSpent * 1000,
-          });
-          }
-        }
       }
 
       results.push({
@@ -334,7 +268,7 @@ router.post('/sessions/:id/submit', (req, res) => {
   });
 
   const { results, correct } = grade(answers);
-  recomputeMastery(db);
+  reconcileDailyPlanBatch(session.category);
   res.json({
     total: results.length,
     correct,
@@ -429,18 +363,19 @@ const practiceReviewMarkdown = ({ session, items }) => {
     `- 总用时：${fmtReviewDuration(session.duration_sec)}`,
     `- 错题或空题：${wrong.length}`,
     `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
+    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场第一次 Hermes 复盘才更新画像'}`,
     '',
     '## 逐题概览',
     '',
-    '| 题号 | 结果 | 用时 | 草稿 | 知识点 |',
-    '|---|---|---:|---|---|',
+    '| 题号 | 题目id | 结果 | 用时 | 草稿 | 知识点 |',
+    '|---|---|---|---:|---|---|',
   ];
 
   for (const [index, item] of items.entries()) {
     const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
     const draft = item.draft_url ? '有' : '无';
     const points = (item.knowledge_points || []).join('、').replace(/\|/g, '\\|') || '未标注';
-    lines.push(`| ${index + 1} | ${result} | ${fmtReviewDuration(item.time_spent_sec)} | ${draft} | ${points} |`);
+    lines.push(`| ${index + 1} | ${item.question_id} | ${result} | ${fmtReviewDuration(item.time_spent_sec)} | ${draft} | ${points} |`);
   }
 
   lines.push('', '## 复盘重点');
@@ -464,6 +399,7 @@ const practiceReviewMarkdown = ({ session, items }) => {
     }
     lines.push(
       '',
+      `- 题目id：${item.question_id}`,
       `- 作答结果：${result}`,
       `- 我的作答：${item.user_answer || '未作答'}`,
       `- 正确答案：${item.correct_answer || '未知'}`,

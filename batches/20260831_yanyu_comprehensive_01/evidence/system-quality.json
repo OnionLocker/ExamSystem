@@ -1,0 +1,844 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260831_yanyu_comprehensive_01",
+  "model": "gemini-3.7-flash-high",
+  "reviewed_at": "2026-08-31T14:08:57+00:00",
+  "verdict": "PASS",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 8,
+    "D": 0
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "answer_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": []
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q003",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q003",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+              "relevant": true,
+              "reason": "同属于逻辑填空实词填空题型，考查语境搭配与实词辨析能力。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "同属于两空型实词逻辑填空题，考查根据上下文语境进行词义辨析与动宾搭配。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q3",
+              "relevant": true,
+              "reason": "同属于两空型实词逻辑填空题，考查文段语境理解与动宾实词搭配。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q004",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q004",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+              "relevant": true,
+              "reason": "同属于逻辑填空题型，考查上下文语境对应与词语辨析运用。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "同属于两空型逻辑填空题，考查结合语境选择准确的搭配及词义辨析。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q3",
+              "relevant": true,
+              "reason": "同属于两空型逻辑填空题，考查语义对应与动宾搭配能力。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q005",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q005",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "同属于逻辑填空中的成语与实词辨析题，考查上下文转折、呼应等逻辑对应关系。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q40",
+              "relevant": true,
+              "reason": "同属于考查反义并列/反向对应逻辑关系的成语逻辑填空题。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q28",
+              "relevant": true,
+              "reason": "同属于基于语境逻辑对应及解释说明关系的成语/实词逻辑填空题。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q006",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q006",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+              "relevant": true,
+              "reason": "同属于逻辑填空题，考查语境逻辑对应与动宾/名词词义搭配。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q40",
+              "relevant": true,
+              "reason": "同属于考查上下文逻辑对应和语义呼应的逻辑填空题。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q28",
+              "relevant": true,
+              "reason": "同属于考查语境对应与词语搭配的逻辑填空题。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q007",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q007",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q7",
+              "relevant": true,
+              "reason": "同属于片段阅读中心理解/主旨概括题型，考查通过提炼文段对策或核心观点归纳主旨。"
+            },
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q8",
+              "relevant": true,
+              "reason": "同属于片段阅读中心理解题型，考查文段行文脉络分析与中心思想提炼。"
+            },
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21",
+              "relevant": true,
+              "reason": "同属于片段阅读中心理解题型，考查抓住文段转折及对策句提炼核心观点。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q008",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q008",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+              "relevant": true,
+              "reason": "同属于意图判断题型，考查通过分析“问题+对策”行文脉络提炼作者意图与解决措施。"
+            },
+            {
+              "id": "zhenti-2025年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+              "relevant": true,
+              "reason": "同属于意图判断题型，考查根据文段问题引出的对策结论句归纳核心意图。"
+            },
+            {
+              "id": "zhenti-2026年国家公务员录用考试行测题地市级网友回忆版-Q63",
+              "relevant": true,
+              "reason": "同属于意图判断题型，考查抓取结论/对策词以归纳作者核心意图。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q009",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q009",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+              "relevant": true,
+              "reason": "同属于语句填入（语句衔接）题型，考查把握上下文行文脉络、填入承上启下或总结句。"
+            },
+            {
+              "id": "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q52",
+              "relevant": true,
+              "reason": "同属于语句填入题型，考查根据语段前后呼应和转折承接关系选择恰当句子。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q54",
+              "relevant": true,
+              "reason": "同属于语句填入题型，考查基于全文论述主题和逻辑衔接推断填入语句。"
+            }
+          ]
+        }
+      },
+      {
+        "question_id": "20260831_yanyu_comprehensive_01-Q010",
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q010",
+          "verdict": "PASS",
+          "references": [
+            {
+              "id": "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+              "relevant": true,
+              "reason": "同属于语句表达中的语句排序题，考查首句筛选、关联词衔接及行文逻辑顺承判定。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q51",
+              "relevant": true,
+              "reason": "同属于语句排序题，考查指代词呼应、逻辑先后顺序及首尾句识别。"
+            },
+            {
+              "id": "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q46",
+              "relevant": true,
+              "reason": "同属于语句排序题，考查根据句子之间的因果、转折和逻辑发展线索进行排序。"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "questions_sha256": "c7b4f9e37c455a3973e3034cff6c65f0f4fcfea5835c082adb2ad12ef65130e5",
+  "manifest_sha256": "48b6fa9c0e74e0c1d6b7f121720f8048f36de0eca59f2751acd898f0d61b4d05",
+  "results": [
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q003",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q003",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空考查搭配，“融入日常生活中”为常见且准确的搭配；第二空“焕发生机”为固定搭配，语意契合。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q003",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与“现代日常生活”搭配，“融入”最恰当；第二空搭配“生机”，“焕发生机”为固定习惯搭配。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "‘渗透’可以搭配日常生活，但‘催生生机’搭配不当，通常为‘催生...现象/产业’。",
+                "fatal_defect": "‘催生生机’属于生造搭配，且非遗本就曾有生机，‘重新焕发生机’符合语境。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "‘嵌入’可搭配生活，但第二空‘割裂’与文意相反。",
+                "fatal_defect": "第二空填入‘割裂’为贬义消极词，与文意彻底背离。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "‘拘泥’为贬义词，不合文意。",
+                "fatal_defect": "‘拘泥到日常生活’搭配不当且感情色彩错误。"
+              },
+              "D": {
+                "stands": true,
+                "basis": "‘融入现代日常生活’与‘重新焕发生机’均是规范固定搭配，完全契合语境。",
+                "fatal_defect": ""
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q003",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "第二空“催生”指促使产生，通常针对原本不存在的新生事物，与文段中“重新”体现的恢复生机语境产生逻辑冲突，且动宾搭配欠佳。",
+            "B": "第二空“割裂”感情色彩消极且含义背离文意，文段要求填入使非遗技艺重新恢复生机活力的积极词汇。",
+            "C": "第一空“拘泥”指固执成见、不知变通，与语境要求的“将传统手工艺结合进现代生活”语义截然相反。"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q3"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q004",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q004",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与“走过场”“蜻蜓点水”构成近义并列，形容调研浮于表面，“走马观花”最为贴切；第二空“制订举措”搭配得当。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q004",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与‘蜻蜓点水’并列，对应‘走过场的形式主义’，‘走马观花’最为贴切；第二空与‘针对性举措’搭配，‘制订举措’规范恰当。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "‘闭门造车’侧重主观脱离实际，而前文重在强调表面化、不深入（走过场、蜻蜓点水）。",
+                "fatal_defect": "第一空与‘蜻蜓点水’语义侧重不一致，‘规划举措’搭配欠佳。"
+              },
+              "B": {
+                "stands": true,
+                "basis": "‘走马观花’与‘蜻蜓点水’构成近义并列，形容调研不深入；‘制订举措’搭配得当。",
+                "fatal_defect": ""
+              },
+              "C": {
+                "stands": false,
+                "basis": "‘纸上谈兵’侧重空谈理论不能解决实际问题，‘颁布举措’搭配不当（一般颁布法令/规章）。",
+                "fatal_defect": "第二空‘颁布’与‘举措’搭配不当。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "‘捕风捉影’指说话做事毫无事实根据，与走过场调研语境不符。",
+                "fatal_defect": "第一空语义偏离‘调研不深入’的语境。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q004",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "第一空“闭门造车”侧重主观脱离实际，与“蜻蜓点水”所体现的调研浮于表面、不深入缺乏并列呼应；且“规划举措”搭配欠妥。",
+            "C": "第一空“纸上谈兵”侧重空谈理论不解决实际问题，非调研浮浅之意；第二空“颁布”多用于法令规章的正式公布，不适用于调研生成针对性举措的语境。",
+            "D": "第一空“捕风捉影”比喻说话做事毫无事实依据，偏离“调研不深入、走过场”的特定语境。"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q1",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q4",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q3"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q005",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q005",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空与“充满未知与曲折的艰辛探索”形成反义对应，“一帆风顺”形容非常顺利，符合语境；第二空“百折不挠”与“面对暂时的实验失败”及“韧劲”对应精准。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q005",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空修饰‘坦途’并与后文‘未知与曲折’形成反义对照，‘一帆风顺’恰当；第二空对应面对实验失败不气馁，‘百折不挠’形容意志坚强、屡遭挫折而不屈服，与‘韧劲’呼应最为紧密。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "‘一马平川’本义指广阔平坦的陆地，修饰‘坦途’存在语义重复与搭配不当。",
+                "fatal_defect": "‘一马平川的坦途’搭配不规范，属于语义冗余。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "‘一蹴而就’强调时间短、一下子成功，不能作定语修饰‘坦途’。",
+                "fatal_defect": "第一空语法搭配不当，‘一蹴而就’不能修饰名词‘坦途’。"
+              },
+              "C": {
+                "stands": true,
+                "basis": "‘一帆风顺的坦途’是常见比喻；面对‘实验失败’需具备‘百折不挠的韧劲’，逻辑与搭配均完美对应。",
+                "fatal_defect": ""
+              },
+              "D": {
+                "stands": false,
+                "basis": "‘平澜无波’常指水面平静或生活波澜不惊，‘孜孜不倦’侧重勤奋不懈而非面对失败的抗挫韧劲。",
+                "fatal_defect": "第一空不用于修饰‘坦途’，第二空不能精准对应‘面对失败不气馁’。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q005",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "第一空“一马平川”指地势平坦宽阔，与后文的“坦途”语义重复堆砌。",
+            "B": "第一空“一蹴而就”强调极短时间内轻易成功，一般不作定语修饰“坦途”；第二空“矢志不渝”侧重立志坚定，与面对失败不屈服的语境契合度弱于百折不挠。",
+            "D": "第一空“平澜无波”非规范成语且常形容水面或心境，与“坦途”搭配不当；第二空“孜孜不倦”侧重勤奋不懈，未体现面对挫折失败时的坚毅韧性。"
+          },
+          "reference_ids": [
+            "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q40",
+            "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q28"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q006",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "D",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q006",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空“打破时空阻隔”搭配自然；第二空“满足需求”是惯用搭配。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q006",
+            "answer": "D",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "第一空‘打破时空阻隔’搭配常见且自然；第二空‘满足需求’为固定搭配。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "第一空‘打破束缚’可通，但第二空‘提升需求’搭配不当，一般为‘满足需求’或‘提升水平’。",
+                "fatal_defect": "‘提升需求’搭配不当。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "‘弥补需求’搭配不当，一般为‘弥补不足/缺陷’。",
+                "fatal_defect": "‘弥补需求’动宾搭配不当。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "‘剥夺需求’感情色彩和语义严重错误。",
+                "fatal_defect": "第二空语义与文意彻底相反。"
+              },
+              "D": {
+                "stands": true,
+                "basis": "‘打破时空阻隔’与‘满足文化需求’均为规范搭配，完全符合文意。",
+                "fatal_defect": ""
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q006",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "第二空“提升”与“需求”搭配不当，常规规范表达为“满足需求”或“提升文化素养”。",
+            "B": "第一空“枷锁”程度过重；第二空“弥补”多与短板、缺陷搭配，与“精神文化需求”搭配不当。",
+            "C": "第二空“剥夺”为消极贬义词且与文意相反，数字化赋能旨在更好地满足群众文化需求。"
+          },
+          "reference_ids": [
+            "zhenti-2020年广东省公务员录用考试行测试题县级卷网友回忆版-Q4",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q40",
+            "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q28"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q007",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "C",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q007",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段后半部分为对策核心，强调城市更新绝不能牺牲历史文脉，要保留原住民生活生态与延续历史风貌，C项是对文段主旨对策的准确概括。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q007",
+            "answer": "C",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段先指出大拆大建牺牲历史文脉的问题，随后通过转折及总结句指出‘保留原住民的生活生态，延续原有的街巷肌理与历史风貌...才是根本之道’，C项为文段核心观点的同义替换。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "只是文段前部提及的问题表象，并非作者意在强调的对策与核心结论。",
+                "fatal_defect": "属于问题层面的表述，偏离文段对策重点。"
+              },
+              "B": {
+                "stands": false,
+                "basis": "文段指出‘改善居住环境’固然重要，但未提及是‘首要目标’，且重点在于文脉保护与生态延续。",
+                "fatal_defect": "‘首要目标’无中生有且偏离主旨。"
+              },
+              "C": {
+                "stands": true,
+                "basis": "准确概括文段结尾的核心对策‘保留生活生态、延续风貌文脉’。",
+                "fatal_defect": ""
+              },
+              "D": {
+                "stands": false,
+                "basis": "仅涉及文段引出问题的背景细节，非意图重点。",
+                "fatal_defect": "属于局部反面论证的细节，非中心思想。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q007",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "对应文段前期的背景与问题描述，属于铺垫分析部分，未体现文段核心对策。",
+            "B": "“首要目标”表述绝对且无中生有，文段强调改善居住环境绝不能以牺牲文脉为代价。",
+            "D": "偏离文段核心主题，文段重点探讨历史街区文脉保护与活态延续，而非单纯评价商业街的商业活力。"
+          },
+          "reference_ids": [
+            "zhenti-2022年广东省公务员录用考试行测题乡镇卷网友回忆版-Q7",
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q8",
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q21"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q008",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "B",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q008",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段尾句提出解决微短剧乱象的对策：“不仅需要监管部门……更需要创作者……”，B项是对该对策的完整归纳。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q008",
+            "answer": "B",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "文段先叙述微短剧的发展乱象，末句提出明确对策‘推动微短剧行业从野蛮生长迈向精耕细作，不仅需要监管部门...更需要创作者...’，B项是对主旨句‘监管与创作双向发力’的完整概括。",
+            "option_tests": {
+              "A": {
+                "stands": false,
+                "basis": "属于乱象问题的局部描述，非文段结论。",
+                "fatal_defect": "以偏概全，未涵盖文段的核心对策。"
+              },
+              "B": {
+                "stands": true,
+                "basis": "完整全面概括了文段尾句‘监管部门划定底线’与‘创作者深耕内涵’的并重对策。",
+                "fatal_defect": ""
+              },
+              "C": {
+                "stands": false,
+                "basis": "‘根本诱因’在文中未作根本性定性，且对策才是意图题核心。",
+                "fatal_defect": "过度推断且非意图重点。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "只提到了创作者单方面的责任，遗漏了‘监管部门’的一方。",
+                "fatal_defect": "片面遗漏文段‘不仅需要监管...更需要创作...’中监管维度的要点。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q008",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "属于前文问题现象的局部阐述，非文段最终意图对策，且“审美疲劳”仅为表象之一。",
+            "C": "“根本诱因”属于无中生有的过度推断，文段未对乱象的根本诱因作出定性。",
+            "D": "仅涵盖尾句对策中针对创作者的维度，遗漏了文段同等强调的“监管部门”这一监管主体，概括片面。"
+          },
+          "reference_ids": [
+            "zhenti-2021年广东省公务员录用考试行测题乡镇卷网友回忆版-Q10",
+            "zhenti-2025年国家公务员录用考试行测题行政执法卷网友回忆版-Q56",
+            "zhenti-2026年国家公务员录用考试行测题地市级网友回忆版-Q63"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q009",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q009",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前强调乡村建设轻视文化建设会失去灵魂，横线后指出必须把文化建设贯穿全过程，A项“繁荣乡村文化是乡村振兴的灵魂工程”承前启后，衔接最紧密。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q009",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "横线前文指出‘轻视文化建设就会失去灵魂’，横线后文提出‘把文化建设贯穿全过程’，横线处需承上启下强调乡村文化是灵魂所在。A项‘乡村文化是乡村振兴的灵魂工程’衔接最为紧密贴切。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "紧承上文‘独特的灵魂与温情’，引出下文‘贯穿全过程的文化建设’，逻辑衔接严密。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "‘优先发展文化产业’偷换概念，文段通篇讨论的是‘乡村文化建设’而非‘文化产业’。",
+                "fatal_defect": "主体偷换为‘文化产业’，且‘优先发展’无依据。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "文段强调不能只顾物质而轻视文化，C项强调物质是前提，与文段强调文化的导向相悖。",
+                "fatal_defect": "语义重心偏向物质，与文意逻辑相反。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "‘传统村落建筑’过于狭隘，文段强调的是广泛的乡土文化与精神文明建设。",
+                "fatal_defect": "偏离‘文化建设/精神文明’的核心主题，缩小了范围。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q009",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "“优先发展文化产业”偷换了“文化建设/精神滋养”的核心概念，且“优先发展”无依据。",
+            "C": "“物质富裕是前提条件”将论述重心转向物质建设，与文段重点强调精神文化建设的逻辑方向相悖。",
+            "D": "“保护传统村落建筑”范围过窄，无法全面概括与引出后文涵盖乡风文明、思想观念的系统性文化建设。"
+          },
+          "reference_ids": [
+            "zhenti-2026年广东省公务员录用考试行测题网友回忆版-Q28",
+            "zhenti-2026年国家公务员录用考试行测题副省级网友回忆版-Q52",
+            "zhenti-2024年国家公务员录用考试行测题行政执法卷网友回忆版-Q54"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    },
+    {
+      "question_id": "20260831_yanyu_comprehensive_01-Q010",
+      "route": "C",
+      "verdict": "PASS",
+      "correctness": {
+        "route": "C",
+        "verdict": "PASS",
+        "answer": "A",
+        "reviews": [
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q010",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "①句引出“风貌与肌理”，②句以“这种风貌与肌理”紧承；③句提出“亟待破解的现实难题”，④句以“针对这一现实难题”承接；⑤句以“不仅如此”递进说明保护措施；⑥句以“正因如此”作总结。正确顺序为①②③④⑤⑥。"
+          },
+          {
+            "id": "20260831_yanyu_comprehensive_01-Q010",
+            "answer": "A",
+            "also_valid": [],
+            "verdict": "PASS",
+            "reason": "①句引入古建筑的风貌与肌理；②句通过‘这种风貌与肌理’紧承①并转折指出损坏问题；③句承接老化损坏提出‘现实难题’；④句‘针对这一现实难题’提出数字化等修缮对策；⑤句以‘不仅如此’递进说明工艺提升；⑥句以‘正因如此’总结全文。逻辑顺序为①②③④⑤⑥。",
+            "option_tests": {
+              "A": {
+                "stands": true,
+                "basis": "指代词‘这种风貌与肌理’（②紧承①）、‘这一现实难题’（④紧承③）、‘不仅如此’（⑤递进④）、‘正因如此’（⑥总结）环环相扣。",
+                "fatal_defect": ""
+              },
+              "B": {
+                "stands": false,
+                "basis": "②句开头出现转折词‘然而’和指代词‘这种风貌与肌理’，置于首句无所指代。",
+                "fatal_defect": "②句不适合作为首句，指代对象脱节。"
+              },
+              "C": {
+                "stands": false,
+                "basis": "④句提到了‘针对这一现实难题’，而难题是在③句中提出的，④不能置于③前。",
+                "fatal_defect": "④中的‘这一现实难题’在②中未出现，逻辑出现跳跃和倒置。"
+              },
+              "D": {
+                "stands": false,
+                "basis": "⑤句‘不仅如此’是递进词，不能直接放在提出难题的③句之后。",
+                "fatal_defect": "⑤直接承接③无法构成递进关系，打乱了‘技术修缮’与‘材料工艺’的递进。"
+              }
+            }
+          }
+        ],
+        "issues": []
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260831_yanyu_comprehensive_01-Q010",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "②句含有转折词“然而”及指代词“这种风貌与肌理”，直接作首句指代不明，缺乏前置背景铺垫。",
+            "C": "④句“针对这一现实难题”明确指代③句提出的寿命难题，④排在③前导致指代缺失、逻辑倒置。",
+            "D": "⑤句“不仅如此”表递进关系，用于承接④句的数字化监测措施，若置于④前则递进关系不能成立。"
+          },
+          "reference_ids": [
+            "zhenti-2024年广东省公务员录用考试行测题网友回忆版-Q25",
+            "zhenti-2024年国家公务员录用考试行测题地市级网友回忆版-Q51",
+            "zhenti-2024年国家公务员录用考试行测题副省级网友回忆版-Q46"
+          ],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": []
+      }
+    }
+  ]
+}

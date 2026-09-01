@@ -1,0 +1,172 @@
+[
+  {
+    "external_id": "20260830_ziliao_style_01-Q01",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M01",
+    "stem": "2023年，G市公共文化服务设施建设财政投入约为（ ）亿元。",
+    "options": [
+      { "key": "A", "text": "15.6" },
+      { "key": "B", "text": "16.0" },
+      { "key": "C", "text": "16.4" },
+      { "key": "D", "text": "16.8" }
+    ],
+    "answer": "B",
+    "explanation": "基期=现期÷(1+r)=18.40/1.15=16。A 是按 18% 除，C 是 18.40−2，D 是当成增长 9.5%。",
+    "difficulty": 2,
+    "tags": ["资料分析-基期量-基期量计算"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q02",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M01",
+    "stem": "2024年，东部新城公共文化服务设施建设财政投入占全市的（ ）。",
+    "options": [
+      { "key": "A", "text": "25%" },
+      { "key": "B", "text": "30%" },
+      { "key": "C", "text": "35%" },
+      { "key": "D", "text": "40%" }
+    ],
+    "answer": "B",
+    "explanation": "5.52/18.40=30%。D 是市级占比，A 是西部 4.60/18.40=25%。",
+    "difficulty": 2,
+    "tags": ["资料分析-比重-比重计算与比较"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q03",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M01",
+    "stem": "2024年，中心城区公共文化服务设施建设财政投入约是西部县区的（ ）倍。",
+    "options": [
+      { "key": "A", "text": "1.5" },
+      { "key": "B", "text": "1.6" },
+      { "key": "C", "text": "1.8" },
+      { "key": "D", "text": "2.0" }
+    ],
+    "answer": "C",
+    "explanation": "8.28/4.60=1.8。A 用东部÷西部，B 用 8.28/5.52。",
+    "difficulty": 2,
+    "tags": ["资料分析-倍数-倍数计算"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q04",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M01",
+    "stem": "2024年，下列区域公共文化服务设施建设财政投入同比增量最大的是（ ）。",
+    "options": [
+      { "key": "A", "text": "中心城区" },
+      { "key": "B", "text": "东部新城" },
+      { "key": "C", "text": "西部县区" },
+      { "key": "D", "text": "市级财政" }
+    ],
+    "answer": "B",
+    "explanation": "增量=现期−现期/(1+r)。中心 8.28−8.28/1.08≈0.61，东部 5.52−4.60=0.92，西部 4.60−4.60/1.22≈0.83。增速最大的西部不是增量最大。市级没有同比，不能比。",
+    "difficulty": 3,
+    "tags": ["资料分析-增长量-增长量计算与比较"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q05",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M01",
+    "stem": "根据资料，下列说法正确的是（ ）。",
+    "options": [
+      { "key": "A", "text": "2023年市级财政投入超过7亿元" },
+      { "key": "B", "text": "2024年中心城区投入占全市比重低于50%" },
+      { "key": "C", "text": "2023年基层文化驿站不足350个" },
+      { "key": "D", "text": "2024年西部县区投入同比增量大于东部新城" }
+    ],
+    "answer": "B",
+    "explanation": "8.28/18.40=45%<50%，B 对。市级无增长率，A 推不出。驿站基期=460−60=400，C 错。西部增量约0.83<东部0.92，D 错。",
+    "difficulty": 3,
+    "tags": ["资料分析-综合分析-综合判断"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q06",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M02",
+    "stem": "2022—2024年，P省东部地区快递业务量的年均增速约为（ ）。",
+    "options": [
+      { "key": "A", "text": "10%" },
+      { "key": "B", "text": "12.5%" },
+      { "key": "C", "text": "15%" },
+      { "key": "D", "text": "26.5%" }
+    ],
+    "answer": "B",
+    "explanation": "两年年均：(101.2/80)^(1/2)−1=√1.265−1≈12.5%。A 是2024同比，C 是2023同比，D 是两年总增幅。",
+    "difficulty": 3,
+    "tags": ["资料分析-增长率-年均增长率"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q07",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M02",
+    "stem": "2024年，P省中部地区快递业务量占全省的比重比2023年（ ）。",
+    "options": [
+      { "key": "A", "text": "上升了不到1个百分点" },
+      { "key": "B", "text": "上升了1个百分点以上" },
+      { "key": "C", "text": "下降了不到1个百分点" },
+      { "key": "D", "text": "下降了1个百分点以上" }
+    ],
+    "answer": "B",
+    "explanation": "2024：36/(101.2+36+22.5)=36/159.7≈22.54%；2023：30/(92+30+18)=30/140≈21.43%。升约1.1个百分点。",
+    "difficulty": 3,
+    "tags": ["资料分析-比重-比重计算与比较"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q08",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M02",
+    "stem": "2024年，P省西部地区平均每件快递收入约为（ ）元。",
+    "options": [
+      { "key": "A", "text": "4.8" },
+      { "key": "B", "text": "5.2" },
+      { "key": "C", "text": "5.6" },
+      { "key": "D", "text": "6.0" }
+    ],
+    "answer": "C",
+    "explanation": "收入÷业务量=126/22.5=5.6元。亿元÷亿件=元。A 用2022的90/15=6再除错年，D 用中部240/36≈6.7再估错。",
+    "difficulty": 2,
+    "tags": ["资料分析-平均数-现期平均数"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q09",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M02",
+    "stem": "2024年，P省下列区域快递业务量同比增速最快的是（ ）。",
+    "options": [
+      { "key": "A", "text": "东部" },
+      { "key": "B", "text": "中部" },
+      { "key": "C", "text": "西部" },
+      { "key": "D", "text": "东部与中部相同" }
+    ],
+    "answer": "C",
+    "explanation": "东101.2/92−1=10%，中36/30−1=20%，西22.5/18−1=25%。只比现期/基期，西部最大。",
+    "difficulty": 2,
+    "tags": ["资料分析-增长率-同比增长率"]
+  },
+  {
+    "external_id": "20260830_ziliao_style_01-Q10",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "20260830_ziliao_style_01-M02",
+    "stem": "根据资料，下列说法正确的是（ ）。",
+    "options": [
+      { "key": "A", "text": "2022—2024年中部业务量年均增速低于东部" },
+      { "key": "B", "text": "2024年东部业务收入占全省比重超过六成" },
+      { "key": "C", "text": "2023年西部平均每件收入高于中部" },
+      { "key": "D", "text": "2022—2024年全省业务量年均增加超过20亿件" }
+    ],
+    "answer": "B",
+    "explanation": "东部收入760/(760+240+126)=760/1126≈67.5%>60%。中部年均√(36/25)−1=20%>东部12.5%，A错。2023西105/18≈5.83<中204/30=6.8，C错。全省年均增量(159.7−120)/2=19.85<20，D错。",
+    "difficulty": 3,
+    "tags": ["资料分析-综合分析-综合判断"]
+  }
+]

@@ -4,7 +4,7 @@
 //   remark-gfm    表格 / 删除线 / 任务列表
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
-import { normalizeOriginalQuestionOptions } from './reviewFormat.js';
+import { normalizeOriginalQuestionOptions, splitStemOptions } from './reviewFormat.js';
 import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -237,6 +237,21 @@ const components = {
     const raw = textOf(children).trim();
     const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
     if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
+    const split = splitStemOptions(raw);
+    if (split && (raw.includes('原题') || raw.includes('由此可以推出') || raw.includes('由此可知'))) {
+      return (
+        <div className="space-y-1.5">
+          {split.head.trim() ? (
+            <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{split.head.trim()}</p>
+          ) : null}
+          {split.chunks.map((chunk) => (
+            <p key={chunk.letter} className="my-1 leading-[1.75]">
+              <strong>{chunk.letter}.</strong> {chunk.body}
+            </p>
+          ))}
+        </div>
+      );
+    }
     return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
   },
   h1({ children }) {
@@ -253,7 +268,7 @@ const components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-4 rounded-2xl border border-[#d9c49d] bg-[#f8f3e8] px-5 py-4 text-[#40382b] [&_p]:my-1 [&_strong]:text-[#1a1a1a]">
+      <blockquote className="my-4 rounded-2xl border border-[#c4aa6a] bg-[#e8d5b0] px-5 py-4 text-[#40382b] [&_p]:my-1.5 [&_strong]:text-[#1a1a1a]">
         {children}
       </blockquote>
     );

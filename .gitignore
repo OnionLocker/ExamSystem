@@ -23,6 +23,8 @@ server/certs/
 
 # data/ 下均为运行时数据
 data/*
+!data/calendar/
+!data/calendar/*.json
 
 # 导入的批次图片（可能很大，不入 git）
 public/q-images/*
