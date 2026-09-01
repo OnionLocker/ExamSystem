@@ -40,11 +40,41 @@ def ziliao_paper(distinct=True):
         packs[1] = ["资料分析-基础知识-统计术语与常考概念", "资料分析-比重类-比重趋势、比重差与比值差",
                     "资料分析-盐水类-十字交叉法与混合增长率", "资料分析-比较类-双线法与增量比较",
                     "资料分析-特殊考点-拉动增长、贡献率与容斥"]
+    judge_forms = [
+        "根据资料，以下说法可以判断属实的是（  ）。",
+        "根据资料，以下说法不能从上述资料中推出的是（  ）。",
+        "根据资料，下列说法正确的有（  ）。",
+        "根据资料，能够从上述资料中推出的是（  ）。",
+    ]
     items = []
     for m in range(4):
         for k in range(5):
-            items.append(q(f"Z{m}{k}", "资料分析", None, packs[m][k], material_id=f"M{m}"))
+            stem = judge_forms[m] if k == 4 else f"第{m}篇第{k}题"
+            items.append(q(f"Z{m}{k}", "资料分析", None, packs[m][k], material_id=f"M{m}", stem=stem))
     return items
+
+
+def science_paper(n=5, with_images=True):
+    buckets = [("科学推理-力学-杠杆滑轮", "杠杆"), ("科学推理-压强与浮力-阿基米德原理", "浮力"),
+               ("科学推理-电学-串并联", "电路"), ("科学推理-地理-海陆风", "海陆风"),
+               ("科学推理-生物-食物网", "食物网")]
+    out = []
+    for i in range(n):
+        tag, kw = buckets[i % len(buckets)]
+        item = q(f"K{i}", "科学推理", "科学推理", tag, stem=f"如图，关于{kw}的问题。")
+        if with_images:
+            item["stem_images"] = [f"images/k{i}.png"]
+        out.append(item)
+    return out
+
+
+def panduan_paper(g=5, lg=15):
+    out = []
+    for i in range(g):
+        out.append(q(f"G{i}", "判断推理", "图形推理", "判断推理-图形推理-位置规律"))
+    for i in range(lg):
+        out.append(q(f"L{i}", "判断推理", "逻辑判断", "判断推理-逻辑判断-支持与前提假设"))
+    return out
 
 
 class ShuliangTest(unittest.TestCase):
@@ -128,6 +158,54 @@ class HardRulesTest(unittest.TestCase):
                     for m in range(4)]
             Path(d, "materials.json").write_text(json.dumps(mats, ensure_ascii=False), "utf-8")
             validate_paper_hard_rules({}, items, Path(d))
+
+    def _clean_ziliao_dir(self, d):
+        mats = [{"external_id": f"M{m}",
+                 "content": f"2024年，G省第{m}产业实现增加值{1876.43 + m}亿元，同比增长{12.7 + m}%。"}
+                for m in range(4)]
+        Path(d, "materials.json").write_text(json.dumps(mats, ensure_ascii=False), "utf-8")
+
+    def test_ziliao_missing_judge_rejected(self):
+        items = ziliao_paper(distinct=True)
+        for it in items:                      # 抹掉全部综合判断题干
+            if "根据资料" in it["stem"]:
+                it["stem"] = "普通计算题"
+        with tempfile.TemporaryDirectory() as d:
+            self._clean_ziliao_dir(d)
+            with self.assertRaisesRegex(ValueError, "综合判断"):
+                validate_paper_hard_rules({}, items, Path(d))
+
+    def test_ziliao_same_judge_form_rejected(self):
+        items = ziliao_paper(distinct=True)
+        for it in items:                      # 四篇综合判断都用“属实”同一形式
+            if "根据资料" in it["stem"]:
+                it["stem"] = "根据资料，以下说法可以判断属实的是（  ）。"
+        with tempfile.TemporaryDirectory() as d:
+            self._clean_ziliao_dir(d)
+            with self.assertRaisesRegex(ValueError, "跨篇轮换"):
+                validate_paper_hard_rules({}, items, Path(d))
+
+
+class ScienceTest(unittest.TestCase):
+    def test_clean_passes(self):
+        validate_paper_hard_rules({}, science_paper(5, with_images=True))
+
+    def test_missing_image_rejected(self):
+        with self.assertRaisesRegex(ValueError, "必带图"):
+            validate_paper_hard_rules({}, science_paper(5, with_images=False))
+
+    def test_wrong_count_rejected(self):
+        with self.assertRaisesRegex(ValueError, "独立 5 题"):
+            validate_paper_hard_rules({}, science_paper(4, with_images=True))
+
+
+class PanduanLayoutTest(unittest.TestCase):
+    def test_clean_passes(self):
+        validate_paper_hard_rules({}, panduan_paper(5, 15))
+
+    def test_wrong_split_rejected(self):
+        with self.assertRaisesRegex(ValueError, "图形 5 \\+ 逻辑 15"):
+            validate_paper_hard_rules({}, panduan_paper(6, 14))
 
 
 if __name__ == "__main__":

@@ -101,6 +101,21 @@ python3 /home/ubuntu/ExamSystem/scripts/learner_snapshot.py --ziliao-pack
     skill_view("quiz-pipeline", "references/reference-style-principles.md")
     skill_view("quiz-pipeline", "references/reference-style-profile.md")
     skill_view("quiz-pipeline", "references/module-hard-rules.md")  # 广东各模块卷面硬规则+【GATE】清单，出题必读
+
+> 广东通用卷出题必执行（读完 `module-hard-rules.md` 后，按下列结构落卷；标【GATE】者
+> `generation_gate.issue` 会机械拦截，违反直接回炉重出）：
+>
+> - **资料分析**：4 篇×5=20；四篇形态不同（纯文字/表/图/混合）。Q1–Q4 从 `07-ziliao.md`
+>   主标签随机抽，不强制覆盖每个考点，**四篇考点骨架不得同构**【GATE】；Q5 综合判断且
+>   形式跨篇轮换（属实/无法推出/能推出几个/能推出）【GATE】；脏数字≥40%【GATE】、禁「某省」【GATE】、
+>   答案 4 篇中 3 篇 ABCD各一+1、1 篇打散【GATE】。
+> - **数量关系**：15=数字推理 5+数学运算 10，**不得 0 数字推理**【GATE】；数字推理题干即数列本体、
+>   五题五种规律不克隆；数学运算从池随机抽，禁鸡兔同笼/长方形周长求面积/纯相遇口算/连续同构分东西。
+> - **判断推理**：20=图形 5+逻辑 15，**不出类比/定义**【GATE】；加强/削弱项必须作用于结论论证链、
+>   跑题项视为缺陷；单选恰好一真（分析推理排出唯一世界）。
+> - **科学推理**：独立 5 题、5 学科去重、**每题必带图**、能算则算【GATE】。
+> - **言语理解**：15 题、逻辑填空 4–6（近义辨析，禁三极端假+一明显真）、其余片段阅读；禁「因此亟须」作文腔【GATE】。
+> - 通用：题面禁课纲词（本题考察/秒杀模型）【GATE】；不得把样卷题目写死进生成器。
     # ������ԭ��������ʱǿ�ƶ�ȡ
 
 `reference-style-principles.md` 是从参��题归纳的命题动作与禁忌＄1�7

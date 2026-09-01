@@ -23,7 +23,8 @@ from kaodian_taxonomy import (
     validate_ziliao_variety,
 )
 from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
-from panduan_pack import is_panduan_paper, validate_panduan_paper
+from panduan_pack import _blob as _kepui_blob
+from panduan_pack import is_panduan_paper, kepui_bucket, validate_panduan_paper
 from reference_style import has_images, match_level
 
 
@@ -456,6 +457,19 @@ _KEGANG_WORDS = ("本题考察", "本题考查", "秒杀模型", "秒杀技巧")
 _JUDGE_MARKERS = ("可以判断属实", "不能从", "无法从", "能够从", "正确的有", "推出的是")
 
 
+def _judge_form(stem: str) -> str:
+    """资料综合判断题干形式分类（属实 / 无法推出 / 计数 / 能推出）。"""
+    if "正确的有" in stem:
+        return "计数"
+    if ("不能" in stem or "无法" in stem) and "推" in stem:
+        return "无法推出"
+    if "属实" in stem:
+        return "属实"
+    if "能够" in stem and "推" in stem:
+        return "能推出"
+    return ""
+
+
 def _material_contents(batch_dir: Path | None) -> list[str]:
     if not batch_dir:
         return []
@@ -522,11 +536,38 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                 raise ValueError("资料分析材料禁止用“某省”占位，请用具体化名（如 G省）或全国口径")
         if contents and _dirty_ratio(contents) < 0.40:
             raise ValueError("资料分析数字过于圆整：脏数字（含小数或末两位非 00）比例须 ≥40%")
-        judges = [str(q.get("stem") or "") for q in ziliao
-                  if any(marker in str(q.get("stem") or "") for marker in _JUDGE_MARKERS)]
-        if len(judges) >= 3 and len(set(judges)) == 1:
-            raise ValueError("综合判断固定句需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），不得四篇同一句")
-    # 7) 言语：禁“因此亟须”作文腔
+        # 每篇须有 1 道综合判断（Q5），且四篇综合判断形式跨篇轮换（≥2 种）
+        forms_by_material: dict[str, list[str]] = {}
+        for q in ziliao:
+            form = _judge_form(str(q.get("stem") or ""))
+            if form:
+                forms_by_material.setdefault(str(q.get("material_id") or ""), []).append(form)
+        if sum(1 for m in materials if forms_by_material.get(m)) < 4:
+            raise ValueError("资料分析每篇必须有 1 道综合判断（Q5）")
+        all_forms = [f for forms in forms_by_material.values() for f in forms]
+        if len(set(all_forms)) < 2:
+            raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
+    # 7) 科学推理：独立 5 题、5 学科互不相同、每题必带图
+    science = [q for q in generated if str(q.get("category") or "") == "科学推理"]
+    if science:
+        if len(science) != 5:
+            raise ValueError(f"科学推理为独立 5 题模块，当前 {len(science)} 题")
+        buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
+        if any(not b for b in buckets):
+            raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
+        if len(set(buckets)) != 5:
+            raise ValueError("科学推理 5 题学科须互不相同")
+        for q in science:
+            if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
+                raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
+    # 8) 判断推理：20 题须图形 5 + 逻辑 15
+    panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
+    if len(panduan) == 20:
+        g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
+        lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
+        if g != 5 or lg != 15:
+            raise ValueError(f"广东判断 20 题须图形 5 + 逻辑 15，当前 {g}/{lg}")
+    # 9) 言语：禁“因此亟须”作文腔
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
             tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
