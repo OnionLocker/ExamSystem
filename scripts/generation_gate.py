@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -17,7 +18,9 @@ from pathlib import Path
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ai_primary_tag,
+    validate_shuliang_paper,
     validate_ziliao_paper_answers,
+    validate_ziliao_variety,
 )
 from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
 from panduan_pack import is_panduan_paper, validate_panduan_paper
@@ -449,6 +452,88 @@ def validate_evidence(
         raise ValueError(f"{kind} evidence 必须列出实际棢�查项")
 
 
+_KEGANG_WORDS = ("本题考察", "本题考查", "秒杀模型", "秒杀技巧")
+_JUDGE_MARKERS = ("可以判断属实", "不能从", "无法从", "能够从", "正确的有", "推出的是")
+
+
+def _material_contents(batch_dir: Path | None) -> list[str]:
+    if not batch_dir:
+        return []
+    path = batch_dir / "materials.json"
+    if not path.is_file():
+        return []
+    data = read_json(path)
+    return [str(m.get("content") or "") for m in data if isinstance(m, dict)] if isinstance(data, list) else []
+
+
+def _dirty_ratio(texts: list[str]) -> float:
+    year = re.compile(r"^(19|20)\d{2}$")
+    dirty = total = 0
+    for text in texts:
+        for token in re.findall(r"\d+(?:\.\d+)?", text):
+            if "." not in token and year.match(token):
+                continue
+            total += 1
+            intpart = token.split(".")[0]
+            if "." in token or (len(intpart) >= 3 and intpart[-2:] != "00"):
+                dirty += 1
+    return (dirty / total) if total else 1.0
+
+
+def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: Path | None = None) -> None:
+    """广东通用卷机械硬规则（出题闸门，不依赖大模型）。已用样卷验收，命中即拦下本次生成。"""
+    generated = generated_questions(questions)
+    # 1) 单选完整性（双答案兜底）：答案唯一字母、至少 4 个互不相同的选项
+    for question in generated:
+        if str(question.get("question_type") or "single") != "single":
+            continue
+        options = question.get("options") or []
+        keys = [str(opt.get("key") or "") for opt in options if isinstance(opt, dict)]
+        answer = str(question.get("answer") or "")
+        qid = question.get("external_id")
+        if len(keys) < 4:
+            raise ValueError(f"单选题选项不足 4 个：{qid}")
+        if answer not in keys or len(answer.strip()) != 1:
+            raise ValueError(f"单选题答案必须是唯一选项字母：{qid} → {answer!r}")
+        signatures = [str(opt.get("text") or "").strip() or tuple(opt.get("images") or []) for opt in options]
+        if len(set(signatures)) != len(signatures):
+            raise ValueError(f"单选题存在重复选项（内容或图片相同）：{qid}")
+    # 2) 判断推理禁类比 / 定义
+    for question in questions:
+        blob = f"{question.get('sub_category') or ''} {question_primary_tag(question)} {' '.join(question.get('tags') or [])}"
+        if "类比推理" in blob or "定义判断" in blob:
+            raise ValueError(f"判断推理不得出类比推理 / 定义判断：{question.get('external_id')}")
+    # 3) 禁课纲词
+    for question in questions:
+        stem = str(question.get("stem") or question.get("content") or "")
+        if any(word in stem for word in _KEGANG_WORDS):
+            raise ValueError(f"题面禁止课纲词（本题考察 / 秒杀模型等）：{question.get('external_id')}")
+    # 4) 数量卷：不得 0 数字推理；15 题须数推 5 + 运算 10
+    validate_shuliang_paper(generated)
+    # 5) 资料卷：四篇考点骨架不得同构
+    validate_ziliao_variety(generated)
+    # 6) 资料卷专项：禁“某省”、脏数字≥40%、综合判断形式跨篇轮换
+    ziliao = [q for q in generated if str(q.get("category") or "") == "资料分析"]
+    materials = {str(q.get("material_id") or "") for q in ziliao if q.get("material_id")}
+    if len(materials) >= 4:
+        contents = _material_contents(batch_dir)
+        for content in contents:
+            if "某省" in content:
+                raise ValueError("资料分析材料禁止用“某省”占位，请用具体化名（如 G省）或全国口径")
+        if contents and _dirty_ratio(contents) < 0.40:
+            raise ValueError("资料分析数字过于圆整：脏数字（含小数或末两位非 00）比例须 ≥40%")
+        judges = [str(q.get("stem") or "") for q in ziliao
+                  if any(marker in str(q.get("stem") or "") for marker in _JUDGE_MARKERS)]
+        if len(judges) >= 3 and len(set(judges)) == 1:
+            raise ValueError("综合判断固定句需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），不得四篇同一句")
+    # 7) 言语：禁“因此亟须”作文腔
+    for question in questions:
+        if str(question.get("category") or "") == "言语理解与表达":
+            tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
+            if "因此亟须" in tail:
+                raise ValueError(f"言语题禁止“因此亟须…”作文腔表述：{question.get('external_id')}")
+
+
 def issue(
     batch_dir: Path,
     correctness_path: Path | None = None,
@@ -464,6 +549,7 @@ def issue(
     ids = question_ids(batch_dir)
     questions = read_json(questions_path)
     validate_batch_constraints(manifest, questions)
+    validate_paper_hard_rules(manifest, questions, batch_dir)
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
     system_path = run_system_quality_gate(batch_dir, ids)
