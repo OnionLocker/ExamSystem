@@ -135,6 +135,7 @@ class SchedulerTest(unittest.TestCase):
         )
         self.assertIn("You are ExamSystem", prompt)
         self.assertIn("quiz-pipeline", prompt)
+        self.assertIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
         self.assertIn("import-batch.mjs", prompt)
         self.assertIn("15", prompt)
         self.assertIn("answer_plan", prompt)

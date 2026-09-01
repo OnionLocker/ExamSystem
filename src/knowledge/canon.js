@@ -1,5 +1,5 @@
 // 广东省考老师口径的学员版。内容与
-// ~/.hermes/skills/productivity/gd-gongkao-coach/references/solver-canon/
+// hermes-skills/gd-gongkao-coach/references/solver-canon/
 // 对齐。Hermes 怎么教，这里就怎么写。申论占位未写。
 
 export const TRACKS = [

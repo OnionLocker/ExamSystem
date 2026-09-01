@@ -19,10 +19,24 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-丢�
 
 # AI question-generation routing
 
+云端 Agent 没有 `~/.hermes`，不要用 `skill_view`。出题前直接读仓库内副本：
+
+- `hermes-skills/quiz-pipeline/SKILL.md`
+- `hermes-skills/quiz-pipeline/references/reference-style-principles.md`
+- `hermes-skills/quiz-pipeline/references/reference-style-profile.md`
+- `hermes-skills/quiz-pipeline/references/quality.md`
+- `hermes-skills/quiz-pipeline/references/quality-feedback.md`
+- `hermes-skills/quiz-pipeline/references/correctness.md`
+- `hermes-skills/quiz-pipeline/references/ziliao-paper-styles.md`
+- `hermes-skills/gd-gongkao-coach/SKILL.md`
+- `hermes-skills/gd-gongkao-coach/references/solver-canon/`
+
+本机 Hermes 仍可用 `skill_view('quiz-pipeline')` / `skill_view('gd-gongkao-coach')`，内容与上面相同。
+
 - For any study plan, weakness analysis, targeted practice, or review, first run
   `python3 /home/ubuntu/ExamSystem/scripts/learner_snapshot.py --compact`.
   This database snapshot overrides conversational memory for performance, confidence, recency, and open mistakes.
-- When Russell asks for questions or targeted practice, load `quiz-pipeline` and `gd-gongkao-coach` before drafting anything.
+- When Russell asks for questions or targeted practice, read `hermes-skills/quiz-pipeline/SKILL.md` and `hermes-skills/gd-gongkao-coach/SKILL.md` (or load those Hermes skills) before drafting anything.
 - A normal short request for ten verbal questions must work without Russell restating quality rules.
   Every invocation creates a new immutable batch ID; never overwrite or reuse an earlier batch.
   With no reliable verbal evidence in the learner snapshot, use a balanced diagnostic mix.

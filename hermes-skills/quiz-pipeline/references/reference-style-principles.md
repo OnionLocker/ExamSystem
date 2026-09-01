@@ -7,8 +7,7 @@
 ## 1. 每次出题怎么使用
 
 1. 先由用户指定、考点画像和广东考情确定“练什么”，再实际读取
-   `hermes-skills/quiz-pipeline/references/reference-style-principles.md`
-   和 `reference-style-profile.md`（`GONGKAO-STYLE-v1`）。
+   `reference-style-principles.md` 和 `reference-style-profile.md`（`GONGKAO-STYLE-v1`）。
    出题以内化提纲和题型分位为准，不要为每道原创再调用
    `scripts/reference_style.py context --role generate` 堆真题。
 2. 题干长度、设问、信息披露抄省考分位；认知步数和干扰深度不得低于同题型画像里的国考下限。
@@ -160,7 +159,7 @@
 
 一篇材料绑一组题。材料必须自洽，题能从材料算完，不能降级成一句裸计算。
 缺表缺图的旧 PDF 抽题不得当范本。出题前先选定卷种 `gd` / `gk` / `sz`，约束见
-`hermes-skills/quiz-pipeline/references/ziliao-paper-styles.md`，整节喂给 Gemini Flash。
+`quiz-pipeline/references/ziliao-paper-styles.md`，整节喂给 Gemini Flash。
 
 材料只分三类，出图规则不同：
 

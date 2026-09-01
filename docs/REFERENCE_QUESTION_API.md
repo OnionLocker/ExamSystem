@@ -134,7 +134,7 @@ npm run reference:context -- \
   --count 5
 ```
 
-持久化结果位于 Hermes `quiz-pipeline/references/`：
+持久化结果位于仓库内 `hermes-skills/quiz-pipeline/references/`（本机 Hermes 若仍指向 `~/.hermes/skills/`，内容应保持同步）：
 
 - `reference-style-principles.md`：逐模块定性命题提纲和硬性禁忌。
 - `reference-style-profile.md`：按当前题库自动重建的长度分位、来源、设问和图片统计。

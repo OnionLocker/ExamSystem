@@ -29,15 +29,14 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import unquote
 
+from hermes_skills import quiz_pipeline_references
 from kaodian_taxonomy import canonicalize
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB = ROOT / "data" / "exam.db"
 ZHENTI_DIR = ROOT / "data" / "zhenti"
-DEFAULT_OUTPUT_DIR = (
-    Path.home() / ".hermes" / "skills" / "kaogong" / "quiz-pipeline" / "references"
-)
+DEFAULT_OUTPUT_DIR = quiz_pipeline_references()
 DIGEST_VERSION = "GONGKAO-STYLE-v1"
 PROFILE_NAME = "reference-style-profile.md"
 STATUS_NAME = "reference-style-status.json"

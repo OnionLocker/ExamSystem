@@ -1,0 +1,11 @@
+{
+  "marker": "GONGKAO-STYLE-v1",
+  "built_at": "2026-09-01T16:37:44+08:00",
+  "corpus_hash": "5d036aa267a8e5512856cdfe0eaad850a122f268bfec9b8687d63a86eb93b64e",
+  "total": 1157,
+  "accepted": 958,
+  "holdout": 193,
+  "excluded": 6,
+  "pending": 0,
+  "profile": "/home/ubuntu/.hermes/skills/kaogong/quiz-pipeline/references/reference-style-profile.md"
+}

@@ -24,6 +24,7 @@ from typing import Any
 
 from PIL import Image
 
+from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
 from normalize_ai_batch import generated_questions
 from panduan_pack import is_panduan_paper, validate_panduan_paper
@@ -725,7 +726,7 @@ def run_quality(
     manifest: dict,
     questions: list[dict],
 ) -> dict[str, dict]:
-    quality_path = Path.home() / ".hermes" / "skills" / "kaogong" / "quiz-pipeline" / "references" / "quality.md"
+    quality_path = quiz_pipeline_references() / "quality.md"
     feedback_path = quality_path.with_name("quality-feedback.md")
     rules = ""
     for path in (quality_path, feedback_path):

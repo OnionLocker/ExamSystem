@@ -11,9 +11,11 @@ import collections
 import json
 from pathlib import Path
 
+from hermes_skills import coach_references
+
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "zhenti"
-OUT = Path.home() / ".hermes" / "skills" / "productivity" / "gd-gongkao-coach" / "references" / "zhenti-kaodian-map.md"
+OUT = coach_references() / "zhenti-kaodian-map.md"
 
 YEAR_W = {2026: 8, 2025: 6, 2024: 5, 2023: 3, 2022: 2, 2021: 1, 2020: 1}
 GUOKAO_FACTOR = 0.35
