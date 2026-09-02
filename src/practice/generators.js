@@ -1,9 +1,10 @@
 import { READ_SPOT_GENERATORS, READ_SPOT_CATEGORY } from './readSpot.js';
 
 // ---------------- 题目生成器 ----------------
-// 每个生成器返回 { prompt, answer, displayAnswer?, tolerance? }
+// 每个生成器返回 { prompt, answer, displayAnswer?, tolerance?, answerKind? }
 // - prompt: 题干字符串
-// - answer: 标准答案（数字）
+// - answer: 标准答案（数字，或分数串如 3/8）
+// - answerKind: 'frac' 时按最简分数/比判题
 // - tolerance: 可选，允许的误差（如估算/资料分析）
 // - displayAnswer: 可选，用于显示"正确答案"时的格式化函数
 
@@ -13,6 +14,55 @@ const round1 = (n) => Math.round(n * 10) / 10;
 const round2 = (n) => Math.round(n * 100) / 100;
 const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
 const lcm = (a, b) => (a * b) / gcd(a, b);
+
+const shuffle = (arr) => {
+  const out = arr.slice();
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = rand(0, i);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+};
+
+const parseFrac = (s) => {
+  const t = String(s).trim().replace(/\s/g, '').replace(/：/g, ':').replace(/／/g, '/');
+  const m = t.match(/^(-?\d+)[/:](-?\d+)$/);
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = Number(m[2]);
+  if (!b) return null;
+  const g = gcd(Math.abs(a), Math.abs(b));
+  const sign = (a < 0) !== (b < 0) ? -1 : 1;
+  return [sign * (Math.abs(a) / g), Math.abs(b) / g];
+};
+
+const fracEqual = (a, b) => {
+  const pa = parseFrac(a);
+  const pb = parseFrac(b);
+  if (pa && pb) return pa[0] === pb[0] && pa[1] === pb[1];
+  return String(a).trim() === String(b).trim();
+};
+
+const simplifyFrac = (num, den) => {
+  const g = gcd(Math.abs(num), Math.abs(den));
+  const n = num / g;
+  const d = den / g;
+  return d < 0 ? `${-n}/${-d}` : `${n}/${d}`;
+};
+
+const seqPrompt = (terms) => `数列：${terms.join('、')}、？  求下一项`;
+
+// 审计 CUT：UI / 九宫格 / 弱项填充均不可见，生成器保留
+export const NUMERIC_CUT_SUB_IDS = new Set([
+  'carryAdd', 'borrowSub',
+  'mulBy2', 'mulBy3', 'mulBy4', 'mulBy5', 'mulBy6',
+  'spotLogic', 'spotVerbal',
+  'amgm', 'hanxin', 'gcdQ', 'lcmQ', 'weekday',
+  'chickenRabbit', 'planting', 'squareFormation',
+]);
+
+export const isSubAvailable = (sub) => Boolean(sub) && sub.available !== false;
+export const visibleSubs = (cat) => (cat?.subs || []).filter(isSubAvailable);
 
 // 给乘/除速算题统一加误差容忍：默认 ±1%，最少 ±1
 // pctMin=0.01 表示 1%，floor=1 表示最少 ±1
@@ -229,12 +279,17 @@ export const generators = {
       displayAnswer: (n) => n.toString(),
     };
   },
-  // 小数化分数（给小数，回答分母）
+  // 小数化最简分数（如 0.375 → 3/8）
   decToFrac: () => {
     const f = pick(FRAC_TABLE);
+    const g = gcd(f.num, f.den);
+    const num = f.num / g;
+    const den = f.den / g;
     return {
-      prompt: `${f.dec.toFixed(3)} ≈ ${f.num}/? `,
-      answer: f.den,
+      prompt: `把 ${f.dec.toFixed(3)} 化成最简分数`,
+      answer: `${num}/${den}`,
+      answerKind: 'frac',
+      displayAnswer: () => `${num}/${den}`,
     };
   },
   // 百化分（固定）：给百分比，回答分数（分母 3~19）
@@ -276,14 +331,35 @@ export const generators = {
   // ======================================================================
   // 数量关系（quant）
   // ======================================================================
-  // 比例表达式：a:b = c:x，求 x（整除）
+  // 比例应用：过滤 a=b、未约分/过整倍数废题
   ratio: () => {
-    const k = rand(2, 12);
-    const a = rand(2, 9);
-    const b = rand(2, 9);
-    const c = a * k;
-    const x = b * k;
-    return { prompt: `${a} : ${b} = ${c} : ? `, answer: x };
+    let a;
+    let b;
+    let k;
+    do {
+      a = rand(2, 12);
+      b = rand(2, 12);
+      k = rand(3, 16);
+    } while (a === b || gcd(a, b) !== 1 || k === a || k === b);
+    const scenes = [
+      () => ({
+        prompt: `甲乙投资比为 ${a}:${b}，乙投资 ${b * k} 万，甲投资多少万？`,
+        answer: a * k,
+      }),
+      () => ({
+        prompt: `一笔资金按 ${a}:${b} 分给甲乙两人，总额 ${(a + b) * k} 元，甲分得多少元？`,
+        answer: a * k,
+      }),
+      () => ({
+        prompt: `溶液中溶质与溶剂之比为 ${a}:${b}，溶剂 ${b * k} 克，溶质多少克？`,
+        answer: a * k,
+      }),
+      () => ({
+        prompt: `甲乙两地到丙地的路程比为 ${a}:${b}。甲地到丙地 ${a * k} 千米，乙地到丙地多少千米？`,
+        answer: b * k,
+      }),
+    ];
+    return pick(scenes)();
   },
   // 工程问题：甲 a 天、乙 b 天，合作几天？
   engineering: () => {
@@ -329,11 +405,13 @@ export const generators = {
       answer: ans,
     };
   },
-  // 不定方程：a·x + b·y = c，x,y 为正整数，给出 x 值之一（通常只有一个解）
+  // 不定方程：应用包装，不裸写 ax+by=c
   diophantine: () => {
-    // 构造：选 a,b 互素且不大，给定 x0,y0 生成 c，但要求解唯一
-    let a, b, x, y, c;
-    // 选 a,b 使得 c 的范围不大，但在正整数范围内只有一个解
+    let a;
+    let b;
+    let x;
+    let y;
+    let c;
     const tryGen = () => {
       a = rand(3, 9);
       b = rand(3, 9);
@@ -341,19 +419,21 @@ export const generators = {
       x = rand(1, 10);
       y = rand(1, 10);
       c = a * x + b * y;
-      // 数出所有正整数解
       const sols = [];
-      for (let i = 1; i * a < c; i++) {
+      for (let i = 1; i * a < c; i += 1) {
         const rest = c - a * i;
         if (rest > 0 && rest % b === 0) sols.push([i, rest / b]);
       }
       return sols.length === 1;
     };
-    for (let i = 0; i < 50; i++) if (tryGen()) break;
-    return {
-      prompt: `${a}x + ${b}y = ${c}（x, y 均为正整数），求 x =`,
-      answer: x,
-    };
+    for (let i = 0; i < 50; i += 1) if (tryGen()) break;
+    const wraps = [
+      `钢笔每支 ${a} 元、本子每本 ${b} 元，一共花了 ${c} 元，两种都买了至少 1 件，钢笔买了几支？`,
+      `成人票 ${a} 元、儿童票 ${b} 元，一笔收入共 ${c} 元，两种票都卖出至少 1 张，成人票几张？`,
+      `大瓶饮料 ${a} 元、小瓶 ${b} 元，共花 ${c} 元，两种都买了至少 1 瓶，大瓶买了几瓶？`,
+      `甲每天做 ${a} 件、乙每天做 ${b} 件，若干天后共完成 ${c} 件（两人开工天数均为正整数），甲做了几天？`,
+    ];
+    return { prompt: pick(wraps), answer: x };
   },
   // 最大公约数
   gcdQ: () => {
@@ -470,43 +550,79 @@ export const generators = {
       answer: both,
     };
   },
-  // ----- 排列组合 -----
-  // 排列 A(n,k) = n*(n-1)*...*(n-k+1)
+  // ----- 排列组合（应用场景） -----
   permutation: () => {
-    const n = rand(4, 8);
+    const n = rand(5, 9);
     const k = rand(2, Math.min(4, n));
     let ans = 1;
-    for (let i = 0; i < k; i++) ans *= n - i;
-    return {
-      prompt: `从 ${n} 个不同元素中取 ${k} 个排列，A(${n},${k}) =`,
-      answer: ans,
-    };
+    for (let i = 0; i < k; i += 1) ans *= n - i;
+    const scenes = [
+      `从 ${n} 名选手中选 ${k} 人站成一排合影，有多少种排法？`,
+      `${n} 本不同的书要选 ${k} 本按顺序排上书架，有多少种排法？`,
+      `${n} 人中挑 ${k} 人按先后顺序领奖，有多少种排法？`,
+    ];
+    return { prompt: pick(scenes), answer: ans };
   },
-  // 组合 C(n,k)
   combination: () => {
-    const n = rand(4, 9);
+    const n = rand(5, 10);
     const k = rand(2, Math.min(4, n - 1));
-    // C(n,k) = n!/(k!*(n-k)!)
-    let num = 1, den = 1;
-    for (let i = 0; i < k; i++) {
+    let num = 1;
+    let den = 1;
+    for (let i = 0; i < k; i += 1) {
       num *= n - i;
       den *= i + 1;
     }
-    return {
-      prompt: `从 ${n} 个不同元素中取 ${k} 个组合，C(${n},${k}) =`,
-      answer: num / den,
-    };
+    const scenes = [
+      `从 ${n} 本书中选 ${k} 本，有多少种选法？`,
+      `${n} 人中选 ${k} 人组成小组，有多少种选法？`,
+      `从 ${n} 道菜里点 ${k} 道（不分先后），有多少种点法？`,
+    ];
+    return { prompt: pick(scenes), answer: num / den };
   },
-  // ----- 概率 -----
-  // 古典概型：袋中红球 r 个白球 w 个，取 1 个是红球的概率（百分比，保留 1 位）
+  // 古典概型：不考「只取一个」；答案用最简分数
   probability: () => {
-    const r = rand(2, 8);
-    const w = rand(2, 8);
-    const p = (r / (r + w)) * 100;
+    const r = rand(3, 8);
+    const w = rand(3, 8);
+    const n = r + w;
+    const mode = pick(['twoRed', 'oneEach', 'seqRW', 'atLeastOne']);
+    if (mode === 'twoRed') {
+      const num = r * (r - 1);
+      const den = n * (n - 1);
+      return {
+        prompt: `袋中 ${r} 个红球、${w} 个白球，不放回连取 2 个，两球都是红球的概率是多少？（最简分数）`,
+        answer: simplifyFrac(num, den),
+        answerKind: 'frac',
+        displayAnswer: () => simplifyFrac(num, den),
+      };
+    }
+    if (mode === 'oneEach') {
+      const num = 2 * r * w;
+      const den = n * (n - 1);
+      return {
+        prompt: `袋中 ${r} 个红球、${w} 个白球，不放回连取 2 个，恰好一红一白的概率是多少？（最简分数）`,
+        answer: simplifyFrac(num, den),
+        answerKind: 'frac',
+        displayAnswer: () => simplifyFrac(num, den),
+      };
+    }
+    if (mode === 'seqRW') {
+      const num = r * w;
+      const den = n * (n - 1);
+      return {
+        prompt: `袋中 ${r} 个红球、${w} 个白球，不放回依次取 2 个，先红后白的概率是多少？（最简分数）`,
+        answer: simplifyFrac(num, den),
+        answerKind: 'frac',
+        displayAnswer: () => simplifyFrac(num, den),
+      };
+    }
+    const noneRed = w * (w - 1);
+    const den = n * (n - 1);
+    const num = den - noneRed;
     return {
-      prompt: `袋中 ${r} 个红球 ${w} 个白球，随机取一个是红球的概率 ≈ ?%（保留 1 位小数）`,
-      answer: round1(p),
-      tolerance: 0.15,
+      prompt: `袋中 ${r} 个红球、${w} 个白球，不放回连取 2 个，至少有 1 个红球的概率是多少？（最简分数）`,
+      answer: simplifyFrac(num, den),
+      answerKind: 'frac',
+      displayAnswer: () => simplifyFrac(num, den),
     };
   },
   // ----- 鸡兔同笼 -----
@@ -613,83 +729,142 @@ export const generators = {
   },
 
   // ======================================================================
-  // 数字推理（numReason）—— 给一个数列前几项求下一项
+  // 数字推理（numReason）—— 只给数列，不写规律
+  // 变式含隔项、分数、多重修正（广东常见），禁止题干剧透
   // ======================================================================
-  // 等差数列：每项相差固定常数 d
   arithSeq: () => {
     const a0 = rand(1, 30);
     const d = pick([2, 3, 4, 5, 6, 7, -3, -4, -5]);
     const seq = Array.from({ length: 5 }, (_, i) => a0 + d * i);
-    const next = a0 + d * 5;
-    return {
-      prompt: `数列：${seq.join('、')}、？  求下一项`,
-      answer: next,
-    };
+    return { prompt: seqPrompt(seq), answer: a0 + d * 5 };
   },
-  // 等比数列：每项相乘固定 q
   geoSeq: () => {
     const a0 = pick([1, 2, 3, 4, 5, 6]);
     const q = pick([2, 3, -2]);
     const seq = Array.from({ length: 5 }, (_, i) => a0 * Math.pow(q, i));
-    const next = a0 * Math.pow(q, 5);
-    return {
-      prompt: `数列：${seq.join('、')}、？  求下一项`,
-      answer: next,
-    };
+    return { prompt: seqPrompt(seq), answer: a0 * Math.pow(q, 5) };
   },
-  // 和数列：a[n] = a[n-1] + a[n-2]（斐波那契式）
   sumSeq: () => {
-    const a0 = rand(1, 8);
-    const a1 = rand(1, 8);
-    const seq = [a0, a1];
-    for (let i = 2; i < 6; i++) seq.push(seq[i - 1] + seq[i - 2]);
-    const next = seq[5];
-    return {
-      prompt: `数列：${seq.slice(0, 5).join('、')}、？  求下一项（前两项之和）`,
-      answer: next,
-    };
+    const mode = pick(['fib', 'triple', 'plusC', 'skip']);
+    if (mode === 'skip') {
+      const o0 = rand(1, 8);
+      const od = pick([2, 3, 4, 5]);
+      const e0 = rand(2, 12);
+      const ed = pick([2, 3, 4, 5, 6]);
+      const seq = [];
+      for (let i = 0; i < 6; i += 1) {
+        seq.push(i % 2 === 0 ? o0 + od * (i / 2) : e0 + ed * ((i - 1) / 2));
+      }
+      return { prompt: seqPrompt(seq), answer: o0 + od * 3 };
+    }
+    if (mode === 'triple') {
+      const seq = [rand(1, 5), rand(1, 5), rand(1, 5)];
+      for (let i = 3; i < 6; i += 1) seq.push(seq[i - 1] + seq[i - 2] + seq[i - 3]);
+      return { prompt: seqPrompt(seq.slice(0, 5)), answer: seq[5] };
+    }
+    if (mode === 'plusC') {
+      const c = pick([1, 2, 3, -1]);
+      const seq = [rand(1, 6), rand(1, 6)];
+      for (let i = 2; i < 6; i += 1) seq.push(seq[i - 1] + seq[i - 2] + c);
+      return { prompt: seqPrompt(seq.slice(0, 5)), answer: seq[5] };
+    }
+    const seq = [rand(1, 8), rand(1, 8)];
+    for (let i = 2; i < 6; i += 1) seq.push(seq[i - 1] + seq[i - 2]);
+    return { prompt: seqPrompt(seq.slice(0, 5)), answer: seq[5] };
   },
-  // 积数列：a[n] = a[n-1] × a[n-2]
   productSeq: () => {
-    const a0 = pick([1, 2, 2, 3]);
-    const a1 = pick([1, 2, 2, 3]);
-    const seq = [a0, a1];
-    for (let i = 2; i < 5; i++) seq.push(seq[i - 1] * seq[i - 2]);
-    const next = seq[3] * seq[4];
-    return {
-      prompt: `数列：${seq.slice(0, 4).join('、')}、？  求下一项（前两项之积）`,
-      answer: next,
-    };
+    const mode = pick(['pair', 'timesN', 'skip']);
+    if (mode === 'timesN') {
+      const seq = [pick([1, 2, 3])];
+      for (let i = 1; i < 5; i += 1) seq.push(seq[i - 1] * (i + 1));
+      return { prompt: seqPrompt(seq), answer: seq[4] * 6 };
+    }
+    if (mode === 'skip') {
+      const o0 = pick([1, 2]);
+      const e0 = pick([1, 2, 3]);
+      const eq = pick([2, 3]);
+      const seq = [];
+      for (let i = 0; i < 6; i += 1) {
+        seq.push(i % 2 === 0 ? o0 * (2 ** (i / 2)) : e0 * (eq ** ((i - 1) / 2)));
+      }
+      return { prompt: seqPrompt(seq), answer: o0 * (2 ** 3) };
+    }
+    const seq = [pick([1, 2, 2, 3]), pick([1, 2, 2, 3])];
+    for (let i = 2; i < 5; i += 1) seq.push(seq[i - 1] * seq[i - 2]);
+    return { prompt: seqPrompt(seq.slice(0, 4)), answer: seq[3] * seq[4] };
   },
-  // 平方/立方数列：n²+c 或 n³+c 模式
   powerSeq: () => {
-    const power = pick([2, 3]);
+    const mode = pick(['n2c', 'n3c', 'n2n', 'fracDen', 'fracFib']);
+    if (mode === 'fracDen') {
+      const start = rand(2, 4);
+      const shown = Array.from({ length: 4 }, (_, i) => `1/${(start + i) ** 2}`);
+      const nextDen = (start + 4) ** 2;
+      return {
+        prompt: `${seqPrompt(shown)}（最简分数）`,
+        answer: `1/${nextDen}`,
+        answerKind: 'frac',
+        displayAnswer: () => `1/${nextDen}`,
+      };
+    }
+    if (mode === 'fracFib') {
+      const fib = [1, 2, 3, 5, 8, 13];
+      const shown = Array.from({ length: 4 }, (_, i) => `${fib[i]}/${fib[i + 1]}`);
+      return {
+        prompt: `${seqPrompt(shown)}（最简分数）`,
+        answer: `${fib[4]}/${fib[5]}`,
+        answerKind: 'frac',
+        displayAnswer: () => `${fib[4]}/${fib[5]}`,
+      };
+    }
+    if (mode === 'n2n') {
+      const start = rand(2, 5);
+      const sign = pick([1, -1]);
+      const seq = Array.from({ length: 5 }, (_, i) => {
+        const n = start + i;
+        return n * n + sign * n;
+      });
+      const n = start + 5;
+      return { prompt: seqPrompt(seq), answer: n * n + sign * n };
+    }
+    const power = mode === 'n3c' ? 3 : 2;
     const start = rand(1, 4);
     const c = rand(-3, 3);
-    const seq = Array.from({ length: 5 }, (_, i) => Math.pow(start + i, power) + c);
-    const next = Math.pow(start + 5, power) + c;
-    const op = c === 0 ? '' : c > 0 ? `+${c}` : `${c}`;
-    return {
-      prompt: `数列：${seq.join('、')}、？  求下一项（提示：与 n^${power}${op} 有关）`,
-      answer: next,
-    };
+    const seq = Array.from({ length: 5 }, (_, i) => (start + i) ** power + c);
+    return { prompt: seqPrompt(seq), answer: (start + 5) ** power + c };
   },
-  // 多级等差：相邻两项的差，再相邻两项的差，构成等差（即二阶等差数列）
   multiArith: () => {
-    const a0 = rand(1, 10);
-    const d0 = rand(1, 5); // 一阶差初始值
-    const dd = rand(1, 4); // 二阶常数差
-    const seq = [a0];
-    let curD = d0;
-    for (let i = 1; i < 6; i++) {
+    const mode = pick(['second', 'skip', 'third']);
+    if (mode === 'skip') {
+      const a0 = rand(1, 10);
+      const da = rand(2, 6);
+      const b0 = rand(1, 10);
+      const db = rand(2, 6);
+      const seq = [];
+      for (let i = 0; i < 6; i += 1) {
+        seq.push(i % 2 === 0 ? a0 + da * (i / 2) : b0 + db * ((i - 1) / 2));
+      }
+      return { prompt: seqPrompt(seq), answer: a0 + da * 3 };
+    }
+    if (mode === 'third') {
+      const seq = [rand(1, 8)];
+      let d = rand(1, 4);
+      let e = rand(1, 3);
+      const f = rand(1, 2);
+      for (let i = 1; i < 6; i += 1) {
+        seq.push(seq[i - 1] + d);
+        d += e;
+        e += f;
+      }
+      return { prompt: seqPrompt(seq.slice(0, 5)), answer: seq[5] };
+    }
+    const seq = [rand(1, 10)];
+    let curD = rand(1, 5);
+    const dd = rand(1, 4);
+    for (let i = 1; i < 6; i += 1) {
       seq.push(seq[i - 1] + curD);
       curD += dd;
     }
-    const next = seq[5];
-    return {
-      prompt: `数列：${seq.slice(0, 5).join('、')}、？  求下一项（差的差为定值）`,
-      answer: next,
-    };
+    return { prompt: seqPrompt(seq.slice(0, 5)), answer: seq[5] };
   },
 
   // ======================================================================
@@ -739,15 +914,16 @@ export const generators = {
       tolerance: 0.15,
     };
   },
-  // 基期差（两期差值的基期差）：A基=a, B基=b, A现=a', B现=b'，求 (a'-b') - (a-b)
+  // 基期差：资料实战包装（进出口/产值差额的两年变化）
   baseDiff: () => {
     const a = rand(500, 9999);
     const b = rand(500, 9999);
     const aCurr = Math.round(a * (1 + rand(-20, 50) / 100));
     const bCurr = Math.round(b * (1 + rand(-20, 50) / 100));
     const diff = (aCurr - bCurr) - (a - b);
+    const y0 = rand(2020, 2024);
     return {
-      prompt: `A 基期 ${a}，现期 ${aCurr}；B 基期 ${b}，现期 ${bCurr}。现期差 − 基期差 =`,
+      prompt: `${y0} 年甲进口 ${a}、乙出口 ${b}；${y0 + 1} 年甲进口 ${aCurr}、乙出口 ${bCurr}。甲减乙的差额比上年增加多少？`,
       answer: diff,
     };
   },
@@ -808,15 +984,19 @@ export const generators = {
       tolerance: 0.12,
     };
   },
-  // 年均增长率 ≈ (末期/基期)^(1/n) - 1；常用近似：(r_总)/n - n(n-1)/2 ·(r/n)²（这里用精确公式）
+  // 年均增长率：资料年份口径 + 总增速/年数略下调的近似口诀
   annualGrowth: () => {
     const years = rand(2, 5);
     const r0 = rand(10, 80) / 100;
     const base = 100;
     const end = round2(base * Math.pow(1 + r0, years));
     const ans = Math.pow(end / base, 1 / years) - 1;
+    const y0 = rand(2018, 2022);
+    const totalPct = round1(end - base);
     return {
-      prompt: `${years} 年前为 ${base}，现在为 ${end}，年均增长率 ≈ ?%（保留 1 位小数）`,
+      prompt:
+        `${y0} 年末某指标为 ${base}，${y0 + years} 年末为 ${end}（间隔 ${years} 年）。` +
+        `年均增长率 ≈ ?%（保留 1 位小数；口诀：总增速约 ${totalPct}%，${years} 年年均略低于 ${totalPct}/${years}）`,
       answer: round1(ans * 100),
       tolerance: 0.3,
     };
@@ -844,16 +1024,30 @@ export const generators = {
       tolerance: 0.2,
     };
   },
-  // 混合增长率（带权重）：A 量占总量 wA%，B 量占总量 wB%，A 增 r1%、B 增 r2%，求总增长率
-  // 公式：r_总 ≈ (wA * r1 + wB * r2) / (wA + wB)
+  // 混合增长率：按基期量加权（资料口径，不是现期份额）
   mixedGrowth: () => {
-    const wA = rand(20, 80);
-    const wB = 100 - wA;
+    const mode = pick(['share', 'qty']);
     const r1 = round1(rand(10, 200) / 10);
     const r2 = round1(rand(10, 200) / 10);
+    if (mode === 'qty') {
+      const baseA = rand(200, 900) * 10;
+      const baseB = rand(200, 900) * 10;
+      const r = (baseA * r1 + baseB * r2) / (baseA + baseB);
+      return {
+        prompt:
+          `部分 A 基期 ${baseA}、增速 ${r1}%；部分 B 基期 ${baseB}、增速 ${r2}%。` +
+          `总体增速（按基期量加权）≈ ?%（保留 1 位小数）`,
+        answer: round1(r),
+        tolerance: 0.2,
+      };
+    }
+    const wA = rand(20, 80);
+    const wB = 100 - wA;
     const r = (wA * r1 + wB * r2) / 100;
     return {
-      prompt: `A 占总量 ${wA}%，B 占 ${wB}%，A 增长 ${r1}%，B 增长 ${r2}%，总体增长率 ≈ ?%（保留 1 位小数）`,
+      prompt:
+        `A、B 基期量分别占总量 ${wA}%、${wB}%，增速分别为 ${r1}%、${r2}%。` +
+        `总体增速（按基期量加权）≈ ?%（保留 1 位小数）`,
       answer: round1(r),
       tolerance: 0.2,
     };
@@ -971,22 +1165,16 @@ export const generators = {
     if (Math.abs(a - b) < 1) b = round1(a + pick([2, -2, 3.5, -3.5]));
     const gap = round1(Math.abs(a - b));
     const rise = a > b;
-    // 4 选项：升降 ×（差<gap / 差可能≥gap）
-    // 正确永远是「正确升降 AND 差 < |a-b|」
-    const options = rise
-      ? [
-          `上升，且差值 < ${gap} 个百分点`,
-          `上升，且差值可能 ≥ ${gap} 个百分点`,
-          `下降，且差值 < ${gap} 个百分点`,
-          `下降，且差值可能 ≥ ${gap} 个百分点`,
-        ]
-      : [
-          `下降，且差值 < ${gap} 个百分点`,
-          `下降，且差值可能 ≥ ${gap} 个百分点`,
-          `上升，且差值 < ${gap} 个百分点`,
-          `上升，且差值可能 ≥ ${gap} 个百分点`,
-        ];
-    const answer = 1; // 选项 1 恒为正确表述
+    const correctText = rise
+      ? `上升，且差值 < ${gap} 个百分点`
+      : `下降，且差值 < ${gap} 个百分点`;
+    const options = shuffle([
+      `上升，且差值 < ${gap} 个百分点`,
+      `上升，且差值可能 ≥ ${gap} 个百分点`,
+      `下降，且差值 < ${gap} 个百分点`,
+      `下降，且差值可能 ≥ ${gap} 个百分点`,
+    ]);
+    const answer = options.indexOf(correctText) + 1;
     return {
       prompt:
         `部分增速 a=${a}%，整体增速 b=${b}%\n` +
@@ -994,7 +1182,7 @@ export const generators = {
         options.map((t, i) => `${i + 1})${t}`).join('  '),
       answer,
       displayAnswer: () =>
-        `1（${options[0]}；升降看 a?b，|差| 必然 < |a−b|=${gap} 个百分点）`,
+        `${answer}（${correctText}；升降看 a?b，|差| 必然 < |a−b|=${gap} 个百分点）`,
     };
   },
   // 混合增长率线段法：部分 A 增速相对整体，定性另一部分 B
@@ -1070,18 +1258,18 @@ export const CATEGORIES = [
     available: true,
     weight: 15, // 工具类，部分（百化分）资料分析高频用
     subs: [
-      { id: 'carryAdd', name: '进位加法', gen: 'carryAdd', weight: 2 },
-      { id: 'borrowSub', name: '退位减法', gen: 'borrowSub', weight: 2 },
-      { id: 'mulBy2', name: '2 的乘法', gen: 'mulBy2', weight: 2 },
-      { id: 'mulBy3', name: '3 的乘法', gen: 'mulBy3', weight: 2 },
-      { id: 'mulBy4', name: '4 的乘法', gen: 'mulBy4', weight: 2 },
-      { id: 'mulBy5', name: '5 的乘法', gen: 'mulBy5', weight: 2 },
-      { id: 'mulBy6', name: '6 的乘法', gen: 'mulBy6', weight: 2 },
+      { id: 'carryAdd', name: '进位加法', gen: 'carryAdd', weight: 2, available: false },
+      { id: 'borrowSub', name: '退位减法', gen: 'borrowSub', weight: 2, available: false },
+      { id: 'mulBy2', name: '2 的乘法', gen: 'mulBy2', weight: 2, available: false },
+      { id: 'mulBy3', name: '3 的乘法', gen: 'mulBy3', weight: 2, available: false },
+      { id: 'mulBy4', name: '4 的乘法', gen: 'mulBy4', weight: 2, available: false },
+      { id: 'mulBy5', name: '5 的乘法', gen: 'mulBy5', weight: 2, available: false },
+      { id: 'mulBy6', name: '6 的乘法', gen: 'mulBy6', weight: 2, available: false },
       { id: 'mulBy9', name: '9 的乘法', gen: 'mulBy9', weight: 2 },
       { id: 'mulBy11', name: '两位数乘 11', gen: 'mulBy11', weight: 3 },
       { id: 'mulBy15', name: '两位数乘 15', gen: 'mulBy15', weight: 3 },
       { id: 'fracToDec', name: '分数化小数', gen: 'fracToDec', weight: 3 },
-      { id: 'decToFrac', name: '小数化分数', gen: 'decToFrac', weight: 3 },
+      { id: 'decToFrac', name: '化成最简分数', gen: 'decToFrac', weight: 3 },
       { id: 'pctToFrac', name: '百化分固定', gen: 'pctToFrac', weight: 4 },
       { id: 'fracToPct', name: '分化百固定', gen: 'fracToPct', weight: 4 },
       { id: 'pctToFracEst', name: '百化分估算', gen: 'pctToFracEst', weight: 4 },
@@ -1122,28 +1310,28 @@ export const CATEGORIES = [
     available: true,
     weight: 30, // 行测 15 题
     subs: [
-      { id: 'ratio', name: '比例表达式', gen: 'ratio', weight: 4 },
+      { id: 'ratio', name: '比例应用', gen: 'ratio', weight: 4 },
       { id: 'engineering', name: '工程问题', gen: 'engineering', weight: 3 },
-      { id: 'amgm', name: '均值不等式', gen: 'amgm', weight: 2 },
-      { id: 'hanxin', name: '韩信点兵', gen: 'hanxin', weight: 2 },
-      { id: 'diophantine', name: '不定方程', gen: 'diophantine', weight: 3 },
-      { id: 'gcdQ', name: '最大公约数', gen: 'gcdQ', weight: 2 },
-      { id: 'lcmQ', name: '最小公倍数', gen: 'lcmQ', weight: 2 },
-      { id: 'weekday', name: '星期日期问题', gen: 'weekday', weight: 3 },
+      { id: 'amgm', name: '均值不等式', gen: 'amgm', weight: 2, available: false },
+      { id: 'hanxin', name: '韩信点兵', gen: 'hanxin', weight: 2, available: false },
+      { id: 'diophantine', name: '不定方程应用', gen: 'diophantine', weight: 3 },
+      { id: 'gcdQ', name: '最大公约数', gen: 'gcdQ', weight: 2, available: false },
+      { id: 'lcmQ', name: '最小公倍数', gen: 'lcmQ', weight: 2, available: false },
+      { id: 'weekday', name: '星期日期问题', gen: 'weekday', weight: 3, available: false },
       { id: 'encounter', name: '行程·相遇', gen: 'encounter', weight: 5 },
       { id: 'pursue', name: '行程·追及', gen: 'pursue', weight: 5 },
       { id: 'boat', name: '行程·流水', gen: 'boat', weight: 3 },
       { id: 'mixture', name: '浓度·混合', gen: 'mixture', weight: 5 },
       { id: 'dilute', name: '浓度·稀释', gen: 'dilute', weight: 3 },
       { id: 'inclusion2', name: '两集合容斥', gen: 'inclusion2', weight: 5 },
-      { id: 'permutation', name: '排列 A(n,k)', gen: 'permutation', weight: 5 },
-      { id: 'combination', name: '组合 C(n,k)', gen: 'combination', weight: 5 },
-      { id: 'probability', name: '概率·古典', gen: 'probability', weight: 5 },
-      { id: 'chickenRabbit', name: '鸡兔同笼', gen: 'chickenRabbit', weight: 3 },
+      { id: 'permutation', name: '排列应用', gen: 'permutation', weight: 5 },
+      { id: 'combination', name: '组合应用', gen: 'combination', weight: 5 },
+      { id: 'probability', name: '概率应用', gen: 'probability', weight: 5 },
+      { id: 'chickenRabbit', name: '鸡兔同笼', gen: 'chickenRabbit', weight: 3, available: false },
       { id: 'age', name: '年龄问题', gen: 'age', weight: 3 },
       { id: 'profit', name: '盈亏问题', gen: 'profit', weight: 3 },
-      { id: 'planting', name: '植树问题', gen: 'planting', weight: 2 },
-      { id: 'squareFormation', name: '方阵问题', gen: 'squareFormation', weight: 2 },
+      { id: 'planting', name: '植树问题', gen: 'planting', weight: 2, available: false },
+      { id: 'squareFormation', name: '方阵问题', gen: 'squareFormation', weight: 2, available: false },
     ],
   },
   {
@@ -1194,12 +1382,24 @@ export const getSub = (catId, subId) => {
   const cat = getCategory(catId);
   return cat?.subs.find((s) => s.id === subId);
 };
+export const isNumericPoolSub = (catId, subId) => {
+  const cat = getCategory(catId);
+  if (!cat?.available) return false;
+  return isSubAvailable(getSub(catId, subId));
+};
 export const generate = (genKey) => generators[genKey]();
 
 // ---------------- 判题 ----------------
 export const judge = (question, userInput) => {
   if (userInput === '' || userInput == null) return false;
-  const n = Number(userInput);
+  const raw = String(userInput).trim();
+  if (
+    question.answerKind === 'frac'
+    || (typeof question.answer === 'string' && /[/:]/.test(question.answer))
+  ) {
+    return fracEqual(raw, String(question.answer));
+  }
+  const n = Number(raw);
   if (Number.isNaN(n)) return false;
   const tol = question.tolerance ?? 0;
   return Math.abs(n - question.answer) <= tol;

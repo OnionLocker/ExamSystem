@@ -9,7 +9,7 @@
 // 段位统计是累计的，不会被截断。
 // ============================================================
 
-import { CATEGORIES } from './generators.js';
+import { CATEGORIES, isSubAvailable } from './generators.js';
 import { getBaseMs, MIN_COUNT } from './ranks.js';
 
 // 正确率练到这个水平就不算弱项了
@@ -29,6 +29,7 @@ const allSubs = () => {
   for (const cat of CATEGORIES) {
     if (!cat.available) continue;
     for (const sub of cat.subs || []) {
+      if (!isSubAvailable(sub)) continue;
       out.push({ ...sub, catId: cat.id, catName: cat.name, catWeight: cat.weight || 1 });
     }
   }

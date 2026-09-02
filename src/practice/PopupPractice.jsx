@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, X, SkipForward, RotateCcw, Eye, EyeOff, Timer, BookOpen, ChevronLeft } from 'lucide-react';
-import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
+import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs, isSubAvailable } from './generators.js';
 import { recordPromotionResult, getRank } from './ranks.js';
 import RankBadge from './RankBadge.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
@@ -75,7 +75,8 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   const [draftRaceSize, setDraftRaceSize] = useState(RACE_SIZE_DEFAULT);
 
   const cat = CATEGORIES.find((c) => c.id === catId);
-  const sub = getSub(catId, subId) || cat?.subs?.[0];
+  const requested = getSub(catId, subId);
+  const sub = (requested && isSubAvailable(requested) ? requested : null) || visibleSubs(cat)[0];
   const availableCats = useMemo(() => CATEGORIES.filter((c) => c.available && c.kind !== 'selfReport'), []);
 
   // stealth: 伪装模式（低调主题、可隐藏题目内容）
@@ -146,6 +147,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       if (s.length >= 12) return s;
       if (ch === '.' && s.includes('.')) return s;
       if (ch === '-' && s !== '') return s;
+      if ((ch === '/' || ch === ':') && (s.includes('/') || s.includes(':'))) return s;
       return s + ch;
     });
   };
@@ -182,7 +184,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   const submit = () => {
     if (feedback || !question || raceDone) return;
-    if (input === '' || input === '-' || input === '.') return;
+    if (input === '' || input === '-' || input === '.' || input === '/' || input === ':') return;
     const timeMs = now - qStartedAt;
     const isCorrect = judge(question, input);
     const nextStats = {
@@ -228,7 +230,10 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     setShowTable(false);
     setRaceDone(null);
     // 纠正空 subId：界面可能正用 cat.subs[0] 出题，但 state 还是 ''
-    const effectiveSub = getSub(catId, subId) || cat?.subs?.[0] || null;
+    const requestedSub = getSub(catId, subId);
+    const effectiveSub = (requestedSub && isSubAvailable(requestedSub) ? requestedSub : null)
+      || visibleSubs(cat)[0]
+      || null;
     const effectiveSubId = effectiveSub?.id || '';
     const effectiveCatId = catId || effectiveSub && CATEGORIES.find((c) => c.subs.some((s) => s.id === effectiveSubId))?.id || 'basic';
     if (effectiveSubId && effectiveSubId !== subId) setSubId(effectiveSubId);
@@ -251,12 +256,13 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     const nextCat = CATEGORIES.find((c) => c.id === id);
     // 换大类时：若当前 draft 子项不属于该类，落到该类第一项
     const keep = draftSubId && getSub(id, draftSubId);
-    setDraftSubId(keep ? draftSubId : (nextCat?.subs?.[0]?.id || ''));
+    setDraftSubId(keep && isSubAvailable(keep) ? draftSubId : (visibleSubs(nextCat)[0]?.id || ''));
     setPicking('sub');
   };
 
   const pickSub = (nextCatId, nextSubId) => {
-    if (!getSub(nextCatId, nextSubId)) return;
+    const next = getSub(nextCatId, nextSubId);
+    if (!next || !isSubAvailable(next)) return;
     setDraftCatId(nextCatId);
     setDraftSubId(nextSubId);
     setDraftMode(mode);
@@ -396,6 +402,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       if (e.key >= '0' && e.key <= '9') appendChar(e.key);
       else if (e.key === '.') appendChar('.');
       else if (e.key === '-' && input === '') appendChar('-');
+      else if (e.key === '/' || e.key === ':') appendChar(e.key);
       else if (e.key === 'Backspace') {
         e.preventDefault();
         backspace();
@@ -874,7 +881,7 @@ const PopupModulePicker = ({
   // 高亮跟「当前浏览」走，不要静默掉回 cats[0]/cats[1]
   const selectedCatId = pickCatId || draftCatId || currentCatId;
   const pickCat = cats.find((c) => c.id === selectedCatId) || null;
-  const selectedSubId = draftSubId || (pickCat?.id === currentCatId ? currentSubId : '') || pickCat?.subs?.[0]?.id || '';
+  const selectedSubId = draftSubId || (pickCat?.id === currentCatId ? currentSubId : '') || visibleSubs(pickCat)[0]?.id || '';
   const draftSub = getSub(pickCat?.id, selectedSubId);
   const head =
     step === 'mode'
@@ -907,13 +914,13 @@ const PopupModulePicker = ({
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate">{c.name}</span>
                 <span className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${c.id === selectedCatId ? '' : muted}`}>
-                  {c.subs.length} 项
+                  {visibleSubs(c).length} 项
                 </span>
               </div>
             </button>
           ))}
         {step === 'sub' &&
-          (pickCat?.subs || []).map((s) => (
+          visibleSubs(pickCat).map((s) => (
             <button
               key={s.id}
               type="button"

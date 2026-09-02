@@ -21,7 +21,7 @@ import {
   Binary,
   ScanSearch,
 } from 'lucide-react';
-import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
+import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
 import RankDashboard from './RankDashboard.jsx';
@@ -100,7 +100,7 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     const timer = setTimeout(() => {
       const cat = CATEGORIES.find((item) => item.id === taskNavigation.catId);
       const subId = taskNavigation.subId || cat?.subs[0]?.id;
-      if (cat?.available && cat.subs.some((sub) => sub.id === subId)) {
+      if (cat?.available && visibleSubs(cat).some((sub) => sub.id === subId)) {
         setCurrentCat(cat);
         setCurrentSubId(subId);
         setMode('race');
@@ -127,7 +127,7 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     const cat = CATEGORIES.find((c) => c.id === catId);
     if (!cat?.available) return;
     setCurrentCat(cat);
-    setCurrentSubId(cat.subs[0]?.id);
+    setCurrentSubId(visibleSubs(cat)[0]?.id);
     setMode('train');
     setActiveTask(null);
     setView('subs');
@@ -136,8 +136,10 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
   const openSub = (catId, subId) => {
     const cat = CATEGORIES.find((c) => c.id === catId);
     if (!cat?.available) return;
+    const live = visibleSubs(cat);
+    const nextSub = live.some((s) => s.id === subId) ? subId : live[0]?.id;
     setCurrentCat(cat);
-    setCurrentSubId(subId || cat.subs[0]?.id);
+    setCurrentSubId(nextSub);
     setMode('train');
     setActiveTask(null);
     setView('subs');
@@ -391,7 +393,7 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
               </p>
               {!disabled && (
                 <p className="text-[10px] font-black uppercase tracking-widest mt-6 opacity-50">
-                  {cat.subs.length} 个子项
+                  {visibleSubs(cat).length} 个子项
                 </p>
               )}
             </button>
@@ -541,7 +543,7 @@ const SubsView = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {cat.subs.map((sub) => {
+        {visibleSubs(cat).map((sub) => {
           const active = sub.id === subId;
           return (
             <button
@@ -562,7 +564,7 @@ const SubsView = ({
       <div className="bg-white rounded-[2rem] p-6 border border-[#e8d5b0] space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">选择模式</p>
-          {subId && <SubRankChip subId={subId} subName={cat.subs.find((s) => s.id === subId)?.name} />}
+          {subId && <SubRankChip subId={subId} subName={visibleSubs(cat).find((s) => s.id === subId)?.name} />}
         </div>
         <ModeOption
           label="训练模式"
@@ -851,6 +853,8 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         appendChar('.');
       } else if (e.key === '-' && session.input === '') {
         appendChar('-');
+      } else if (e.key === '/' || e.key === ':') {
+        appendChar(e.key);
       } else if (e.key === 'Backspace') {
         e.preventDefault();
         backspace();
@@ -880,6 +884,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       if (s.input.length >= 12) return s;
       if (ch === '.' && s.input.includes('.')) return s;
       if (ch === '-' && s.input !== '') return s;
+      if ((ch === '/' || ch === ':') && (s.input.includes('/') || s.input.includes(':'))) return s;
       return { ...s, input: s.input + ch };
     });
   };
@@ -926,7 +931,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
 
   function submit() {
     if (feedback) return;
-    if (input === '' || input === '-' || input === '.') return;
+    if (input === '' || input === '-' || input === '.' || input === '/' || input === ':') return;
     const timeMs = Date.now() - session.questionStartedAt;
     const isCorrect = judge(current, input);
     if (isCorrect) playCorrect(); else playWrong();

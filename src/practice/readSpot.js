@@ -831,8 +831,8 @@ export const READ_SPOT_CATEGORY = {
   subs: [
     { id: 'spotZiliao', name: '识别考点 · 资料', gen: 'spotZiliao', weight: 5 },
     { id: 'spotQuant', name: '识别考点 · 数量', gen: 'spotQuant', weight: 4 },
-    { id: 'spotLogic', name: '识别考点 · 判断', gen: 'spotLogic', weight: 3 },
-    { id: 'spotVerbal', name: '识别考点 · 言语', gen: 'spotVerbal', weight: 3 },
+    { id: 'spotLogic', name: '识别考点 · 判断', gen: 'spotLogic', weight: 3, available: false },
+    { id: 'spotVerbal', name: '识别考点 · 言语', gen: 'spotVerbal', weight: 3, available: false },
     { id: 'findBasic', name: '找数 · 基础', gen: 'findBasic', weight: 5 },
     { id: 'findAdv', name: '找数 · 进阶', gen: 'findAdv', weight: 5 },
   ],

@@ -77,49 +77,49 @@ export const SUB_BASE_MS = {
   square:    1800,
   // quant 数量关系（要读题建模，但题干只有一行、数字友好）
   ratio:       12000,
-  engineering: 13000,
+  engineering: 16000,  // +23%：列式应用，日挑战原 26s 偏紧
   amgm:         7000,
   hanxin:      16000,
-  diophantine: 16000,
+  diophantine: 20000,  // +25%：应用包装后读题更长
   gcdQ:         9000,
   lcmQ:         9000,
   weekday:      7000,
-  encounter:    9000,
-  pursue:       9000,
-  boat:        11000,
+  encounter:   12000,  // +33%：列式行程，原 18s 过狠
+  pursue:      12000,  // +33%
+  boat:        14500,  // +32%
   mixture:     14000,
   dilute:      11000,
   inclusion2:  11000,
-  permutation:  9000,
-  combination:  9000,
-  probability:  7000,
+  permutation: 11000,  // +22%：场景题
+  combination: 11000,
+  probability:  9000,  // +29%：不放回分数题
   chickenRabbit: 9000,
   age:          11000,
   profit:       12000,
   planting:      7000,
   squareFormation: 4500,
-  // numReason 数字推理（生成题带规律提示，比真题快得多）
+  // numReason 数字推理（生成题无材料，比真题快；题干不写规律）
   arithSeq:     7000,
   geoSeq:       7000,
-  sumSeq:       7000,
-  productSeq:   7000,
-  powerSeq:    11000,
-  multiArith:  12000,
+  sumSeq:       8500,   // +21%：隔项/三项和变式
+  productSeq:   8500,
+  powerSeq:    14500,  // +32%：去剧透后要自己找规律
+  multiArith:  15500,  // +29%
   // data 资料分析（生成题是纯计算，没有读材料/定位数据的开销）
   baseQtyRough:  8000,
-  baseQtyExact: 11000,
-  growthAmt:     9000,
-  growthRate:    7000,
+  baseQtyExact: 14500,  // +32%：精算偏难，日挑战也不再默认塞
+  growthAmt:    12000,  // +33%
+  growthRate:    9500,  // +36%：原 14s 日限过狠
   baseDiff:      8000,
   prodGrowth:    8000,
   divGrowth:    10000,
   avgGrowth:    10000,
-  baseRatio:    12000,
-  ratioDiff:    14000,
+  baseRatio:    14500,  // +21%
+  ratioDiff:    17000,  // +21%
   pullGrowth:   11000,
   contribute:    7000,
-  annualGrowth: 14000,
-  mixedGrowth:  11000,
+  annualGrowth: 17000,  // +21%
+  mixedGrowth:  13000,  // +18%
   multipleOf:    5000,
   percentagePoint: 6000,
   // speedOps 补数与滚加
@@ -440,7 +440,8 @@ export const clearRankStats = () => {
 // 子项 weight 反映真实省考出题频率（5=每年必考 / 1-2=偶尔），
 // 分类 weight 反映真实考试分值占比（data 30 / quant 30 / numReason 15 / aux 15 / basic 10）。
 export const computeCategoryRank = (cat, stats) => {
-  const entries = cat.subs.map((s) => ({
+  const liveSubs = (cat.subs || []).filter((s) => s.available !== false);
+  const entries = liveSubs.map((s) => ({
     sub: s,
     stat: stats[s.id],
     eval: evaluate(stats[s.id], s.id),
@@ -462,7 +463,7 @@ export const computeCategoryRank = (cat, stats) => {
   return {
     rankId,
     rankedCount: ranked.length,
-    totalSubs: cat.subs.length,
+    totalSubs: liveSubs.length,
     entries,
     avgValue,
   };
