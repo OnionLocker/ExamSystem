@@ -49,6 +49,53 @@ const makeTask = (date, pick, index) => {
   };
 };
 
+// 提分导向的九格硬配比（不靠 weight 碰运气）：
+//   基础手速 ≤2（basic / speedOps，纯手速热身，够用即可）
+//   资料相关 ≥3（data / dataKill / readSpot：基期粗算、增量比重定性、增长率估速、两期比重、识别考点·资料…）
+//   数字推理 ≥1（numReason，子类按日期轮换，禁止连续多天只出等差）
+//   数量应用 ≥1（quant：行程/工程/比例等需列式的短冲刺）
+//   其余用弱项填充，但基础手速始终 ≤2。
+export const ZILIAO_CAT_IDS = new Set(['data', 'dataKill', 'readSpot']);
+export const HANDS_CAT_IDS = new Set(['basic', 'speedOps']);
+const REASON_CAT_ID = 'numReason';
+const QUANT_CAT_ID = 'quant';
+// 数字推理子类轮换表（相邻日期取不同子类；不会连续多天只出等差）
+const REASON_ROTATION = ['arithSeq', 'multiArith', 'sumSeq', 'geoSeq', 'powerSeq', 'productSeq'];
+// 数量应用轮换（无弱项数据时的默认短冲刺，保留相遇但不霸占）
+const QUANT_ROTATION = ['encounter', 'engineering', 'ratio', 'pursue', 'boat', 'probability'];
+// 无画像时的资料/手速默认池（按提分优先级排序）
+const ZILIAO_DEFAULTS = [
+  'baseQtyRough', 'growthShareEst', 'growthRate', 'twoPeriodRatioDiff',
+  'baseRatio', 'growthAmt', 'spotZiliao', 'findAdv', 'percentagePoint',
+];
+const HANDS_DEFAULTS = ['complement100', 'addOrSub3', 'rollingAdd3', 'add3', 'sub3'];
+
+const NUMERIC_TODAY_ZILIAO_MIN = 4;   // 资料相关下限（≥3 硬约束，取 4 以更贴合“提资料处理”目标）
+const NUMERIC_TODAY_HANDS_MAX = 2;
+
+// 每个 subId 的元信息（catId/catName/name），供无画像时按 subId 直接取用
+const SUB_META = (() => {
+  const map = new Map();
+  for (const cat of CATEGORIES) {
+    if (!cat.available) continue;
+    for (const sub of cat.subs || []) {
+      if (!map.has(sub.id)) {
+        map.set(sub.id, { id: sub.id, name: sub.name, catId: cat.id, catName: cat.name });
+      }
+    }
+  }
+  return map;
+})();
+
+// 用 plan_date 求一个稳定的整数（东八日历日序），供子类轮换；相邻日期差 1。
+const dateIndex = (date) => {
+  const ms = Date.parse(`${date}T00:00:00Z`);
+  if (!Number.isNaN(ms)) return Math.floor(ms / 86400000);
+  let h = 0;
+  for (const ch of String(date || '')) h = (h * 31 + ch.charCodeAt(0)) % 100000;
+  return h;
+};
+
 export const buildNumericTodayTasks = ({
   date,
   stats = {},
@@ -57,47 +104,74 @@ export const buildNumericTodayTasks = ({
 } = {}) => {
   const { weak, unexplored } = computeWeakSpots({ stats, wrongCounts, now });
   const ranked = [...weak, ...unexplored];
-  const usedCats = new Set();
   const usedSubs = new Set();
   const items = [];
+  const di = dateIndex(date);
 
-  const take = (pick, allowRepeatCat = false) => {
-    if (!pick?.catId || !pick.id) return;
-    if (usedSubs.has(pick.id)) return;
-    if (!allowRepeatCat && usedCats.has(pick.catId)) return;
-    usedCats.add(pick.catId);
+  const push = (pick, reason) => {
+    if (!pick?.catId || !pick.id) return false;
+    if (usedSubs.has(pick.id)) return false;
+    if (items.length >= NUMERIC_TODAY_TASK_LIMIT) return false;
     usedSubs.add(pick.id);
-    items.push(makeTask(date, pick, items.length));
+    items.push(makeTask(date, { ...pick, reason: reason || pick.reason || '每日数字敏感度' }, items.length));
+    return true;
   };
+  const pushSubId = (subId, reason) => push(SUB_META.get(subId), reason);
+  const weakOf = (filterFn) => ranked.filter((p) => filterFn(p) && !usedSubs.has(p.id));
+  const handsCount = () => items.filter((t) => HANDS_CAT_IDS.has(t.catId)).length;
+  const ziliaoCount = () => items.filter((t) => ZILIAO_CAT_IDS.has(t.catId)).length;
 
-  for (const pick of ranked) {
-    if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
-    take(pick, false);
-  }
+  // 只认“练过的真弱项”做优先；没练过的（unexplored）不冻结轮换，交给按日期轮换保证变化。
+  const weakPracticed = (filterFn) => weak.filter((p) => filterFn(p) && !usedSubs.has(p.id));
 
-  if (items.length < NUMERIC_TODAY_TASK_LIMIT) {
-    const leftover = CATEGORIES
-      .filter((cat) => cat.available && !usedCats.has(cat.id))
-      .sort((a, b) => (b.weight || 0) - (a.weight || 0));
-    for (const cat of leftover) {
-      if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
-      const sub = [...(cat.subs || [])].sort((a, b) => (b.weight || 0) - (a.weight || 0))[0];
-      if (!sub) continue;
-      take({
-        ...sub,
-        catId: cat.id,
-        catName: cat.name,
-        reason: '每日数字敏感度',
-      }, false);
+  // 1) 数字推理 ≥1：优先练过的弱项数推；否则按日期轮换子类（禁止连续多天只出等差）
+  const weakReason = weakPracticed((p) => p.catId === REASON_CAT_ID);
+  if (!(weakReason[0] && push(weakReason[0], weakReason[0].reason))) {
+    for (let k = 0; k < REASON_ROTATION.length; k += 1) {
+      if (pushSubId(REASON_ROTATION[(di + k) % REASON_ROTATION.length], '数字推理·轮换')) break;
     }
   }
 
-  for (const pick of ranked) {
-    if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
-    take({ ...pick, reason: pick.reason || '加练' }, true);
+  // 2) 资料相关 ≥3：弱项优先，再用资料默认池补齐
+  for (const p of weakOf((x) => ZILIAO_CAT_IDS.has(x.catId))) {
+    if (ziliaoCount() >= NUMERIC_TODAY_ZILIAO_MIN) break;
+    push(p, p.reason);
+  }
+  for (const subId of ZILIAO_DEFAULTS) {
+    if (ziliaoCount() >= NUMERIC_TODAY_ZILIAO_MIN) break;
+    pushSubId(subId, '资料处理提分');
   }
 
-  return items;
+  // 3) 数量应用 ≥1：练过的弱项优先，否则按日期轮换一个需列式的短冲刺
+  const weakQuant = weakPracticed((p) => p.catId === QUANT_CAT_ID);
+  if (!(weakQuant[0] && push(weakQuant[0], weakQuant[0].reason))) {
+    for (let k = 0; k < QUANT_ROTATION.length; k += 1) {
+      if (pushSubId(QUANT_ROTATION[(di + k) % QUANT_ROTATION.length], '数量列式冲刺')) break;
+    }
+  }
+
+  // 4) 基础手速：最多 2 格，弱项优先，否则默认池
+  for (const p of weakOf((x) => HANDS_CAT_IDS.has(x.catId))) {
+    if (handsCount() >= NUMERIC_TODAY_HANDS_MAX) break;
+    push(p, p.reason);
+  }
+  for (const subId of HANDS_DEFAULTS) {
+    if (handsCount() >= NUMERIC_TODAY_HANDS_MAX || items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
+    pushSubId(subId, '手速热身');
+  }
+
+  // 5) 其余用弱项填充，但基础手速仍 ≤2（不再加 basic/speedOps）
+  for (const p of weakOf((x) => !HANDS_CAT_IDS.has(x.catId))) {
+    if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
+    push(p, p.reason || '加练');
+  }
+  // 兜底：仍不足 9，用资料/数量默认池补满（继续避开基础手速）
+  for (const subId of [...ZILIAO_DEFAULTS, ...QUANT_ROTATION]) {
+    if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
+    pushSubId(subId, '资料/数量补位');
+  }
+
+  return items.map((task, index) => ({ ...task, index }));
 };
 
 export const fillMissingCategoryTasks = (items, opts = {}) => {
