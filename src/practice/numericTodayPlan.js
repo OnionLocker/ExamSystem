@@ -1,10 +1,11 @@
-import { CATEGORIES } from './generators.js';
+import { CATEGORIES, isSubAvailable } from './generators.js';
 import { getBaseMs } from './ranks.js';
 import { computeWeakSpots } from './weakSpots.js';
 
 export const NUMERIC_TODAY_TASK_LIMIT = 9;
 export const NUMERIC_TODAY_MIN_ACCURACY = 0.9;
-export const NUMERIC_TODAY_SPEED_MULT = 2;
+// 稍微放宽日挑战：王者基线 ×2 手感过狠（列式/精算常 14–22s），提到 2.8 仍保留速度门槛
+export const NUMERIC_TODAY_SPEED_MULT = 2.8;
 
 const COUNT_BY_CAT = {
   basic: 30,
@@ -12,9 +13,9 @@ const COUNT_BY_CAT = {
   speedOps: 25,
   dataKill: 20,
   readSpot: 8,
-  quant: 12,
-  numReason: 12,
-  data: 15,
+  quant: 10,
+  numReason: 10,
+  data: 12,
 };
 
 export const east8Today = (now = new Date()) =>
@@ -60,15 +61,17 @@ export const HANDS_CAT_IDS = new Set(['basic', 'speedOps']);
 const REASON_CAT_ID = 'numReason';
 const QUANT_CAT_ID = 'quant';
 // 数字推理子类轮换表（相邻日期取不同子类；不会连续多天只出等差）
-const REASON_ROTATION = ['arithSeq', 'multiArith', 'sumSeq', 'geoSeq', 'powerSeq', 'productSeq'];
-// 数量应用轮换（无弱项数据时的默认短冲刺，保留相遇但不霸占）
-const QUANT_ROTATION = ['encounter', 'engineering', 'ratio', 'pursue', 'boat', 'probability'];
-// 无画像时的资料/手速默认池（按提分优先级排序）
-const ZILIAO_DEFAULTS = [
+export const REASON_ROTATION = ['arithSeq', 'multiArith', 'sumSeq', 'geoSeq', 'powerSeq', 'productSeq'];
+// 数量应用轮换（无弱项数据时的默认短冲刺；CUT 不进轮换）
+export const QUANT_ROTATION = ['encounter', 'engineering', 'ratio', 'pursue', 'boat', 'probability'];
+// 无画像时的资料/手速默认池（按提分优先级排序；CUT 不进池）
+export const ZILIAO_DEFAULTS = [
   'baseQtyRough', 'growthShareEst', 'growthRate', 'twoPeriodRatioDiff',
   'baseRatio', 'growthAmt', 'spotZiliao', 'findAdv', 'percentagePoint',
 ];
-const HANDS_DEFAULTS = ['complement100', 'addOrSub3', 'rollingAdd3', 'add3', 'sub3'];
+export const HANDS_DEFAULTS = ['complement100', 'addOrSub3', 'rollingAdd3', 'add3', 'sub3'];
+// 日挑战不主动塞精算：无画像/未练过时让位给粗算·增速·比重；练过且偏弱才可进弱项格
+export const TODAY_DEPRIORITIZE = new Set(['baseQtyExact']);
 
 const NUMERIC_TODAY_ZILIAO_MIN = 4;   // 资料相关下限（≥3 硬约束，取 4 以更贴合“提资料处理”目标）
 const NUMERIC_TODAY_HANDS_MAX = 2;
@@ -79,6 +82,7 @@ const SUB_META = (() => {
   for (const cat of CATEGORIES) {
     if (!cat.available) continue;
     for (const sub of cat.subs || []) {
+      if (!isSubAvailable(sub)) continue;
       if (!map.has(sub.id)) {
         map.set(sub.id, { id: sub.id, name: sub.name, catId: cat.id, catName: cat.name });
       }
@@ -110,6 +114,7 @@ export const buildNumericTodayTasks = ({
 
   const push = (pick, reason) => {
     if (!pick?.catId || !pick.id) return false;
+    if (!SUB_META.has(pick.id)) return false;
     if (usedSubs.has(pick.id)) return false;
     if (items.length >= NUMERIC_TODAY_TASK_LIMIT) return false;
     usedSubs.add(pick.id);
@@ -132,8 +137,9 @@ export const buildNumericTodayTasks = ({
     }
   }
 
-  // 2) 资料相关 ≥3：弱项优先，再用资料默认池补齐
-  for (const p of weakOf((x) => ZILIAO_CAT_IDS.has(x.catId))) {
+  // 2) 资料相关 ≥3：只认练过的弱项，未练过的不抢默认池（避免精算等高权重新题挤进日格）
+  const weakZiliao = weakPracticed((p) => ZILIAO_CAT_IDS.has(p.catId));
+  for (const p of weakZiliao) {
     if (ziliaoCount() >= NUMERIC_TODAY_ZILIAO_MIN) break;
     push(p, p.reason);
   }
@@ -161,8 +167,11 @@ export const buildNumericTodayTasks = ({
   }
 
   // 5) 其余用弱项填充，但基础手速仍 ≤2（不再加 basic/speedOps）
+  // 未练过的精算等不主动补位；练过且偏弱仍可进格
+  const practicedIds = new Set(weak.map((p) => p.id));
   for (const p of weakOf((x) => !HANDS_CAT_IDS.has(x.catId))) {
     if (items.length >= NUMERIC_TODAY_TASK_LIMIT) break;
+    if (TODAY_DEPRIORITIZE.has(p.id) && !practicedIds.has(p.id)) continue;
     push(p, p.reason || '加练');
   }
   // 兜底：仍不足 9，用资料/数量默认池补满（继续避开基础手速）
@@ -175,11 +184,14 @@ export const buildNumericTodayTasks = ({
 };
 
 export const fillMissingCategoryTasks = (items, opts = {}) => {
-  if (items.length >= NUMERIC_TODAY_TASK_LIMIT) return items;
-  const usedSubs = new Set(items.map((task) => task.subId));
+  const kept = (items || []).filter((task) => SUB_META.has(task.subId));
+  if (kept.length >= NUMERIC_TODAY_TASK_LIMIT) {
+    return kept.slice(0, NUMERIC_TODAY_TASK_LIMIT).map((task, index) => ({ ...task, index }));
+  }
+  const usedSubs = new Set(kept.map((task) => task.subId));
   const extra = buildNumericTodayTasks(opts).filter((task) => !usedSubs.has(task.subId));
-  if (!extra.length) return items;
-  return [...items, ...extra]
+  if (!extra.length) return kept.map((task, index) => ({ ...task, index }));
+  return [...kept, ...extra]
     .slice(0, NUMERIC_TODAY_TASK_LIMIT)
     .map((task, index) => ({ ...task, index }));
 };

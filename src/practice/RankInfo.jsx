@@ -392,12 +392,12 @@ const AggregationPanel = () => (
       <p className="text-xs text-[#7c2d12] leading-relaxed font-medium mb-3">
         <span className="font-black">⭐⭐⭐⭐⭐ 5星</span>：每年必考（行程·相遇 / 排列组合 / 增长率 等）<br />
         <span className="font-black">⭐⭐⭐⭐ 4星</span>：高频（百化分 / 比重 / 倍数辨析）<br />
-        <span className="font-black">⭐⭐⭐ 3星</span>：中频（工程 / 不定方程 / 鸡兔同笼）<br />
-        <span className="font-black">⭐⭐ 2星</span>：偶尔出现（韩信点兵 / 方阵 / 单数乘法）
+        <span className="font-black">⭐⭐⭐ 3星</span>：中频（工程 / 不定方程 / 年龄）<br />
+        <span className="font-black">⭐⭐ 2星</span>：辅助热身（9 的乘法 / 常见平方数）
       </p>
       <p className="text-[11px] text-[#7c2d12] leading-relaxed font-medium border-t border-[#7c2d12]/15 pt-3">
         高频子项的段位<span className="font-black">会显著拉高</span>分类段位；
-        练 100 题韩信点兵不如练 20 题相遇追及。
+        练 100 题平方数不如练 20 题相遇追及。
       </p>
     </div>
 
@@ -408,7 +408,7 @@ const AggregationPanel = () => (
       <p className="text-xs text-slate-600 font-medium leading-relaxed">
         假设你「数量关系」只评了 3 项：行程·相遇 <span className="font-black">钻石(5)</span> · 权重 5，
         浓度混合 <span className="font-black">黄金(3)</span> · 权重 5，
-        鸡兔同笼 <span className="font-black">白银(2)</span> · 权重 3
+        年龄问题 <span className="font-black">白银(2)</span> · 权重 3
         <br />
         <br />
         → 加权平均 = (5×5 + 3×5 + 2×3) / (5+5+3) = 46/13 = <span className="font-black">3.54 → 黄金（向上取）</span>
@@ -446,7 +446,7 @@ const BaselinesPanel = () => (
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-[#e8d5b0]">
-            {cat.subs.map((s) => {
+            {cat.subs.filter((s) => s.available !== false).map((s) => {
               const ms = SUB_BASE_MS[s.id];
               const w = s.weight ?? 1;
               return (
