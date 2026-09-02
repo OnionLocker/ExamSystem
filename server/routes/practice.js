@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import db from '../db.js';
 import { reconcileDailyPlanBatch } from './dailyPlans.js';
+import { assemblePracticeReportMarkdown } from '../../src/hermes/reviewAssembler.js';
 
 const router = Router();
 
@@ -342,78 +343,7 @@ const getPracticeReport = (sessionId) => {
   return { session, items };
 };
 
-const fmtReviewDuration = (sec) => {
-  const total = Math.max(0, Math.floor(Number(sec) || 0));
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-};
-
-const practiceReviewMarkdown = ({ session, items }) => {
-  const wrong = items.filter((item) => !item.is_correct);
-  const times = items.map((item) => Math.max(0, Number(item.time_spent_sec) || 0));
-  const avgSec = times.length ? times.reduce((sum, value) => sum + value, 0) / times.length : 0;
-  const slowThreshold = Math.max(60, Math.ceil(avgSec * 1.5));
-  const focusItems = items.filter((item) =>
-    !item.is_correct || item.draft_url || Number(item.time_spent_sec) >= slowThreshold);
-  const lines = [
-    `# AI 练题复盘：${session.display_title || session.category || '未命名批次'}`,
-    '',
-    `- 场次：${session.id}`,
-    `- 交卷时间：${session.ended_at || '未知'}`,
-    `- 成绩：${session.correct}/${session.total}`,
-    `- 总用时：${fmtReviewDuration(session.duration_sec)}`,
-    `- 错题或空题：${wrong.length}`,
-    `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
-    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场第一次 Hermes 复盘才更新画像'}`,
-    '',
-    '## 逐题概览',
-    '',
-    '| 题号 | 题目id | 结果 | 用时 | 草稿 | 知识点 |',
-    '|---|---|---|---:|---|---|',
-  ];
-
-  for (const [index, item] of items.entries()) {
-    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
-    const draft = item.draft_url ? '有' : '无';
-    const points = (item.knowledge_points || []).join('、').replace(/\|/g, '\\|') || '未标注';
-    lines.push(`| ${index + 1} | ${item.question_id} | ${result} | ${fmtReviewDuration(item.time_spent_sec)} | ${draft} | ${points} |`);
-  }
-
-  lines.push('', '## 复盘重点');
-  if (focusItems.length === 0) {
-    lines.push('', '本场没有错题、草稿异常或明显慢题。正确且快速的题无需逐题展开。');
-    return lines.join('\n');
-  }
-
-  for (const item of focusItems) {
-    const no = items.indexOf(item) + 1;
-    const subtitle = item.sub_category ? ` · ${item.sub_category}` : '';
-    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
-    const reasons = [
-      !item.is_correct ? '答案需复盘' : null,
-      item.draft_url ? '有草稿，需检查思路和书写' : null,
-      Number(item.time_spent_sec) >= slowThreshold ? '用时偏长，需检查方法选择和步骤压缩' : null,
-    ].filter(Boolean).join('；');
-    lines.push('', `### 第 ${no} 题${subtitle}`, '', String(item.content || ''));
-    for (const option of item.options || []) {
-      lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}`);
-    }
-    lines.push(
-      '',
-      `- 题目id：${item.question_id}`,
-      `- 作答结果：${result}`,
-      `- 我的作答：${item.user_answer || '未作答'}`,
-      `- 正确答案：${item.correct_answer || '未知'}`,
-      `- 本题用时：${fmtReviewDuration(item.time_spent_sec)}`,
-      `- 入选原因：${reasons}`,
-    );
-    if (item.knowledge_points?.length) {
-      lines.push(`- 知识点：${item.knowledge_points.join('、')}`);
-    }
-    if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
-    if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
-  }
-  return lines.join('\n');
-};
+const practiceReviewMarkdown = assemblePracticeReportMarkdown;
 
 router.get('/sessions/:id/report', (req, res) => {
   const report = getPracticeReport(Number(req.params.id));
