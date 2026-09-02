@@ -89,4 +89,13 @@ const compactPlaces = normalizeOriginalQuestionOptions('> **原题** 地点A.B.C
 assert.match(compactPlaces, /地点A\.B\.C\.D同时出发/);
 assert.match(compactPlaces, /> \*\*A\.\*\* 甲/);
 
+const kepui = normalizeOriginalQuestionOptions([
+  '> **原题**',
+  '> 从A、B、C三个地点同时出发。下列分析正确的是： A. 电流减小 B. 电压减小 C. 功率增加 D. 总功率增加',
+].join('\n'));
+assert.match(kepui, /从A、B、C三个地点同时出发/);
+assert.doesNotMatch(kepui, /> \*\*A\.\*\* 、B、C三个地点/);
+assert.match(kepui, /> \*\*A\.\*\* 电流减小/);
+assert.match(kepui, /> \*\*D\.\*\* 总功率增加/);
+
 console.log('review option normalize: ok');

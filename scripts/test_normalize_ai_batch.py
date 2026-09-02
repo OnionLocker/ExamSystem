@@ -205,6 +205,17 @@ class NormalizeBatchTest(unittest.TestCase):
             self.assertTrue(nab.answer_distribution_ok(saved_manifest, saved))
             generation_gate.validate_batch_constraints(saved_manifest, saved)
 
+    def test_stamp_daily_source_uses_batch_slug(self):
+        questions = [item("K01", CAT_PANDUAN, "科学推理-力学-杠杆滑轮", "A")]
+        questions[0]["source"] = "广东省考行测-判断推理-20260902"
+        manifest = {
+            "batch_id": "daily-20260902-kepui-abc",
+            "source": "广东省考行测-判断推理-20260902",
+        }
+        nab.stamp_daily_source(manifest, questions)
+        self.assertEqual(manifest["source"], "广东省考行测-科学推理-20260902")
+        self.assertEqual(questions[0]["source"], "广东省考行测-科学推理-20260902")
+
     def test_daily_source_is_stamped(self):
         questions = [item("Q01", CAT_SHULIANG, TAG_EQ, "A")]
         questions[0]["source"] = "random title"
@@ -305,8 +316,11 @@ class NormalizeBatchTest(unittest.TestCase):
             result = nab.normalize_batch(root)
             self.assertTrue(result["changed"])
             saved = json.loads((root / "questions.json").read_text(encoding="utf-8"))
+            saved_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual({q["category"] for q in saved}, {"科学推理"})
             self.assertEqual({q["sub_category"] for q in saved}, {"科学推理"})
+            self.assertEqual(saved_manifest["source"], "广东省考行测-科学推理-20260902")
+            self.assertEqual({q["source"] for q in saved}, {"广东省考行测-科学推理-20260902"})
             generation_gate.validate_paper_hard_rules(
                 json.loads((root / "manifest.json").read_text(encoding="utf-8")),
                 saved,

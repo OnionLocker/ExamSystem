@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
+import { openPracticePopup } from './pipWindow.js';
 import {
   ChevronRight,
   ChevronLeft,
@@ -21,7 +21,7 @@ import {
   Binary,
   ScanSearch,
 } from 'lucide-react';
-import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs } from './generators.js';
+import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
 import RankDashboard from './RankDashboard.jsx';
@@ -100,7 +100,7 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     const timer = setTimeout(() => {
       const cat = CATEGORIES.find((item) => item.id === taskNavigation.catId);
       const subId = taskNavigation.subId || cat?.subs[0]?.id;
-      if (cat?.available && visibleSubs(cat).some((sub) => sub.id === subId)) {
+      if (cat?.available && cat.subs.some((sub) => sub.id === subId)) {
         setCurrentCat(cat);
         setCurrentSubId(subId);
         setMode('race');
@@ -127,7 +127,7 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     const cat = CATEGORIES.find((c) => c.id === catId);
     if (!cat?.available) return;
     setCurrentCat(cat);
-    setCurrentSubId(visibleSubs(cat)[0]?.id);
+    setCurrentSubId(cat.subs[0]?.id);
     setMode('train');
     setActiveTask(null);
     setView('subs');
@@ -136,10 +136,8 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
   const openSub = (catId, subId) => {
     const cat = CATEGORIES.find((c) => c.id === catId);
     if (!cat?.available) return;
-    const live = visibleSubs(cat);
-    const nextSub = live.some((s) => s.id === subId) ? subId : live[0]?.id;
     setCurrentCat(cat);
-    setCurrentSubId(nextSub);
+    setCurrentSubId(subId || cat.subs[0]?.id);
     setMode('train');
     setActiveTask(null);
     setView('subs');
@@ -393,7 +391,7 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
               </p>
               {!disabled && (
                 <p className="text-[10px] font-black uppercase tracking-widest mt-6 opacity-50">
-                  {visibleSubs(cat).length} 个子项
+                  {cat.subs.length} 个子项
                 </p>
               )}
             </button>
@@ -419,106 +417,15 @@ const SubsView = ({
 }) => {
   if (!cat) return null;
 
-  const openPopup = async () => {
+  const openPopup = () => {
     if (!subId) return;
-    const w = 420;
-    const h = 300;
-
-    // 方案 1：Document Picture-in-Picture（Chrome/Edge 116+）
-    // 优势：无浏览器标题栏 + 地址栏，默认置顶悬浮
-    if (window.documentPictureInPicture?.requestWindow) {
-      try {
-        const pipWin = await window.documentPictureInPicture.requestWindow({
-          width: w,
-          height: h,
-        });
-
-        // 将当前文档的所有样式（Vite 注入的 <style> 与 <link rel="stylesheet">）复制到 PiP 窗
-        const copyStyles = () => {
-          [...document.styleSheets].forEach((sheet) => {
-            try {
-              if (sheet.cssRules) {
-                const style = pipWin.document.createElement('style');
-                style.textContent = [...sheet.cssRules].map((r) => r.cssText).join('\n');
-                pipWin.document.head.appendChild(style);
-              }
-            } catch {
-              // 跨域样式表，降级用 <link>
-              if (sheet.href) {
-                const link = pipWin.document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = sheet.href;
-                pipWin.document.head.appendChild(link);
-              }
-            }
-          });
-          // <style> 标签也拷贝一份（保险）
-          document.head.querySelectorAll('style').forEach((node) => {
-            pipWin.document.head.appendChild(node.cloneNode(true));
-          });
-        };
-        copyStyles();
-
-        // 基本样式
-        const baseStyle = pipWin.document.createElement('style');
-        baseStyle.textContent = `
-          html, body { margin: 0; padding: 0; height: 100%; overflow: hidden;
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
-          #pip-root { height: 100%; }
-        `;
-        pipWin.document.head.appendChild(baseStyle);
-
-        // 挂载 React
-        const container = pipWin.document.createElement('div');
-        container.id = 'pip-root';
-        pipWin.document.body.appendChild(container);
-        const root = createRoot(container);
-        root.render(
-          <PopupPractice catId={cat.id} subId={subId} mode={mode} embedded />,
-        );
-
-        // 关闭时卸载
-        pipWin.addEventListener('pagehide', () => {
-          try {
-            root.unmount();
-          } catch {
-            // ignore
-          }
-        });
-        return;
-      } catch (err) {
-        // 用户拒绝或不支持 -> 降级
-        console.warn('Document PiP failed, falling back to window.open:', err);
-      }
-    }
-
-    // 方案 2：降级 window.open（会有标题栏/地址栏）
-    const params = new URLSearchParams({
-      popup: '1',
-      cat: cat.id,
-      sub: subId,
+    openPracticePopup({
+      catId: cat.id,
+      subId,
       mode,
+      raceSize: mode === 'race' ? raceSize : undefined,
+      Practice: PopupPractice,
     });
-    const url = `${window.location.pathname}?${params.toString()}`;
-    const left =
-      (window.screen.availLeft || 0) + (window.screen.availWidth || 1280) - w - 40;
-    const top =
-      (window.screen.availTop || 0) + (window.screen.availHeight || 800) - h - 80;
-    const features = [
-      `width=${w}`,
-      `height=${h}`,
-      `left=${Math.max(0, left)}`,
-      `top=${Math.max(0, top)}`,
-      'popup=yes',
-      'resizable=yes',
-      'scrollbars=no',
-      'menubar=no',
-      'toolbar=no',
-      'location=no',
-      'status=no',
-    ].join(',');
-    const winRef = window.open(url, `study_popup_${cat.id}_${subId}`, features);
-    if (winRef) winRef.focus();
   };
 
   return (
@@ -543,7 +450,7 @@ const SubsView = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {visibleSubs(cat).map((sub) => {
+        {cat.subs.map((sub) => {
           const active = sub.id === subId;
           return (
             <button
@@ -564,7 +471,7 @@ const SubsView = ({
       <div className="bg-white rounded-[2rem] p-6 border border-[#e8d5b0] space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">选择模式</p>
-          {subId && <SubRankChip subId={subId} subName={visibleSubs(cat).find((s) => s.id === subId)?.name} />}
+          {subId && <SubRankChip subId={subId} subName={cat.subs.find((s) => s.id === subId)?.name} />}
         </div>
         <ModeOption
           label="训练模式"
@@ -853,8 +760,6 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         appendChar('.');
       } else if (e.key === '-' && session.input === '') {
         appendChar('-');
-      } else if (e.key === '/' || e.key === ':') {
-        appendChar(e.key);
       } else if (e.key === 'Backspace') {
         e.preventDefault();
         backspace();
@@ -884,7 +789,6 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       if (s.input.length >= 12) return s;
       if (ch === '.' && s.input.includes('.')) return s;
       if (ch === '-' && s.input !== '') return s;
-      if ((ch === '/' || ch === ':') && (s.input.includes('/') || s.input.includes(':'))) return s;
       return { ...s, input: s.input + ch };
     });
   };
@@ -931,7 +835,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
 
   function submit() {
     if (feedback) return;
-    if (input === '' || input === '-' || input === '.' || input === '/' || input === ':') return;
+    if (input === '' || input === '-' || input === '.') return;
     const timeMs = Date.now() - session.questionStartedAt;
     const isCorrect = judge(current, input);
     if (isCorrect) playCorrect(); else playWrong();

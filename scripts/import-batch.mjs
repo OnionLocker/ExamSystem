@@ -18,6 +18,21 @@ const PUBLIC_IMG_ROOT = path.join(ROOT, 'public', 'q-images');
 const toImgPublicPath = (batchId, rel) =>
   `/q-images/${batchId}/${path.basename(rel)}`;
 
+const DAILY_SLUG = {
+  yanyu: '言语理解与表达',
+  panduan: '判断推理',
+  kepui: '科学推理',
+  shuliang: '数量关系',
+  ziliao: '资料分析',
+};
+
+const dailyStamp = (batchId) => {
+  const match = String(batchId || '').match(/^daily-(\d{8})-([a-z]+)-/);
+  if (!match || !DAILY_SLUG[match[2]]) return null;
+  const module = DAILY_SLUG[match[2]];
+  return { module, source: `广东省考行测-${module}-${match[1]}` };
+};
+
 function copyImages(batchDir, batchId, questions, materials) {
   const destDir = path.join(PUBLIC_IMG_ROOT, batchId);
   fs.mkdirSync(destDir, { recursive: true });
@@ -220,10 +235,11 @@ function importToDB(manifest, questions, materials) {
           }))
         : null;
 
+      const stamp = dailyStamp(batchId);
       upsertQ.run({
         external_id: q.external_id,
-        category: q.category,
-        sub_category: q.sub_category ?? null,
+        category: stamp?.module || q.category,
+        sub_category: stamp?.module === '科学推理' ? '科学推理' : (q.sub_category ?? null),
         question_type: q.question_type ?? 'single',
         content: q.stem,
         stem_images: JSON.stringify(rewrite(batchId, q.stem_images) || []),
@@ -233,7 +249,7 @@ function importToDB(manifest, questions, materials) {
         explanation_images: JSON.stringify(rewrite(batchId, q.explanation_images) || []),
         difficulty: q.difficulty ?? 2,
         tags: JSON.stringify(resolvedTags(q)),
-        source: q.source ?? manifest.source ?? null,
+        source: stamp?.source || q.source || manifest.source || null,
         year: q.year ?? manifest.year ?? null,
         region: q.region ?? manifest.region ?? null,
         material_id: materialId,

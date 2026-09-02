@@ -1249,7 +1249,39 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       // not a hand-picked subset that can hide a correct-but-slow approach.
       const drafted = items.filter((it) => it.draft_url);
 
+      const asDataUrl = async (src) => {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error('题图加载失败');
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      };
+
       const images = [];
+      for (const it of items) {
+        const stems = [...(it.stem_images || [])];
+        for (const opt of it.options || []) stems.push(...(opt.images || []));
+        for (const [index, src] of stems.entries()) {
+          try {
+            const dataUrl = await asDataUrl(src);
+            if (dataUrl) {
+              images.push({
+                id: uid(),
+                name: `q${noOf(it)}-stem${index ? `-${index}` : ''}.png`,
+                dataUrl,
+                contextKind: 'practice',
+                contextId: Number(sessionId),
+                hidden: true,
+              });
+            }
+          } catch { /* 单张题图失败不阻塞 */ }
+        }
+      }
+      const stemCount = images.length;
       for (const it of drafted) {
         try {
           const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
@@ -1278,7 +1310,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         name: info.name,
         title: info.title || `AI 练题复盘：${s.display_title || s.category || '未命名批次'}`,
         label: `AI练题复盘 · ${fmtDateTime(s.ended_at)} · ${s.display_title || s.category || '未命名批次'} · ${s.correct}/${s.total}`,
-        draftCount: images.length,
+        stemCount,
+        draftCount: images.length - stemCount,
         total: Number(s.total || items.length || 0),
         profileReviewed: Boolean(s.profile_reviewed_at),
       });
@@ -1787,7 +1820,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   )}
 
                   {(m.content || !m.streaming) && (
-                    <MarkdownMessage content={m.content} streaming={m.streaming} />
+                    <MarkdownMessage
+                      content={m.content}
+                      streaming={m.streaming}
+                      practiceSessionId={practiceSessionForMessage(m.id)}
+                    />
                   )}
                 </div>
               )}
@@ -1960,7 +1997,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             {reviewMdErr ? (
               <p className="text-sm font-bold text-slate-400">{reviewMdErr}</p>
             ) : reviewMd ? (
-              <MarkdownMessage content={reviewMd} />
+              <MarkdownMessage
+                content={reviewMd}
+                practiceSessionId={reviewPreview.kind === 'practice' ? Number(reviewPreview.id) : null}
+              />
             ) : (
               <div className="flex items-center gap-2 text-[11px] text-[#999]">
                 <Loader2 size={11} className="animate-spin" />

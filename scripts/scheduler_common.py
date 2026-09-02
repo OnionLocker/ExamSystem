@@ -33,6 +33,8 @@ MODULE_QUOTAS = (
 
 DAILY_SOURCE_PREFIX = "广东省考行测"
 _DAILY_BATCH_ID = re.compile(r"^daily-(\d{8})-")
+_DAILY_BATCH_SLUG = re.compile(r"^daily-\d{8}-([a-z]+)-")
+_MODULE_BY_SLUG = {slug: module for module, slug, _ in MODULE_QUOTAS}
 
 
 def daily_source_name(module: str, plan_date: dt.date | str) -> str:
@@ -43,8 +45,14 @@ def daily_source_name(module: str, plan_date: dt.date | str) -> str:
     return f"{DAILY_SOURCE_PREFIX}-{module}-{compact}"
 
 
+def module_from_daily_batch(batch_id: str) -> str:
+    match = _DAILY_BATCH_SLUG.match(str(batch_id or ""))
+    return _MODULE_BY_SLUG.get(match.group(1), "") if match else ""
+
+
 def daily_source_for_batch(batch_id: str, module: str) -> str | None:
     match = _DAILY_BATCH_ID.match(str(batch_id or ""))
+    module = module or module_from_daily_batch(batch_id)
     if not match or not module:
         return None
     return daily_source_name(module, match.group(1))

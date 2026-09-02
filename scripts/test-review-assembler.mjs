@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import {
   assembleCoachReview,
   assemblePracticeReportMarkdown,
+  injectReviewStemImages,
+  resolveReviewImageSrc,
   sanitizeReviewMarkdown,
   stripEmptyPraiseDiagnosis,
   validateReviewMarkdown,
@@ -150,9 +152,64 @@ assert.match(report, /≤40–45s/);
 assert.match(report, /≤50–60s/);
 assert.match(report, /本题建议用时：≤50–60s/);
 
-const lead = buildPracticeReviewLead({ title: '样例', path: '/tmp/demo.md', total: 2, draftCount: 0 });
+const withFigure = assemblePracticeReportMarkdown({
+  session: { id: 2, display_title: '科推', correct: 0, total: 1, duration_sec: 60 },
+  items: [{
+    question_id: 21,
+    content: '如图所示电路',
+    stem_images: ['/q-images/demo/q-01-stem.png'],
+    options: [{ key: 'A', text: '电流减小' }],
+    category: '科学推理',
+    sub_category: '科学推理',
+    user_answer: 'A',
+    correct_answer: 'D',
+    is_correct: false,
+    time_spent_sec: 80,
+    knowledge_points: ['科学推理-电学-串并联'],
+  }],
+});
+assert.match(withFigure, /!\[\]\(\/q-images\/demo\/q-01-stem\.png\)/);
+assert.match(withFigure, /题图：\/q-images\/demo\/q-01-stem\.png/);
+
+const reviewWithoutImg = [
+  '### 01 · 科学推理',
+  '',
+  '> **原题**',
+  '>',
+  '> 如图所示电路中，电源电压恒定。',
+  '> **A.** 电流减小',
+  '',
+  '**作答结果**：你的答案 A · 正确答案 D',
+].join('\n');
+const injected = injectReviewStemImages(reviewWithoutImg, [{
+  stem_images: ['/q-images/demo/q-01-stem.png'],
+}]);
+assert.match(injected, /\*\*原题\*\*[\s\S]*> !\[\]\(\/q-images\/demo\/q-01-stem\.png\)/);
+assert.equal(
+  injectReviewStemImages(injected, [{ stem_images: ['/q-images/demo/q-01-stem.png'] }]),
+  injected,
+);
+assert.equal(
+  resolveReviewImageSrc('images/q-01-stem.png', [{ stem_images: ['/q-images/demo/q-01-stem.png'] }]),
+  '/q-images/demo/q-01-stem.png',
+);
+assert.equal(
+  resolveReviewImageSrc('/home/ubuntu/ExamSystem/public/q-images/demo/q-01-stem.png'),
+  '/q-images/demo/q-01-stem.png',
+);
+assert.match(
+  injectReviewStemImages(
+    '### 01 · 科学推理\n\n> **原题**\n> 如图所示电路中，下列分析正确的是：\n> **A.** 电流减小\n',
+    [{ stem_images: ['/home/ubuntu/ExamSystem/public/q-images/daily/q-01-stem.png'] }],
+  ),
+  /> !\[\]\(\/q-images\/daily\/q-01-stem\.png\)/,
+);
+
+const lead = buildPracticeReviewLead({ title: '样例', path: '/tmp/demo.md', total: 2, draftCount: 0, stemCount: 5 });
 assert.match(lead, /禁止空夸奖/);
 assert.match(lead, /触发：/);
+assert.match(lead, /q1-stem\.png/);
+assert.match(lead, /禁止只凭文字补造/);
 assert.match(REVIEW_COACH_RULES, /没问题，继续保持/);
 
 const streamingKept = sanitizeReviewMarkdown(praise, { streaming: true });

@@ -32,6 +32,35 @@ if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursi
 
 const DRAFT_MAX_BYTES = 8 * 1024 * 1024;
 
+// 日练标题跟练题页同一套：用日程模块，不信题目上 LLM 写的 source。
+const dailyTitleSql = (batchExpr) => `(
+  SELECT '广东省考行测-' || ar.module || '-' || replace(ar.plan_date, '-', '')
+    FROM ai_daily_batch_runs ar
+   WHERE ar.batch_id = ${batchExpr}
+     AND ifnull(ar.module, '') != ''
+     AND ar.plan_date IS NOT NULL
+   ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
+)`;
+const dailyModuleSql = (batchExpr) => `(
+  SELECT ar.module FROM ai_daily_batch_runs ar
+   WHERE ar.batch_id = ${batchExpr}
+   ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
+)`;
+const questionSourceSql = (batchExpr) => `(
+  SELECT NULLIF(q.source, '') FROM questions q
+   WHERE q.batch_id = ${batchExpr} LIMIT 1
+)`;
+const questionCategorySql = (batchExpr) => `(
+  SELECT q.category FROM questions q
+   WHERE q.batch_id = ${batchExpr} LIMIT 1
+)`;
+const displayTitleSql = (batchExpr) => (
+  `COALESCE(${dailyTitleSql(batchExpr)}, ${questionSourceSql(batchExpr)}, ${batchExpr})`
+);
+const sessionModuleSql = (batchExpr) => (
+  `COALESCE(${dailyModuleSql(batchExpr)}, ${questionCategorySql(batchExpr)})`
+);
+
 // 草稿图是「网页截图 + 笔迹」，canvas 导出的 PNG 是 24 位真彩，一张约 300KB。
 // 这图要喂给 Hermes 复盘，而它进上下文是按 base64 文本计费的，300KB ≈ 28 万 token，
 // 且此后每轮对话都要重发一遍 —— 一张图就能把整个会话拖到每条回复几分钟。
@@ -157,13 +186,8 @@ router.get('/sessions', (req, res) => {
       `SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
          s.profile_reviewed_at,
-         COALESCE(
-           (SELECT NULLIF(q.source, '') FROM questions q
-             WHERE q.batch_id = s.category LIMIT 1),
-           s.category
-         ) AS display_title,
-         (SELECT q.category FROM questions q
-           WHERE q.batch_id = s.category LIMIT 1) AS module,
+         ${displayTitleSql('s.category')} AS display_title,
+         ${sessionModuleSql('s.category')} AS module,
          (SELECT ar.plan_date FROM ai_daily_batch_runs ar
            WHERE ar.batch_id = s.category
            ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1) AS daily_plan_date,
@@ -287,11 +311,7 @@ router.post('/sessions/:id/submit', (req, res) => {
 const getPracticeReport = (sessionId) => {
   const session = db.prepare(`
     SELECT s.*,
-           COALESCE(
-             (SELECT NULLIF(q.source, '') FROM questions q
-               WHERE q.batch_id = s.category LIMIT 1),
-             s.category
-           ) AS display_title
+           ${displayTitleSql('s.category')} AS display_title
       FROM practice_sessions s
      WHERE s.id = ?
   `).get(sessionId);
@@ -343,7 +363,25 @@ const getPracticeReport = (sessionId) => {
   return { session, items };
 };
 
-const practiceReviewMarkdown = assemblePracticeReportMarkdown;
+const ROOT = path.join(__dirname, '..', '..');
+const absQuestionImage = (src) => {
+  const value = String(src || '');
+  return value.startsWith('/q-images/')
+    ? path.join(ROOT, 'public', value.slice(1))
+    : value;
+};
+const withAbsQuestionImages = (report) => ({
+  ...report,
+  items: (report.items || []).map((item) => ({
+    ...item,
+    stem_images: (item.stem_images || []).map(absQuestionImage),
+    options: (item.options || []).map((option) => ({
+      ...option,
+      images: (option.images || []).map(absQuestionImage),
+    })),
+  })),
+});
+const practiceReviewMarkdown = (report) => assemblePracticeReportMarkdown(withAbsQuestionImages(report));
 
 router.get('/sessions/:id/report', (req, res) => {
   const report = getPracticeReport(Number(req.params.id));
@@ -513,8 +551,7 @@ router.get('/heat', (_req, res) => {
          s.category,
          date(s.ended_at, '+8 hours')                          AS day,
          strftime('%s', s.ended_at)                            AS ts,
-         (SELECT q.source FROM questions q
-           WHERE q.batch_id = s.category LIMIT 1)              AS source,
+         ${displayTitleSql('s.category')}                      AS source,
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.user_answer != '') AS answered,
          (SELECT COUNT(*) FROM practice_answers pa

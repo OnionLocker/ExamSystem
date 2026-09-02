@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import daily_batch_scheduler
 import daily_plan_scheduler
 from china_workday import is_workday, workday_reason
-from scheduler_common import reserve_runs
+from scheduler_common import daily_source_for_batch, module_from_daily_batch, reserve_runs
 
 
 SNAPSHOT = {
@@ -198,6 +198,16 @@ class SchedulerTest(unittest.TestCase):
 
     def test_wait_unlocked_can_be_disabled(self):
         daily_plan_scheduler.wait_unlocked(Path("/tmp/missing.lock"), 0)
+
+
+class DailyNameTest(unittest.TestCase):
+    def test_kepui_slug_is_science_not_judgment(self):
+        batch = "daily-20260902-kepui-c021e6dac46a413a97f3"
+        self.assertEqual(module_from_daily_batch(batch), "科学推理")
+        self.assertEqual(
+            daily_source_for_batch(batch, ""),
+            "广东省考行测-科学推理-20260902",
+        )
 
 
 if __name__ == "__main__":

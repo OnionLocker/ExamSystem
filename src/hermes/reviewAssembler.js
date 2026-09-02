@@ -52,6 +52,65 @@ export function formatAnswerResult({
   return `**作答结果**：你的答案 ${skipped ? '未作答' : (userAnswer || '未作答')} · 正确答案 ${correctAnswer || '未知'} · ${spentText} · 建议用时 ${suggestedLabel}（${compareText}）`;
 }
 
+export function collectQuestionImages(item = {}) {
+  const out = [];
+  for (const src of item.stem_images || []) {
+    if (src) out.push(src);
+  }
+  for (const option of item.options || []) {
+    for (const src of option.images || []) {
+      if (src) out.push(src);
+    }
+  }
+  return out;
+}
+
+export function publicQuestionImageSrc(src) {
+  const raw = String(src || '').trim();
+  if (!raw) return '';
+  const at = raw.indexOf('/q-images/');
+  return at >= 0 ? raw.slice(at) : raw;
+}
+
+export function resolveReviewImageSrc(src, items = []) {
+  const raw = publicQuestionImageSrc(src);
+  if (!raw) return '';
+  if (/^(?:https?:|data:|\/q-images\/)/.test(raw)) return raw;
+  const base = raw.split('/').pop();
+  if (!base) return raw;
+  for (const item of items) {
+    for (const image of collectQuestionImages(item)) {
+      if (String(image).split('/').pop() === base) return publicQuestionImageSrc(image);
+    }
+  }
+  return raw;
+}
+
+export function injectReviewStemImages(markdown, items = []) {
+  const byNo = new Map();
+  for (const [index, item] of items.entries()) {
+    const images = collectQuestionImages(item);
+    if (images.length) byNo.set(index + 1, images);
+  }
+  if (!byNo.size) return String(markdown || '');
+  return String(markdown || '').split(/(?=^#{2,4}\s+)/m).map((part) => {
+    const match = part.match(/^#{2,4}\s+0*(\d+)\s*[·.．、-]/);
+    if (!match) return part;
+    const images = byNo.get(Number(match[1]));
+    if (!images) return part;
+    const already = images.some((src) => {
+      const base = String(src).split('/').pop();
+      return part.includes(src) || (base && part.includes(base));
+    });
+    if (already) return part;
+    const block = images.map((src) => `> ![](${publicQuestionImageSrc(src)})`).join('\n>\n');
+    if (/\*\*原题\*\*/.test(part)) {
+      return part.replace(/(\*\*原题\*\*[^\n]*\n)/, `$1>\n${block}\n>\n`);
+    }
+    return part.replace(/\n/, `\n${block}\n`);
+  }).join('');
+}
+
 export function formatStatsLine({ timeSpentSec, suggested, hasDraft } = {}) {
   const range = suggested || resolveSuggestedTime({});
   const comparison = compareToSuggested(timeSpentSec, range);
@@ -235,12 +294,16 @@ export function assemblePracticeReportMarkdown({ session = {}, items = [] } = {}
     const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
     const suggested = resolveSuggestedTime(item);
     const comparison = compareToSuggested(item.skipped ? null : item.time_spent_sec, suggested);
+    const questionImages = collectQuestionImages(item);
     const reasons = [
       !item.is_correct ? '答案需复盘' : null,
       item.draft_url ? '有草稿，需检查思路和书写' : null,
       Number(item.time_spent_sec) >= slowThreshold ? '用时偏长，需检查方法选择和步骤压缩' : null,
     ].filter(Boolean).join('；');
     lines.push('', `### 第 ${no} 题${subtitle}`, '', String(item.content || ''));
+    for (const src of questionImages) {
+      lines.push(`![](${src})`);
+    }
     for (const option of item.options || []) {
       lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}`);
     }
@@ -258,6 +321,7 @@ export function assemblePracticeReportMarkdown({ session = {}, items = [] } = {}
     if (item.knowledge_points?.length) {
       lines.push(`- 知识点：${item.knowledge_points.join('、')}`);
     }
+    if (questionImages.length) lines.push(`- 题图：${questionImages.join(' ')}`);
     if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
     if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
   }

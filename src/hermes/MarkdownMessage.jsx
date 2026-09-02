@@ -5,8 +5,9 @@
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
 import { normalizeOriginalQuestionOptions, splitStemOptions } from './reviewFormat.js';
-import { sanitizeReviewMarkdown } from './reviewAssembler.js';
-import { memo, useMemo, useState } from 'react';
+import { injectReviewStemImages, resolveReviewImageSrc, sanitizeReviewMarkdown } from './reviewAssembler.js';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { api } from '../api.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -238,10 +239,13 @@ const components = {
     const raw = textOf(children).trim();
     const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
     if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
+    const nodes = Array.isArray(children) ? children : [children];
+    const images = nodes.filter((node) => node?.type === 'img' || node?.props?.src);
     const split = splitStemOptions(raw);
     if (split && (raw.includes('原题') || raw.includes('由此可以推出') || raw.includes('由此可知'))) {
       return (
         <div className="space-y-1.5">
+          {images}
           {split.head.trim() ? (
             <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{split.head.trim()}</p>
           ) : null}
@@ -308,14 +312,37 @@ const Caret = () => (
 const MarkdownMessage = memo(function MarkdownMessage({
   content,
   streaming,
+  practiceSessionId,
+  questionItems,
   draftQuestions,
   activeDraftNumber,
   draftLoadingNumber,
   onOpenDraft,
 }) {
+  const [loadedItems, setLoadedItems] = useState([]);
+  useEffect(() => {
+    if (questionItems || !practiceSessionId) {
+      setLoadedItems([]);
+      return undefined;
+    }
+    let cancelled = false;
+    api(`/api/practice/sessions/${practiceSessionId}/report`)
+      .then((report) => {
+        if (!cancelled) setLoadedItems(report?.items || []);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadedItems([]);
+      });
+    return () => { cancelled = true; };
+  }, [practiceSessionId, questionItems]);
+  const items = questionItems || loadedItems;
+
   const displayContent = useMemo(
-    () => sanitizeReviewMarkdown(normalizeOriginalQuestionOptions(content), { streaming }),
-    [content, streaming],
+    () => sanitizeReviewMarkdown(
+      injectReviewStemImages(normalizeOriginalQuestionOptions(content), items),
+      { streaming },
+    ),
+    [content, streaming, items],
   );
   const renderedComponents = useMemo(() => ({
     ...components,
@@ -329,7 +356,18 @@ const MarkdownMessage = memo(function MarkdownMessage({
         {children}
       </QuestionHeading>
     ),
-  }), [draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft]);
+    img: ({ src, alt }) => {
+      const url = resolveReviewImageSrc(src, items);
+      if (!url) return null;
+      return (
+        <img
+          src={url}
+          alt={alt || ''}
+          className="my-2 block w-auto max-w-full max-h-[320px] object-contain rounded-lg border border-[#d4c09a] bg-white"
+        />
+      );
+    },
+  }), [draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft, items]);
 
   return (
     <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">

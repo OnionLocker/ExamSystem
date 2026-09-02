@@ -12,7 +12,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from scheduler_common import daily_source_for_batch
+from scheduler_common import daily_source_for_batch, module_from_daily_batch
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ziliao_paper_answers,
@@ -672,13 +672,15 @@ def write_json(path: Path, value: Any) -> None:
 
 
 def stamp_daily_source(manifest: dict, questions: list[dict], materials: list | None = None) -> int:
-    module = ""
-    for question in questions:
-        if isinstance(question, dict) and question.get("category"):
-            module = str(question["category"])
-            break
-    module = module or str(manifest.get("category") or manifest.get("module") or "")
-    name = daily_source_for_batch(str(manifest.get("batch_id") or ""), module)
+    batch_id = str(manifest.get("batch_id") or "")
+    module = module_from_daily_batch(batch_id)
+    if not module:
+        for question in questions:
+            if isinstance(question, dict) and question.get("category"):
+                module = str(question["category"])
+                break
+        module = module or str(manifest.get("category") or manifest.get("module") or "")
+    name = daily_source_for_batch(batch_id, module)
     if not name:
         return 0
     changed = 0
