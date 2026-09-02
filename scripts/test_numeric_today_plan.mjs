@@ -14,6 +14,7 @@ globalThis.window = {
 
 const {
   NUMERIC_TODAY_TASK_LIMIT,
+  NUMERIC_TODAY_SPEED_MULT,
   ZILIAO_CAT_IDS,
   HANDS_CAT_IDS,
   applyRaceToTasks,
@@ -24,6 +25,7 @@ const {
   QUANT_ROTATION,
   ZILIAO_DEFAULTS,
   HANDS_DEFAULTS,
+  TODAY_DEPRIORITIZE,
 } = await import('../src/practice/numericTodayPlan.js');
 const { CATEGORIES, NUMERIC_CUT_SUB_IDS, isNumericPoolSub } = await import('../src/practice/generators.js');
 const { getBaseMs } = await import('../src/practice/ranks.js');
@@ -56,7 +58,7 @@ for (const opts of [{ stats: {}, wrongCounts: {} }, { stats: fakeStats, wrongCou
       assert.ok(CATEGORIES.some((cat) => cat.id === task.catId && cat.available));
       assert.ok(isNumericPoolSub(task.catId, task.subId), `${date} ${task.subId} 不应是 CUT`);
       assert.ok(!NUMERIC_CUT_SUB_IDS.has(task.subId), `${date} 九宫格出现 CUT ${task.subId}`);
-      assert.equal(task.maxAvgMs, Math.round(getBaseMs(task.subId) * 2));
+      assert.equal(task.maxAvgMs, Math.round(getBaseMs(task.subId) * NUMERIC_TODAY_SPEED_MULT));
     }
   }
 }
@@ -117,6 +119,21 @@ const locked = applyRaceToTasks(pass.tasks, {
   catId: 'basic', subId: 'add3', total: 30, correct: 0, totalMs: 30 * 20000,
 });
 assert.equal(locked.tasks[0].status, 'done');
+
+assert.ok(NUMERIC_TODAY_SPEED_MULT >= 2.8 && NUMERIC_TODAY_SPEED_MULT <= 3.0, '日挑战倍率应在 2.8～3.0');
+assert.ok(!ZILIAO_DEFAULTS.includes('baseQtyExact'), '日格默认池不应优先精算');
+assert.ok(TODAY_DEPRIORITIZE.has('baseQtyExact'), '精算应列入日格降权');
+
+const emptyPlan = buildNumericTodayTasks({ date: '2026-09-01', stats: {}, wrongCounts: {} });
+assert.ok(!emptyPlan.some((t) => t.subId === 'baseQtyExact'), '无画像日格不应出现基期精算');
+for (const task of emptyPlan) {
+  if (task.catId === 'data') assert.equal(task.count, 12, `data 日格题量应为 12，实为 ${task.count}`);
+  if (task.catId === 'quant') assert.equal(task.count, 10, `quant 日格题量应为 10，实为 ${task.count}`);
+  if (task.catId === 'numReason') assert.equal(task.count, 10, `numReason 日格题量应为 10，实为 ${task.count}`);
+  if (task.catId === 'speedOps' || task.catId === 'basic') {
+    assert.ok(task.count >= 25, `${task.catId} 手速题量不应大砍`);
+  }
+}
 
 for (const subId of NUMERIC_CUT_SUB_IDS) {
   assert.ok(!REASON_ROTATION.includes(subId), `REASON_ROTATION 含 CUT ${subId}`);
