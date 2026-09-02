@@ -24,7 +24,7 @@ from kaodian_taxonomy import (
 )
 from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
 from panduan_pack import _blob as _kepui_blob
-from panduan_pack import is_panduan_paper, kepui_bucket, validate_panduan_paper
+from panduan_pack import is_kepui_paper, is_panduan_paper, kepui_bucket, validate_kepui_paper, validate_panduan_paper
 from reference_style import has_images, match_level
 
 
@@ -415,6 +415,8 @@ def _validate_panduan_layout(questions: list) -> None:
     generated = generated_questions(questions)
     if is_panduan_paper(generated):
         validate_panduan_paper(generated)
+    if is_kepui_paper(generated):
+        validate_kepui_paper(generated)
 
 
 def _validate_ziliao_answer_layout(questions: list) -> None:
@@ -549,12 +551,24 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         all_forms = [f for forms in forms_by_material.values() for f in forms]
         if len(set(all_forms)) < 2:
             raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
-    # 7) 科学推理 5 题（独立模块，或既有模型中作判断卷后 5 题）：5 学科去重、每题必带图
+    # 7) 判断推理 20 题 = 图形 5 + 逻辑 15；日练不得再走「后 5 科学」压缩模型
+    panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
+    if len(panduan) == 20:
+        if any("科学推理" in (str(q.get("sub_category") or "") + str(q.get("category") or ""))
+               or "科学推理" in " ".join(str(t) for t in (q.get("tags") or []))
+               for q in panduan):
+            raise ValueError("日练判断 20 题不得含科学推理；科学推理是独立 5 题模块，压缩模型已废止")
+        g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
+        lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
+        if g != 5 or lg != 15:
+            raise ValueError(f"广东判断 20 题须图形 5 + 逻辑 15，当前 {g}/{lg}")
+        validate_panduan_paper(panduan)
+    # 8) 科学推理独立 5 题：5 学科去重、每题必带图、初中档禁词
     science = [q for q in generated
                if "科学推理" in (str(q.get("category") or "") + str(q.get("sub_category") or ""))]
     if science:
         if len(science) != 5:
-            raise ValueError(f"科学推理须为 5 题（独立模块或判断卷后 5 题），当前 {len(science)} 题")
+            raise ValueError(f"科学推理须为 5 题（独立模块），当前 {len(science)} 题")
         buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
         if any(not b for b in buckets):
             raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
@@ -569,18 +583,7 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                 raise ValueError(
                     f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
                     "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
-    # 8) 判断推理 20 题，兼容两种模型：
-    #    目标模型（科学独立）：判断 20 = 图形 5 + 逻辑 15；
-    #    既有模型（科学作判断卷后 5）：交给 panduan_pack.validate_panduan_paper。
-    panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
-    if len(panduan) == 20:
-        if any("科学推理" in str(q.get("sub_category") or "") for q in panduan):
-            validate_panduan_paper(panduan)
-        else:
-            g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
-            lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
-            if g != 5 or lg != 15:
-                raise ValueError(f"广东判断 20 题（科学独立模型）须图形 5 + 逻辑 15，当前 {g}/{lg}")
+        validate_kepui_paper(science, require_images=True)
     # 9) 言语：禁“因此亟须”作文腔
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
