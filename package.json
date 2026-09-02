@@ -20,6 +20,7 @@
     "test:generation-provenance": "node scripts/test-generation-provenance.mjs",
     "test:quality-gate": "python3 scripts/test_quality_gate.py",
     "test:hermes-protocol": "node scripts/test-hermes-protocol.mjs",
+    "test:review-assembler": "node scripts/test-review-assembler.mjs",
     "test:learner-evolution": "python3 scripts/test_learner_evolution.py",
     "test:practice-evolution": "node scripts/test-practice-evolution.mjs",
     "import:batch": "node scripts/import-batch.mjs",
