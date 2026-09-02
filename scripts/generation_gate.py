@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -17,10 +18,13 @@ from pathlib import Path
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ai_primary_tag,
+    validate_shuliang_paper,
     validate_ziliao_paper_answers,
+    validate_ziliao_variety,
 )
 from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
-from panduan_pack import is_panduan_paper, validate_panduan_paper
+from panduan_pack import _blob as _kepui_blob
+from panduan_pack import is_panduan_paper, kepui_bucket, validate_panduan_paper
 from reference_style import has_images, match_level
 
 
@@ -449,6 +453,157 @@ def validate_evidence(
         raise ValueError(f"{kind} evidence 必须列出实际棢�查项")
 
 
+_KEGANG_WORDS = ("本题考察", "本题考查", "秒杀模型", "秒杀技巧")
+_JUDGE_MARKERS = ("可以判断属实", "不能从", "无法从", "能够从", "正确的有", "推出的是")
+# 科学推理应为广东/初中难度：以下高中/大学内容禁入
+_SCIENCE_OVERLEVEL = ("理想气体", "状态方程", "动量守恒", "动量定理", "洛伦兹力", "麦克斯韦", "波尔", "薛定谔")
+
+
+def _judge_form(stem: str) -> str:
+    """资料综合判断题干形式分类（属实 / 无法推出 / 计数 / 能推出）。"""
+    if "正确的有" in stem:
+        return "计数"
+    if ("不能" in stem or "无法" in stem) and "推" in stem:
+        return "无法推出"
+    if "属实" in stem:
+        return "属实"
+    if "能够" in stem and "推" in stem:
+        return "能推出"
+    return ""
+
+
+def _material_contents(batch_dir: Path | None) -> list[str]:
+    if not batch_dir:
+        return []
+    path = batch_dir / "materials.json"
+    if not path.is_file():
+        return []
+    data = read_json(path)
+    return [str(m.get("content") or "") for m in data if isinstance(m, dict)] if isinstance(data, list) else []
+
+
+def _dirty_ratio(texts: list[str]) -> float:
+    year = re.compile(r"^(19|20)\d{2}$")
+    dirty = total = 0
+    for text in texts:
+        for token in re.findall(r"\d+(?:\.\d+)?", text):
+            if "." not in token and year.match(token):
+                continue
+            total += 1
+            intpart = token.split(".")[0]
+            if "." in token or (len(intpart) >= 3 and intpart[-2:] != "00"):
+                dirty += 1
+    return (dirty / total) if total else 1.0
+
+
+def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: Path | None = None) -> None:
+    """广东通用卷机械硬规则（出题闸门，不依赖大模型）。已用样卷验收，命中即拦下本次生成。"""
+    generated = generated_questions(questions)
+    # 1) 单选完整性（双答案兜底）：答案唯一字母、至少 4 个互不相同的选项
+    for question in generated:
+        if str(question.get("question_type") or "single") != "single":
+            continue
+        options = question.get("options") or []
+        keys = [str(opt.get("key") or "") for opt in options if isinstance(opt, dict)]
+        answer = str(question.get("answer") or "")
+        qid = question.get("external_id")
+        if len(keys) < 4:
+            raise ValueError(f"单选题选项不足 4 个：{qid}")
+        if answer not in keys or len(answer.strip()) != 1:
+            raise ValueError(f"单选题答案必须是唯一选项字母：{qid} → {answer!r}")
+        signatures = [str(opt.get("text") or "").strip() or tuple(opt.get("images") or []) for opt in options]
+        if len(set(signatures)) != len(signatures):
+            raise ValueError(f"单选题存在重复选项（内容或图片相同）：{qid}")
+    # 2) 判断推理禁类比 / 定义
+    for question in questions:
+        blob = f"{question.get('sub_category') or ''} {question_primary_tag(question)} {' '.join(question.get('tags') or [])}"
+        if "类比推理" in blob or "定义判断" in blob:
+            raise ValueError(f"判断推理不得出类比推理 / 定义判断：{question.get('external_id')}")
+    # 3) 禁课纲词
+    for question in questions:
+        stem = str(question.get("stem") or question.get("content") or "")
+        if any(word in stem for word in _KEGANG_WORDS):
+            raise ValueError(f"题面禁止课纲词（本题考察 / 秒杀模型等）：{question.get('external_id')}")
+    # 4) 数量卷：不得 0 数字推理；15 题须数推 5 + 运算 10
+    validate_shuliang_paper(generated)
+    # 5) 资料卷：四篇考点骨架不得同构
+    validate_ziliao_variety(generated)
+    # 6) 资料卷专项：禁“某省”、脏数字≥40%、综合判断形式跨篇轮换
+    ziliao = [q for q in generated if str(q.get("category") or "") == "资料分析"]
+    materials = {str(q.get("material_id") or "") for q in ziliao if q.get("material_id")}
+    if len(materials) >= 4:
+        contents = _material_contents(batch_dir)
+        for content in contents:
+            if "某省" in content:
+                raise ValueError("资料分析材料禁止用“某省”占位，请用具体化名（如 G省）或全国口径")
+        if contents and _dirty_ratio(contents) < 0.40:
+            raise ValueError("资料分析数字过于圆整：脏数字（含小数或末两位非 00）比例须 ≥40%")
+        # 每篇须有 1 道综合判断（Q5），且四篇综合判断形式跨篇轮换（≥2 种）
+        forms_by_material: dict[str, list[str]] = {}
+        for q in ziliao:
+            form = _judge_form(str(q.get("stem") or ""))
+            if form:
+                forms_by_material.setdefault(str(q.get("material_id") or ""), []).append(form)
+        if sum(1 for m in materials if forms_by_material.get(m)) < 4:
+            raise ValueError("资料分析每篇必须有 1 道综合判断（Q5）")
+        all_forms = [f for forms in forms_by_material.values() for f in forms]
+        if len(set(all_forms)) < 2:
+            raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
+    # 7) 科学推理 5 题（独立模块，或既有模型中作判断卷后 5 题）：5 学科去重、每题必带图
+    science = [q for q in generated
+               if "科学推理" in (str(q.get("category") or "") + str(q.get("sub_category") or ""))]
+    if science:
+        if len(science) != 5:
+            raise ValueError(f"科学推理须为 5 题（独立模块或判断卷后 5 题），当前 {len(science)} 题")
+        buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
+        if any(not b for b in buckets):
+            raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
+        if len(set(buckets)) != 5:
+            raise ValueError("科学推理 5 题学科须互不相同")
+        for q in science:
+            if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
+                raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
+            stem = str(q.get("stem") or "")
+            hit = next((w for w in _SCIENCE_OVERLEVEL if w in stem), None)
+            if hit:
+                raise ValueError(
+                    f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
+                    "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
+    # 8) 判断推理 20 题，兼容两种模型：
+    #    目标模型（科学独立）：判断 20 = 图形 5 + 逻辑 15；
+    #    既有模型（科学作判断卷后 5）：交给 panduan_pack.validate_panduan_paper。
+    panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
+    if len(panduan) == 20:
+        if any("科学推理" in str(q.get("sub_category") or "") for q in panduan):
+            validate_panduan_paper(panduan)
+        else:
+            g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
+            lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
+            if g != 5 or lg != 15:
+                raise ValueError(f"广东判断 20 题（科学独立模型）须图形 5 + 逻辑 15，当前 {g}/{lg}")
+    # 9) 言语：禁“因此亟须”作文腔
+    for question in questions:
+        if str(question.get("category") or "") == "言语理解与表达":
+            tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
+            if "因此亟须" in tail:
+                raise ValueError(f"言语题禁止“因此亟须…”作文腔表述：{question.get('external_id')}")
+    # 10) 答案字母均衡（非资料卷；资料另用 3篇ABCD各一+1、1篇打散）：单卷任一字母 ≤ 约 40%
+    nonziliao = [q for q in generated
+                 if str(q.get("category") or "") != "资料分析"
+                 and str(q.get("question_type") or "single") == "single"]
+    if len(nonziliao) >= 15:
+        counts: dict[str, int] = {}
+        for q in nonziliao:
+            ans = str(q.get("answer") or "")
+            counts[ans] = counts.get(ans, 0) + 1
+        cap = int(len(nonziliao) * 0.40)   # 15→6、20→8、25→10
+        top = max(counts, key=counts.get)
+        if counts[top] > cap:
+            raise ValueError(
+                f"答案字母扎堆：'{top}' 出现 {counts[top]}/{len(nonziliao)} 次，超过约 40% 上限({cap})；"
+                "请按 answer_plan 均衡放置正确项")
+
+
 def issue(
     batch_dir: Path,
     correctness_path: Path | None = None,
@@ -464,6 +619,7 @@ def issue(
     ids = question_ids(batch_dir)
     questions = read_json(questions_path)
     validate_batch_constraints(manifest, questions)
+    validate_paper_hard_rules(manifest, questions, batch_dir)
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
     system_path = run_system_quality_gate(batch_dir, ids)

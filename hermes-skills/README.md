@@ -8,6 +8,7 @@
 - `quiz-pipeline/SKILL.md` — 出题流水线、正确性/质量闸门
 - `quiz-pipeline/references/reference-style-principles.md` — 命题硬规则
 - `quiz-pipeline/references/reference-style-profile.md` — 真题风格画像
+- `quiz-pipeline/references/module-hard-rules.md` — 各模块广东卷面锁定规则与【GATE】校验清单
 - `quiz-pipeline/references/quality.md`、`quality-feedback.md`、`correctness.md`
 - `quiz-pipeline/references/ziliao-paper-styles.md` — 资料分析卷面
 - `gd-gongkao-coach/SKILL.md` — 复盘与教练口径

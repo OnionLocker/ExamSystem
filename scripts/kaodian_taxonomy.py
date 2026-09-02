@@ -458,3 +458,55 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
             raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。{hint}")
         return tag
     return canonical
+
+
+# ─────────────────────────────────────────────
+# 数量关系卷面结构校验（广东日常 15 = 数字推理 5 + 数学运算 10）
+# ─────────────────────────────────────────────
+def _is_shuliang(question: dict) -> bool:
+    return str(question.get("category") or "") == "数量关系"
+
+
+def _is_shuzi_tuili(question: dict) -> bool:
+    blob = f"{question.get('sub_category') or ''} {question_primary_tag(question)}"
+    return "数字推理" in blob
+
+
+def is_shuliang_paper(questions: list[dict]) -> bool:
+    """判定是否为一份数量关系卷：≥10 题且数量关系占多数。"""
+    items = [q for q in questions if isinstance(q, dict)]
+    shuliang = [q for q in items if _is_shuliang(q)]
+    return len(shuliang) >= 10 and len(shuliang) * 2 >= len(items)
+
+
+def validate_shuliang_paper(questions: list[dict]) -> None:
+    """广东数量卷硬规则：不得 0 数字推理；满 15 题须为数字推理 5 + 数学运算 10。"""
+    if not is_shuliang_paper(questions):
+        return
+    shuliang = [q for q in questions if _is_shuliang(q)]
+    seq = sum(1 for q in shuliang if _is_shuzi_tuili(q))
+    if seq == 0:
+        raise ValueError("数量关系卷不得 0 数字推理：广东通用卷数量必含数字推理，弱项倾斜也不能整卷缺失")
+    if len(shuliang) == 15 and seq != 5:
+        raise ValueError(f"广东数量 15 题须为数字推理 5 + 数学运算 10，当前数字推理 {seq} 题")
+
+
+# ─────────────────────────────────────────────
+# 资料分析：四篇考点骨架不得同构（禁“四篇同一五连招”）
+# ─────────────────────────────────────────────
+def validate_ziliao_variety(questions: list[dict]) -> None:
+    materials: dict[str, list[str]] = {}
+    for question in questions:
+        if str(question.get("category") or "") != "资料分析":
+            continue
+        material_id = str(question.get("material_id") or "")
+        if not material_id:
+            continue
+        materials.setdefault(material_id, []).append(question_primary_tag(question))
+    if len(materials) >= 4:
+        skeletons = {tuple(tags) for tags in materials.values()}
+        if len(skeletons) == 1:
+            raise ValueError(
+                "资料分析四篇不得复制同一套五连招：Q1–Q4 考点须跨篇错开，"
+                "不能四篇按同一顺序同一家族出题"
+            )
