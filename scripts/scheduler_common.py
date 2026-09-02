@@ -102,6 +102,16 @@ def now_iso() -> str:
     return dt.datetime.now(TZ).isoformat(timespec="seconds")
 
 
+# 日练难度两档，按 plan_date 隔天轮换：
+#   公历序数（toordinal）为偶数的日期 → "easy"（简单），奇数 → "hard"（难），因此相邻两天必然一简单一难。
+#   例：2026-09-21(偶)=简单，2026-09-22(奇)=难，2026-09-23(偶)=简单……
+#   仅调节“弯子多少”，不改广东卷结构/知识点硬规则/模块配比（module-hard-rules 继续生效）。
+def difficulty_tier(plan_date: "dt.date | str") -> str:
+    if isinstance(plan_date, str):
+        plan_date = dt.date.fromisoformat(plan_date[:10])
+    return "easy" if plan_date.toordinal() % 2 == 0 else "hard"
+
+
 def ensure_run_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
