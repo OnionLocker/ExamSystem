@@ -5,6 +5,7 @@
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
 import { normalizeOriginalQuestionOptions, splitStemOptions } from './reviewFormat.js';
+import { sanitizeReviewMarkdown } from './reviewAssembler.js';
 import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -312,7 +313,10 @@ const MarkdownMessage = memo(function MarkdownMessage({
   draftLoadingNumber,
   onOpenDraft,
 }) {
-  const displayContent = useMemo(() => normalizeOriginalQuestionOptions(content), [content]);
+  const displayContent = useMemo(
+    () => sanitizeReviewMarkdown(normalizeOriginalQuestionOptions(content), { streaming }),
+    [content, streaming],
+  );
   const renderedComponents = useMemo(() => ({
     ...components,
     h3: ({ children }) => (
