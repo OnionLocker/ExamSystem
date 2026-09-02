@@ -22,6 +22,7 @@ from kaodian_taxonomy import (
 LETTERS = ("A", "B", "C", "D")
 CAT_ZILIAO = "\u8d44\u6599\u5206\u6790"
 CAT_PANDUAN = "\u5224\u65ad\u63a8\u7406"
+CAT_KEPUI = "\u79d1\u5b66\u63a8\u7406"
 CAT_SHULIANG = "\u6570\u91cf\u5173\u7cfb"
 CAT_YANYU = "\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe"
 ALLOWED_SUBS = {
@@ -29,8 +30,8 @@ ALLOWED_SUBS = {
     "\u5224\u65ad\u63a8\u7406": (
         "\u56fe\u5f62\u63a8\u7406",
         "\u903b\u8f91\u5224\u65ad",
-        "\u79d1\u5b66\u63a8\u7406",
     ),
+    "\u79d1\u5b66\u63a8\u7406": ("\u79d1\u5b66\u63a8\u7406",),
 }
 
 _MENTION = re.compile(
@@ -67,11 +68,11 @@ def paper_rank(question: dict) -> tuple:
     if cat == CAT_SHULIANG:
         return (0 if "\u6570\u5b57\u63a8\u7406" in blob else 1, "")
     if cat == CAT_PANDUAN:
-        if "\u79d1\u5b66\u63a8\u7406" in blob:
-            return (2, "")
         if "\u56fe\u5f62\u63a8\u7406" in blob:
             return (0, "")
         return (1, "")
+    if cat == CAT_KEPUI:
+        return (0, "")
     if cat == CAT_YANYU:
         return (0 if "\u903b\u8f91\u586b\u7a7a" in blob else 1, "")
     if cat == CAT_ZILIAO:
@@ -180,14 +181,7 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
     if module == CAT_SHULIANG and n == 15:
         extras["batch_constraints"]["shuliang_layout"] = "5_sequence_plus_10_math"
     if module == CAT_PANDUAN and n == 20:
-        extras["batch_constraints"]["panduan_layout"] = "15_graphic_logic_plus_5_kepui"
-        extras["batch_constraints"]["kepui_subjects"] = [
-            "\u529b\u5b66",
-            "\u538b\u5f3a\u6d6e\u529b",
-            "\u7535\u5b66",
-            "\u751f\u7269",
-            "\u5730\u7406",
-        ]
+        extras["batch_constraints"]["panduan_layout"] = "5_graphic_plus_15_logic"
         from panduan_pack import compact_panduan_pack, select_panduan_paper
 
         packed = None
@@ -208,6 +202,36 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
                 "slots": select_panduan_paper({}, {}, letters=letters, rng=random.Random(seed)),
             }
         extras["panduan_pack"] = compact_panduan_pack(packed)
+    if module == CAT_KEPUI and n == 5:
+        extras["batch_constraints"]["kepui_layout"] = "5_kepui_distinct_subjects"
+        extras["batch_constraints"]["kepui_subjects"] = [
+            "\u529b\u5b66",
+            "\u538b\u5f3a\u6d6e\u529b",
+            "\u7535\u5b66",
+            "\u751f\u7269",
+            "\u5730\u7406",
+        ]
+        extras["batch_constraints"]["image_dependent_count"] = {"min": 5, "max": 5}
+        from panduan_pack import compact_kepui_pack, select_kepui_paper
+
+        packed = None
+        if db_path is not None:
+            try:
+                from learner_snapshot import build_kepui_pack
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    packed = build_kepui_pack(conn, letters, seed)
+                finally:
+                    conn.close()
+            except (sqlite3.Error, OSError, ImportError):
+                packed = None
+        if packed is None:
+            packed = {
+                "paper_style": "gd",
+                "slots": select_kepui_paper({}, {}, letters=letters, rng=random.Random(seed)),
+            }
+        extras["kepui_pack"] = compact_kepui_pack(packed)
     if module == CAT_ZILIAO and n == 20:
         extras["ziliao_answer_groups"] = [letters[index : index + 5] for index in range(0, 20, 5)]
         if db_path is not None:

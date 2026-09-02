@@ -50,8 +50,8 @@ const keepMaterialGroups = (items, batchId = '') => {
     const cat = String(q.category || '');
     const text = blob(q);
     if (cat === '数量关系') return text.includes('数字推理') ? 1 : 2;
+    if (cat === '科学推理') return 0;
     if (cat === '判断推理') {
-      if (text.includes('科学推理')) return 3;
       if (text.includes('图形推理')) return 1;
       return 2;
     }

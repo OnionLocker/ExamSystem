@@ -18,16 +18,17 @@ const fmtDateTime = (raw) => {
   });
 };
 
-const MODULES = ['言语理解与表达', '判断推理', '数量关系', '资料分析'];
+const MODULES = ['言语理解与表达', '判断推理', '科学推理', '数量关系', '资料分析'];
 const TIME_TAB = '时间';
 
 const moduleOf = (run) => {
   if (MODULES.includes(run.module)) return run.module;
   const text = `${run.module || ''} ${run.display_title || ''} ${run.category || ''}`.toLowerCase();
   if (text.includes('言语理解与表达') || text.includes('yanyu') || text.includes('verbal')) return MODULES[0];
+  if (text.includes('科学推理') || text.includes('kepui') || text.includes('kexue')) return MODULES[2];
   if (text.includes('判断推理') || text.includes('panduan') || text.includes('judg')) return MODULES[1];
-  if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[2];
-  if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[3];
+  if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[3];
+  if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[4];
   return '';
 };
 

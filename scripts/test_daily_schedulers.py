@@ -56,14 +56,24 @@ class SchedulerTest(unittest.TestCase):
         conn = sqlite3.connect(":memory:")
         first = reserve_runs(conn, dt.date(2026, 9, 20))
         second = reserve_runs(conn, dt.date(2026, 9, 20))
-        self.assertEqual(len(first), 4)
+        self.assertEqual(len(first), 5)
         self.assertEqual(
             {row["module"]: row["batch_id"] for row in first},
             {row["module"]: row["batch_id"] for row in second},
         )
         self.assertEqual(
+            {row["module"]: row["planned_count"] for row in first},
+            {
+                "言语理解与表达": 15,
+                "判断推理": 20,
+                "科学推理": 5,
+                "数量关系": 15,
+                "资料分析": 20,
+            },
+        )
+        self.assertEqual(
             conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
-            4,
+            5,
         )
         conn.close()
 
@@ -152,7 +162,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertNotIn("Data analysis must be exactly 4 materials", prompt)
         self.assertIn("quiz-pipeline", daily_batch_scheduler.DEFAULT_SKILLS)
 
-    def test_panduan_prompt_requires_kepui_tail(self):
+    def test_panduan_prompt_is_graphic5_logic15_without_kepui(self):
         run = {
             "plan_date": "2026-09-20",
             "module": "判断推理",
@@ -161,12 +171,28 @@ class SchedulerTest(unittest.TestCase):
         }
         prompt = daily_batch_scheduler.generation_prompt(run, SNAPSHOT, Path("/tmp/batch"))
         self.assertIn("panduan_pack", prompt)
+        self.assertIn("图形推理", prompt)
+        self.assertIn("逻辑判断", prompt)
+        self.assertIn("Do NOT include 科学推理", prompt)
+        self.assertNotIn("Questions 16-20: 科学推理", prompt)
+        self.assertNotIn("16-20", prompt)
+
+    def test_kepui_prompt_is_independent_five(self):
+        run = {
+            "plan_date": "2026-09-20",
+            "module": "科学推理",
+            "planned_count": 5,
+            "batch_id": "daily-k",
+        }
+        prompt = daily_batch_scheduler.generation_prompt(run, SNAPSHOT, Path("/tmp/batch"))
+        self.assertIn("kepui_pack", prompt)
         self.assertIn("科学推理", prompt)
         self.assertIn("生物", prompt)
         self.assertIn("地理", prompt)
-        self.assertIn("16-20", prompt)
         self.assertIn("等高线", prompt)
         self.assertIn("contour-map", prompt)
+        self.assertIn("independent", prompt)
+        self.assertIn("5-question", prompt)
 
     def test_wait_unlocked_can_be_disabled(self):
         daily_plan_scheduler.wait_unlocked(Path("/tmp/missing.lock"), 0)

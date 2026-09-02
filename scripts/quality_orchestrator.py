@@ -27,7 +27,7 @@ from PIL import Image
 from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
 from normalize_ai_batch import generated_questions
-from panduan_pack import is_panduan_paper, validate_panduan_paper
+from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,9 +85,10 @@ Do not reject for answer-letter placement; the system assigns option letters sep
 Any repeated reskin, all-identical difficulty without justification,
 wrong-module reference, user constraint mismatch, repeated boilerplate prose, giveaway extreme-word distractors,
 or inflated difficulty labels must be REJECT.
-A 20-item 判断推理 paper must be questions 1-15 图形推理+逻辑判断 (multiple families, 翻译推理 at most 2,
-no 定义判断/类比推理) and questions 16-20 科学推理 covering 力学/压强浮力/电学/生物/地理
-(physics 2-3 + biology 1 + geography 1). type_distribution_ok is false if that layout is missing."""
+A 20-item 判断推理 paper must be 图形推理 5 + 逻辑判断 15 (multiple families, 翻译推理 at most 2,
+no 定义判断/类比推理/科学推理). 科学推理 is a separate 5-item module: one subject each from
+力学/压强浮力/电学/生物/地理 (physics 2-3 + biology 1 + geography 1), every item with a figure.
+type_distribution_ok is false if that layout is missing."""
 
 REFERENCE_SYSTEM = """You are a strict reference-relevance auditor. For every generated question,
 read its exact stem/tag and every mapped evaluation reference.
@@ -133,7 +134,7 @@ references mapped to that item and the supplied regression rules. For fill/inser
 compare every rival in the complete context. Distractors may be locally plausible; reject only a genuine
 tie or a key supported solely by an unstated premise. Reject obvious factual distortion, internal
 contradiction, excessive slogan/template prose, near-verbatim answer copying, three giveaway extreme-word
-distractors, or a difficulty label above the actual reasoning steps. For 翻译推理, reject if the keyed option restates a 已知 instance (synonyms count) without applying a 如果/除非/只有/或者 rule; the subject must stay 某企业/某团队 and must not leak the conclusion. Regression rule R029: echo of 已知 is a hard fail even when the option is logically true. Regression rule R030: a 20-question 判断推理 paper must not be a single family; last five must be 科学推理 with 生物, 地理 and at least two physics items. Regression rule R032: for 加强/削弱/前提/解释 (强化削弱型) questions, the keyed option must act on THIS argument's conclusion or its premise chain; an option that is merely true or on-topic but does not change the argument's support (跑题的加强/削弱项) is a hard fail, and if two or more options change the support to a comparable degree the item is not uniquely keyed and must be rejected. Regression rule R035 (soft, subjective): if the batch declares a difficulty_tier (easy/hard), judge whether the paper as a whole matches it — easy means 1-2 steps, direct asks, common-mistake distractors, few cross-paragraph/multi-constraint items; hard means one extra layer on the same knowledge point (representation change, multiple constraints, half-right distractors, more cross-paragraph synthesis). Reject only when the whole paper clearly sits in the other tier (e.g. tagged easy but pervasively multi-step/multi-constraint); do not fail single borderline items, and never let tier change the fixed Guangdong structure/quota. For assumption questions, negate
+distractors, or a difficulty label above the actual reasoning steps. For 翻译推理, reject if the keyed option restates a 已知 instance (synonyms count) without applying a 如果/除非/只有/或者 rule; the subject must stay 某企业/某团队 and must not leak the conclusion. Regression rule R029: echo of 已知 is a hard fail even when the option is logically true. Regression rule R030: a 20-question 判断推理 paper must be 图形 5 + 逻辑 15 with multiple logic families and no 科学推理; 科学推理 is an independent 5-question module with 生物, 地理 and at least two physics items. Regression rule R032: for 加强/削弱/前提/解释 (强化削弱型) questions, the keyed option must act on THIS argument's conclusion or its premise chain; an option that is merely true or on-topic but does not change the argument's support (跑题的加强/削弱项) is a hard fail, and if two or more options change the support to a comparable degree the item is not uniquely keyed and must be rejected. Regression rule R035 (soft, subjective): if the batch declares a difficulty_tier (easy/hard), judge whether the paper as a whole matches it — easy means 1-2 steps, direct asks, common-mistake distractors, few cross-paragraph/multi-constraint items; hard means one extra layer on the same knowledge point (representation change, multiple constraints, half-right distractors, more cross-paragraph synthesis). Reject only when the whole paper clearly sits in the other tier (e.g. tagged easy but pervasively multi-step/multi-constraint); do not fail single borderline items, and never let tier change the fixed Guangdong structure/quota. For assumption questions, negate
 every option and reject a purported necessary premise if the explanation must invent an unstated failure
 or catastrophe. For science, reject unstated contact, pressure, wiring, measurement or time assumptions
 and unsupported exact facts. Check tag alignment,
@@ -849,6 +850,19 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
     if is_panduan_paper(generated):
         try:
             validate_panduan_paper(generated)
+        except ValueError as exc:
+            return {
+                "verdict": "REJECT",
+                "type_distribution_ok": False,
+                "difficulty_distribution_ok": True,
+                "reference_alignment_ok": True,
+                "duplicate_groups": [],
+                "issues": [str(exc)],
+                "answer_distribution_ok": mechanical_answers_ok(manifest, questions),
+            }
+    if is_kepui_paper(generated):
+        try:
+            validate_kepui_paper(generated)
         except ValueError as exc:
             return {
                 "verdict": "REJECT",

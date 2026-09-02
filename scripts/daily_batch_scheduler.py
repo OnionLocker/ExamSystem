@@ -93,15 +93,28 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
     elif run["module"] == "判断推理":
         ziliao_rule = (
             "This is a 20-question Guangdong 判断推理 paper. Follow panduan_pack slots in order. "
-            "Questions 1-15: 图形推理 about 5 + 逻辑判断 covering 加强/削弱/分析推理/结构相似/原因解释; "
+            "Questions 1-5: 图形推理 (five different families). "
+            "Questions 6-20: 逻辑判断 covering 加强/削弱/分析推理/结构相似/原因解释/归因; "
             "翻译推理 at most 2; never 定义判断 or 类比推理. "
-            "Questions 16-20: 科学推理, one subject each from 力学、压强与浮力、电学、生物、地理 "
-            "(physics 2-3 + biology 1 + geography 1). Do not dump five of one subject. "
-            "category remains 判断推理; last five sub_category=科学推理, tags[0] like 科学推理-力学-受力平衡. "
+            "Do NOT include 科学推理 in this batch. Science is a separate 5-question daily module. "
+            "category=判断推理; sub_category=图形推理 or 逻辑判断. "
             "For 翻译推理, the keyed option must not restate 已知 instance facts (synonyms included). "
             "Need a contrapositive, disjunctive syllogism, or a two-step chain. Neutral subject; "
             "verify-logic.py rejects echo_given_fact (R029). "
-            "Follow panduan_pack slot.tag exactly. 等高线 means a contour-map figure item, "
+            "Follow panduan_pack slot.tag exactly. "
+            "A missing holdout does not skip that slot. If evaluate context fails, omit it and still import after correctness passes."
+        )
+    elif run["module"] == "科学推理":
+        ziliao_rule = (
+            "This is a 5-question Guangdong 科学推理 paper (independent module, not part of 判断推理). "
+            "Follow kepui_pack slots in order. Exactly 5 questions, five different subjects "
+            "from 力学、压强与浮力、电学、生物、地理 (physics 2-3 + biology 1 + geography 1). "
+            "category=科学推理; sub_category=科学推理; tags[0] like 科学推理-力学-受力平衡. "
+            "Every question MUST have a figure (stem_images or option images). "
+            "Junior-high Guangdong level only: 杠杆/浮力/串并联/海陆风/等高线/食物链光合; "
+            "formulas limited to F=ma, G=mg, p=ρgh, I=U/R. "
+            "Ban 理想气体/动量守恒/洛伦兹力 and other high-school/college content. "
+            "Follow kepui_pack slot.tag exactly. 等高线 means a contour-map figure item, "
             "difficulty 3 (slope/valley/flow/simple site), not 地球自转. "
             "A missing holdout does not skip that slot. If evaluate context fails, omit it and still import after correctness passes."
         )

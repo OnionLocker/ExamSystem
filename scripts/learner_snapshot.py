@@ -27,7 +27,14 @@ from kaodian_taxonomy import (
     parse_tags,
 )
 
-from panduan_pack import compact_panduan_pack, render_panduan_pack, select_panduan_paper
+from panduan_pack import (
+    compact_kepui_pack,
+    compact_panduan_pack,
+    render_kepui_pack,
+    render_panduan_pack,
+    select_kepui_paper,
+    select_panduan_paper,
+)
 
 ZILIAO_FOREIGN_MODULES = {
     "数量关系",
@@ -503,7 +510,9 @@ def collect_panduan_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
         tag = row["kaodian"] or ""
         module = row["module"] or ""
         blob = f"{module} {tag}"
-        if not any(token in blob for token in ("判断推理", "科学推理", "图形推理", "逻辑判断")):
+        if not any(token in blob for token in ("判断推理", "图形推理", "逻辑判断")):
+            continue
+        if "科学推理" in blob:
             continue
         compact = compact_profile(row, today)
         compact["kaodian"] = tag
@@ -518,11 +527,52 @@ def collect_panduan_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
     return by_tag, dict(mistakes)
 
 
+def collect_kepui_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
+    conn.row_factory = sqlite3.Row
+    today = dt.datetime.now(TZ).date()
+    by_tag: dict[str, dict] = {}
+    for row in conn.execute(
+        """
+        SELECT kaodian,module,subtype,attempts,correct,total_ms,last_seen,
+               streak,mastery,mastery_confidence,mastery_samples
+          FROM kaodian_profile
+        """
+    ):
+        tag = row["kaodian"] or ""
+        module = row["module"] or ""
+        blob = f"{module} {tag}"
+        if "科学推理" not in blob:
+            continue
+        compact = compact_profile(row, today)
+        compact["kaodian"] = tag
+        prev = by_tag.get(tag)
+        if prev is None or (compact.get("attempts") or 0) > (prev.get("attempts") or 0):
+            by_tag[tag] = compact
+    mistakes: dict[str, int] = Counter()
+    for row in conn.execute("SELECT kaodian, wrong_count FROM kaodian_debts WHERE mastered=0"):
+        tag = row["kaodian"] or ""
+        if tag and "科学推理" in tag:
+            mistakes[tag] += int(row["wrong_count"] or 0)
+    return by_tag, dict(mistakes)
+
+
 def build_panduan_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
     by_tag, mistakes = collect_panduan_state(conn)
     practiced = {tag: row for tag, row in by_tag.items() if (row.get("attempts") or 0) > 0}
     rng = random.Random(seed or "panduan")
     slots = select_panduan_paper(practiced, mistakes, letters=letters, rng=rng)
+    return {
+        "empty_profile": not practiced and not mistakes,
+        "paper_style": "gd",
+        "slots": slots,
+    }
+
+
+def build_kepui_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
+    by_tag, mistakes = collect_kepui_state(conn)
+    practiced = {tag: row for tag, row in by_tag.items() if (row.get("attempts") or 0) > 0}
+    rng = random.Random(seed or "kepui")
+    slots = select_kepui_paper(practiced, mistakes, letters=letters, rng=rng)
     return {
         "empty_profile": not practiced and not mistakes,
         "paper_style": "gd",
@@ -620,14 +670,22 @@ def main() -> int:
     parser.add_argument("--compact", action="store_true")
     parser.add_argument("--ziliao-pack", action="store_true")
     parser.add_argument("--panduan-pack", action="store_true")
+    parser.add_argument("--kepui-pack", action="store_true")
     args = parser.parse_args()
     conn = sqlite3.connect(args.db)
     try:
         snapshot = build_snapshot(conn)
         pack = build_ziliao_pack(conn) if args.ziliao_pack else None
         panduan = build_panduan_pack(conn) if args.panduan_pack else None
+        kepui = build_kepui_pack(conn) if args.kepui_pack else None
     finally:
         conn.close()
+    if args.kepui_pack:
+        if args.compact:
+            print(snapshot["compact"])
+            print()
+        print(render_kepui_pack(compact_kepui_pack(kepui or {"slots": []})))
+        return 0
     if args.panduan_pack:
         if args.compact:
             print(snapshot["compact"])

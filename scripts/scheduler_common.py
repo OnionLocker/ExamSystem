@@ -26,6 +26,7 @@ EXIT_LOCKED = 75
 MODULE_QUOTAS = (
     ("言语理解与表达", "yanyu", 15),
     ("判断推理", "panduan", 20),
+    ("科学推理", "kepui", 5),
     ("数量关系", "shuliang", 15),
     ("资料分析", "ziliao", 20),
 )

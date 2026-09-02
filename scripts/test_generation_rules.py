@@ -74,12 +74,21 @@ def science_paper(n=5, with_images=True):
     return _balance(out)
 
 
+LOGIC_TAGS = (
+    "判断推理-逻辑判断-逻辑论证-支持与前提假设",
+    "判断推理-逻辑判断-逻辑论证-一般质疑",
+    "判断推理-逻辑判断-分析类-日常分析推理",
+    "判断推理-逻辑判断-比例类论证与解释说明",
+    "判断推理-逻辑判断-秒杀模型与速解技巧",
+)
+
+
 def panduan_paper(g=5, lg=15):
     out = []
     for i in range(g):
         out.append(q(f"G{i}", "判断推理", "图形推理", "判断推理-图形推理-位置规律"))
     for i in range(lg):
-        out.append(q(f"L{i}", "判断推理", "逻辑判断", "判断推理-逻辑判断-支持与前提假设"))
+        out.append(q(f"L{i}", "判断推理", "逻辑判断", LOGIC_TAGS[i % len(LOGIC_TAGS)]))
     return _balance(out)
 
 
@@ -241,6 +250,17 @@ class ScienceLevelTest(unittest.TestCase):
             validate_paper_hard_rules({}, sp)
 
 
+def compressed_daily_paper():
+    """旧日练压缩模型：5 图形 + 10 逻辑 + 5 科学，全部 category=判断推理。"""
+    out = panduan_paper(5, 10)
+    science = science_paper(5, with_images=True)
+    for i, item in enumerate(science):
+        item["external_id"] = f"PK{i}"
+        item["category"] = "判断推理"
+        item["sub_category"] = "科学推理"
+    return _balance(out + science)
+
+
 class PanduanLayoutTest(unittest.TestCase):
     def test_clean_passes(self):
         validate_paper_hard_rules({}, panduan_paper(5, 15))
@@ -248,6 +268,17 @@ class PanduanLayoutTest(unittest.TestCase):
     def test_wrong_split_rejected(self):
         with self.assertRaisesRegex(ValueError, "图形 5 \\+ 逻辑 15"):
             validate_paper_hard_rules({}, panduan_paper(6, 14))
+
+    def test_compressed_kepui_tail_rejected(self):
+        with self.assertRaisesRegex(ValueError, "不得含科学推理"):
+            validate_paper_hard_rules({}, compressed_daily_paper())
+
+    def test_science_inside_panduan20_rejected_even_without_images(self):
+        paper = panduan_paper(5, 15)
+        paper[19]["sub_category"] = "科学推理"
+        paper[19]["tags"] = ["科学推理-力学-杠杆滑轮"]
+        with self.assertRaisesRegex(ValueError, "不得含科学推理"):
+            validate_paper_hard_rules({}, paper)
 
 
 if __name__ == "__main__":

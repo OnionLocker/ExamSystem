@@ -235,23 +235,33 @@ class NormalizeBatchTest(unittest.TestCase):
         validate_ziliao_paper_answers(extras_z["ziliao_answer_groups"])
         extras_p = nab.generation_payload_extras(CAT_PANDUAN, 20, "daily-p")
         self.assertEqual(len(extras_p["panduan_pack"]["slots"]), 20)
-        self.assertEqual(extras_p["batch_constraints"]["panduan_layout"], "15_graphic_logic_plus_5_kepui")
-        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"][15:]], ["science"] * 5)
+        self.assertEqual(extras_p["batch_constraints"]["panduan_layout"], "5_graphic_plus_15_logic")
+        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"][:5]], ["graphic"] * 5)
+        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"][5:]], ["logic"] * 15)
+        self.assertNotIn("kepui_subjects", extras_p["batch_constraints"])
+        extras_k = nab.generation_payload_extras("科学推理", 5, "daily-k")
+        self.assertEqual(len(extras_k["kepui_pack"]["slots"]), 5)
+        self.assertEqual(extras_k["batch_constraints"]["kepui_layout"], "5_kepui_distinct_subjects")
+        self.assertEqual([slot["section"] for slot in extras_k["kepui_pack"]["slots"]], ["science"] * 5)
         self.assertEqual(extras["batch_constraints"]["shuliang_layout"], "5_sequence_plus_10_math")
 
     def test_daily_paper_order_is_restored(self):
         seq = item("Q-seq", CAT_SHULIANG, "数量关系-数字推理-递推数列", "A", sub_category="数字推理")
         math = item("Q-math", CAT_SHULIANG, TAG_EQ, "B", sub_category="数学运算")
         graphic = item("Q-g", CAT_PANDUAN, CAT_PANDUAN + "-图形推理-位置规律", "A", sub_category="图形推理")
-        sci = item("Q-s", CAT_PANDUAN, "科学推理-力学-受力平衡", "C", sub_category="科学推理")
+        sci = item("Q-s", "科学推理", "科学推理-力学-受力平衡", "C", sub_category="科学推理")
         logic = item("Q-l", CAT_PANDUAN, TAG_LOGIC, "B", sub_category=SUB_LOGIC)
         self.assertEqual(
             [q["external_id"] for q in nab.sort_daily_questions([math, seq, math])],
             ["Q-seq", "Q-math", "Q-math"],
         )
         self.assertEqual(
-            [q["external_id"] for q in nab.sort_daily_questions([sci, logic, graphic])],
-            ["Q-g", "Q-l", "Q-s"],
+            [q["external_id"] for q in nab.sort_daily_questions([logic, graphic])],
+            ["Q-g", "Q-l"],
+        )
+        self.assertEqual(
+            [q["external_id"] for q in nab.sort_daily_questions([sci])],
+            ["Q-s"],
         )
         paper = [seq] * 5 + [math] * 10
         nab.validate_daily_paper_order("daily-20260902-shuliang-abc", paper)
