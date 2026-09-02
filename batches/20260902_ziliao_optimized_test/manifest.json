@@ -1,0 +1,115 @@
+{
+  "batch_id": "20260902_ziliao_optimized_test",
+  "source": "广东省考行测 · 资料分析专项（优化版测试）",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "manual",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "method": "optimized-v2-structured-constraints",
+    "model": "gemini-3.7-flash-high",
+    "prompt_tokens": 1689,
+    "completion_tokens": 7489,
+    "generation_time_seconds": 40.5,
+    "batch_constraints": {
+      "structure": "4材料×5题=20题",
+      "answer_distribution": [
+        "第1篇: ABACD (ABCD各一+随机)",
+        "第2篇: DAACB (ABCD各一+随机)",
+        "第3篇: ACCCB (打散，不齐ABCD)",
+        "第4篇: BADCB (ABCD各一+随机)"
+      ],
+      "material_forms": [
+        "第1篇: 纯文字(text)",
+        "第2篇: 文字+窄表(table)",
+        "第3篇: 文字+柱或饼(chart)",
+        "第4篇: 文字+表或图+选项图(mixed)"
+      ],
+      "forbidden_phrases": [
+        "某省",
+        "本题考察",
+        "秒杀模型"
+      ],
+      "dirty_numbers_ratio": "40%以上非整百整千",
+      "all_original": true,
+      "question_count": 20,
+      "answer_max_per_letter": 5,
+      "answer_min_letters": 4
+    },
+    "evaluation_contexts": [
+      {
+        "context_id": "refctx-6cbee8e61104495ea2d64cd2ee6b1473",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q04"
+        ],
+        "question_ids": [
+          "20260902_ziliao_01",
+          "20260902_ziliao_11"
+        ]
+      },
+      {
+        "context_id": "refctx-eca95d5863874617963007c75c00b135",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q03"
+        ],
+        "question_ids": [
+          "20260902_ziliao_02",
+          "20260902_ziliao_12"
+        ]
+      },
+      {
+        "context_id": "refctx-b51f0fb9b090450496028adfb937919f",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q12"
+        ],
+        "question_ids": [
+          "20260902_ziliao_03",
+          "20260902_ziliao_13"
+        ]
+      },
+      {
+        "context_id": "refctx-26220b8b037f41fcb8c8324e596fe500",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q09"
+        ],
+        "question_ids": [
+          "20260902_ziliao_04",
+          "20260902_ziliao_14"
+        ]
+      },
+      {
+        "context_id": "refctx-81caa1fced994db3bc05d97ae69527e8",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q08"
+        ],
+        "question_ids": [
+          "20260902_ziliao_05",
+          "20260902_ziliao_15"
+        ]
+      },
+      {
+        "context_id": "refctx-f1d1fe6be3a94988935586384284584e",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q11"
+        ],
+        "question_ids": [
+          "20260902_ziliao_06",
+          "20260902_ziliao_16"
+        ]
+      },
+      {
+        "context_id": "refctx-47e4a413aaf94485bfe72b55d890624f",
+        "reference_ids": [
+          "20260830_ziliao_3style_01-Q10"
+        ],
+        "question_ids": [
+          "20260902_ziliao_10",
+          "20260902_ziliao_20"
+        ]
+      }
+    ]
+  },
+  "questions": 20,
+  "materials": 4,
+  "notes": "首批优化版资料分析测试：prompt tokens从8000降至1689(节省79%)，保持广东省考风格"
+}

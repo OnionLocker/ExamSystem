@@ -21,12 +21,15 @@ def get_cliproxy_key() -> str:
     key = os.environ.get("CLIPROXY_API_KEY", "").strip()
     if key:
         return key
+
+    # Try ~/.hermes/.env
     env_file = Path.home() / ".hermes" / ".env"
     if env_file.exists():
         for line in env_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("CLIPROXY_API_KEY="):
                 return line.split("=", 1)[1].strip()
-    return ""
+
+    raise ValueError("CLIPROXY_API_KEY not found in env or ~/.hermes/.env")
 
 
 def call_gemini_flash(prompt: str, model: str = "gemini-3.7-flash") -> tuple[str, dict]:
