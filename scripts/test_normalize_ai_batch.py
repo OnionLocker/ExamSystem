@@ -270,5 +270,55 @@ class NormalizeBatchTest(unittest.TestCase):
         nab.validate_daily_paper_order("targeted-drill", [math] * 15)
 
 
+    def test_kepui_category_is_rewritten(self):
+        tags = [
+            "科学推理-力学-受力平衡",
+            "科学推理-压强与浮力-阿基米德原理",
+            "科学推理-电学-串并联",
+            "科学推理-生物-人体调节",
+            "科学推理-地理-等高线",
+        ]
+        questions = [
+            item(
+                f"K{i:02d}",
+                CAT_PANDUAN,
+                tags[i],
+                "ABCD"[i % 4] if i < 4 else "A",
+                sub_category="科学推理",
+                stem_images=[f"images/k{i}.png"],
+            )
+            for i in range(5)
+        ]
+        manifest = {
+            "batch_id": "daily-20260902-kepui-abc",
+            "kind": "ai-generated",
+            "generation": {"batch_constraints": nab.default_answer_constraints(5)},
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "questions.json").write_text(
+                json.dumps(questions, ensure_ascii=False), encoding="utf-8"
+            )
+            (root / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False), encoding="utf-8"
+            )
+            result = nab.normalize_batch(root)
+            self.assertTrue(result["changed"])
+            saved = json.loads((root / "questions.json").read_text(encoding="utf-8"))
+            self.assertEqual({q["category"] for q in saved}, {"科学推理"})
+            self.assertEqual({q["sub_category"] for q in saved}, {"科学推理"})
+            generation_gate.validate_paper_hard_rules(
+                json.loads((root / "manifest.json").read_text(encoding="utf-8")),
+                saved,
+            )
+
+    def test_kepui_payload_caps_letters(self):
+        extras = nab.generation_payload_extras("科学推理", 5, "daily-k")
+        self.assertEqual(extras["batch_constraints"]["answer_max_per_letter"], 2)
+        self.assertGreaterEqual(extras["batch_constraints"]["answer_min_letters"], 3)
+        self.assertEqual(len({row["answer"] for row in extras["answer_plan"]}), 4)
+
+
+
 if __name__ == "__main__":
     unittest.main()

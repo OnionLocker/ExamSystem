@@ -193,6 +193,8 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn("contour-map", prompt)
         self.assertIn("independent", prompt)
         self.assertIn("5-question", prompt)
+        self.assertIn("NEVER write category=判断推理", prompt)
+        self.assertIn("any letter at most 2 times", prompt)
 
     def test_wait_unlocked_can_be_disabled(self):
         daily_plan_scheduler.wait_unlocked(Path("/tmp/missing.lock"), 0)

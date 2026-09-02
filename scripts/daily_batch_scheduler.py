@@ -110,6 +110,8 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
             "Follow kepui_pack slots in order. Exactly 5 questions, five different subjects "
             "from 力学、压强与浮力、电学、生物、地理 (physics 2-3 + biology 1 + geography 1). "
             "category=科学推理; sub_category=科学推理; tags[0] like 科学推理-力学-受力平衡. "
+            "NEVER write category=判断推理 on this batch (hard fail even if sub_category/tags say 科学推理). "
+            "Put answers on answer_plan first: any letter at most 2 times, at least 3 distinct letters; never 5 of the same letter. "
             "Every question MUST have a figure (stem_images or option images). "
             "Junior-high Guangdong level only: 杠杆/浮力/串并联/海陆风/等高线/食物链光合; "
             "formulas limited to F=ma, G=mg, p=ρgh, I=U/R. "

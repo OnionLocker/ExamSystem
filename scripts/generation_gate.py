@@ -584,6 +584,17 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                     f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
                     "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
         validate_kepui_paper(science, require_images=True)
+        if any(str(q.get("category") or "") != "科学推理" for q in science):
+            raise ValueError("独立科学推理卷每题 category 必须是科学推理，禁止写成判断推理")
+        counts: dict[str, int] = {}
+        for q in science:
+            ans = str(q.get("answer") or q.get("correct_answer") or "").strip().upper()
+            if ans:
+                counts[ans] = counts.get(ans, 0) + 1
+        if counts and (max(counts.values()) > 2 or len(counts) < 3):
+            raise ValueError(
+                f"科学推理 5 题答案字母须分散：任一字母 ≤2 且至少 3 种不同字母，当前 {counts}"
+            )
     # 9) 言语：禁“因此亟须”作文腔
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":

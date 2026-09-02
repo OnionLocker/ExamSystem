@@ -248,6 +248,35 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
     return extras
 
 
+
+def is_kepui_batch(manifest: dict, questions: list[dict]) -> bool:
+    batch_id = str(manifest.get("batch_id") or "")
+    module = str(manifest.get("module") or manifest.get("category") or "")
+    if "-kepui-" in batch_id or module == CAT_KEPUI:
+        return True
+    generated = generated_questions(questions)
+    if len(generated) != 5:
+        return False
+    from panduan_pack import is_science_question
+
+    return all(is_science_question(item) for item in generated)
+
+
+def rewrite_kepui_category(manifest: dict, questions: list[dict]) -> int:
+    """Force independent 科学推理 papers onto CAT_KEPUI; do not trust the LLM."""
+    if not is_kepui_batch(manifest, questions):
+        return 0
+    changed = 0
+    for question in generated_questions(questions):
+        if str(question.get("category") or "") != CAT_KEPUI:
+            question["category"] = CAT_KEPUI
+            changed += 1
+        if str(question.get("sub_category") or "").strip() != CAT_KEPUI:
+            question["sub_category"] = CAT_KEPUI
+            changed += 1
+    return changed
+
+
 def current_answer(question: dict) -> str:
     return str(question.get("answer") or question.get("correct_answer") or "").strip().upper()
 
@@ -683,6 +712,7 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
         loaded = json.loads(materials_path.read_text(encoding="utf-8"))
         if isinstance(loaded, list):
             materials = loaded
+    kepui_rewritten = rewrite_kepui_category(manifest, questions)
     filled = 0
     for question in generated_questions(questions):
         filled += len(fill_bookkeeping(question))
@@ -698,8 +728,8 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
     rewritten = redistribute_answers(questions, manifest, by_id)
     contexts = repair_reference_contexts(manifest, questions)
     sourced = stamp_daily_source(manifest, questions, materials)
-    changed = bool(filled or rewritten or contexts or sourced or ordered)
-    if filled or rewritten or sourced or ordered:
+    changed = bool(filled or rewritten or contexts or sourced or ordered or kepui_rewritten)
+    if filled or rewritten or sourced or ordered or kepui_rewritten:
         write_json(questions_path, questions)
         if raw_calc is not None and rewritten:
             write_json(calc_path, raw_calc)

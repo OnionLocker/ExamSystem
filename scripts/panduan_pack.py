@@ -102,8 +102,8 @@ KEPUI_LAYOUT_NAME = "5_kepui_distinct_subjects"
 KEPUI_TAG_WEIGHT = {
     "科学推理-地理-等高线": 4,
     "科学推理-地理-锋面天气": 3,
-    "科学推理-地理-海陆风": 2,
-    "科学推理-地理-地球自转": 2,
+    "科学推理-地理-海陆风": 3,
+    "科学推理-地理-地球自转": 1,
     "科学推理-地理-气候": 2,
     "科学推理-地理-板块": 1,
     "科学推理-地理-区域地理": 1,
@@ -205,6 +205,8 @@ def logic_family(tag: str) -> str:
 def validate_kepui_slots(questions: list[dict], *, require_images: bool = False) -> None:
     if len(questions) != 5:
         raise ValueError(f"科学推理须为独立 5 题，当前 {len(questions)} 题")
+    if any(str(item.get("category") or "") != CAT_KEPUI for item in questions):
+        raise ValueError("科学推理独立卷每题 category 必须是科学推理，禁止写成判断推理")
     if any(question_kind(item) != "science" for item in questions):
         raise ValueError("科学推理 5 题每题须标明科学推理（category 或 sub_category）")
     buckets = [kepui_bucket(_blob(item)) for item in questions]

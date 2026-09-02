@@ -95,6 +95,14 @@ class KepuiPackTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "同一学科"):
             pack.validate_kepui_paper(questions)
 
+    def test_rejects_panduan_category_on_kepui_paper(self):
+        slots = pack.select_kepui_paper({}, {})
+        questions = paper_from_slots(slots, science=True)
+        for question in questions:
+            question["category"] = pack.CAT_PANDUAN
+        with self.assertRaisesRegex(ValueError, "category 必须是科学推理"):
+            pack.validate_kepui_paper(questions)
+
     def test_compact_has_five_slots(self):
         compact = pack.compact_kepui_pack(
             {"paper_style": "gd", "slots": pack.select_kepui_paper({}, {})}
