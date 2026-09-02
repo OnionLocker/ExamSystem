@@ -1,4 +1,4 @@
-import { CATEGORIES } from './generators.js';
+import { CATEGORIES, isSubAvailable } from './generators.js';
 import { getBaseMs } from './ranks.js';
 import { computeWeakSpots } from './weakSpots.js';
 
@@ -60,15 +60,15 @@ export const HANDS_CAT_IDS = new Set(['basic', 'speedOps']);
 const REASON_CAT_ID = 'numReason';
 const QUANT_CAT_ID = 'quant';
 // 数字推理子类轮换表（相邻日期取不同子类；不会连续多天只出等差）
-const REASON_ROTATION = ['arithSeq', 'multiArith', 'sumSeq', 'geoSeq', 'powerSeq', 'productSeq'];
-// 数量应用轮换（无弱项数据时的默认短冲刺，保留相遇但不霸占）
-const QUANT_ROTATION = ['encounter', 'engineering', 'ratio', 'pursue', 'boat', 'probability'];
-// 无画像时的资料/手速默认池（按提分优先级排序）
-const ZILIAO_DEFAULTS = [
+export const REASON_ROTATION = ['arithSeq', 'multiArith', 'sumSeq', 'geoSeq', 'powerSeq', 'productSeq'];
+// 数量应用轮换（无弱项数据时的默认短冲刺；CUT 不进轮换）
+export const QUANT_ROTATION = ['encounter', 'engineering', 'ratio', 'pursue', 'boat', 'probability'];
+// 无画像时的资料/手速默认池（按提分优先级排序；CUT 不进池）
+export const ZILIAO_DEFAULTS = [
   'baseQtyRough', 'growthShareEst', 'growthRate', 'twoPeriodRatioDiff',
   'baseRatio', 'growthAmt', 'spotZiliao', 'findAdv', 'percentagePoint',
 ];
-const HANDS_DEFAULTS = ['complement100', 'addOrSub3', 'rollingAdd3', 'add3', 'sub3'];
+export const HANDS_DEFAULTS = ['complement100', 'addOrSub3', 'rollingAdd3', 'add3', 'sub3'];
 
 const NUMERIC_TODAY_ZILIAO_MIN = 4;   // 资料相关下限（≥3 硬约束，取 4 以更贴合“提资料处理”目标）
 const NUMERIC_TODAY_HANDS_MAX = 2;
@@ -79,6 +79,7 @@ const SUB_META = (() => {
   for (const cat of CATEGORIES) {
     if (!cat.available) continue;
     for (const sub of cat.subs || []) {
+      if (!isSubAvailable(sub)) continue;
       if (!map.has(sub.id)) {
         map.set(sub.id, { id: sub.id, name: sub.name, catId: cat.id, catName: cat.name });
       }
@@ -110,6 +111,7 @@ export const buildNumericTodayTasks = ({
 
   const push = (pick, reason) => {
     if (!pick?.catId || !pick.id) return false;
+    if (!SUB_META.has(pick.id)) return false;
     if (usedSubs.has(pick.id)) return false;
     if (items.length >= NUMERIC_TODAY_TASK_LIMIT) return false;
     usedSubs.add(pick.id);
@@ -175,11 +177,14 @@ export const buildNumericTodayTasks = ({
 };
 
 export const fillMissingCategoryTasks = (items, opts = {}) => {
-  if (items.length >= NUMERIC_TODAY_TASK_LIMIT) return items;
-  const usedSubs = new Set(items.map((task) => task.subId));
+  const kept = (items || []).filter((task) => SUB_META.has(task.subId));
+  if (kept.length >= NUMERIC_TODAY_TASK_LIMIT) {
+    return kept.slice(0, NUMERIC_TODAY_TASK_LIMIT).map((task, index) => ({ ...task, index }));
+  }
+  const usedSubs = new Set(kept.map((task) => task.subId));
   const extra = buildNumericTodayTasks(opts).filter((task) => !usedSubs.has(task.subId));
-  if (!extra.length) return items;
-  return [...items, ...extra]
+  if (!extra.length) return kept.map((task, index) => ({ ...task, index }));
+  return [...kept, ...extra]
     .slice(0, NUMERIC_TODAY_TASK_LIMIT)
     .map((task, index) => ({ ...task, index }));
 };

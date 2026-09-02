@@ -98,7 +98,7 @@ export const SUB_BASE_MS = {
   profit:       12000,
   planting:      7000,
   squareFormation: 4500,
-  // numReason 数字推理（生成题带规律提示，比真题快得多）
+  // numReason 数字推理（生成题无材料，比真题快；题干不写规律）
   arithSeq:     7000,
   geoSeq:       7000,
   sumSeq:       7000,
@@ -440,7 +440,8 @@ export const clearRankStats = () => {
 // 子项 weight 反映真实省考出题频率（5=每年必考 / 1-2=偶尔），
 // 分类 weight 反映真实考试分值占比（data 30 / quant 30 / numReason 15 / aux 15 / basic 10）。
 export const computeCategoryRank = (cat, stats) => {
-  const entries = cat.subs.map((s) => ({
+  const liveSubs = (cat.subs || []).filter((s) => s.available !== false);
+  const entries = liveSubs.map((s) => ({
     sub: s,
     stat: stats[s.id],
     eval: evaluate(stats[s.id], s.id),
@@ -462,7 +463,7 @@ export const computeCategoryRank = (cat, stats) => {
   return {
     rankId,
     rankedCount: ranked.length,
-    totalSubs: cat.subs.length,
+    totalSubs: liveSubs.length,
     entries,
     avgValue,
   };

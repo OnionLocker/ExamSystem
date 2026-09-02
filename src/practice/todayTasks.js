@@ -9,6 +9,7 @@ import {
   litCategoryIds,
   NUMERIC_TODAY_TASK_LIMIT,
 } from './numericTodayPlan.js';
+import { isNumericPoolSub } from './generators.js';
 
 export const TODAY_TASKS_REFRESH_EVENT = 'today-tasks-refresh';
 const STORAGE_KEY = 'numeric_today_tasks_v1';
@@ -46,8 +47,10 @@ const persistIfGrown = (date, items, next) => {
 export const loadTodayNumericTasks = () => {
   const date = east8Today();
   const state = readState();
-  const items = state?.date === date && Array.isArray(state.items) ? state.items : [];
+  const raw = state?.date === date && Array.isArray(state.items) ? state.items : [];
+  const items = raw.filter((task) => isNumericPoolSub(task.catId, task.subId));
   if (!items.length) return rebuild(date);
+  if (items.length < raw.length && !hasProgress(items)) return rebuild(date);
   if (items.length < NUMERIC_TODAY_TASK_LIMIT && !hasProgress(items)) return rebuild(date);
   return persistIfGrown(date, items, fillMissingCategoryTasks(items, {
     date,

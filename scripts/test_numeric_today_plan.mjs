@@ -20,8 +20,12 @@ const {
   buildNumericTodayTasks,
   fillMissingCategoryTasks,
   raceMeetsTask,
+  REASON_ROTATION,
+  QUANT_ROTATION,
+  ZILIAO_DEFAULTS,
+  HANDS_DEFAULTS,
 } = await import('../src/practice/numericTodayPlan.js');
-const { CATEGORIES } = await import('../src/practice/generators.js');
+const { CATEGORIES, NUMERIC_CUT_SUB_IDS, isNumericPoolSub } = await import('../src/practice/generators.js');
 const { getBaseMs } = await import('../src/practice/ranks.js');
 
 const countHands = (t) => t.filter((x) => HANDS_CAT_IDS.has(x.catId)).length;
@@ -50,6 +54,8 @@ for (const opts of [{ stats: {}, wrongCounts: {} }, { stats: fakeStats, wrongCou
       assert.equal(task.status, 'pending');
       assert.equal(task.minAccuracy, 0.9);
       assert.ok(CATEGORIES.some((cat) => cat.id === task.catId && cat.available));
+      assert.ok(isNumericPoolSub(task.catId, task.subId), `${date} ${task.subId} 不应是 CUT`);
+      assert.ok(!NUMERIC_CUT_SUB_IDS.has(task.subId), `${date} 九宫格出现 CUT ${task.subId}`);
       assert.equal(task.maxAvgMs, Math.round(getBaseMs(task.subId) * 2));
     }
   }
@@ -111,5 +117,22 @@ const locked = applyRaceToTasks(pass.tasks, {
   catId: 'basic', subId: 'add3', total: 30, correct: 0, totalMs: 30 * 20000,
 });
 assert.equal(locked.tasks[0].status, 'done');
+
+for (const subId of NUMERIC_CUT_SUB_IDS) {
+  assert.ok(!REASON_ROTATION.includes(subId), `REASON_ROTATION 含 CUT ${subId}`);
+  assert.ok(!QUANT_ROTATION.includes(subId), `QUANT_ROTATION 含 CUT ${subId}`);
+  assert.ok(!ZILIAO_DEFAULTS.includes(subId), `ZILIAO_DEFAULTS 含 CUT ${subId}`);
+  assert.ok(!HANDS_DEFAULTS.includes(subId), `HANDS_DEFAULTS 含 CUT ${subId}`);
+}
+
+const dirty = [
+  { subId: 'carryAdd', catId: 'aux' },
+  { subId: 'chickenRabbit', catId: 'quant' },
+  { subId: 'spotLogic', catId: 'readSpot' },
+  { subId: 'add3', catId: 'basic' },
+];
+const cleaned = fillMissingCategoryTasks(dirty, { date: '2026-09-01', stats: {}, wrongCounts: {} });
+assert.ok(cleaned.every((t) => !NUMERIC_CUT_SUB_IDS.has(t.subId)), 'fillMissing 应剔除 CUT');
+assert.equal(cleaned.length, 9);
 
 console.log('numeric today plan ok');
