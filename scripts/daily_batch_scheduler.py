@@ -24,6 +24,7 @@ from scheduler_common import (
     FileLock,
     ROOT,
     daily_source_name,
+    difficulty_tier,
     load_runs,
     load_snapshot,
     local_today,
@@ -59,9 +60,11 @@ def snapshot_for_prompt(snapshot: dict) -> dict:
 
 def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path | None = None) -> str:
     source = daily_source_name(run["module"], run["plan_date"])
+    tier = difficulty_tier(run["plan_date"])
     payload = {
         "plan_date": run["plan_date"],
         "module": run["module"],
+        "difficulty_tier": tier,
         "question_count": run["planned_count"],
         "batch_id": run["batch_id"],
         "batch_dir": str(batch_dir),
@@ -118,6 +121,16 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         ziliao_rule = (
             "Pick knowledge points from the learner snapshot, but do not change the question count."
         )
+    tier_rule = (
+        f"本批难度档：difficulty_tier={tier}（日练隔天轮换：公历偶数序数日=简单 easy、奇数=难 hard；"
+        "同一广东卷结构/知识点/模块配比不变，只调节‘弯子多少’）。\n"
+        + ("【简单档 easy】每题 1–2 步、设问直接、干扰项为常见错法；少跨段、少多约束——"
+           "资料少综合判断与跨段、数量少表示转换、逻辑少多层论证、图形规律直观。\n"
+           if tier == "easy" else
+           "【难档 hard】同一知识点多绕一层：表示转换、多约束、半对/近义干扰；资料更多跨段与综合判断、"
+           "数量多步组合、逻辑多层论证。仍在广东卷面内，不得改成国考篇幅、不得出类比/定义。\n")
+        + "在 manifest 写入 difficulty_tier；可选给每题加 difficulty:\"easy\"/\"hard\" 软标注（非硬性 GATE）。\n"
+    )
     return (
         "You are ExamSystem's unattended weekday batch generator for one module.\n"
         "Input:\n"
@@ -131,6 +144,7 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         "(or skill_view if Hermes is available), then follow the existing quiz-pipeline. "
         "Obey every 【GATE】 rule in module-hard-rules.md (脏数字≥40%、禁某省、Q5综合判断跨篇轮换、禁课纲词、"
         "加强/削弱项须对准结论、数字推理五规律不克隆、数学运算禁鸡兔/长方形周长面积/纯相遇口算)。\n"
+        f"{tier_rule}"
         "Draft from internalized GONGKAO-STYLE principles+profile; do not call reference_style.py context --role generate per question. After writing, request one evaluate holdout per tag family (reference_style.py context --role evaluate --count 1). If evaluate context fails, omit evaluation_contexts for those tags and still import after correctness; do not rewrite the slot. generation_contexts may be omitted.\n"
         "Put the correct option on answer_plan[i].answer. Do not change computed values to chase a letter. "
         "generation_gate will reshuffle options if the draft ignores the plan. Keep Guangdong paper question order; do not shuffle questions.\n"
