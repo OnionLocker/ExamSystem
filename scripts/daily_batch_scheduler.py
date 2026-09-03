@@ -7,13 +7,12 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
-import os
 import sqlite3
-import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from china_workday import CALENDAR, workday_reason
+from daily_gemini_batch import generate_and_import
 from normalize_ai_batch import generation_payload_extras
 from scheduler_common import (
     AlreadyLocked,
@@ -36,7 +35,6 @@ from scheduler_common import (
 
 LOCK_FILE = Path("/tmp/examsystem-daily-batches.lock")
 OUTPUT_ROOT = ROOT / "data" / "daily-batches"
-DEFAULT_SKILLS = "quiz-pipeline,gd-gongkao-coach"
 
 
 def positive_int(value: str) -> int:
@@ -82,8 +80,8 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
     resume = ""
     if (batch_dir / "questions.json").is_file():
         resume = (
-            "batch_dir already has an unpublished draft. Continue from these files, "
-            "fix gate/quality issues, then import. Do not change batch_id or start a new batch.\n"
+            "batch_dir already has an unpublished draft. Fix it in the JSON you output. "
+            "Do not change batch_id or start a new batch.\n"
         )
     if run["module"] == "资料分析":
         ziliao_rule = (
@@ -147,28 +145,36 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         + "在 manifest 写入 difficulty_tier；可选给每题加 difficulty:\"easy\"/\"hard\" 软标注（非硬性 GATE）。\n"
     )
     return (
-        "You are ExamSystem's unattended weekday batch generator for one module.\n"
+        "You are ExamSystem's daily question writer for one module. Output one JSON object only.\n"
+        "No markdown fences, no commentary, no tool calls, no shell.\n"
         "Input:\n"
         f"{json.dumps(payload, ensure_ascii=False)}\n\n"
         f"{resume}"
         f"Handle only module [{run['module']}]. Question count must be exactly {run['planned_count']}, "
         "all original, do not insert origin=zhenti items.\n"
-        f"Use batch_id unchanged. Working directory must be {ROOT}; run every python3/node script there.\n"
-        "First read hermes-skills/quiz-pipeline/SKILL.md, "
-        "hermes-skills/quiz-pipeline/references/module-hard-rules.md, and hermes-skills/gd-gongkao-coach/SKILL.md "
-        "(or skill_view if Hermes is available), then follow the existing quiz-pipeline. "
+        f"Use batch_id unchanged. Number questions {run['batch_id']}_01 .. _{run['planned_count']:02d}.\n"
         "Obey every 【GATE】 rule in module-hard-rules.md (脏数字≥40%、禁某省、Q5综合判断跨篇轮换、禁课纲词、"
         "加强/削弱项须对准结论、数字推理五规律不克隆、数学运算禁鸡兔/长方形周长面积/纯相遇口算)。\n"
         f"{tier_rule}"
-        "Draft from internalized GONGKAO-STYLE principles+profile; do not call reference_style.py context --role generate per question. After writing, request one evaluate holdout per tag family (reference_style.py context --role evaluate --count 1). If evaluate context fails, omit evaluation_contexts for those tags and still import after correctness; do not rewrite the slot. generation_contexts may be omitted.\n"
+        "Draft from internalized GONGKAO-STYLE principles+profile. Python attaches evaluate holdout after you write; omit evaluation_contexts. generation_contexts may be omitted.\n"
         "Put the correct option on answer_plan[i].answer. Do not change computed values to chase a letter. "
         "generation_gate will reshuffle options if the draft ignores the plan. Keep Guangdong paper question order; do not shuffle questions.\n"
         f"{ziliao_rule}\n"
-        f"manifest.source and every question.source must be exactly {source}. Do not invent another title.\n"
-        f"Write the complete batch into batch_dir, run python3 scripts/generation_gate.py issue {batch_dir}, "
-        f"then node scripts/import-batch.mjs {batch_dir}.\n"
-        "Do not modify project code, database schema, or other module batches.\n"
-        "If any step fails, report the error and do not pretend success. On success, return only the imported count.\n"
+        f"Every question.source must be exactly {source}. Do not invent another title.\n"
+        "JSON schema:\n"
+        '{"questions":[{"external_id":"..._01","category":"...","sub_category":"...","tags":["module-l1-l2"],'
+        '"stem":"...","stem_images":[],"options":[{"key":"A","text":"..."}],"answer":"B","analysis":"..."}],'
+        '"materials":[{"external_id":"...-M01","content":"...","images":[],'
+        '"figure":{"kind":"table|bars|pie","file":"images/m-02-table.png","title":"","unit":"",'
+        '"headers":[],"rows":[],"ylabel":"","categories":[],'
+        '"series":[{"name":"","values":[]}],"slices":[{"name":"","value":0}]}}],'
+        '"calculations":{"questions":[{"question_id":"...","correct":0,"options":{"A":0,"B":0,"C":0,"D":0},"tolerance":0.01}]},'
+        '"image_specs":{"questions":[{"question_id":"...","image_facts":["visible objects only"],'
+        '"image_only_facts":["facts only in the figure"],"must_derive":["never put these in the image prompt"]}]}}\n'
+        "materials[].figure is optional. Python renders table/bars/pie; never draw data-analysis charts yourself.\n"
+        "For graphic-reasoning and science-reasoning, fill image_specs and stem_images like images/q-01-stem.png. "
+        "image_facts describe only what to draw; never include the answer or must_derive.\n"
+        "Do not emit manifest.json; Python writes it.\n"
     )
 
 
@@ -189,50 +195,22 @@ def run_one(
     db_path: Path,
     output_root: Path,
     timeout: int,
-    max_turns: int,
-    skills: str,
 ) -> dict:
     batch_dir = output_root / run["plan_date"] / run["batch_id"]
-    hermes = os.environ.get("HERMES_BIN", "hermes")
-    command = [
-        hermes,
-        "chat",
-        "-Q",
-        "--query-file",
-        "-",
-        "--in",
-        str(ROOT),
-        "--source",
-        "tool",
-        "--yolo",
-        "--max-turns",
-        str(max_turns),
-        "--run-budget",
-        str(timeout),
-    ]
-    if skills:
-        command.extend(["--skills", skills])
     conn = sqlite3.connect(db_path, timeout=30)
     try:
         update_run(conn, run["batch_id"], "running")
-        env = {**os.environ, "EXAM_DB": str(db_path)}
-        result = subprocess.run(
-            command,
-            input=generation_prompt(run, snapshot, batch_dir, db_path),
-            cwd=ROOT,
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=timeout + 30,
+        generate_and_import(
+            run,
+            batch_dir,
+            db_path,
+            timeout,
+            generation_prompt(run, snapshot, batch_dir, db_path),
         )
-        if result.returncode != 0:
-            detail = (result.stderr or result.stdout or "Hermes failed").strip()
-            raise RuntimeError(detail[-2000:])
         count = imported_count(conn, run["batch_id"])
         if count < int(run["planned_count"]):
             raise RuntimeError(
-                f"Hermes returned ok, but imported only {count}/{run['planned_count']} questions"
+                f"Gemini draft imported only {count}/{run['planned_count']} questions"
             )
         update_run(
             conn,
@@ -255,6 +233,7 @@ def run_one(
         conn.close()
 
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--date", type=dt.date.fromisoformat, default=local_today())
@@ -264,8 +243,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-root", type=Path, default=OUTPUT_ROOT)
     parser.add_argument("--concurrency", type=positive_int, default=2)
     parser.add_argument("--timeout", type=positive_int, default=2400)
-    parser.add_argument("--max-turns", type=positive_int, default=200)
-    parser.add_argument("--skills", default=DEFAULT_SKILLS)
     parser.add_argument("--dry-run", action="store_true")
     return parser
 
@@ -326,8 +303,6 @@ def main(argv: list[str] | None = None) -> int:
                             args.db,
                             args.output_root,
                             args.timeout,
-                            args.max_turns,
-                            args.skills,
                         )
                         for row in pending
                     ]

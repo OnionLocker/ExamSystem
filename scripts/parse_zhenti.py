@@ -30,7 +30,7 @@ SRC_DIR = ROOT / "data" / "uploads" / "真题"
 OUT_DIR = ROOT / "data" / "zhenti"
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("CLIPROXY_PDF_MODEL", "gemini-3.7-flash-high")
+MODEL = os.environ.get("CLIPROXY_PDF_MODEL", "gemini-3.8-flash-high")
 PAGES_PER_CHUNK = 4
 WORKERS = 2
 RETRIES = 3

@@ -31,7 +31,7 @@ REPORTS_DIR = os.environ.get("REPORTS_DIR", str(PROJECT_ROOT / "data" / "reports
 #
 # 现在直接读 Hermes 的 config.yaml：它自己能跑通，评委就一定能跑通。
 HERMES_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
-MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.7-flash-high")
+MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.8-flash-high")
 
 
 def load_judge_endpoint():

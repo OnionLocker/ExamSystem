@@ -4,7 +4,15 @@
 //   remark-gfm    表格 / 删除线 / 任务列表
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
-import { normalizeOriginalQuestionOptions, splitStemOptions } from './reviewFormat.js';
+import {
+  isOrderingStem,
+  looksLikeQuestionStem,
+  normalizeOriginalQuestionOptions,
+  normalizePhysicsSubscripts,
+  splitOrderingSentences,
+  splitStemOptions,
+  stripYuanTiLabel,
+} from './reviewFormat.js';
 import { injectReviewStemImages, resolveReviewImageSrc, sanitizeReviewMarkdown } from './reviewAssembler.js';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
@@ -237,27 +245,47 @@ const components = {
   },
   p({ children }) {
     const raw = textOf(children).trim();
+    if (/^原题$/.test(raw)) return null;
     const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
     if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
     const nodes = Array.isArray(children) ? children : [children];
     const images = nodes.filter((node) => node?.type === 'img' || node?.props?.src);
     const split = splitStemOptions(raw);
-    if (split && (raw.includes('原题') || raw.includes('由此可以推出') || raw.includes('由此可知'))) {
-      return (
-        <div className="space-y-1.5">
-          {images}
-          {split.head.trim() ? (
-            <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{split.head.trim()}</p>
-          ) : null}
-          {split.chunks.map((chunk) => (
+    const stem = stripYuanTiLabel(split ? split.head : raw);
+    const order = isOrderingStem(stem) ? splitOrderingSentences(stem) : null;
+    const splitOptions = !!(split && (looksLikeQuestionStem(raw) || !String(split.head).trim()));
+    if (!order && !splitOptions) {
+      return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
+    }
+    return (
+      <div className="space-y-1.5">
+        {images}
+        {order ? (
+          <>
+            {order.head.trim() ? (
+              <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{order.head.trim()}</p>
+            ) : null}
+            {order.items.map((item) => (
+              <p key={item.mark} className="my-1 leading-[1.75]">
+                <strong>{item.mark}</strong> {item.body}
+              </p>
+            ))}
+            {order.tail.trim() ? (
+              <p className="my-1 leading-[1.75]">{order.tail.trim()}</p>
+            ) : null}
+          </>
+        ) : stem.trim() ? (
+          <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{stem.trim()}</p>
+        ) : null}
+        {splitOptions
+          ? split.chunks.map((chunk) => (
             <p key={chunk.letter} className="my-1 leading-[1.75]">
               <strong>{chunk.letter}.</strong> {chunk.body}
             </p>
-          ))}
-        </div>
-      );
-    }
-    return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
+          ))
+          : null}
+      </div>
+    );
   },
   h1({ children }) {
     return <h1 className="mt-4 mb-2 text-lg font-black tracking-tight">{children}</h1>;
@@ -339,7 +367,10 @@ const MarkdownMessage = memo(function MarkdownMessage({
 
   const displayContent = useMemo(
     () => sanitizeReviewMarkdown(
-      injectReviewStemImages(normalizeOriginalQuestionOptions(content), items),
+      injectReviewStemImages(
+        normalizePhysicsSubscripts(normalizeOriginalQuestionOptions(content)),
+        items,
+      ),
       { streaming },
     ),
     [content, streaming, items],

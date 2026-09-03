@@ -84,7 +84,7 @@ class SchedulerTest(unittest.TestCase):
                 mock.patch.object(
                     daily_batch_scheduler, "load_snapshot", return_value=SNAPSHOT
                 ),
-                mock.patch.object(daily_batch_scheduler.subprocess, "run") as run,
+                mock.patch.object(daily_batch_scheduler, "generate_and_import") as gen,
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 code = daily_batch_scheduler.main(
@@ -99,7 +99,7 @@ class SchedulerTest(unittest.TestCase):
                     ]
                 )
             self.assertEqual(code, 0)
-            run.assert_not_called()
+            gen.assert_not_called()
             conn = sqlite3.connect(root / "exam.db")
             with self.assertRaises(sqlite3.OperationalError):
                 conn.execute("SELECT * FROM ai_daily_batch_runs").fetchall()
@@ -144,9 +144,10 @@ class SchedulerTest(unittest.TestCase):
             run, SNAPSHOT, Path("/tmp/batch")
         )
         self.assertIn("You are ExamSystem", prompt)
-        self.assertIn("quiz-pipeline", prompt)
-        self.assertIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
-        self.assertIn("import-batch.mjs", prompt)
+        self.assertIn("Output one JSON object only", prompt)
+        self.assertNotIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
+        self.assertNotIn("import-batch.mjs", prompt)
+        self.assertNotIn("hermes chat", prompt.lower())
         self.assertIn("15", prompt)
         self.assertIn("answer_plan", prompt)
         self.assertIn("answer_max_per_letter", prompt)
@@ -160,7 +161,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn("数字推理", prompt)
         self.assertIn("数学运算", prompt)
         self.assertNotIn("Data analysis must be exactly 4 materials", prompt)
-        self.assertIn("quiz-pipeline", daily_batch_scheduler.DEFAULT_SKILLS)
+        self.assertFalse(hasattr(daily_batch_scheduler, "DEFAULT_SKILLS"))
 
     def test_panduan_prompt_is_graphic5_logic15_without_kepui(self):
         run = {

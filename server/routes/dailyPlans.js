@@ -123,11 +123,12 @@ export const getDailyRuns = (planDate) => {
   db.prepare(`
     UPDATE ai_daily_batch_runs
        SET status = 'imported',
+           error = NULL,
            generated_at = COALESCE(generated_at, datetime('now')),
            imported_at = COALESCE(imported_at, datetime('now')),
            updated_at = datetime('now')
      WHERE plan_date = ?
-       AND status IN ('scheduled', 'running', 'generating', 'generated')
+       AND status IN ('scheduled', 'running', 'generating', 'generated', 'failed')
        AND batch_id IS NOT NULL
        AND EXISTS (SELECT 1 FROM questions q WHERE q.batch_id = ai_daily_batch_runs.batch_id)
   `).run(date);

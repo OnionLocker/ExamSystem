@@ -32,7 +32,7 @@ from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper,
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("QUALITY_GATE_MODEL", "gemini-3.7-flash-high")
+MODEL = os.environ.get("QUALITY_GATE_MODEL", "gemini-3.8-flash-high")
 MOBILE_WIDTH = 320
 RETRIES = 2
 

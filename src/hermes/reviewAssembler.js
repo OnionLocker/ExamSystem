@@ -107,6 +107,10 @@ export function injectReviewStemImages(markdown, items = []) {
     if (/\*\*原题\*\*/.test(part)) {
       return part.replace(/(\*\*原题\*\*[^\n]*\n)/, `$1>\n${block}\n>\n`);
     }
+    const quoteAt = part.search(/^>/m);
+    if (quoteAt >= 0) {
+      return `${part.slice(0, quoteAt)}${block}\n>\n${part.slice(quoteAt)}`;
+    }
     return part.replace(/\n/, `\n${block}\n`);
   }).join('');
 }
@@ -158,8 +162,6 @@ export function assembleCoachReview(input = {}) {
   const lines = [
     `### ${String(index).padStart(2, '0')} · ${typeName}`,
     '',
-    '> **原题**',
-    '>',
     `> ${String(stem || '').replace(/\n/g, '\n> ')}`,
     ...optionLines.map((line) => (line.startsWith('>') ? line : `> ${line}`)),
     '',
