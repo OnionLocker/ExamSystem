@@ -213,6 +213,18 @@ class ScienceTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "科学推理须为 5 题"):
             validate_paper_hard_rules({}, science_paper(4, with_images=True))
 
+    def test_focus_tag_allows_short_kepui_drill(self):
+        paper = science_paper(2, with_images=True)
+        for item in paper:
+            item["tags"] = ["科学推理-力学-杠杆滑轮"]
+            item["stem"] = "如图，关于杠杆的问题。"
+        manifest = {
+            "generation": {
+                "batch_constraints": {"focus_tag": "科学推理-力学-杠杆滑轮", "question_count": 2}
+            }
+        }
+        validate_paper_hard_rules(manifest, paper)
+
     def test_panduan_category_on_kepui_rejected(self):
         paper = science_paper(5, with_images=True)
         for item in paper:

@@ -15,6 +15,9 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from graphic_bank import build_graphic_paper
+from normalize_ai_batch import generation_payload_extras
+from program_figure import is_program_kind, render_program
 from render_ziliao_figure import render_bars, render_pie, render_table
 from scheduler_common import ROOT, daily_source_name, difficulty_tier
 
@@ -33,6 +36,8 @@ GATE_SCRIPT = ROOT / "scripts" / "generation_gate.py"
 IMPORT_SCRIPT = ROOT / "scripts" / "import-batch.mjs"
 CAT_ZILIAO = "\u8d44\u6599\u5206\u6790"
 CAT_KEPUI = "\u79d1\u5b66\u63a8\u7406"
+CAT_PANDUAN = "\u5224\u65ad\u63a8\u7406"
+CAT_YANYU = "\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe"
 REGION = "\u5e7f\u4e1c-\u7701\u76f4"
 
 
@@ -148,16 +153,18 @@ def augment_prompt(prompt: str, run: dict, batch_dir: Path, error: str | None = 
             + existing.read_text(encoding="utf-8")[:20000]
         )
     if error:
-        chunks.append(
-            "\n# Previous generation_gate failure. Output a complete corrected JSON object.\n"
-            + error[-8000:]
-        )
+        from quality_ledger import retry_prompt_block
+
+        chunks.append("\n" + retry_prompt_block(str(run.get("module") or ""), error))
     return "\n".join(chunks)
 
 
 def render_one(fig: dict, dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     kind = str(fig.get("kind") or "")
+    if is_program_kind(kind):
+        render_program(fig, dest)
+        return
     title = str(fig.get("title") or "")
     if kind == "table":
         render_table(
@@ -175,6 +182,8 @@ def render_one(fig: dict, dest: Path) -> None:
             if isinstance(item, dict):
                 series.append((str(item.get("name") or ""), [float(x) for x in item.get("values") or []]))
         render_bars(title, str(fig.get("ylabel") or ""), list(fig.get("categories") or []), series, dest)
+        return
+    if dest.is_file():
         return
     if kind == "pie":
         slices = []
@@ -232,7 +241,7 @@ def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
         spec = by_id.get(str(question.get("external_id") or ""))
         facts = list((spec or {}).get("image_facts") or [])
         fig = pop_figure(question)
-        if fig and not facts:
+        if fig:
             dest = batch_dir / str(fig.get("file") or f"images/q-{index:02d}-stem.png")
             render_one(fig, dest)
             question["stem_images"] = [str(dest.relative_to(batch_dir))]
@@ -281,7 +290,7 @@ def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
 
 
 def stamp_questions(run: dict, questions: list[dict]) -> list[dict]:
-    source = daily_source_name(run["module"], run["plan_date"])
+    source = run.get("source") or daily_source_name(run["module"], run["plan_date"])
     year = int(str(run["plan_date"])[:4])
     out = []
     for index, question in enumerate(questions, 1):
@@ -296,23 +305,44 @@ def stamp_questions(run: dict, questions: list[dict]) -> list[dict]:
         row["options"] = options_list(row.get("options"))
         if not str(row.get("analysis") or "").strip() and row.get("explanation"):
             row["analysis"] = row["explanation"]
+        if not str(row.get("explanation") or "").strip() and row.get("analysis"):
+            row["explanation"] = row["analysis"]
+        diff = row.get("difficulty")
+        if isinstance(diff, str) and diff.lower() in {"easy", "medium", "hard"}:
+            row["difficulty"] = {"easy": 2, "medium": 3, "hard": 4}[diff.lower()]
+        elif not isinstance(diff, int):
+            row["difficulty"] = 2
         if run["module"] == CAT_KEPUI:
             row["category"] = CAT_KEPUI
             row["sub_category"] = CAT_KEPUI
+        if run["module"] == CAT_YANYU:
+            row.pop("sub_category", None)
+        if run["module"] == CAT_ZILIAO:
+            row["sub_category"] = CAT_ZILIAO
         out.append(row)
     return out
 
 
 def write_batch(run: dict, batch_dir: Path, draft: dict) -> None:
-    from normalize_ai_batch import generation_payload_extras
-
     batch_dir.mkdir(parents=True, exist_ok=True)
     questions = stamp_questions(run, list(draft.get("questions") or []))
     extras = generation_payload_extras(
-        run["module"], int(run["planned_count"]), str(run["batch_id"])
+        run["module"],
+        int(run["planned_count"]),
+        str(run["batch_id"]),
+        focus_tag=str(run.get("focus_tag") or ""),
     )
+    extras.setdefault("batch_constraints", {})
+    if run.get("figure_control"):
+        n = int(run["planned_count"])
+        extras["batch_constraints"]["program_figures"] = True
+        extras["batch_constraints"]["image_dependent_count"] = {"min": n, "max": n}
+        extras["batch_constraints"].pop("panduan_layout", None)
+        extras["batch_constraints"].pop("kepui_layout", None)
+    elif run.get("module") == CAT_KEPUI:
+        extras["batch_constraints"]["program_figures"] = True
     materials = [item for item in (draft.get("materials") or []) if isinstance(item, dict)]
-    source = daily_source_name(run["module"], run["plan_date"])
+    source = run.get("source") or daily_source_name(run["module"], run["plan_date"])
     for index, material in enumerate(materials, 1):
         material["external_id"] = str(
             material.get("external_id") or f"{run['batch_id']}-M{index:02d}"
@@ -344,8 +374,31 @@ def write_batch(run: dict, batch_dir: Path, draft: dict) -> None:
         dump(batch_dir / "calculations.json", calculations)
     elif isinstance(calculations, list):
         dump(batch_dir / "calculations.json", {"questions": calculations})
-    if specs:
-        dump(batch_dir / "image-specs.json", specs if isinstance(specs, dict) else {"questions": specs})
+    rows = []
+    if isinstance(specs, dict):
+        rows = list(specs.get("questions") or [])
+    elif isinstance(specs, list):
+        rows = list(specs)
+    have = {str(item.get("question_id")) for item in rows if isinstance(item, dict)}
+    for question in questions:
+        qid = str(question.get("external_id") or "")
+        has_img = question.get("stem_images") or any(
+            option.get("images") for option in question.get("options") or []
+        )
+        if not qid or qid in have or not has_img:
+            continue
+        if run.get("module") == CAT_KEPUI:
+            continue
+        rows.append(
+            {
+                "question_id": qid,
+                "image_facts": ["程序绘制的图形"],
+                "image_only_facts": ["题干图"],
+                "must_derive": [f"正确选项是 {question.get('answer')}"],
+            }
+        )
+    if rows:
+        dump(batch_dir / "image-specs.json", {"questions": rows})
     draft["questions"] = questions
     draft["materials"] = materials
 
@@ -369,15 +422,6 @@ def run_cmd(command: list[str], deadline: float, env: dict[str, str]) -> str:
     return (result.stdout or "").strip()
 
 
-def parse_failed_question_ids(error_message: str) -> list[str]:
-    """从 gate 错误信息中解析出失败的题目 ID"""
-    import re
-    # 匹配类似 "20260903_判断_01_03" 的题目 ID
-    pattern = r'\b\d{8}_[^_\s]+_\d+_\d+\b'
-    matches = re.findall(pattern, error_message)
-    return list(set(matches))
-
-
 def generate_and_import(
     run: dict,
     batch_dir: Path,
@@ -387,43 +431,40 @@ def generate_and_import(
 ) -> None:
     deadline = time.monotonic() + timeout
     env = {**os.environ, "EXAM_DB": str(db_path)}
+    graphic_qs: list[dict] = []
+    if (
+        run["module"] == CAT_PANDUAN
+        and int(run["planned_count"]) == 20
+        and not run.get("focus_tag")
+    ):
+        extras = generation_payload_extras(
+            run["module"], int(run["planned_count"]), str(run["batch_id"]), db_path
+        )
+        gslots = [
+            slot
+            for slot in (extras.get("panduan_pack") or {}).get("slots") or []
+            if slot.get("section") == "graphic"
+        ]
+        graphic_qs = build_graphic_paper(gslots, batch_dir, str(run["batch_id"]))
     error = None
-    for attempt in range(2):
-        if attempt == 0:
-            # 首次生成：完整批次
-            draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
-        else:
-            # 第二次：尝试增量修复
-            failed_ids = parse_failed_question_ids(error or "")
-            if failed_ids and len(failed_ids) < int(run["planned_count"]) // 2:
-                # 如果失败题目少于一半，尝试只修复这些题
-                print(f"尝试增量修复 {len(failed_ids)} 道失败题: {', '.join(failed_ids[:3])}...")
-                # 读取现有草稿，只重新生成失败的题
-                existing = batch_dir / "questions.json"
-                if existing.is_file():
-                    import json
-                    existing_draft = json.loads(existing.read_text(encoding='utf-8'))
-                    # 提取失败题的索引
-                    failed_indices = []
-                    for i, q in enumerate(existing_draft.get("questions") or []):
-                        if str(q.get("external_id")) in failed_ids:
-                            failed_indices.append(i + 1)
-
-                    if failed_indices:
-                        # 构建增量修复 prompt
-                        patch_prompt = augment_prompt(prompt, run, batch_dir, error)
-                        patch_prompt += f"\n\n# 增量修复模式\n只需修复以下题号: {', '.join(map(str, failed_indices))}\n"
-                        patch_prompt += "保持其他题目不变，只输出完整的 questions.json（包含修复后的题目）。\n"
-                        draft = call_gemini(patch_prompt, deadline)
-                    else:
-                        # 无法定位失败题，全批重生成
-                        draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
-                else:
-                    draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
-            else:
-                # 失败题目太多或无法解析，全批重生成
-                draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
-
+    for _attempt in range(3):
+        draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+        if graphic_qs:
+            logic = [
+                question
+                for question in draft.get("questions") or []
+                if str(question.get("sub_category") or "") == "逻辑判断"
+            ]
+            if len(logic) < 15:
+                logic = list(draft.get("questions") or [])[-15:]
+            merged = []
+            for row in graphic_qs + logic[:15]:
+                item = dict(row)
+                item.pop("external_id", None)
+                if item.get("stem_images"):
+                    item.pop("figure", None)
+                merged.append(item)
+            draft["questions"] = merged
         write_batch(run, batch_dir, draft)
         render_assets(batch_dir, draft, deadline)
         dump(batch_dir / "questions.json", draft["questions"])

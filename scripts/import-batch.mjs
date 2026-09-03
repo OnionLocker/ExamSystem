@@ -3,6 +3,7 @@
 // 用法: node scripts/import-batch.mjs <batch-dir>
 // 会先跑校验，通过后把题目写入 SQLite、把图片复制到 public/q-images/<batch_id>/
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -10,13 +11,26 @@ import { fileURLToPath } from 'node:url';
 
 import db from '../server/db.js'; // 自动跑 schema / migration
 import { validateBatch } from './validate-batch.mjs';
+import { beijingNow } from '../src/lib/beijingTime.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PUBLIC_IMG_ROOT = path.join(ROOT, 'public', 'q-images');
 
-const toImgPublicPath = (batchId, rel) =>
-  `/q-images/${batchId}/${path.basename(rel)}`;
+const collapseMaterialBlankLines = (text) => String(text || '')
+  .replace(/\r\n/g, '\n')
+  .replace(/[ \t]*\n(?:[ \t]*\n)+/g, '\n')
+  .replace(/^\n+|\n+$/g, '');
+
+const contentHash = (filePath) =>
+  crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex').slice(0, 10);
+
+const toImgPublicPath = (batchId, rel, batchDir) => {
+  const name = path.basename(rel);
+  const src = path.join(batchDir, rel);
+  const suffix = fs.existsSync(src) ? `?v=${contentHash(src)}` : '';
+  return `/q-images/${batchId}/${name}${suffix}`;
+};
 
 const DAILY_SLUG = {
   yanyu: '言语理解与表达',
@@ -56,9 +70,11 @@ function copyImages(batchDir, batchId, questions, materials) {
   return copied;
 }
 
-// 把 JSON 里的相对路径数组改写为绝对 public 路径
-const rewrite = (batchId, arr) =>
-  Array.isArray(arr) && arr.length ? arr.map((p) => toImgPublicPath(batchId, p)) : null;
+// 把 JSON 里的相对路径数组改写为绝对 public 路径；带内容哈希，避免同名旧图被浏览器缓存。
+const rewrite = (batchId, arr, batchDir) =>
+  Array.isArray(arr) && arr.length
+    ? arr.map((p) => toImgPublicPath(batchId, p, batchDir))
+    : null;
 
 function resolvedTags(q) {
   const tags = Array.isArray(q.tags)
@@ -145,7 +161,7 @@ function verifyGenerationContexts(manifest, questions) {
   return contextIds;
 }
 
-function importToDB(manifest, questions, materials) {
+function importToDB(manifest, questions, materials, batchDir) {
   const batchId = manifest.batch_id;
 
   // UPSERT materials（按 external_id）
@@ -168,12 +184,12 @@ function importToDB(manifest, questions, materials) {
       external_id, category, sub_category, question_type,
       content, stem_images, options, correct_answer,
       explanation, explanation_images, difficulty, tags,
-      source, year, region, material_id, batch_id
+      source, year, region, material_id, batch_id, created_at
     ) VALUES (
       @external_id, @category, @sub_category, @question_type,
       @content, @stem_images, @options, @correct_answer,
       @explanation, @explanation_images, @difficulty, @tags,
-      @source, @year, @region, @material_id, @batch_id
+      @source, @year, @region, @material_id, @batch_id, @created_at
     )
     ON CONFLICT(external_id) DO UPDATE SET
       category           = excluded.category,
@@ -203,8 +219,8 @@ function importToDB(manifest, questions, materials) {
     for (const m of materials || []) {
       upsertMat.run({
         external_id: m.external_id,
-        content: m.content,
-        images: JSON.stringify(rewrite(batchId, m.images) || []) || null,
+        content: collapseMaterialBlankLines(m.content),
+        images: JSON.stringify(rewrite(batchId, m.images, batchDir) || []) || null,
         source: m.source ?? manifest.source ?? null,
         year: m.year ?? manifest.year ?? null,
         region: m.region ?? manifest.region ?? null,
@@ -231,7 +247,7 @@ function importToDB(manifest, questions, materials) {
         ? q.options.map((o) => ({
             key: o.key,
             text: o.text ?? '',
-            images: rewrite(batchId, o.images) || [],
+            images: rewrite(batchId, o.images, batchDir) || [],
           }))
         : null;
 
@@ -242,11 +258,11 @@ function importToDB(manifest, questions, materials) {
         sub_category: stamp?.module === '科学推理' ? '科学推理' : (q.sub_category ?? null),
         question_type: q.question_type ?? 'single',
         content: q.stem,
-        stem_images: JSON.stringify(rewrite(batchId, q.stem_images) || []),
+        stem_images: JSON.stringify(rewrite(batchId, q.stem_images, batchDir) || []),
         options: opts ? JSON.stringify(opts) : null,
         correct_answer: String(answer),
         explanation: q.explanation ?? null,
-        explanation_images: JSON.stringify(rewrite(batchId, q.explanation_images) || []),
+        explanation_images: JSON.stringify(rewrite(batchId, q.explanation_images, batchDir) || []),
         difficulty: q.difficulty ?? 2,
         tags: JSON.stringify(resolvedTags(q)),
         source: stamp?.source || q.source || manifest.source || null,
@@ -254,6 +270,7 @@ function importToDB(manifest, questions, materials) {
         region: q.region ?? manifest.region ?? null,
         material_id: materialId,
         batch_id: batchId,
+        created_at: beijingNow(),
       });
       stats.questions++;
     }
@@ -307,7 +324,7 @@ const imgCount = copyImages(abs, manifest.batch_id, questions, materials);
 console.log(`  已复制 ${imgCount} 张图片`);
 
 console.log('→ 写入数据库 ...');
-const stats = importToDB(manifest, questions, materials);
+const stats = importToDB(manifest, questions, materials, abs);
 console.log(`  materials: ${stats.materials}`);
 console.log(`  questions: ${stats.questions}`);
 

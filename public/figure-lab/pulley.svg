@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="200" y1="40" x2="440" y2="40" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
+<circle cx="260" cy="90" r="28" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="380" cy="90" r="28" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="232" y1="90" x2="232" y2="200" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="408" y1="90" x2="408" y2="160" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="210" y="200" width="44" height="36" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="388" y="160" width="40" height="28" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="232" y="256" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">G</text>
+<text x="408" y="210" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F</text>
+</svg>

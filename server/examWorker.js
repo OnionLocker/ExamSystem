@@ -35,7 +35,7 @@ const setState = (id, patch) => {
   if (cols.length === 0) return;
   db.prepare(
     `UPDATE exam_analyses SET ${cols.map((c) => `${c} = @${c}`).join(', ')},
-       updated_at = datetime('now') WHERE id = @id`,
+       updated_at = datetime('now', '+8 hours') WHERE id = @id`,
   ).run({ ...patch, id });
 };
 

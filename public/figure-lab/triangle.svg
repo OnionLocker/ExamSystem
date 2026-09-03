@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="340" viewBox="0 0 640 340">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="140,280 500,280 280,70" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<line x1="280" y1="70" x2="280" y2="280" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="280" y="264" width="16" height="16" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="130" y="300" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">A</text>
+<text x="510" y="300" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">B</text>
+<text x="280" y="58" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">C</text>
+<text x="300" y="300" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">D</text>
+</svg>

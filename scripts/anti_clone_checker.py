@@ -28,6 +28,12 @@ FIXED_TEMPLATES = [
     "能够从上述资料中推出的是",
     "下列说法正确的是",
     "下列说法错误的是",
+    "从所给的四个选项中，选择最合适的一个填入问号处，使之呈现一定的规律性",
+    "从所给的四个选项中选择最合适的一个填入问号处使之呈现一定的规律性",
+    "四个选项中选择最合适的一个填入问号处使之呈现一定的规律性",
+    "选择最合适的一个填入问号处，使之呈现一定的规律性",
+    "选择最合适的一个填入问号处使之呈现一定的规律性",
+    "呈现一定的规律性",
 ]
 
 
@@ -230,20 +236,20 @@ def check_batch_clones(
         if not context_id:
             continue
 
-        # 从数据库查询该 context 的参考题
-        cursor = conn.execute("""
-            SELECT rq.stem, rq.content, rq.options
-            FROM reference_context_runs rcr
-            JOIN reference_questions rq ON rq.id IN (
-                SELECT value FROM json_each(rcr.reference_ids)
-            )
-            WHERE rcr.context_id = ?
-        """, (context_id,))
+        # 从数据库查询该 context 的参考题（题干列是 content，关联用 external_id）
+        ref_ids = [str(x) for x in (ctx.get("reference_ids") or []) if str(x)]
+        if not ref_ids:
+            continue
+        placeholders = ",".join("?" * len(ref_ids))
+        cursor = conn.execute(
+            f"SELECT content, options FROM reference_questions WHERE external_id IN ({placeholders})",
+            ref_ids,
+        )
 
         ref_questions = []
         for row in cursor:
             ref_questions.append({
-                'stem': row['stem'] or row['content'],
+                'stem': row['content'],
                 'options': row['options']
             })
 

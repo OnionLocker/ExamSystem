@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260" viewBox="0 0 720 260">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="50" y="50" width="110" height="160" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="105" y1="158" x2="105" y2="108" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="105,108 112,120 98,120" fill="#111111" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="180" y="50" width="110" height="160" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="263" y1="130" x2="213" y2="130" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="213,130 225,123 225,137" fill="#111111" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="310" y="50" width="110" height="160" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="365" y1="102" x2="365" y2="152" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="365,152 358,140 372,140" fill="#111111" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="440" y="50" width="110" height="160" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="467" y1="130" x2="517" y2="130" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<polygon points="517,130 505,137 505,123" fill="#111111" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="570" y="50" width="110" height="160" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="625" y="145" fill="#111111" font-size="40" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+</svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="160" y="40" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="205" cy="85" r="16" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="270" y="40" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="315" cy="85" r="16" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="315" cy="85" r="8" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="380" y="40" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="425" y="93" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+<rect x="160" y="150" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="205,175 185,215 225,215" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="270" y="150" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="315,175 295,215 335,215" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<line x1="315" y1="175" x2="315" y2="215" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="380" y="150" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="425" y="203" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+<rect x="160" y="260" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="187" y="287" width="36" height="36" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="270" y="260" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="297" y="287" width="36" height="36" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="297" y1="305" x2="333" y2="305" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="380" y="260" width="90" height="90" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="425" y="313" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+</svg>

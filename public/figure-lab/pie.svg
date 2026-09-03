@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="400" viewBox="0 0 720 400">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<text x="360" y="28" fill="#111111" font-size="16" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">图3  结构占比</text>
+<polygon points="280,220 280,100 294.71,100.91 309.21,103.61 323.26,108.07 336.66,114.22 349.2,121.96 360.7,131.19 370.98,141.76 379.89,153.5 387.29,166.25 393.07,179.81 397.15,193.98 399.45,208.54 399.96,223.28 398.65,237.96 395.55,252.38 390.71,266.3 384.2,279.53 376.11,291.85 366.57,303.1 355.73,313.09 343.74,321.67 330.8,328.72 317.08,334.13" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="280,220 317.08,334.13 307.61,336.78 297.96,338.65 288.19,339.72 278.36,339.99 268.54,339.45 258.8,338.11 249.21,335.98 239.81,333.07 230.69,329.4 221.9,325 213.5,319.89 205.55,314.11 198.09,307.7 191.19,300.7 184.88,293.16 179.21,285.13 174.22,276.66 169.93,267.81 166.39,258.64 163.61,249.21 161.61,239.58 160.4,229.82 160,220" fill="url(#hatch2)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="280,220 160,220 160.28,211.81 161.12,203.66 162.51,195.59 164.45,187.62 166.93,179.81 169.93,172.19 173.45,164.79 177.47,157.65 181.96,150.8 186.91,144.27 192.3,138.09 198.09,132.3 204.27,126.91 210.8,121.96 217.65,117.47 224.79,113.45 232.19,109.93 239.81,106.93 247.62,104.45 255.59,102.51 263.66,101.12 271.81,100.28 280,100" fill="url(#dots)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="280" cy="220" r="120" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="480" y="140" width="28" height="20" fill="url(#hatch)" stroke="#111111" stroke-width="1.8"/>
+<text x="530" y="156" fill="#111111" font-size="14" text-anchor="start" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">东部 45%</text>
+<rect x="480" y="200" width="28" height="20" fill="url(#hatch2)" stroke="#111111" stroke-width="1.8"/>
+<text x="530" y="216" fill="#111111" font-size="14" text-anchor="start" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">西部 30%</text>
+<rect x="480" y="260" width="28" height="20" fill="url(#dots)" stroke="#111111" stroke-width="1.8"/>
+<text x="530" y="276" fill="#111111" font-size="14" text-anchor="start" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">其他 25%</text>
+</svg>

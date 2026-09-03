@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260" viewBox="0 0 720 260">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<circle cx="200" cy="130" r="70" fill="none" stroke="#111111" stroke-width="1.8"/>
+<path d="M470 80 A70 70 0 1 1 470 180" fill="none" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<text x="200" y="240" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">封闭</text>
+<text x="500" y="240" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">开放</text>
+</svg>

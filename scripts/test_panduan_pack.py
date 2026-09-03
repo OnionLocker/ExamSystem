@@ -73,6 +73,31 @@ class PanduanPackTest(unittest.TestCase):
         self.assertEqual(len(compact["slots"]), 20)
         self.assertEqual(compact["layout"], pack.LAYOUT_NAME)
         self.assertEqual(compact["layout"], "5_graphic_plus_15_logic")
+        self.assertTrue(all(slot.get("exam_move") for slot in compact["slots"]))
+        logic_moves = [slot["exam_move"] for slot in compact["slots"] if slot["section"] == "logic"]
+        self.assertEqual(len(logic_moves), len(set(logic_moves)))
+
+    def test_kaodian_rejects_structure_slot_without_ask(self):
+        questions = paper_from_slots(pack.select_panduan_paper({}, {}))
+        ask_by_key = (
+            ("支持", "最能支持上述结论的是"),
+            ("质疑", "最能削弱上述结论的是"),
+            ("分析", "根据以上信息可以推出对应关系的是"),
+            ("解释", "最能解释上述现象的是"),
+            ("翻译", "由此可以推出"),
+            ("归因", "最能质疑该归因的是"),
+        )
+        for item in questions:
+            if item["sub_category"] != pack.SUB_LOGIC:
+                continue
+            tag = item["tags"][0]
+            if "秒杀" in tag or "结构" in tag:
+                item["stem"] = "某单位四位职工对驻村人选作了预测，已知只有一人说假话。由此可以推出。" + "补充。" * 8
+                continue
+            ask = next((text for key, text in ask_by_key if key in tag), "根据以上信息可以推出")
+            item["stem"] = ("背景叙述。" * 8) + ask
+        with self.assertRaisesRegex(ValueError, "考点与设问不符"):
+            pack.validate_panduan_kaodian(questions)
 
 
 class KepuiPackTest(unittest.TestCase):

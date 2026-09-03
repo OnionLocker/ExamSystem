@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<text x="98" y="60" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">图1</text>
+<rect x="50" y="70" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="82" y="70" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="114" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="50" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="82" y="102" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="114" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="50" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="82" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="114" y="134" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<text x="248" y="60" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">图2</text>
+<rect x="200" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="232" y="70" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="264" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="200" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="232" y="102" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="264" y="102" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="200" y="134" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="232" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="264" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<text x="398" y="60" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">求同</text>
+<rect x="350" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="382" y="70" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="414" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="350" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="382" y="102" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="414" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="350" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="382" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="414" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<text x="548" y="60" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">求异</text>
+<rect x="500" y="70" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="532" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="564" y="70" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="500" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="532" y="102" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="564" y="102" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="500" y="134" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+<rect x="532" y="134" width="32" height="32" fill="#ffffff" stroke="#111111" stroke-width="1.3"/>
+<rect x="564" y="134" width="32" height="32" fill="#111111" stroke="#111111" stroke-width="1.3"/>
+</svg>

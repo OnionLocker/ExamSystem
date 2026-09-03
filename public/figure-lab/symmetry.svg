@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="300" viewBox="0 0 720 300">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="80" y="40" width="240" height="220" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="200,70 120,220 280,220" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="400" y="40" width="240" height="220" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="450,80 610,80 580,220 430,220" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="200" y="280" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">轴对称</text>
+<text x="520" y="280" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">中心对称</text>
+</svg>

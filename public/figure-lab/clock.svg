@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260" viewBox="0 0 720 260">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<circle cx="90" cy="130" r="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="90" cy="130" r="3" fill="#111111" stroke="#111111" stroke-width="1"/>
+<line x1="90" y1="130" x2="112" y2="130" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="90" y1="130" x2="90" y2="94" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="270" cy="130" r="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="270" cy="130" r="3" fill="#111111" stroke="#111111" stroke-width="1"/>
+<line x1="270" y1="130" x2="270" y2="152" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="270" y1="130" x2="306" y2="130" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="450" cy="130" r="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="450" cy="130" r="3" fill="#111111" stroke="#111111" stroke-width="1"/>
+<line x1="450" y1="130" x2="428" y2="130" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="450" y1="130" x2="450" y2="166" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="630" cy="130" r="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="630" cy="130" r="3" fill="#111111" stroke="#111111" stroke-width="1"/>
+<text x="630" y="140" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<circle cx="220" cy="150" r="56" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="220" cy="150" r="8" fill="#111111" stroke="#111111" stroke-width="1"/>
+<line x1="276" y1="150" x2="286" y2="150" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="268.5" y1="178" x2="277.16" y2="183" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="248" y1="198.5" x2="253" y2="207.16" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="220" y1="206" x2="220" y2="216" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="192" y1="198.5" x2="187" y2="207.16" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="171.5" y1="178" x2="162.84" y2="183" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="164" y1="150" x2="154" y2="150" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="171.5" y1="122" x2="162.84" y2="117" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="192" y1="101.5" x2="187" y2="92.84" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="220" y1="94" x2="220" y2="84" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="248" y1="101.5" x2="253" y2="92.84" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="268.5" y1="122" x2="277.16" y2="117" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<circle cx="400" cy="150" r="40" fill="none" stroke="#111111" stroke-width="1.8"/>
+<circle cx="400" cy="150" r="8" fill="#111111" stroke="#111111" stroke-width="1"/>
+<line x1="440" y1="150" x2="450" y2="150" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="428.28" y1="178.28" x2="435.36" y2="185.36" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="400" y1="190" x2="400" y2="200" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="371.72" y1="178.28" x2="364.64" y2="185.36" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="360" y1="150" x2="350" y2="150" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="371.72" y1="121.72" x2="364.64" y2="114.64" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="400" y1="110" x2="400" y2="100" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="428.28" y1="121.72" x2="435.36" y2="114.64" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<line x1="140" y1="150" x2="160" y2="150" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="160,150 149,156 149,144" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<text x="220" y="250" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">主动</text>
+<text x="400" y="250" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">从动</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="380" viewBox="0 0 720 380">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="283.14,328 241.57,352 241.57,304 283.14,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="241.57,256 283.14,280 241.57,304 200,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="116.86,328 158.43,352 158.43,304 116.86,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="158.43,256 200,280 158.43,304 116.86,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="158.43,256 200,280 200,232 158.43,208" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="241.57,256 200,280 200,232 241.57,208" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="200,184 241.57,208 200,232 158.43,208" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="158.43,352 200,376 200,328 158.43,304" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="241.57,352 200,376 200,328 241.57,304" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="200,280 241.57,304 200,328 158.43,304" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="200,256 283.14,304 200,352 116.86,304" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<rect x="460" y="80" width="80" height="80" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="460" y1="120" x2="540" y2="120" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="500" y1="80" x2="500" y2="160" stroke="#111111" stroke-width="1.6" stroke-linecap="round"/>
+<text x="500" y="200" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">水平截面</text>
+</svg>

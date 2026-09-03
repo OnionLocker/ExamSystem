@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS kaodian_profile (
     mastery_samples REAL,
     mastery_source TEXT NOT NULL DEFAULT 'auto',
     mastery_updated_at TEXT,
-    updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    updated_at   TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_kp_module ON kaodian_profile(module);
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
     elapsed_ms  INTEGER,
     evidence_type TEXT NOT NULL DEFAULT 'hermes',
     evidence_weight REAL NOT NULL DEFAULT 1.0,
-    answered_at TEXT NOT NULL DEFAULT (datetime('now'))
+    answered_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at);
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS kaodian_aliases (
     canonical   TEXT NOT NULL,
     module      TEXT NOT NULL,
     subtype     TEXT,
-    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_kaodian_alias_canonical
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS kaodian_debts (
     last_wrong_at    TEXT,
     last_seen_at     TEXT,
     mastered         INTEGER NOT NULL DEFAULT 0,
-    updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+    updated_at       TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 """
 
@@ -86,7 +86,7 @@ ON CONFLICT(kaodian) DO UPDATE SET
     streak     = CASE WHEN excluded.correct = 1
                       THEN MAX(streak, 0) + 1
                       ELSE MIN(streak, 0) - 1 END,
-    updated_at = datetime('now')
+    updated_at = datetime('now', '+8 hours')
 """
 
 
@@ -168,8 +168,8 @@ def recompute_mastery(conn, kaodian=None):
             conn.execute(
                 """UPDATE kaodian_profile
                    SET mastery=?, mastery_confidence=?, mastery_samples=?,
-                       mastery_source='auto', mastery_updated_at=datetime('now'),
-                       updated_at=datetime('now') WHERE kaodian=?""",
+                       mastery_source='auto', mastery_updated_at=datetime('now', '+8 hours'),
+                       updated_at=datetime('now', '+8 hours') WHERE kaodian=?""",
                 (score["mastery"], score["mastery_confidence"], score["mastery_samples"], tag),
             )
 
@@ -215,7 +215,7 @@ def seal_practice(conn, session_id):
     try:
         cur = conn.execute(
             """UPDATE practice_sessions
-                  SET profile_reviewed_at=datetime('now')
+                  SET profile_reviewed_at=datetime('now', '+8 hours')
                 WHERE id=? AND profile_reviewed_at IS NULL""",
             (session_id,),
         )
@@ -229,9 +229,9 @@ def apply_debt(conn, kaodian, is_correct):
         conn.execute(
             """UPDATE kaodian_debts
                   SET recovery_streak = recovery_streak + 1,
-                      last_seen_at = datetime('now'),
+                      last_seen_at = datetime('now', '+8 hours'),
                       mastered = CASE WHEN recovery_streak + 1 >= ? THEN 1 ELSE 0 END,
-                      updated_at = datetime('now')
+                      updated_at = datetime('now', '+8 hours')
                 WHERE kaodian = ? AND mastered = 0""",
             (DEBT_CLEAR, kaodian),
         )
@@ -239,14 +239,14 @@ def apply_debt(conn, kaodian, is_correct):
     conn.execute(
         """INSERT INTO kaodian_debts
              (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
-           VALUES (?, 1, 0, datetime('now'), datetime('now'), 0)
+           VALUES (?, 1, 0, datetime('now', '+8 hours'), datetime('now', '+8 hours'), 0)
            ON CONFLICT(kaodian) DO UPDATE SET
              wrong_count = wrong_count + 1,
              recovery_streak = 0,
-             last_wrong_at = datetime('now'),
-             last_seen_at = datetime('now'),
+             last_wrong_at = datetime('now', '+8 hours'),
+             last_seen_at = datetime('now', '+8 hours'),
              mastered = 0,
-             updated_at = datetime('now')""",
+             updated_at = datetime('now', '+8 hours')""",
         (kaodian,),
     )
 
@@ -286,7 +286,7 @@ def rebuild_kaodian(conn, kaodian):
     conn.execute(
         """UPDATE kaodian_profile
               SET attempts=?, correct=?, total_ms=?, last_seen=?, streak=?,
-                  updated_at=datetime('now')
+                  updated_at=datetime('now', '+8 hours')
             WHERE kaodian=?""",
         (attempts, correct, total_ms, last_seen, streak, kaodian),
     )
@@ -303,7 +303,7 @@ def rebuild_kaodian(conn, kaodian):
                  last_wrong_at=excluded.last_wrong_at,
                  last_seen_at=excluded.last_seen_at,
                  mastered=excluded.mastered,
-                 updated_at=datetime('now')""",
+                 updated_at=datetime('now', '+8 hours')""",
             (kaodian, wrong_count, recovery, last_wrong, last_seen_at, mastered),
         )
     recompute_mastery(conn, kaodian)
@@ -388,7 +388,7 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
                      THEN excluded.note
                    ELSE kaodian_profile.note || '；' || excluded.note
                  END,
-          updated_at = datetime('now')
+          updated_at = datetime('now', '+8 hours')
     """, (kaodian, module, subtype, note.strip()))
 
 
@@ -437,7 +437,7 @@ def ensure_schema(conn):
           canonical TEXT NOT NULL,
           module TEXT NOT NULL,
           subtype TEXT,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
     """)
     conn.execute("""
@@ -492,7 +492,7 @@ def set_mastery(conn, kaodian, score, note="", module="", subtype=""):
                    mastery_note = CASE WHEN ? = '' THEN mastery_note ELSE ? END,
                    module = CASE WHEN ? = '' THEN module ELSE ? END,
                    subtype = CASE WHEN ? = '' THEN subtype ELSE ? END,
-                   updated_at = datetime('now')
+                   updated_at = datetime('now', '+8 hours')
              WHERE kaodian = ?
             """,
             (score, note, note, module, module, subtype, subtype, kaodian),

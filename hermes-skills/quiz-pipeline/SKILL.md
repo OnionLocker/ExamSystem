@@ -66,6 +66,19 @@ metadata:
 
 ### Step 2：调用外部工具
 
+前台 `terminal` 最多 600 秒，出题经常要 5–40 分钟。必须后台跑，禁止前台超时后自己写题。
+
+```
+terminal({
+  command: "python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py --module '判断推理' --tag '判断推理-逻辑判断-翻译推理' --count 5 --batch-id 'YYYYMMDD_hermes_翻译推理_01' --interactive",
+  workdir: "/home/ubuntu/ExamSystem",
+  background: true,
+  notify_on_complete: true
+})
+```
+
+等价命令：
+
 ```bash
 python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py \
   --module "判断推理" \
@@ -212,15 +225,9 @@ python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py \
 
 ---
 
-## 回退兼容（临时）
+## 回退
 
-如果 `quiz_generator.py` 执行失败（脚本 bug、依赖缺失），你可以临时回退到 v2 流程：
-1. 加载 `reference-style-principles.md` 和 `module-hard-rules.md`
-2. 自己写草稿
-3. 调用 `generation_gate.py issue`
-4. 调用 `import-batch.mjs`
-
-但必须在对话中明确告知："工具暂时不可用，已回退到 v2 流程"，并报告错误日志。
+脚本报 `status=error`：把错误原话告诉用户。禁止自己写 `questions.json`、禁止手调闸门、禁止用 MEMORY.md 里的旧「写题→闸门」流程顶上。
 
 ---
 

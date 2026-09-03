@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="400" viewBox="0 0 720 400">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<text x="360" y="28" fill="#111111" font-size="16" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">图1  业务量</text>
+<line x1="80" y1="340" x2="680" y2="340" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="80" y1="340" x2="80" y2="50" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<rect x="140" y="132" width="70" height="208" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+<text x="175" y="362" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">东24</text>
+<text x="175" y="122" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">80</text>
+<rect x="270" y="90.4" width="70" height="249.6" fill="url(#hatch)" stroke="#111111" stroke-width="1.8"/>
+<text x="305" y="362" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">东25</text>
+<text x="305" y="80.4" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">96</text>
+<rect x="400" y="288" width="70" height="52" fill="#ffffff" stroke="#111111" stroke-width="1.8"/>
+<text x="435" y="362" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">西24</text>
+<text x="435" y="278" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">20</text>
+<rect x="530" y="267.2" width="70" height="72.8" fill="url(#hatch)" stroke="#111111" stroke-width="1.8"/>
+<text x="565" y="362" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">西25</text>
+<text x="565" y="257.2" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">28</text>
+</svg>

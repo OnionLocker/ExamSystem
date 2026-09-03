@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="80" y1="140" x2="640" y2="140" stroke="#111111" stroke-width="1.2" stroke-linecap="round"/>
+<path d="M300 50 C360 50 360 230 300 230 C340 180 340 100 300 50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="120" y1="90" x2="300" y2="90" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="300,90 289,96 289,84" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="300" y1="90" x2="520" y2="200" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="120" y1="190" x2="300" y2="190" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="300,190 289,196 289,184" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="300" y1="190" x2="520" y2="80" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="420" cy="140" r="3" fill="#111111" stroke="#111111" stroke-width="1"/>
+<text x="420" y="128" fill="#111111" font-size="12" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F</text>
+</svg>

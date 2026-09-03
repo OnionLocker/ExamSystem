@@ -90,6 +90,111 @@ class RenderFigureTest(unittest.TestCase):
             self.assertNotIn("figure", draft["materials"][0])
             self.assertEqual(draft["materials"][0]["images"], ["images/m-01-table.png"])
 
+    def test_program_figure_beats_image_facts(self):
+        with tempfile.TemporaryDirectory() as temp:
+            batch_dir = Path(temp)
+            draft = {
+                "questions": [
+                    {
+                        "external_id": "q1",
+                        "figure": {"kind": "cube_iso", "file": "images/q-01-stem.png", "marks": {"top": "plus"}},
+                        "stem_images": ["images/q-01-stem.png"],
+                    }
+                ],
+                "image_specs": {"questions": [{"question_id": "q1", "image_facts": ["do not draw this"]}]},
+            }
+            with mock.patch.object(daily_gemini_batch, "render_program", side_effect=lambda fig, dest: dest.write_bytes(b"png")):
+                with mock.patch.object(daily_gemini_batch, "generate_line_image") as ai:
+                    daily_gemini_batch.render_assets(batch_dir, draft, deadline=10**12)
+            ai.assert_not_called()
+            self.assertTrue((batch_dir / "images" / "q-01-stem.png").is_file())
+            self.assertNotIn("figure", draft["questions"][0])
+
+    def test_write_batch_flags_program_figures(self):
+        run = {
+            "plan_date": "2026-09-03",
+            "module": "判断推理",
+            "planned_count": 10,
+            "batch_id": "fig-x",
+            "figure_control": True,
+            "source": "广东省考行测-空间科学推理-20260903",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            daily_gemini_batch.write_batch(run, Path(temp), {"questions": [{"stem": "如图", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer": "A"}]})
+            manifest = json.loads((Path(temp) / "manifest.json").read_text(encoding="utf-8"))
+            self.assertTrue(manifest["generation"]["batch_constraints"]["program_figures"])
+            self.assertEqual(manifest["source"], "广东省考行测-空间科学推理-20260903")
+
+    def test_focused_kepui_skips_five_subject_layout(self):
+        run = {
+            "plan_date": "2026-09-07",
+            "module": "科学推理",
+            "planned_count": 2,
+            "batch_id": "hermes-ganggan",
+            "focus_tag": "科学推理-力学-杠杆滑轮",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            daily_gemini_batch.write_batch(
+                run,
+                Path(temp),
+                {"questions": [{"stem": "如图", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer": "A"}]},
+            )
+            constraints = json.loads((Path(temp) / "manifest.json").read_text(encoding="utf-8"))[
+                "generation"
+            ]["batch_constraints"]
+            self.assertEqual(constraints["focus_tag"], "科学推理-力学-杠杆滑轮")
+            self.assertNotIn("kepui_layout", constraints)
+            self.assertTrue(constraints["program_figures"])
+
+    def test_daily_kepui_keeps_layout_and_flags_program_figures(self):
+        run = {
+            "plan_date": "2026-09-07",
+            "module": "科学推理",
+            "planned_count": 5,
+            "batch_id": "daily-20260907-kepui-test",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            daily_gemini_batch.write_batch(
+                run,
+                Path(temp),
+                {"questions": [{"stem": "如图", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer": "A"}]},
+            )
+            constraints = json.loads((Path(temp) / "manifest.json").read_text(encoding="utf-8"))[
+                "generation"
+            ]["batch_constraints"]
+            self.assertTrue(constraints["program_figures"])
+            self.assertIn("kepui_layout", constraints)
+
+    def test_stamp_clears_verbal_sub_and_defaults_difficulty(self):
+        run = {
+            "plan_date": "2026-09-07",
+            "module": "言语理解与表达",
+            "planned_count": 1,
+            "batch_id": "daily-y",
+        }
+        rows = daily_gemini_batch.stamp_questions(
+            run,
+            [{"stem": "x", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer": "A", "sub_category": "逻辑填空"}],
+        )
+        self.assertNotIn("sub_category", rows[0])
+        self.assertEqual(rows[0]["difficulty"], 2)
+        ziliao = daily_gemini_batch.stamp_questions(
+            {"plan_date": "2026-09-07", "module": "资料分析", "batch_id": "daily-z"},
+            [{"stem": "x", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}, "answer": "A"}],
+        )
+        self.assertEqual(ziliao[0]["sub_category"], "资料分析")
+
+
+class AugmentPromptTest(unittest.TestCase):
+    def test_retry_block_omits_raw_gate_dump(self):
+        run = {"module": "科学推理"}
+        raw = "ExamSystem 系统质检失败：" + ("DUMP" * 400)
+        text = daily_gemini_batch.augment_prompt("base", run, Path("."), raw)
+        self.assertNotIn("DUMPDUMP", text)
+        blocked = daily_gemini_batch.augment_prompt("base", run, Path("."), "解析混用 ρ_A、ρ_B")
+        self.assertIn("notation_stem_mismatch", blocked)
+        self.assertNotIn(raw[-80:], blocked)
+
 
 class SchedulerPromptTest(unittest.TestCase):
     def test_run_one_calls_gemini_not_hermes(self):

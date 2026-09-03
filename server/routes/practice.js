@@ -149,7 +149,7 @@ router.post('/sessions', (req, res) => {
   const result = db
     .prepare(
       `INSERT INTO practice_sessions (category, started_at)
-       VALUES (?, datetime('now'))`,
+       VALUES (?, datetime('now', '+8 hours'))`,
     )
     .run(cat);
   res.status(201).json({ id: result.lastInsertRowid });
@@ -232,18 +232,18 @@ router.post('/sessions/:id/submit', (req, res) => {
   const insertAnswer = db.prepare(
     `INSERT INTO practice_answers
        (session_id, question_id, user_answer, is_correct, time_spent_sec, answered_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+     VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))`,
   );
 
   // 错题本：答错自动入本，不用手动收集。连对 MISTAKE_CLEAR 次才算掌握 ——
   // 一次蒙对不等于会了，这跟数资那边错题池的清偿规矩是同一套。
   const addMistake = db.prepare(
     `INSERT INTO mistakes (question_id, wrong_count, correct_streak, last_wrong_at, mastered)
-     VALUES (?, 1, 0, datetime('now'), 0)
+     VALUES (?, 1, 0, datetime('now', '+8 hours'), 0)
      ON CONFLICT(question_id) DO UPDATE SET
        wrong_count    = wrong_count + 1,
        correct_streak = 0,
-       last_wrong_at  = datetime('now'),
+       last_wrong_at  = datetime('now', '+8 hours'),
        mastered       = 0`,
   );
   const clearMistake = db.prepare(
@@ -285,7 +285,7 @@ router.post('/sessions/:id/submit', (req, res) => {
 
     db.prepare(
       `UPDATE practice_sessions
-       SET total = ?, correct = ?, duration_sec = ?, ended_at = datetime('now')
+       SET total = ?, correct = ?, duration_sec = ?, ended_at = datetime('now', '+8 hours')
        WHERE id = ?`,
     ).run(results.length, correct, Math.max(0, Number(duration_sec) || 0), sessionId);
 
@@ -468,12 +468,12 @@ router.put('/sessions/:id/drafts/:questionId', readDraftUpload, (req, res) => {
 
   db.prepare(
     `INSERT INTO practice_drafts (session_id, question_id, filename, mime, bytes, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'))
+     VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
      ON CONFLICT(session_id, question_id) DO UPDATE
        SET filename = excluded.filename,
            mime = excluded.mime,
            bytes = excluded.bytes,
-           updated_at = datetime('now')`,
+           updated_at = datetime('now', '+8 hours')`,
   ).run(sessionId, questionId, filename, mime, buf.length);
 
   if (prev?.filename) safeUnlinkDraft(prev.filename);
@@ -543,14 +543,14 @@ router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
 //   同一题组当天只算第一次交卷 —— 重做是复习，不该和首刷等价加热。
 // ───────────────────────────────────────────────────────────────
 router.get('/heat', (_req, res) => {
-  // ended_at 存的是 UTC，热力图按东八区分日，跨零点的场次要先挪过来
+  // ended_at 存北京时间墙钟；SQLite 把无时区当 UTC，取 unix 要回拨 8 小时
   const rows = db
     .prepare(
       `SELECT
          s.id,
          s.category,
-         date(s.ended_at, '+8 hours')                          AS day,
-         strftime('%s', s.ended_at)                            AS ts,
+         date(s.ended_at)                                      AS day,
+         strftime('%s', s.ended_at, '-8 hours')                AS ts,
          ${displayTitleSql('s.category')}                      AS source,
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.user_answer != '') AS answered,
@@ -589,7 +589,7 @@ router.get('/heat', (_req, res) => {
   const reviews = db
     .prepare(
       `SELECT id, title, kind, exam_date, duration_sec,
-              strftime('%s', updated_at) AS ts
+              strftime('%s', updated_at, '-8 hours') AS ts
          FROM exam_analyses
         WHERE status = 'done' AND exam_date IS NOT NULL`,
     )

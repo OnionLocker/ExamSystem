@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS flash_eval (
     latency_ms  INTEGER,
     raw         TEXT,
     model       TEXT NOT NULL,
-    run_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    run_at      TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
     UNIQUE(paper, number, model)
 );
 """

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="138.43,274 180,298 180,250 138.43,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="180,202 221.57,226 180,250 138.43,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="180,298 221.57,322 221.57,274 180,250" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="221.57,226 263.14,250 221.57,274 180,250" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="221.57,322 263.14,346 263.14,298 221.57,274" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="304.71,322 263.14,346 263.14,298 304.71,274" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="221.57,274 263.14,298 263.14,250 221.57,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="304.71,274 263.14,298 263.14,250 304.71,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="263.14,202 304.71,226 263.14,250 221.57,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="541.57,274 500,298 500,250 541.57,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="500,202 541.57,226 500,250 458.43,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="500,298 458.43,322 458.43,274 500,250" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="458.43,226 500,250 458.43,274 416.86,250" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="375.29,322 416.86,346 416.86,298 375.29,274" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="458.43,322 416.86,346 416.86,298 458.43,274" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="375.29,274 416.86,298 416.86,250 375.29,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="458.43,274 416.86,298 416.86,250 458.43,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="416.86,202 458.43,226 416.86,250 375.29,226" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="180" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">L 形</text>
+<text x="500" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">旋转后</text>
+</svg>

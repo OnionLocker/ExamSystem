@@ -51,6 +51,8 @@ assert.equal(messages.length, 1);
 console.log('hermes protocol adapter: ok');
 
 const {
+  collapseMaterialBlankLines,
+  formatPlainSubscripts,
   normalizeOriginalQuestionOptions,
   normalizePhysicsSubscripts,
   splitOrderingSentences,
@@ -147,4 +149,17 @@ assert.equal(
   '间隔增长率 R1＋R2＋R1×R2',
 );
 
+assert.match(
+  normalizePhysicsSubscripts('液体对容器底部的压强p_甲、p_乙及压力F_甲、F_乙'),
+  /\$p_\{\\text\{甲\}\}\$.*\$F_\{\\text\{乙\}\}\$/,
+);
+assert.equal(
+  collapseMaterialBlankLines('第一段。\n\n第二段。\n\n\n第三段。'),
+  '第一段。\n第二段。\n第三段。',
+);
+const subParts = formatPlainSubscripts('压强p_甲 < p_乙');
+assert.deepEqual(
+  subParts.filter((part) => part.type === 'sub').map((part) => `${part.base}_${part.sub}`),
+  ['p_甲', 'p_乙'],
+);
 console.log('review physics subscripts: ok');

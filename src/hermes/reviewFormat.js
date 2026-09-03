@@ -184,11 +184,40 @@ function mapMathSegments(src, onMath, onText) {
   return out + onText(src.slice(last));
 }
 
+const plainSubRe = () => /(?<![\\$])([A-Za-zρΩμ])_([甲乙丙丁戊己庚辛]+|\d+)/g;
+
+export function collapseMaterialBlankLines(raw = '') {
+  return String(raw ?? '')
+    .replace(/\r\n/g, '\n')
+    .replace(/[ \t]*\n(?:[ \t]*\n)+/g, '\n')
+    .replace(/^\n+|\n+$/g, '');
+}
+
+export function formatPlainSubscripts(raw = '', { collapseBlank = false } = {}) {
+  let src = collapseBlank ? collapseMaterialBlankLines(raw) : String(raw ?? '');
+  const parts = [];
+  let last = 0;
+  for (const match of src.matchAll(plainSubRe())) {
+    if (match.index > last) parts.push({ type: 'text', text: src.slice(last, match.index) });
+    parts.push({ type: 'sub', base: match[1], sub: match[2] });
+    last = match.index + match[0].length;
+  }
+  if (last < src.length || !parts.length) parts.push({ type: 'text', text: src.slice(last) });
+  return parts;
+}
+
+export function wrapPlainSubscripts(raw = '') {
+  return mapMathSegments(String(raw ?? ''), (inner) => inner, (text) => text.replace(
+    plainSubRe(),
+    (_, base, sub) => (/[\u4e00-\u9fff]/.test(sub) ? `$${base}_{\\text{${sub}}}$` : `$${base}_{${sub}}$`),
+  ));
+}
+
 export function normalizePhysicsSubscripts(raw = '') {
   return String(raw).split(/(```[\s\S]*?```)/).map((part) => {
     if (part.startsWith('```')) return part;
     return mapMathSegments(
-      part,
+      wrapPlainSubscripts(part),
       fixMathSubscripts,
       (text) => text.replace(/(?<![\\$])\b([PUI])R(\d+)\b/g, '$$$1_{R_$2}$$'),
     );

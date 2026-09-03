@@ -17,17 +17,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
 # 复用 daily_batch_scheduler 和 daily_gemini_batch 的逻辑
 from daily_batch_scheduler import generation_prompt
 from daily_gemini_batch import generate_and_import
-from rule_loader import build_generation_prompt_rules
+from normalize_ai_batch import generation_payload_extras
+from rule_loader import load_hard_rules
 from scheduler_common import (
     DB,
     ROOT,
-    daily_source_name,
     difficulty_tier,
     load_snapshot,
     local_today,
@@ -63,7 +64,80 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=int, default=2400, help="超时秒数（默认 2400s = 40min）")
     parser.add_argument("--db", type=Path, default=DB, help="数据库路径")
     parser.add_argument("--interactive", action="store_true", help="交互模式：输出简洁 JSON 供 Hermes 解析")
+    parser.add_argument(
+        "--figure-control",
+        action="store_true",
+        help="Gemini 只出 figure spec，Python 画黑白线稿（10 题：5 空间 + 5 科推）",
+    )
     return parser.parse_args()
+
+
+FIGURE_KINDS = (
+    "cube_net, cube_iso, voxels, views, section, section_abc, tetra, "
+    "lever, pulley, circuit, tank, motion, contour, front, food, pedigree, "
+    "lens, vessels, buoy, force, spring, gears, mirror, st"
+)
+
+
+def figure_control_prompt(run: dict, _snapshot: dict, db_path) -> str:
+    extras = generation_payload_extras("判断推理", int(run["planned_count"]), str(run["batch_id"]), db_path)
+    source = run["source"]
+    payload = {
+        "plan_date": run["plan_date"],
+        "module": "空间科学推理",
+        "question_count": run["planned_count"],
+        "batch_id": run["batch_id"],
+        "source": source,
+        "all_original": True,
+        "figure_kinds": FIGURE_KINDS,
+        **extras,
+    }
+    return (
+        "You are ExamSystem's writer for a 10-item Guangdong illustrated drill. "
+        "Output one JSON object only. No markdown fences, no commentary.\n"
+        f"Input:\n{json.dumps(payload, ensure_ascii=False)}\n\n"
+        "Exactly 10 questions, numbered "
+        f"{run['batch_id']}_01 .. _10. Follow answer_plan letters.\n"
+        "Q1-Q5: category=判断推理, sub_category=图形推理, tags[0]=判断推理-图形推理-空间类. "
+        "Kinds: cube_net, cube_iso, voxels, views, section (use each at least once).\n"
+        "Q6-Q10: category=科学推理, sub_category=科学推理. Five different subjects: "
+        "力学, 压强与浮力, 电学, 生物, 地理. tags like 科学推理-力学-杠杆滑轮. "
+        "Junior-high only (杠杆/浮力/串并联/等高线/食物网). No 理想气体/动量守恒/洛伦兹力.\n"
+        "EVERY question must include figure (stem). Picture options also need figure. "
+        "Python renders figure. You MUST emit image_specs: image_facts list every visible "
+        "label/tick/intersection; must_derive is the answer and must not appear as a title.\n"
+        "Figure must match the stem and be solvable from the drawing. "
+        "Any 甲/乙/虚线/左视图/主视图/俯视图/L1/L2/钩码 mentioned in the stem MUST appear as labels in figure. "
+        "Cube fold/rotate items: stem figure MUST be cube_net (all 6 faces). Options may be cube_iso. "
+        "Do not ask a rotation question from only 3 visible faces. "
+        "views: left/front/top cells must follow the intended solid, titles will be drawn large. "
+        "food: pass nodes/edges using the exact organism names in the stem. "
+        "contour: Python always draws dashed 甲/乙; stem must use those labels. "
+        "front: cold/warm CROSS-SECTION with 冷气团/暖气团; never use contour for 锋面. "
+        "lever: pass left_slot and left_n to match the stem.\n"
+        "figure schema: {\"kind\":\"cube_iso\",\"file\":\"images/q-01-stem.png\","
+        "\"marks\":{\"top\":\"pent\",\"south\":\"circle\",\"east\":\"x\"}} "
+        "or {\"kind\":\"voxels\",\"file\":\"images/q-03-stem.png\","
+        "\"voxels\":[[0,0,0],[1,0,0],[0,1,0],[0,0,1]]} "
+        "or {\"kind\":\"cube_net\",\"file\":\"images/q-01-stem.png\","
+        "\"faces\":{\"pent\":[1,0],\"circle\":[0,1],\"plus\":[1,1],\"dia\":[2,1],\"x\":[3,1],\"sq\":[1,2]}} "
+        "or {\"kind\":\"views\",\"file\":\"images/q-04-stem.png\","
+        "\"left\":[[0,0],[0,1]],\"front\":[[0,0],[1,0]],\"top\":[[0,0],[1,0]]} "
+        "or {\"kind\":\"section\",\"file\":\"images/q-05-stem.png\","
+        "\"voxels\":[[0,0,0],[1,0,0],[0,1,0]],\"z\":0.5} "
+        "or {\"kind\":\"lever|circuit|tank|contour|front|food|pedigree|motion|reflex\",\"file\":\"images/q-06-stem.png\"}. "
+        "motion needs series/xticks; tank needs shape+objects; reflex needs parts ①–⑤. "
+        "marks tokens: circle, plus, x, sq, pent, dia.\n"
+        "Stem must depend on the figure (如图…). Options A-D. "
+        f"Every question.source must be exactly {source}.\n"
+        f"{load_hard_rules('判断推理')}\n"
+        f"{load_hard_rules('科学推理')}\n"
+        "JSON: {\"questions\":[{\"external_id\":\"..._01\",\"category\":\"...\","
+        "\"sub_category\":\"...\",\"tags\":[\"...\"],\"stem\":\"...\","
+        "\"figure\":{\"kind\":\"voxels\",\"file\":\"images/q-01-stem.png\",\"voxels\":[[0,0,0]]},"
+        "\"options\":[{\"key\":\"A\",\"text\":\"...\"}],\"answer\":\"B\",\"analysis\":\"...\"}]}\n"
+        "Do not emit manifest.json.\n"
+    )
 
 
 def main() -> int:
@@ -77,21 +151,30 @@ def main() -> int:
         "batch_id": args.batch_id,
         "planned_count": args.count,
     }
+    if args.tag and not args.figure_control:
+        run["focus_tag"] = args.tag
+    if args.figure_control:
+        run["figure_control"] = True
+        run["module"] = "判断推理"
+        run["planned_count"] = 10
+        run["source"] = f"广东省考行测-空间科学推理-{today.strftime('%Y%m%d')}"
+        args.count = 10
 
     # 加载学员画像快照
-    snapshot = load_snapshot(args.db)
+    conn = sqlite3.connect(args.db, timeout=30)
+    try:
+        snapshot = load_snapshot(conn)
+    finally:
+        conn.close()
 
     # 生成批次目录
     batch_dir = args.output_dir / today.isoformat() / args.batch_id
     batch_dir.mkdir(parents=True, exist_ok=True)
 
-    # 构建 prompt（复用 daily_batch_scheduler 的逻辑）
-    prompt = generation_prompt(run, snapshot, batch_dir, args.db)
-
-    # 如果指定了 tag，追加到 prompt（Hermes 场景：用户点名某个考点）
-    if args.tag:
-        prompt += f"\n\n# 用户指定考点\n本批必须聚焦以下考点：{args.tag}\n"
-        prompt += "可以在该考点下选择不同子类型，但不得跨一级或二级。\n"
+    if args.figure_control:
+        prompt = figure_control_prompt(run, snapshot, args.db)
+    else:
+        prompt = generation_prompt(run, snapshot, batch_dir, args.db)
 
     # 如果指定了难度，覆盖自动推断
     if args.difficulty:
