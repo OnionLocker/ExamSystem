@@ -14,6 +14,7 @@ from pathlib import Path
 from china_workday import CALENDAR, workday_reason
 from daily_gemini_batch import generate_and_import
 from normalize_ai_batch import generation_payload_extras
+from rule_loader import build_generation_prompt_rules
 from scheduler_common import (
     AlreadyLocked,
     DB,
@@ -145,6 +146,9 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         + "在 manifest 写入 difficulty_tier；可选给每题加 difficulty:\"easy\"/\"hard\" 软标注（非硬性 GATE）。\n"
     )
 
+    # 使用规则加载器加载分层规则
+    rules_text = build_generation_prompt_rules(run["module"])
+
     # 质量强化规则（防止骨架感）
     quality_rules = """
 【结构变式铁律】（R009 强化版）
@@ -175,12 +179,12 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         f"{resume}"
         f"Handle only module [{run['module']}]. Question count must be exactly {run['planned_count']}, "
         "all original, do not insert origin=zhenti items.\n"
-        f"Use batch_id unchanged. Number questions {run['batch_id']}_01 .. _{run['planned_count']:02d}.\n"
-        "Obey every 【GATE】 rule in module-hard-rules.md (脏数字≥40%、禁某省、Q5综合判断跨篇轮换、禁课纲词、"
-        "加强/削弱项须对准结论、数字推理五规律不克隆、数学运算禁鸡兔/长方形周长面积/纯相遇口算)。\n"
+        f"Use batch_id unchanged. Number questions {run['batch_id']}_01 .. _{run['planned_count']:02d}.\n\n"
+        "【命题规则库】\n"
+        f"{rules_text}\n\n"
         f"{tier_rule}"
         f"{quality_rules}"
-        "Draft from internalized GONGKAO-STYLE principles+profile. Python attaches evaluate holdout after you write; omit evaluation_contexts. generation_contexts may be omitted.\n"
+        "Python attaches evaluate holdout after you write; omit evaluation_contexts. generation_contexts may be omitted.\n"
         "Put the correct option on answer_plan[i].answer. Do not change computed values to chase a letter. "
         "generation_gate will reshuffle options if the draft ignores the plan. Keep Guangdong paper question order; do not shuffle questions.\n"
         f"{ziliao_rule}\n"

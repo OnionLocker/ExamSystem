@@ -23,6 +23,7 @@ from pathlib import Path
 # 复用 daily_batch_scheduler 和 daily_gemini_batch 的逻辑
 from daily_batch_scheduler import generation_prompt
 from daily_gemini_batch import generate_and_import
+from rule_loader import build_generation_prompt_rules
 from scheduler_common import (
     DB,
     ROOT,
