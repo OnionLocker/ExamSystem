@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Circle, Flame, Loader2, Target } from 'lucide-react';
+import { Check, Circle, Flame, Loader2, PictureInPicture2, Target } from 'lucide-react';
 import { topPicks } from './weakSpots.js';
 import { wrongCountsBySub, totalWrong } from './wrongPool.js';
 import { loadStats } from './ranks.js';
@@ -9,6 +9,8 @@ import {
   refreshPendingTodayTasks,
   TODAY_TASKS_REFRESH_EVENT,
 } from './todayTasks.js';
+import { openTodayTasksPopup } from './pipWindow.js';
+import TodayTasksPopup from './TodayTasksPopup.jsx';
 
 const STATUS_STYLE = {
   pending: {
@@ -109,6 +111,9 @@ const WeakSpots = ({ onPickSub, onPickTask }) => {
   }, [refresh]);
 
   const litCount = tasks.filter((task) => task.status === 'done').length;
+  const openTodayPip = () => {
+    openTodayTasksPopup({ TodayComponent: TodayTasksPopup });
+  };
 
   if (!loading && tasks.length === 0 && picks.length === 0) return null;
 
@@ -127,9 +132,20 @@ const WeakSpots = ({ onPickSub, onPickTask }) => {
           </div>
         </div>
         {tasks.length > 0 ? (
-          <span className="text-xs font-black tabular-nums text-slate-400">
-            {litCount}/{tasks.length} 已点亮
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openTodayPip}
+              title="左下角小窗练习。默认伪装成文档，Ctrl+H 切换。Chrome 置顶无边框，可拖到左下角。"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e8d5b0] text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-[#1a1a1a] hover:text-white hover:border-[#1a1a1a] transition-colors"
+            >
+              <PictureInPicture2 size={13} />
+              小窗
+            </button>
+            <span className="text-xs font-black tabular-nums text-slate-400">
+              {litCount}/{tasks.length} 已点亮
+            </span>
+          </div>
         ) : debt > 0 ? (
           <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#ff6b6b]/10 text-[#ff6b6b]">
             <Flame size={13} />
@@ -180,7 +196,7 @@ const WeakSpots = ({ onPickSub, onPickTask }) => {
 
       {!loading && tasks.length > 0 && (
         <p className="mt-5 pt-4 border-t border-[#e8d5b0] text-xs font-bold text-slate-400">
-          每天九宫格。冲刺模式做完指定题量，正确率和均速都达标才点亮。未达标可重开一场。
+          每天九宫格。冲刺模式做完指定题量，正确率和均速都达标才点亮。未达标可重开一场。点右上角小窗可挂到屏幕左下角练。
         </p>
       )}
     </div>

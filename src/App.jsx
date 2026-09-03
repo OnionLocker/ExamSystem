@@ -20,6 +20,7 @@ import {
   Layers,
   ScanSearch,
   GraduationCap,
+  Boxes,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -41,6 +42,7 @@ import HermesChat from './hermes/HermesChat.jsx';
 import AIQuizHome from './aiPractice/AIQuizHome.jsx';
 import ExamReview from './examReview/ExamReview.jsx';
 import Knowledge from './knowledge/Knowledge.jsx';
+import FigureLab from './figureLab/FigureLab.jsx';
 import { KNOWLEDGE_OPEN_EVENT } from './knowledge/nav.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { prewarmAllBgm } from './practice/bgm.js';
@@ -638,18 +640,19 @@ const AppInner = () => {
             overscroll-contain 防止滚到底后把整页往下拽（iOS 橡皮筋）。 */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 lg:space-y-2.5 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="knowledge" icon={GraduationCap} label="知识点" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="copybook" icon={PenTool} label="字帖练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="review" icon={BookMarked} label="复习" activeTab={activeTab} onSelect={setActiveTab} />
+          <SidebarItem id="figureLab" icon={Boxes} label="图样预览" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="flashcards" icon={Layers} label="抽认卡" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="examReview" icon={ScanSearch} label="录屏复盘" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
           <SidebarItem id="mixer" icon={Sliders} label="声音混音器" activeTab={activeTab} onSelect={setActiveTab} />
         </nav>
 
@@ -687,6 +690,7 @@ const AppInner = () => {
               {activeTab === 'knowledge' && '知识点 · 广东省考老师口径'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
+              {activeTab === 'figureLab' && '图样预览 · 黑白线稿'}
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}
@@ -732,6 +736,8 @@ const AppInner = () => {
           <div className={activeTab === 'review' ? '' : 'hidden'}>
             <Review />
           </div>
+
+          {activeTab === 'figureLab' && <FigureLab />}
 
           {activeTab === 'practice' && (
             <NumericPractice

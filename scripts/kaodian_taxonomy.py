@@ -342,7 +342,7 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
           canonical TEXT NOT NULL,
           module TEXT NOT NULL,
           subtype TEXT,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
         """
     )
@@ -367,12 +367,12 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
         conn.execute(
             """
             INSERT INTO kaodian_aliases(alias, canonical, module, subtype, updated_at)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
             ON CONFLICT(alias) DO UPDATE SET
               canonical = excluded.canonical,
               module = excluded.module,
               subtype = excluded.subtype,
-              updated_at = datetime('now')
+              updated_at = datetime('now', '+8 hours')
             """,
             (alias, canonical, normalized_module, canonical_subtype),
         )

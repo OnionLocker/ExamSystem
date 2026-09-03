@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="380" viewBox="0 0 640 380">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="300,326 339.84,349 339.84,303 300,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="220.33,326 260.16,349 260.16,303 220.33,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="300,326 260.16,349 260.16,303 300,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="260.16,257 300,280 260.16,303 220.33,280" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="260.16,257 300,280 300,234 260.16,211" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="300,280 339.84,303 339.84,257 300,234" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="379.67,280 339.84,303 339.84,257 379.67,234" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="339.84,211 379.67,234 339.84,257 300,234" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="260.16,211 300,234 300,188 260.16,165" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="339.84,211 300,234 300,188 339.84,165" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="300,142 339.84,165 300,188 260.16,165" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="339.84,349 379.67,372 379.67,326 339.84,303" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="419.51,349 379.67,372 379.67,326 419.51,303" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="379.67,280 419.51,303 379.67,326 339.84,303" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="320" y="360" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">计数：可见 + 被挡</text>
+</svg>

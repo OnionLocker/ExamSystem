@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="300" viewBox="0 0 720 300">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polyline points="80,80 80,240 200,240 200,160 320,160 320,240 440,240 440,80" fill="none" stroke="#111111" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="80" y1="180" x2="200" y2="180" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="320" y1="180" x2="440" y2="180" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="80,180 200,180 200,240 80,240" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="320,180 440,180 440,240 320,240" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="360" y="280" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">连通器，液面等高</text>
+</svg>

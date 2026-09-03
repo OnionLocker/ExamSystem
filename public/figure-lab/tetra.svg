@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="320,46 265,141.26 375,141.26" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="328.96,109.51 328.65,111.83 327.76,113.99 326.34,115.84 324.48,117.27 322.32,118.16 320,118.47 317.68,118.16 315.52,117.27 313.66,115.84 312.24,113.99 311.35,111.83 311.04,109.51 311.35,107.19 312.24,105.03 313.66,103.17 315.52,101.75 317.68,100.85 320,100.55 322.32,100.85 324.48,101.75 326.34,103.17 327.76,105.03 328.65,107.19" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="265,141.26 210,236.53 320,236.53" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="256.04,204.77 273.96,204.77" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="265,195.81 265,213.73" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="265,141.26 375,141.26 320,236.53" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="312,165.02 328,181.02" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="328,165.02 312,181.02" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="375,141.26 320,236.53 430,236.53" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="368.6,198.37 381.4,198.37 381.4,211.17 368.6,211.17" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="320" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">四面体展开</text>
+</svg>

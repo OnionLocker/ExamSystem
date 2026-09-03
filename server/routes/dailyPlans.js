@@ -1,17 +1,12 @@
 import { Router } from 'express';
 import db from '../db.js';
+import { east8Today } from '../../src/lib/beijingTime.js';
 
 const router = Router();
 const MAX_DAILY_COUNT = 120;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const east8Today = () =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+export { east8Today };
 
 const validDate = (value) => {
   const date = String(value || east8Today());
@@ -123,11 +118,12 @@ export const getDailyRuns = (planDate) => {
   db.prepare(`
     UPDATE ai_daily_batch_runs
        SET status = 'imported',
-           generated_at = COALESCE(generated_at, datetime('now')),
-           imported_at = COALESCE(imported_at, datetime('now')),
-           updated_at = datetime('now')
+           error = NULL,
+           generated_at = COALESCE(generated_at, datetime('now', '+8 hours')),
+           imported_at = COALESCE(imported_at, datetime('now', '+8 hours')),
+           updated_at = datetime('now', '+8 hours')
      WHERE plan_date = ?
-       AND status IN ('scheduled', 'running', 'generating', 'generated')
+       AND status IN ('scheduled', 'running', 'generating', 'generated', 'failed')
        AND batch_id IS NOT NULL
        AND EXISTS (SELECT 1 FROM questions q WHERE q.batch_id = ai_daily_batch_runs.batch_id)
   `).run(date);
@@ -148,8 +144,8 @@ const syncRuns = (date, items, source) => {
     INSERT INTO ai_daily_batch_runs
       (plan_date, module, batch_id, status, planned_count, source, generated_at, imported_at)
     VALUES (@plan_date, @module, @batch_id, @status, @planned_count, @source,
-            CASE WHEN @imported = 1 THEN datetime('now') END,
-            CASE WHEN @imported = 1 THEN datetime('now') END)
+            CASE WHEN @imported = 1 THEN datetime('now', '+8 hours') END,
+            CASE WHEN @imported = 1 THEN datetime('now', '+8 hours') END)
     ON CONFLICT(plan_date, module) DO UPDATE SET
       batch_id = COALESCE(excluded.batch_id, ai_daily_batch_runs.batch_id),
       planned_count = excluded.planned_count,
@@ -161,7 +157,7 @@ const syncRuns = (date, items, source) => {
       END,
       generated_at = COALESCE(ai_daily_batch_runs.generated_at, excluded.generated_at),
       imported_at = COALESCE(ai_daily_batch_runs.imported_at, excluded.imported_at),
-      updated_at = datetime('now')
+      updated_at = datetime('now', '+8 hours')
   `);
   for (const item of items) {
     if (!item.batch_id) continue;
@@ -198,7 +194,7 @@ export const saveDailyPlan = ({
         items = excluded.items,
         source = excluded.source,
         snapshot_at = excluded.snapshot_at,
-        updated_at = datetime('now')
+        updated_at = datetime('now', '+8 hours')
     `).run(date, JSON.stringify(normalized), String(source || 'hermes'), snapshotAt);
     syncRuns(date, normalized, String(source || 'hermes'));
   });
@@ -224,7 +220,7 @@ const reconcilePlan = (date, onlyBatchId = null) => {
     SELECT q.category, q.tags
       FROM practice_answers pa
       JOIN questions q ON q.id = pa.question_id
-     WHERE pa.user_answer != '' AND date(pa.answered_at, '+8 hours') = ?
+     WHERE pa.user_answer != '' AND date(pa.answered_at) = ?
   `).all(date).map((row) => {
     let tags = [];
     try { tags = JSON.parse(row.tags || '[]'); } catch { tags = []; }
@@ -264,7 +260,7 @@ export const reconcileDailyPlanBatch = (batchId) => {
   if (item?.done >= item?.count) {
     db.prepare(`
       UPDATE ai_daily_batch_runs
-         SET status = 'completed', updated_at = datetime('now')
+         SET status = 'completed', updated_at = datetime('now', '+8 hours')
        WHERE batch_id = ?
     `).run(String(batchId));
   }

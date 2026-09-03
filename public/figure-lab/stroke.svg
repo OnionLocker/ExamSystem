@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="260" viewBox="0 0 720 260">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polyline points="80,80 160,80 160,180 80,180" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="250,70 250,190 340,190 340,70" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="430,70 510,70 510,190 430,190" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="620" y="150" fill="#111111" font-size="36" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+<text x="120" y="230" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">一笔</text>
+<text x="295" y="230" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">一笔</text>
+<text x="470" y="230" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">两笔</text>
+</svg>

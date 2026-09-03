@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="280" viewBox="0 0 720 280">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="360,200 330,250 390,250" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<line x1="120" y1="180" x2="600" y2="180" stroke="#111111" stroke-width="2.4" stroke-linecap="round"/>
+<rect x="150" y="120" width="50" height="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<rect x="520" y="140" width="40" height="30" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="175" y1="170" x2="175" y2="180" stroke="#111111" stroke-width="1.4" stroke-linecap="round"/>
+<line x1="540" y1="170" x2="540" y2="180" stroke="#111111" stroke-width="1.4" stroke-linecap="round"/>
+<text x="175" y="110" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F1</text>
+<text x="540" y="130" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F2</text>
+<text x="360" y="270" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">支点</text>
+</svg>

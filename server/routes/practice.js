@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import db from '../db.js';
 import { reconcileDailyPlanBatch } from './dailyPlans.js';
+import { assemblePracticeReportMarkdown } from '../../src/hermes/reviewAssembler.js';
 
 const router = Router();
 
@@ -30,6 +31,35 @@ if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
 if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursive: true });
 
 const DRAFT_MAX_BYTES = 8 * 1024 * 1024;
+
+// 日练标题跟练题页同一套：用日程模块，不信题目上 LLM 写的 source。
+const dailyTitleSql = (batchExpr) => `(
+  SELECT '广东省考行测-' || ar.module || '-' || replace(ar.plan_date, '-', '')
+    FROM ai_daily_batch_runs ar
+   WHERE ar.batch_id = ${batchExpr}
+     AND ifnull(ar.module, '') != ''
+     AND ar.plan_date IS NOT NULL
+   ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
+)`;
+const dailyModuleSql = (batchExpr) => `(
+  SELECT ar.module FROM ai_daily_batch_runs ar
+   WHERE ar.batch_id = ${batchExpr}
+   ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
+)`;
+const questionSourceSql = (batchExpr) => `(
+  SELECT NULLIF(q.source, '') FROM questions q
+   WHERE q.batch_id = ${batchExpr} LIMIT 1
+)`;
+const questionCategorySql = (batchExpr) => `(
+  SELECT q.category FROM questions q
+   WHERE q.batch_id = ${batchExpr} LIMIT 1
+)`;
+const displayTitleSql = (batchExpr) => (
+  `COALESCE(${dailyTitleSql(batchExpr)}, ${questionSourceSql(batchExpr)}, ${batchExpr})`
+);
+const sessionModuleSql = (batchExpr) => (
+  `COALESCE(${dailyModuleSql(batchExpr)}, ${questionCategorySql(batchExpr)})`
+);
 
 // 草稿图是「网页截图 + 笔迹」，canvas 导出的 PNG 是 24 位真彩，一张约 300KB。
 // 这图要喂给 Hermes 复盘，而它进上下文是按 base64 文本计费的，300KB ≈ 28 万 token，
@@ -119,7 +149,7 @@ router.post('/sessions', (req, res) => {
   const result = db
     .prepare(
       `INSERT INTO practice_sessions (category, started_at)
-       VALUES (?, datetime('now'))`,
+       VALUES (?, datetime('now', '+8 hours'))`,
     )
     .run(cat);
   res.status(201).json({ id: result.lastInsertRowid });
@@ -156,13 +186,8 @@ router.get('/sessions', (req, res) => {
       `SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
          s.profile_reviewed_at,
-         COALESCE(
-           (SELECT NULLIF(q.source, '') FROM questions q
-             WHERE q.batch_id = s.category LIMIT 1),
-           s.category
-         ) AS display_title,
-         (SELECT q.category FROM questions q
-           WHERE q.batch_id = s.category LIMIT 1) AS module,
+         ${displayTitleSql('s.category')} AS display_title,
+         ${sessionModuleSql('s.category')} AS module,
          (SELECT ar.plan_date FROM ai_daily_batch_runs ar
            WHERE ar.batch_id = s.category
            ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1) AS daily_plan_date,
@@ -207,18 +232,18 @@ router.post('/sessions/:id/submit', (req, res) => {
   const insertAnswer = db.prepare(
     `INSERT INTO practice_answers
        (session_id, question_id, user_answer, is_correct, time_spent_sec, answered_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+     VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))`,
   );
 
   // 错题本：答错自动入本，不用手动收集。连对 MISTAKE_CLEAR 次才算掌握 ——
   // 一次蒙对不等于会了，这跟数资那边错题池的清偿规矩是同一套。
   const addMistake = db.prepare(
     `INSERT INTO mistakes (question_id, wrong_count, correct_streak, last_wrong_at, mastered)
-     VALUES (?, 1, 0, datetime('now'), 0)
+     VALUES (?, 1, 0, datetime('now', '+8 hours'), 0)
      ON CONFLICT(question_id) DO UPDATE SET
        wrong_count    = wrong_count + 1,
        correct_streak = 0,
-       last_wrong_at  = datetime('now'),
+       last_wrong_at  = datetime('now', '+8 hours'),
        mastered       = 0`,
   );
   const clearMistake = db.prepare(
@@ -260,7 +285,7 @@ router.post('/sessions/:id/submit', (req, res) => {
 
     db.prepare(
       `UPDATE practice_sessions
-       SET total = ?, correct = ?, duration_sec = ?, ended_at = datetime('now')
+       SET total = ?, correct = ?, duration_sec = ?, ended_at = datetime('now', '+8 hours')
        WHERE id = ?`,
     ).run(results.length, correct, Math.max(0, Number(duration_sec) || 0), sessionId);
 
@@ -286,11 +311,7 @@ router.post('/sessions/:id/submit', (req, res) => {
 const getPracticeReport = (sessionId) => {
   const session = db.prepare(`
     SELECT s.*,
-           COALESCE(
-             (SELECT NULLIF(q.source, '') FROM questions q
-               WHERE q.batch_id = s.category LIMIT 1),
-             s.category
-           ) AS display_title
+           ${displayTitleSql('s.category')} AS display_title
       FROM practice_sessions s
      WHERE s.id = ?
   `).get(sessionId);
@@ -342,78 +363,25 @@ const getPracticeReport = (sessionId) => {
   return { session, items };
 };
 
-const fmtReviewDuration = (sec) => {
-  const total = Math.max(0, Math.floor(Number(sec) || 0));
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+const ROOT = path.join(__dirname, '..', '..');
+const absQuestionImage = (src) => {
+  const value = String(src || '');
+  return value.startsWith('/q-images/')
+    ? path.join(ROOT, 'public', value.slice(1))
+    : value;
 };
-
-const practiceReviewMarkdown = ({ session, items }) => {
-  const wrong = items.filter((item) => !item.is_correct);
-  const times = items.map((item) => Math.max(0, Number(item.time_spent_sec) || 0));
-  const avgSec = times.length ? times.reduce((sum, value) => sum + value, 0) / times.length : 0;
-  const slowThreshold = Math.max(60, Math.ceil(avgSec * 1.5));
-  const focusItems = items.filter((item) =>
-    !item.is_correct || item.draft_url || Number(item.time_spent_sec) >= slowThreshold);
-  const lines = [
-    `# AI 练题复盘：${session.display_title || session.category || '未命名批次'}`,
-    '',
-    `- 场次：${session.id}`,
-    `- 交卷时间：${session.ended_at || '未知'}`,
-    `- 成绩：${session.correct}/${session.total}`,
-    `- 总用时：${fmtReviewDuration(session.duration_sec)}`,
-    `- 错题或空题：${wrong.length}`,
-    `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
-    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场第一次 Hermes 复盘才更新画像'}`,
-    '',
-    '## 逐题概览',
-    '',
-    '| 题号 | 题目id | 结果 | 用时 | 草稿 | 知识点 |',
-    '|---|---|---|---:|---|---|',
-  ];
-
-  for (const [index, item] of items.entries()) {
-    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
-    const draft = item.draft_url ? '有' : '无';
-    const points = (item.knowledge_points || []).join('、').replace(/\|/g, '\\|') || '未标注';
-    lines.push(`| ${index + 1} | ${item.question_id} | ${result} | ${fmtReviewDuration(item.time_spent_sec)} | ${draft} | ${points} |`);
-  }
-
-  lines.push('', '## 复盘重点');
-  if (focusItems.length === 0) {
-    lines.push('', '本场没有错题、草稿异常或明显慢题。正确且快速的题无需逐题展开。');
-    return lines.join('\n');
-  }
-
-  for (const item of focusItems) {
-    const no = items.indexOf(item) + 1;
-    const subtitle = item.sub_category ? ` · ${item.sub_category}` : '';
-    const result = item.skipped ? '未作答' : item.is_correct ? '正确' : '错误';
-    const reasons = [
-      !item.is_correct ? '答案需复盘' : null,
-      item.draft_url ? '有草稿，需检查思路和书写' : null,
-      Number(item.time_spent_sec) >= slowThreshold ? '用时偏长，需检查方法选择和步骤压缩' : null,
-    ].filter(Boolean).join('；');
-    lines.push('', `### 第 ${no} 题${subtitle}`, '', String(item.content || ''));
-    for (const option of item.options || []) {
-      lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}`);
-    }
-    lines.push(
-      '',
-      `- 题目id：${item.question_id}`,
-      `- 作答结果：${result}`,
-      `- 我的作答：${item.user_answer || '未作答'}`,
-      `- 正确答案：${item.correct_answer || '未知'}`,
-      `- 本题用时：${fmtReviewDuration(item.time_spent_sec)}`,
-      `- 入选原因：${reasons}`,
-    );
-    if (item.knowledge_points?.length) {
-      lines.push(`- 知识点：${item.knowledge_points.join('、')}`);
-    }
-    if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
-    if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
-  }
-  return lines.join('\n');
-};
+const withAbsQuestionImages = (report) => ({
+  ...report,
+  items: (report.items || []).map((item) => ({
+    ...item,
+    stem_images: (item.stem_images || []).map(absQuestionImage),
+    options: (item.options || []).map((option) => ({
+      ...option,
+      images: (option.images || []).map(absQuestionImage),
+    })),
+  })),
+});
+const practiceReviewMarkdown = (report) => assemblePracticeReportMarkdown(withAbsQuestionImages(report));
 
 router.get('/sessions/:id/report', (req, res) => {
   const report = getPracticeReport(Number(req.params.id));
@@ -500,12 +468,12 @@ router.put('/sessions/:id/drafts/:questionId', readDraftUpload, (req, res) => {
 
   db.prepare(
     `INSERT INTO practice_drafts (session_id, question_id, filename, mime, bytes, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'))
+     VALUES (?, ?, ?, ?, ?, datetime('now', '+8 hours'))
      ON CONFLICT(session_id, question_id) DO UPDATE
        SET filename = excluded.filename,
            mime = excluded.mime,
            bytes = excluded.bytes,
-           updated_at = datetime('now')`,
+           updated_at = datetime('now', '+8 hours')`,
   ).run(sessionId, questionId, filename, mime, buf.length);
 
   if (prev?.filename) safeUnlinkDraft(prev.filename);
@@ -575,16 +543,15 @@ router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
 //   同一题组当天只算第一次交卷 —— 重做是复习，不该和首刷等价加热。
 // ───────────────────────────────────────────────────────────────
 router.get('/heat', (_req, res) => {
-  // ended_at 存的是 UTC，热力图按东八区分日，跨零点的场次要先挪过来
+  // ended_at 存北京时间墙钟；SQLite 把无时区当 UTC，取 unix 要回拨 8 小时
   const rows = db
     .prepare(
       `SELECT
          s.id,
          s.category,
-         date(s.ended_at, '+8 hours')                          AS day,
-         strftime('%s', s.ended_at)                            AS ts,
-         (SELECT q.source FROM questions q
-           WHERE q.batch_id = s.category LIMIT 1)              AS source,
+         date(s.ended_at)                                      AS day,
+         strftime('%s', s.ended_at, '-8 hours')                AS ts,
+         ${displayTitleSql('s.category')}                      AS source,
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.user_answer != '') AS answered,
          (SELECT COUNT(*) FROM practice_answers pa
@@ -622,7 +589,7 @@ router.get('/heat', (_req, res) => {
   const reviews = db
     .prepare(
       `SELECT id, title, kind, exam_date, duration_sec,
-              strftime('%s', updated_at) AS ts
+              strftime('%s', updated_at, '-8 hours') AS ts
          FROM exam_analyses
         WHERE status = 'done' AND exam_date IS NOT NULL`,
     )

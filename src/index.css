@@ -68,6 +68,12 @@ body,
   color: #111;
 }
 
+.exam-text sub {
+  font-size: 0.68em;
+  vertical-align: -0.28em;
+  font-weight: inherit;
+}
+
 /* 批注模式：整页禁掉文字选择与长按菜单。
    iPadOS 会把 Pencil 的拖拽当成选中文字，手掌搭在屏幕上不动则等同长按，
    两者都会在底下的元素上弹出"拷贝/搜索/翻译"那排菜单，字就写不下去了。

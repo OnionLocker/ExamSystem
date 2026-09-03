@@ -1,11 +1,11 @@
 {
   "marker": "GONGKAO-STYLE-v1",
-  "built_at": "2026-09-01T16:37:44+08:00",
-  "corpus_hash": "5d036aa267a8e5512856cdfe0eaad850a122f268bfec9b8687d63a86eb93b64e",
+  "built_at": "2026-09-04T00:55:34+08:00",
+  "corpus_hash": "356fd34d15e3a2d9c04346453e78aef48989dbe4b84af0214d865755ba15af96",
   "total": 1157,
-  "accepted": 958,
+  "accepted": 956,
   "holdout": 193,
-  "excluded": 6,
+  "excluded": 8,
   "pending": 0,
-  "profile": "/home/ubuntu/.hermes/skills/kaogong/quiz-pipeline/references/reference-style-profile.md"
+  "profile": "/home/ubuntu/ExamSystem/hermes-skills/quiz-pipeline/references/reference-style-profile.md"
 }

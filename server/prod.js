@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, '..', 'dist');
 const QUESTION_IMAGES = path.join(__dirname, '..', 'public', 'q-images');
+const FIGURE_LAB = path.join(__dirname, '..', 'public', 'figure-lab');
 const PORT = 5173;
 const API_HOST = '127.0.0.1';
 const API_PORT = 3001;
@@ -53,9 +54,12 @@ function serveStatic(req, res) {
   // 题库图片会在运行时持续导入，不能依赖 vite build 时复制到 dist。
   // /q-images/* 直接读取 public/q-images，其余前端资源仍走 dist。
   const isQuestionImage = cleanUrl.startsWith('/q-images/');
+  const isFigureLab = cleanUrl.startsWith('/figure-lab/');
   let filePath = isQuestionImage
     ? path.join(QUESTION_IMAGES, cleanUrl.slice('/q-images/'.length))
-    : path.join(DIST, cleanUrl);
+    : isFigureLab
+      ? path.join(FIGURE_LAB, cleanUrl.slice('/figure-lab/'.length))
+      : path.join(DIST, cleanUrl);
 
   fs.stat(filePath, (err, stat) => {
     if (err || !stat.isFile()) {
@@ -82,8 +86,10 @@ function serveStatic(req, res) {
       }
       res.writeHead(200, {
         'Content-Type': mime,
-        // index.html 不缓存，资源带 hash 可长期缓存
-        'Cache-Control': isHtml ? 'no-cache, no-store, must-revalidate' : 'public, max-age=86400',
+        // 题库图会原地替换；按文件名缓存一天会让旧错图继续显示。
+        'Cache-Control': isHtml || isQuestionImage
+          ? 'no-cache, no-store, must-revalidate'
+          : 'public, max-age=86400',
       });
       res.end(data);
     });

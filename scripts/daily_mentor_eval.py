@@ -31,7 +31,7 @@ REPORTS_DIR = os.environ.get("REPORTS_DIR", str(PROJECT_ROOT / "data" / "reports
 #
 # 现在直接读 Hermes 的 config.yaml：它自己能跑通，评委就一定能跑通。
 HERMES_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
-MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.7-flash-high")
+MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.8-flash-high")
 
 
 def load_judge_endpoint():
@@ -263,10 +263,10 @@ def _save_log(cursor, log_list):
     cursor.execute(
         """
         INSERT INTO user_kv (k, v, updated_at)
-        VALUES ('study_log_v1', ?, datetime('now'))
+        VALUES ('study_log_v1', ?, datetime('now', '+8 hours'))
         ON CONFLICT(k) DO UPDATE SET
           v = excluded.v,
-          updated_at = datetime('now')
+          updated_at = datetime('now', '+8 hours')
         """,
         (v_str,),
     )
@@ -445,7 +445,7 @@ def fetch_activity_rows(date_str: str) -> list[dict]:
                  WHERE pa.session_id = s.id AND pa.is_correct = 1) AS correct
             FROM practice_sessions s
             WHERE s.ended_at IS NOT NULL
-              AND date(s.ended_at, '+8 hours') = ?
+              AND date(s.ended_at) = ?
             """,
             (date_str,),
         ).fetchall()
@@ -540,10 +540,10 @@ def write_day_digest(date_str: str, items: list[str]) -> None:
         cur.execute(
             """
             INSERT INTO user_kv (k, v, updated_at)
-            VALUES (?, ?, datetime('now'))
+            VALUES (?, ?, datetime('now', '+8 hours'))
             ON CONFLICT(k) DO UPDATE SET
               v = excluded.v,
-              updated_at = datetime('now')
+              updated_at = datetime('now', '+8 hours')
             """,
             (DIGEST_KEY, json.dumps(digest, ensure_ascii=False)),
         )
@@ -603,7 +603,7 @@ def backfill_digest() -> int:
                 if d:
                     dates.add(d)
             for (d,) in cur.execute(
-                "SELECT DISTINCT date(ended_at, '+8 hours') FROM practice_sessions WHERE ended_at IS NOT NULL"
+                "SELECT DISTINCT date(ended_at) FROM practice_sessions WHERE ended_at IS NOT NULL"
             ):
                 if d:
                     dates.add(d)

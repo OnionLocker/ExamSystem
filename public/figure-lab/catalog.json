@@ -1,0 +1,299 @@
+{
+  "style": "black-white-line",
+  "groups": [
+    {
+      "id": "资料分析",
+      "title": "资料分析",
+      "items": [
+        {
+          "id": "table",
+          "title": "统计表",
+          "file": "table.svg"
+        },
+        {
+          "id": "bars",
+          "title": "柱状图",
+          "file": "bars.svg"
+        },
+        {
+          "id": "line",
+          "title": "折线图",
+          "file": "line.svg"
+        },
+        {
+          "id": "pie",
+          "title": "饼图（剖面线）",
+          "file": "pie.svg"
+        },
+        {
+          "id": "combo",
+          "title": "柱折复合",
+          "file": "combo.svg"
+        },
+        {
+          "id": "stackbar",
+          "title": "堆积柱状图",
+          "file": "stackbar.svg"
+        },
+        {
+          "id": "donut",
+          "title": "环形图",
+          "file": "donut.svg"
+        }
+      ]
+    },
+    {
+      "id": "图形推理",
+      "title": "图形推理",
+      "items": [
+        {
+          "id": "faces",
+          "title": "封闭面",
+          "file": "faces.svg"
+        },
+        {
+          "id": "arrows",
+          "title": "箭头平移旋转",
+          "file": "arrows.svg"
+        },
+        {
+          "id": "xor",
+          "title": "去同存异",
+          "file": "xor.svg"
+        },
+        {
+          "id": "symmetry",
+          "title": "对称性",
+          "file": "symmetry.svg"
+        },
+        {
+          "id": "open_close",
+          "title": "开闭性",
+          "file": "open_close.svg"
+        },
+        {
+          "id": "grid",
+          "title": "黑白宫格",
+          "file": "grid.svg"
+        },
+        {
+          "id": "nine",
+          "title": "九宫格",
+          "file": "nine.svg"
+        },
+        {
+          "id": "bool",
+          "title": "黑白运算",
+          "file": "bool.svg"
+        },
+        {
+          "id": "stroke",
+          "title": "一笔画",
+          "file": "stroke.svg"
+        },
+        {
+          "id": "curve",
+          "title": "曲直性",
+          "file": "curve.svg"
+        },
+        {
+          "id": "dots",
+          "title": "点线面",
+          "file": "dots.svg"
+        },
+        {
+          "id": "hanzi",
+          "title": "汉字笔画",
+          "file": "hanzi.svg"
+        },
+        {
+          "id": "clock",
+          "title": "时钟指针",
+          "file": "clock.svg"
+        },
+        {
+          "id": "func",
+          "title": "功能元素",
+          "file": "func.svg"
+        },
+        {
+          "id": "cube_net",
+          "title": "六面体展开图",
+          "file": "cube_net.svg"
+        },
+        {
+          "id": "cube_iso",
+          "title": "六面体立体（贴纸随面）",
+          "file": "cube_iso.svg"
+        },
+        {
+          "id": "voxels",
+          "title": "小方块堆叠",
+          "file": "voxels.svg"
+        },
+        {
+          "id": "views",
+          "title": "三视图色块",
+          "file": "views.svg"
+        },
+        {
+          "id": "section",
+          "title": "水平截面",
+          "file": "section.svg"
+        },
+        {
+          "id": "section_abc",
+          "title": "过三点截面",
+          "file": "section_abc.svg"
+        },
+        {
+          "id": "cube_views",
+          "title": "同一立方体多取向",
+          "file": "cube_views.svg"
+        },
+        {
+          "id": "hidden",
+          "title": "隐藏方块计数",
+          "file": "hidden.svg"
+        },
+        {
+          "id": "lblock",
+          "title": "L 形积木旋转",
+          "file": "lblock.svg"
+        },
+        {
+          "id": "tetra",
+          "title": "四面体展开",
+          "file": "tetra.svg"
+        },
+        {
+          "id": "solid",
+          "title": "圆柱圆锥",
+          "file": "solid.svg"
+        }
+      ]
+    },
+    {
+      "id": "科学推理",
+      "title": "科学推理",
+      "items": [
+        {
+          "id": "lever",
+          "title": "杠杆",
+          "file": "lever.svg"
+        },
+        {
+          "id": "pulley",
+          "title": "滑轮",
+          "file": "pulley.svg"
+        },
+        {
+          "id": "circuit",
+          "title": "串并联电路",
+          "file": "circuit.svg"
+        },
+        {
+          "id": "tank",
+          "title": "容器液面",
+          "file": "tank.svg"
+        },
+        {
+          "id": "motion",
+          "title": "v-t 图像",
+          "file": "motion.svg"
+        },
+        {
+          "id": "contour",
+          "title": "等高线",
+          "file": "contour.svg"
+        },
+        {
+          "id": "food",
+          "title": "食物网",
+          "file": "food.svg"
+        },
+        {
+          "id": "pedigree",
+          "title": "遗传系谱",
+          "file": "pedigree.svg"
+        },
+        {
+          "id": "lens",
+          "title": "凸透镜光路",
+          "file": "lens.svg"
+        },
+        {
+          "id": "vessels",
+          "title": "连通器",
+          "file": "vessels.svg"
+        },
+        {
+          "id": "buoy",
+          "title": "浮力",
+          "file": "buoy.svg"
+        },
+        {
+          "id": "force",
+          "title": "受力分析",
+          "file": "force.svg"
+        },
+        {
+          "id": "spring",
+          "title": "弹簧",
+          "file": "spring.svg"
+        },
+        {
+          "id": "gears",
+          "title": "齿轮传动",
+          "file": "gears.svg"
+        },
+        {
+          "id": "mirror",
+          "title": "平面镜反射",
+          "file": "mirror.svg"
+        },
+        {
+          "id": "st",
+          "title": "s-t 图像",
+          "file": "st.svg"
+        }
+      ]
+    },
+    {
+      "id": "数量关系",
+      "title": "数量关系",
+      "items": [
+        {
+          "id": "triangle",
+          "title": "平面几何",
+          "file": "triangle.svg"
+        },
+        {
+          "id": "box",
+          "title": "立体几何线框",
+          "file": "box.svg"
+        },
+        {
+          "id": "venn",
+          "title": "韦恩图",
+          "file": "venn.svg"
+        },
+        {
+          "id": "circle_tan",
+          "title": "圆与切线",
+          "file": "circle_tan.svg"
+        },
+        {
+          "id": "meet",
+          "title": "行程示意",
+          "file": "meet.svg"
+        },
+        {
+          "id": "similar",
+          "title": "相似三角形",
+          "file": "similar.svg"
+        }
+      ]
+    }
+  ]
+}

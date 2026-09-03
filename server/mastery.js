@@ -74,8 +74,8 @@ export function recomputeMastery(db, kaodian = null) {
            mastery_confidence = @mastery_confidence,
            mastery_samples = @mastery_samples,
            mastery_source = 'auto',
-           mastery_updated_at = datetime('now'),
-           updated_at = datetime('now')
+           mastery_updated_at = datetime('now', '+8 hours'),
+           updated_at = datetime('now', '+8 hours')
      WHERE kaodian = @kaodian
        AND (mastery IS NOT @mastery
          OR mastery_confidence IS NOT @mastery_confidence

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { SQL_NOW, parseBeijingMs } from '../src/lib/beijingTime.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
@@ -13,6 +14,7 @@ if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');
+db.pragma('busy_timeout = 60000');
 db.pragma('foreign_keys = ON');
 
 // ---------- Schema ----------
@@ -36,7 +38,7 @@ CREATE TABLE IF NOT EXISTS questions (
   region             TEXT,                     -- '广东-县级' / '广东-乡镇' 等
   material_id        INTEGER,                  -- 资料分析组题引用 materials.id
   batch_id           TEXT,                     -- 导入批次（用于回滚/管理）
-  created_at         TEXT    DEFAULT CURRENT_TIMESTAMP
+  created_at         TEXT    DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_questions_category ON questions(category);
@@ -62,8 +64,8 @@ CREATE TABLE IF NOT EXISTS reference_questions (
   region             TEXT,
   source_url         TEXT,
   imported_by        TEXT NOT NULL DEFAULT 'agent',
-  created_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at         TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+  updated_at         TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reference_category
@@ -82,7 +84,7 @@ CREATE TABLE IF NOT EXISTS reference_digest_items (
   generation_uses  INTEGER NOT NULL DEFAULT 0,
   evaluation_uses  INTEGER NOT NULL DEFAULT 0,
   last_used_at     TEXT,
-  processed_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  processed_at     TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY (external_id) REFERENCES reference_questions(external_id) ON DELETE CASCADE
 );
 
@@ -97,7 +99,7 @@ CREATE TABLE IF NOT EXISTS reference_context_runs (
   target           TEXT NOT NULL,             -- JSON
   reference_ids    TEXT NOT NULL,             -- JSON
   batch_id         TEXT,
-  created_at       TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at       TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reference_context_created
@@ -112,7 +114,7 @@ CREATE TABLE IF NOT EXISTS materials (
   year        INTEGER,
   region      TEXT,
   batch_id    TEXT,
-  created_at  TEXT    DEFAULT CURRENT_TIMESTAMP
+  created_at  TEXT    DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_materials_batch ON materials(batch_id);
@@ -152,7 +154,7 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
   total        INTEGER DEFAULT 0,
   correct      INTEGER DEFAULT 0,
   duration_sec INTEGER DEFAULT 0,
-  started_at   TEXT    DEFAULT CURRENT_TIMESTAMP,
+  started_at   TEXT    DEFAULT (datetime('now', '+8 hours')),
   ended_at     TEXT
 );
 
@@ -163,7 +165,7 @@ CREATE TABLE IF NOT EXISTS practice_answers (
   user_answer    TEXT,
   is_correct     INTEGER NOT NULL DEFAULT 0,
   time_spent_sec INTEGER DEFAULT 0,
-  answered_at    TEXT    DEFAULT CURRENT_TIMESTAMP,
+  answered_at    TEXT    DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY (session_id)  REFERENCES practice_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (question_id) REFERENCES questions(id)          ON DELETE CASCADE
 );
@@ -180,7 +182,7 @@ CREATE TABLE IF NOT EXISTS practice_drafts (
   filename    TEXT    NOT NULL,
   mime        TEXT    DEFAULT 'image/png',
   bytes       INTEGER DEFAULT 0,
-  updated_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TEXT    DEFAULT (datetime('now', '+8 hours')),
   UNIQUE (session_id, question_id),
   FOREIGN KEY (session_id)  REFERENCES practice_sessions(id) ON DELETE CASCADE,
   FOREIGN KEY (question_id) REFERENCES questions(id)         ON DELETE CASCADE
@@ -196,7 +198,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   status     TEXT    DEFAULT '待复盘',   -- 待复盘 / 进行中 / 已复盘
   notes      TEXT,
   file_path  TEXT,
-  created_at TEXT    DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT    DEFAULT (datetime('now', '+8 hours'))
 );
 
 -- 通用 KV 存储:用于跨设备同步前端的学习数据
@@ -205,7 +207,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS user_kv (
   k          TEXT PRIMARY KEY,
   v          TEXT NOT NULL,                   -- JSON 字符串
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  updated_at TEXT DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS daily_plans (
@@ -213,8 +215,8 @@ CREATE TABLE IF NOT EXISTS daily_plans (
   items        TEXT NOT NULL,                 -- JSON: [{module,target,count,done,status}]
   source       TEXT NOT NULL DEFAULT 'hermes',
   snapshot_at  TEXT,
-  created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at   TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 -- 复习模块：每个模块是一组图片（知识点/错题截图等）
@@ -229,8 +231,8 @@ CREATE TABLE IF NOT EXISTS ai_daily_batch_runs (
   source        TEXT NOT NULL DEFAULT 'hermes',
   generated_at  TEXT,
   imported_at   TEXT,
-  created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
   UNIQUE (plan_date, module)
 );
 CREATE INDEX IF NOT EXISTS idx_ai_daily_batch_runs_batch ON ai_daily_batch_runs(batch_id);
@@ -240,8 +242,8 @@ CREATE TABLE IF NOT EXISTS review_modules (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT    NOT NULL,
   sort_order INTEGER DEFAULT 0,
-  created_at TEXT    DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT    DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT    DEFAULT (datetime('now', '+8 hours')),
+  updated_at TEXT    DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE TABLE IF NOT EXISTS review_images (
@@ -251,7 +253,7 @@ CREATE TABLE IF NOT EXISTS review_images (
   orig_name  TEXT,                           -- 原始文件名
   mime       TEXT    DEFAULT 'image/jpeg',
   sort_order INTEGER DEFAULT 0,
-  created_at TEXT    DEFAULT CURRENT_TIMESTAMP,
+  created_at TEXT    DEFAULT (datetime('now', '+8 hours')),
   FOREIGN KEY (module_id) REFERENCES review_modules(id) ON DELETE CASCADE
 );
 
@@ -265,7 +267,7 @@ CREATE TABLE IF NOT EXISTS mistakes (
   question_id    INTEGER NOT NULL UNIQUE,
   wrong_count    INTEGER DEFAULT 1,
   correct_streak INTEGER DEFAULT 0,
-  last_wrong_at  TEXT    DEFAULT CURRENT_TIMESTAMP,
+  last_wrong_at  TEXT    DEFAULT (datetime('now', '+8 hours')),
   mastered       INTEGER DEFAULT 0,
   note           TEXT,
   FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
@@ -291,7 +293,7 @@ CREATE TABLE IF NOT EXISTS kaodian_profile (
   mastery_samples REAL,
   mastery_source TEXT NOT NULL DEFAULT 'auto',
   mastery_updated_at TEXT,
-  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_kp_module   ON kaodian_profile(module);
@@ -306,7 +308,7 @@ CREATE TABLE IF NOT EXISTS kaodian_events (
   elapsed_ms  INTEGER,
   evidence_type TEXT NOT NULL DEFAULT 'hermes',
   evidence_weight REAL NOT NULL DEFAULT 1.0,
-  answered_at TEXT NOT NULL DEFAULT (datetime('now'))
+  answered_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_ke_kaodian ON kaodian_events(kaodian, answered_at);
@@ -317,7 +319,7 @@ CREATE TABLE IF NOT EXISTS kaodian_aliases (
   canonical   TEXT NOT NULL,
   module      TEXT NOT NULL,
   subtype     TEXT,
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_kaodian_alias_canonical
@@ -331,7 +333,7 @@ CREATE TABLE IF NOT EXISTS kaodian_debts (
   last_wrong_at    TEXT,
   last_seen_at     TEXT,
   mastered         INTEGER NOT NULL DEFAULT 0,
-  updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_kaodian_debts_open
@@ -359,8 +361,8 @@ CREATE TABLE IF NOT EXISTS exam_analyses (
   segments      TEXT,                       -- JSON: 每段的原始分析
   result        TEXT,                       -- JSON: 汇总画像与建议
   error         TEXT,
-  created_at    TEXT    DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TEXT    DEFAULT CURRENT_TIMESTAMP
+  created_at    TEXT    DEFAULT (datetime('now', '+8 hours')),
+  updated_at    TEXT    DEFAULT (datetime('now', '+8 hours'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_exam_analyses_date ON exam_analyses(exam_date);
@@ -492,6 +494,53 @@ if (count === 0) {
   });
   tx(seed);
   console.log(`[db] seeded ${seed.length} sample questions`);
+}
+
+const BEIJING_FLAG = 'schema.beijing_time_v1';
+
+const isNaiveClock = (value) => {
+  const text = String(value || '');
+  if (text.length < 16 || /[zZ]|[+-]\d{2}:?\d{2}$/.test(text)) return false;
+  return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(text);
+};
+
+const newestQuestionAt = db.prepare('SELECT MAX(created_at) AS t FROM questions').get()?.t;
+const shouldShiftUtcNaive = () => {
+  if (!isNaiveClock(newestQuestionAt)) return false;
+  const asUtc = new Date(`${String(newestQuestionAt).replace(' ', 'T')}Z`).getTime();
+  const asBeijing = parseBeijingMs(newestQuestionAt);
+  if (!Number.isFinite(asUtc) || !Number.isFinite(asBeijing)) return false;
+  const now = Date.now();
+  return Math.abs(asUtc - now) < Math.abs(asBeijing - now);
+};
+
+if (!db.prepare('SELECT v FROM user_kv WHERE k = ?').get(BEIJING_FLAG)) {
+  if (shouldShiftUtcNaive()) {
+    const tables = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    ).all();
+    const shift = db.transaction(() => {
+      for (const { name } of tables) {
+        const cols = db.prepare(`PRAGMA table_info("${name}")`).all();
+        for (const col of cols) {
+          if (!/(^|_)at$/.test(col.name) && col.name !== 'processed_at') continue;
+          db.prepare(
+            `UPDATE "${name}"
+                SET "${col.name}" = datetime(replace("${col.name}", 'T', ' '), '+8 hours')
+              WHERE "${col.name}" IS NOT NULL
+                AND length("${col.name}") >= 16
+                AND "${col.name}" LIKE '____-__-__%'
+                AND "${col.name}" NOT LIKE '%+__:__'
+                AND "${col.name}" NOT LIKE '%Z'
+                AND "${col.name}" NOT LIKE '%z'`,
+          ).run();
+        }
+      }
+    });
+    shift();
+    console.log('[db] shifted naive UTC timestamps to Beijing');
+  }
+  db.prepare(`INSERT INTO user_kv(k, v, updated_at) VALUES (?, '1', ${SQL_NOW})`).run(BEIJING_FLAG);
 }
 
 export default db;

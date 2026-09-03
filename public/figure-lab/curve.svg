@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="80,50 200,50 200,190 80,190" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<path d="M280 190 C280 70 420 70 420 190" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="500,50 620,50 620,190 500,190" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<path d="M520 80 Q560 140 600 80" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="140" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">直线</text>
+<text x="350" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">曲线</text>
+<text x="560" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">曲直混合</text>
+</svg>

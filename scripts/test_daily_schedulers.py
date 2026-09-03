@@ -7,6 +7,7 @@ from __future__ import annotations
 import contextlib
 import datetime as dt
 import io
+import os
 import sqlite3
 import sys
 import tempfile
@@ -19,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import daily_batch_scheduler
 import daily_plan_scheduler
 from china_workday import is_workday, workday_reason
-from scheduler_common import reserve_runs
+from scheduler_common import daily_source_for_batch, module_from_daily_batch, reserve_runs
 
 
 SNAPSHOT = {
@@ -77,6 +78,23 @@ class SchedulerTest(unittest.TestCase):
         )
         conn.close()
 
+    def test_weekend_pm_slot_is_a_second_paper(self):
+        conn = sqlite3.connect(":memory:")
+        day = dt.date(2026, 9, 5)
+        morning = reserve_runs(conn, day)
+        with mock.patch.dict(os.environ, {"DAILY_SLOT": "pm"}):
+            evening = reserve_runs(conn, day)
+        self.assertEqual(len(morning), 5)
+        self.assertEqual(len(evening), 5)
+        self.assertEqual({row["plan_date"] for row in morning}, {"2026-09-05"})
+        self.assertEqual({row["plan_date"] for row in evening}, {"2026-09-05+pm"})
+        self.assertTrue(all("-pm-" in row["batch_id"] for row in evening))
+        self.assertEqual(
+            conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
+            10,
+        )
+        conn.close()
+
     def test_batch_dry_run_never_calls_subprocess(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -84,7 +102,7 @@ class SchedulerTest(unittest.TestCase):
                 mock.patch.object(
                     daily_batch_scheduler, "load_snapshot", return_value=SNAPSHOT
                 ),
-                mock.patch.object(daily_batch_scheduler.subprocess, "run") as run,
+                mock.patch.object(daily_batch_scheduler, "generate_and_import") as gen,
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 code = daily_batch_scheduler.main(
@@ -99,7 +117,7 @@ class SchedulerTest(unittest.TestCase):
                     ]
                 )
             self.assertEqual(code, 0)
-            run.assert_not_called()
+            gen.assert_not_called()
             conn = sqlite3.connect(root / "exam.db")
             with self.assertRaises(sqlite3.OperationalError):
                 conn.execute("SELECT * FROM ai_daily_batch_runs").fetchall()
@@ -144,9 +162,10 @@ class SchedulerTest(unittest.TestCase):
             run, SNAPSHOT, Path("/tmp/batch")
         )
         self.assertIn("You are ExamSystem", prompt)
-        self.assertIn("quiz-pipeline", prompt)
-        self.assertIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
-        self.assertIn("import-batch.mjs", prompt)
+        self.assertIn("Output one JSON object only", prompt)
+        self.assertNotIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
+        self.assertNotIn("import-batch.mjs", prompt)
+        self.assertNotIn("hermes chat", prompt.lower())
         self.assertIn("15", prompt)
         self.assertIn("answer_plan", prompt)
         self.assertIn("answer_max_per_letter", prompt)
@@ -160,7 +179,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn("数字推理", prompt)
         self.assertIn("数学运算", prompt)
         self.assertNotIn("Data analysis must be exactly 4 materials", prompt)
-        self.assertIn("quiz-pipeline", daily_batch_scheduler.DEFAULT_SKILLS)
+        self.assertFalse(hasattr(daily_batch_scheduler, "DEFAULT_SKILLS"))
 
     def test_panduan_prompt_is_graphic5_logic15_without_kepui(self):
         run = {
@@ -176,6 +195,22 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn("Do NOT include 科学推理", prompt)
         self.assertNotIn("Questions 16-20: 科学推理", prompt)
         self.assertNotIn("16-20", prompt)
+
+    def test_focused_tag_skips_daily_paper_pack(self):
+        run = {
+            "plan_date": "2026-09-20",
+            "module": "判断推理",
+            "planned_count": 5,
+            "batch_id": "hermes-fanyi",
+            "focus_tag": "判断推理-逻辑判断-翻译推理",
+        }
+        prompt = daily_batch_scheduler.generation_prompt(run, SNAPSHOT, Path("/tmp/batch"))
+        self.assertIn("targeted drill", prompt)
+        self.assertIn("判断推理-逻辑判断-翻译推理", prompt)
+        self.assertIn("exactly 5", prompt)
+        self.assertNotIn("exactly 15", prompt)
+        self.assertNotIn("panduan_pack", prompt)
+        self.assertNotIn("图形推理 are already drawn", prompt)
 
     def test_kepui_prompt_is_independent_five(self):
         run = {
@@ -193,9 +228,63 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn("contour-map", prompt)
         self.assertIn("independent", prompt)
         self.assertIn("5-question", prompt)
+        self.assertIn("NEVER write category=判断推理", prompt)
+        self.assertIn("any letter at most 2 times", prompt)
+
+    def test_weekend_is_skipped_unless_temporarily_open(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                code = daily_batch_scheduler.main(
+                    [
+                        "--date",
+                        "2026-09-05",
+                        "--db",
+                        str(root / "exam.db"),
+                        "--lock-file",
+                        str(root / "batch.lock"),
+                        "--dry-run",
+                    ]
+                )
+            self.assertEqual(code, 0)
+            self.assertIn("skipped", out.getvalue())
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            with (
+                mock.patch.dict(os.environ, {"DAILY_ALLOW_WEEKEND": "1"}),
+                mock.patch.object(
+                    daily_batch_scheduler, "load_snapshot", return_value=SNAPSHOT
+                ),
+                contextlib.redirect_stdout(io.StringIO()) as out,
+            ):
+                code = daily_batch_scheduler.main(
+                    [
+                        "--date",
+                        "2026-09-05",
+                        "--db",
+                        str(root / "exam.db"),
+                        "--lock-file",
+                        str(root / "batch.lock"),
+                        "--dry-run",
+                    ]
+                )
+            self.assertEqual(code, 0)
+            payload = out.getvalue()
+            self.assertIn("weekend_open", payload)
+            self.assertNotIn('"skipped": true', payload)
 
     def test_wait_unlocked_can_be_disabled(self):
         daily_plan_scheduler.wait_unlocked(Path("/tmp/missing.lock"), 0)
+
+
+class DailyNameTest(unittest.TestCase):
+    def test_kepui_slug_is_science_not_judgment(self):
+        batch = "daily-20260902-kepui-c021e6dac46a413a97f3"
+        self.assertEqual(module_from_daily_batch(batch), "科学推理")
+        self.assertEqual(
+            daily_source_for_batch(batch, ""),
+            "广东省考行测-科学推理-20260902",
+        )
 
 
 if __name__ == "__main__":

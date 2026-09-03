@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="142.06,275 220,320 220,230 142.06,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="297.94,275 220,320 220,230 297.94,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="220,140 297.94,185 220,230 142.06,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="244.94,170.6 251.02,192.77 216.39,202.96 188.9,187.09 206.55,167.09" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="202.85,265.1 202.11,258.15 199.93,250.81 196.46,243.59 191.94,236.98 186.68,231.42 181.03,227.3 175.38,224.9 170.12,224.38 165.6,225.77 162.13,228.99 159.95,233.81 159.21,239.9 159.95,246.85 162.13,254.19 165.6,261.41 170.12,268.02 175.38,273.58 181.03,277.7 186.68,280.1 191.94,280.62 196.46,279.23 199.93,276.01 202.11,271.19" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="278.46,263.75 239.49,241.25" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="239.49,286.25 278.46,218.75" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="442.06,275 520,320 520,230 442.06,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="597.94,275 520,320 520,230 597.94,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="520,140 597.94,185 520,230 442.06,185" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="541.82,172.4 541.82,197.6 498.18,197.6 498.18,172.4" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="459.21,239.9 502.85,265.1" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="481.03,277.7 481.03,227.3" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="574.56,261.5 543.38,279.5 543.38,243.5 574.56,225.5" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="220" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">可见三面贴纸随面剪切</text>
+<text x="520" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">另一取向</text>
+</svg>

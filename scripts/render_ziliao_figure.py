@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -34,6 +35,40 @@ def measure(draw: ImageDraw.ImageDraw, text: str, face: ImageFont.FreeTypeFont) 
     return box[2] - box[0], box[3] - box[1]
 
 
+def wrap_text(text: str, face: ImageFont.FreeTypeFont, max_w: int, probe: ImageDraw.ImageDraw) -> list[str]:
+    text = str(text or "")
+    if not text or measure(probe, text, face)[0] <= max_w:
+        return [text or ""]
+
+    def fit_chars(piece: str) -> list[str]:
+        lines, current = [], ""
+        for char in piece:
+            trial = current + char
+            if current and measure(probe, trial, face)[0] > max_w:
+                lines.append(current)
+                current = char
+            else:
+                current = trial
+        if current:
+            lines.append(current)
+        return lines or [piece]
+
+    chunks = [part for part in re.split(r"(?=[（(])|(?<=[）)%/／、\s])", text) if part]
+    if len(chunks) <= 1:
+        return fit_chars(text)
+    lines, current = [], ""
+    for chunk in chunks:
+        trial = current + chunk
+        if current and measure(probe, trial, face)[0] > max_w:
+            lines.extend(fit_chars(current.strip()))
+            current = chunk
+        else:
+            current = trial
+    if current.strip():
+        lines.extend(fit_chars(current.strip()))
+    return lines or [text]
+
+
 def nice_max(value: float) -> float:
     if value <= 0:
         return 1
@@ -53,27 +88,34 @@ def render_table(
     unit: str = "",
     note: str = "",
 ) -> None:
-    face_title = font(22)
-    face_unit = font(15)
-    face = font(19)
-    face_note = font(14)
-    pad_x, pad_y = 14, 8
+    face_title = font(26)
+    face_unit = font(18)
+    face = font(22)
+    face_note = font(16)
+    pad_x, pad_y = 12, 8
+    max_col = 200
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
-    cols = list(zip(*([headers] + rows)))
-    widths = [max(measure(probe, cell, face)[0] for cell in col) + pad_x * 2 for col in cols]
-    row_h = max(measure(probe, "\u9ad8", face)[1] + pad_y * 2, 34)
-    title_h = measure(probe, title, face_title)[1] + 14 if title else 0
-    unit_h = measure(probe, unit, face_unit)[1] + 8 if unit else 0
-    note_h = measure(probe, note, face_note)[1] + 12 if note else 0
-    width = max(sum(widths) + 4, measure(probe, title, face_title)[0] + 24, measure(probe, note, face_note)[0] + 16)
+    wrapped_headers = [wrap_text(head, face, max_col - pad_x * 2, probe) for head in headers]
+    wrapped_rows = [[wrap_text(cell, face, max_col - pad_x * 2, probe) for cell in row] for row in rows]
+    line_h = measure(probe, "\u9ad8", face)[1] + 4
+    header_h = max(len(lines) * line_h + pad_y * 2 for lines in wrapped_headers)
+    row_heights = [max(len(lines) * line_h + pad_y * 2 for lines in row) for row in wrapped_rows]
+    widths = []
+    for index, head_lines in enumerate(wrapped_headers):
+        col_lines = head_lines + [line for row in wrapped_rows for line in row[index]]
+        widths.append(min(max_col, max(measure(probe, line, face)[0] for line in col_lines) + pad_x * 2))
+    title_h = measure(probe, title, face_title)[1] + 16 if title else 0
+    unit_h = measure(probe, unit, face_unit)[1] + 10 if unit else 0
+    note_h = measure(probe, note, face_note)[1] + 14 if note else 0
+    width = max(sum(widths) + 4, measure(probe, title, face_title)[0] + 28, measure(probe, note, face_note)[0] + 16)
     extra = width - (sum(widths) + 4)
     if extra > 0:
         widths = [w + extra // len(widths) for w in widths]
         widths[-1] += extra % len(widths)
-    height = title_h + unit_h + row_h * (1 + len(rows)) + note_h + 6
+    height = title_h + unit_h + header_h + sum(row_heights) + note_h + 8
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
-    y = 6
+    y = 8
     if title:
         tw, _ = measure(draw, title, face_title)
         draw.text(((width - tw) // 2, y), title, fill=INK, font=face_title)
@@ -83,24 +125,28 @@ def render_table(
         draw.text((width - uw - 8, y - 1), unit, fill=INK, font=face_unit)
         y += unit_h
 
-    def cell(x0, y0, w, h, text, *, header=False, first=False, total=False):
+    def cell(x0, y0, w, h, lines, *, header=False, first=False, total=False):
         draw.rectangle((x0, y0, x0 + w, y0 + h), outline=LINE, width=1)
-        cw, ch = measure(draw, text, face)
-        tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
-        draw.text((tx, y0 + (h - ch) // 2 - 1), text, fill=INK, font=face)
+        text_h = len(lines) * line_h
+        ty = y0 + (h - text_h) // 2
+        for line in lines:
+            cw, _ = measure(draw, line, face)
+            tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
+            draw.text((tx, ty), line, fill=INK, font=face)
+            ty += line_h
         if header or total:
             draw.line((x0, y0 + h - 1, x0 + w, y0 + h - 1), fill=INK, width=2)
 
     x = 2
-    for w, head in zip(widths, headers):
-        cell(x, y, w, row_h, head, header=True)
+    for w, lines in zip(widths, wrapped_headers):
+        cell(x, y, w, header_h, lines, header=True)
         x += w
-    y += row_h
-    for row in rows:
-        is_total = str(row[0]).startswith("\u5408\u8ba1")
+    y += header_h
+    for row, row_h in zip(wrapped_rows, row_heights):
+        is_total = str(row[0][0] if row and row[0] else "").startswith("\u5408\u8ba1")
         x = 2
-        for i, (w, text) in enumerate(zip(widths, row)):
-            cell(x, y, w, row_h, text, first=(i == 0), total=is_total)
+        for i, (w, lines) in enumerate(zip(widths, row)):
+            cell(x, y, w, row_h, lines, first=(i == 0), total=is_total)
             x += w
         y += row_h
     if note:
@@ -117,20 +163,20 @@ def render_bars(
 ) -> None:
     if len(series) > 1 and any(separator in ylabel for separator in ("/", "／")):
         raise ValueError("多系列柱状图不得把不同单位合并写在同一纵轴；请把单位分别写入系列名称")
-    face_title = font(22)
-    face = font(18)
-    face_value = font(16)
-    left, right, top, bottom = 64, 16, 70, 78
-    plot_w, plot_h = 400, 250
+    face_title = font(26)
+    face = font(22)
+    face_value = font(20)
+    left, right, top, bottom = 80, 24, 92, 96
+    plot_w, plot_h = 640, 360
     width, height = left + plot_w + right, top + plot_h + bottom
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
     if title:
         tw, _ = measure(draw, title, face_title)
-        draw.text(((width - tw) // 2, 12), title, fill=INK, font=face_title)
+        draw.text(((width - tw) // 2, 14), title, fill=INK, font=face_title)
 
     values = [v for _, vals in series for v in vals]
-    vmax = nice_max(max(values) * 1.08) if values else 1
+    vmax = nice_max(max(values) * 1.18) if values else 1
     n_cat = max(len(categories), 1)
     n_ser = max(len(series), 1)
     group_w = plot_w / n_cat
@@ -142,7 +188,7 @@ def render_bars(
     for i in range(1, 5):
         val = vmax * i / 4
         yy = origin_y - plot_h * i / 4
-        draw.line((left, yy, left + plot_w, yy), fill=RULE, width=1)
+        draw.line((left, yy, left + 8, yy), fill=LINE, width=2)
         label = f"{val:.0f}" if val >= 10 else f"{val:.1f}"
         lw, lh = measure(draw, label, face)
         draw.text((left - lw - 8, yy - lh // 2), label, fill=INK, font=face)

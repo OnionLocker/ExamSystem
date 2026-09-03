@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     session_id = conn.execute(
         """
         INSERT INTO practice_sessions(category,total,correct,duration_sec,ended_at)
-        VALUES ('test',1,1,30,datetime('now')) RETURNING id
+        VALUES ('test',1,1,30,datetime('now', '+8 hours')) RETURNING id
         """
     ).fetchone()[0]
     conn.execute(

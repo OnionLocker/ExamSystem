@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import db from '../server/db.js';
+import { beijingNow } from '../src/lib/beijingTime.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -99,12 +100,12 @@ const upsertQ = db.prepare(`
     external_id, category, sub_category, question_type,
     content, stem_images, options, correct_answer,
     explanation, explanation_images, difficulty, tags,
-    source, year, region, material_id, batch_id
+    source, year, region, material_id, batch_id, created_at
   ) VALUES (
     @external_id, @category, @sub_category, @question_type,
     @content, @stem_images, @options, @correct_answer,
     @explanation, @explanation_images, @difficulty, @tags,
-    @source, @year, @region, @material_id, @batch_id
+    @source, @year, @region, @material_id, @batch_id, @created_at
   )
   ON CONFLICT(external_id) DO UPDATE SET
     category = excluded.category, sub_category = excluded.sub_category,
@@ -138,7 +139,7 @@ function importPaper(file) {
     // 资料分析材料缺表/图，不再入库
     for (const q of keep) {
       const { material_ref: _ref, has_figure: _hf, broken: _bk, unusable: _u, ...row } = q;
-      upsertQ.run({ ...row, material_id: null, batch_id: batchId });
+      upsertQ.run({ ...row, material_id: null, batch_id: batchId, created_at: beijingNow() });
     }
   });
   run();

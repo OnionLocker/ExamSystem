@@ -48,7 +48,7 @@ router.post('/mastery', (req, res) => {
              mastery_note = CASE WHEN @note = '' THEN mastery_note ELSE @note END,
              module = CASE WHEN @module = '' THEN module ELSE @module END,
              subtype = CASE WHEN @subtype = '' THEN subtype ELSE @subtype END,
-             updated_at = datetime('now')
+             updated_at = datetime('now', '+8 hours')
        WHERE kaodian = @kaodian
     `).run({ kaodian, hasMastery: hasMastery ? 1 : 0, score: hasMastery ? Math.round(mastery) : null, note, module, subtype });
   } else {

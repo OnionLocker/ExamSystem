@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="50" y="50" width="120" height="140" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="70,90 150,90 110,160" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="80" cy="120" r="5" fill="#111111" stroke="#111111" stroke-width="1"/>
+<rect x="220" y="50" width="120" height="140" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="240,90 320,90 280,160" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="280" cy="120" r="5" fill="#111111" stroke="#111111" stroke-width="1"/>
+<rect x="390" y="50" width="120" height="140" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="410,90 490,90 450,160" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="480" cy="120" r="5" fill="#111111" stroke="#111111" stroke-width="1"/>
+<rect x="560" y="50" width="120" height="140" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="620" y="130" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">?</text>
+</svg>

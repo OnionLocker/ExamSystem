@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="270" y="140" width="100" height="70" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="320" y1="140" x2="320" y2="60" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="320,60 326,71 314,71" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="320" y1="210" x2="320" y2="270" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="320,270 314,259 326,259" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="270" y1="175" x2="190" y2="175" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="190,175 201,169 201,181" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="370" y1="175" x2="450" y2="175" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="450,175 439,181 439,169" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<text x="332" y="52" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">N</text>
+<text x="332" y="286" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">G</text>
+<text x="180" y="168" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">f</text>
+<text x="460" y="168" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F</text>
+</svg>

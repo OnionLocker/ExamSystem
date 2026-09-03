@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="77.65,266 140,302 140,230 77.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="202.35,266 140,302 140,230 202.35,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="140,158 202.35,194 140,230 77.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="126.28,258.08 125.69,252.52 123.94,246.65 121.17,240.87 117.55,235.58 113.34,231.14 108.82,227.84 104.3,225.92 100.09,225.5 96.48,226.62 93.7,229.19 91.96,233.05 91.36,237.92 91.96,243.48 93.7,249.35 96.48,255.13 100.09,260.42 104.3,264.86 108.82,268.16 113.34,270.08 117.55,270.5 121.17,269.38 123.94,266.81 125.69,262.95" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="186.77,257 155.59,239" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="155.59,275 186.77,221" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="159.95,182.48 164.82,200.21 137.11,208.37 115.12,195.67 129.24,179.67" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="140" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">取向 1</text>
+<polygon points="297.65,266 360,302 360,230 297.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="422.35,266 360,302 360,230 422.35,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="360,158 422.35,194 360,230 297.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="313.23,257 344.41,239" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="344.41,275 313.23,221" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="403.65,255.2 378.71,269.6 378.71,240.8 403.65,226.4" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="377.46,204.08 372.35,206.35 366.39,207.77 360,208.26 353.61,207.77 347.65,206.35 342.54,204.08 338.62,201.13 336.15,197.69 335.31,194 336.15,190.31 338.62,186.87 342.54,183.92 347.65,181.65 353.61,180.23 360,179.74 366.39,180.23 372.35,181.65 377.46,183.92 381.38,186.87 383.85,190.31 384.69,194 383.85,197.69 381.38,201.13" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="360" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">取向 2</text>
+<polygon points="517.65,266 580,302 580,230 517.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="642.35,266 580,302 580,230 642.35,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="580,158 642.35,194 580,230 517.65,194" fill="#ffffff" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="548.82,271.04 566.61,266.39 559.82,238.31 537.83,225.62 531.03,245.84" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="593.72,258.08 594.31,252.52 596.06,246.65 598.83,240.87 602.45,235.58 606.66,231.14 611.18,227.84 615.7,225.92 619.91,225.5 623.52,226.62 626.3,229.19 628.04,233.05 628.64,237.92 628.04,243.48 626.3,249.35 623.52,255.13 619.91,260.42 615.7,264.86 611.18,268.16 606.66,270.08 602.45,270.5 598.83,269.38 596.06,266.81 594.31,262.95" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polyline points="562.54,183.92 597.46,204.08" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="597.46,183.92 562.54,204.08" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="580" y="340" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">取向 3</text>
+</svg>

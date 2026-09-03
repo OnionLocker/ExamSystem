@@ -124,6 +124,24 @@ class NormalizeBatchTest(unittest.TestCase):
         self.assertEqual(nab.redistribute_answers(questions, manifest, {}), 0)
         self.assertEqual([q["answer"] for q in questions], before)
 
+    def test_graphic_image_letters_are_not_reshuffled(self):
+        questions = [
+            item(f"G{i:02d}", CAT_PANDUAN, TAG_LOGIC, "A", sub_category="图形推理", stem_images=["images/g.png"])
+            for i in range(5)
+        ]
+        for q in questions:
+            q["options"] = [{"key": k, "text": k} for k in "ABCD"]
+        questions.extend(
+            item(f"L{i:02d}", CAT_PANDUAN, TAG_LOGIC, "A") for i in range(15)
+        )
+        manifest = {
+            "batch_id": "graphic-lock",
+            "generation": {"batch_constraints": nab.default_answer_constraints(20)},
+        }
+        nab.redistribute_answers(questions, manifest, {})
+        self.assertEqual([q["answer"] for q in questions[:5]], ["A"] * 5)
+        self.assertEqual([opt["text"] for opt in questions[0]["options"]], list("ABCD"))
+
     def test_ziliao_all_b_becomes_paper_layout(self):
         questions = []
         for material in range(1, 5):
@@ -205,6 +223,17 @@ class NormalizeBatchTest(unittest.TestCase):
             self.assertTrue(nab.answer_distribution_ok(saved_manifest, saved))
             generation_gate.validate_batch_constraints(saved_manifest, saved)
 
+    def test_stamp_daily_source_uses_batch_slug(self):
+        questions = [item("K01", CAT_PANDUAN, "科学推理-力学-杠杆滑轮", "A")]
+        questions[0]["source"] = "广东省考行测-判断推理-20260902"
+        manifest = {
+            "batch_id": "daily-20260902-kepui-abc",
+            "source": "广东省考行测-判断推理-20260902",
+        }
+        nab.stamp_daily_source(manifest, questions)
+        self.assertEqual(manifest["source"], "广东省考行测-科学推理-20260902")
+        self.assertEqual(questions[0]["source"], "广东省考行测-科学推理-20260902")
+
     def test_daily_source_is_stamped(self):
         questions = [item("Q01", CAT_SHULIANG, TAG_EQ, "A")]
         questions[0]["source"] = "random title"
@@ -268,6 +297,79 @@ class NormalizeBatchTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             nab.validate_daily_paper_order("daily-20260902-shuliang-abc", [math] * 15)
         nab.validate_daily_paper_order("targeted-drill", [math] * 15)
+
+
+    def test_kepui_category_is_rewritten(self):
+        tags = [
+            "科学推理-力学-受力平衡",
+            "科学推理-压强与浮力-阿基米德原理",
+            "科学推理-电学-串并联",
+            "科学推理-生物-人体调节",
+            "科学推理-地理-等高线",
+        ]
+        questions = [
+            item(
+                f"K{i:02d}",
+                CAT_PANDUAN,
+                tags[i],
+                "ABCD"[i % 4] if i < 4 else "A",
+                sub_category="科学推理",
+                stem_images=[f"images/k{i}.png"],
+            )
+            for i in range(5)
+        ]
+        manifest = {
+            "batch_id": "daily-20260902-kepui-abc",
+            "kind": "ai-generated",
+            "generation": {"batch_constraints": nab.default_answer_constraints(5)},
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "questions.json").write_text(
+                json.dumps(questions, ensure_ascii=False), encoding="utf-8"
+            )
+            (root / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False), encoding="utf-8"
+            )
+            result = nab.normalize_batch(root)
+            self.assertTrue(result["changed"])
+            saved = json.loads((root / "questions.json").read_text(encoding="utf-8"))
+            saved_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual({q["category"] for q in saved}, {"科学推理"})
+            self.assertEqual({q["sub_category"] for q in saved}, {"科学推理"})
+            self.assertEqual(saved_manifest["source"], "广东省考行测-科学推理-20260902")
+            self.assertEqual({q["source"] for q in saved}, {"广东省考行测-科学推理-20260902"})
+            generation_gate.validate_paper_hard_rules(
+                json.loads((root / "manifest.json").read_text(encoding="utf-8")),
+                saved,
+            )
+
+    def test_focus_tag_skips_daily_layout_packs(self):
+        extras_p = nab.generation_payload_extras(
+            CAT_PANDUAN, 5, "hermes-fanyi", focus_tag="判断推理-逻辑判断-翻译推理"
+        )
+        self.assertEqual(extras_p["batch_constraints"]["focus_tag"], "判断推理-逻辑判断-翻译推理")
+        self.assertEqual(extras_p["batch_constraints"]["question_count"], 5)
+        self.assertNotIn("panduan_layout", extras_p["batch_constraints"])
+        self.assertNotIn("panduan_pack", extras_p)
+        extras_k = nab.generation_payload_extras(
+            "科学推理", 2, "hermes-ganggan", focus_tag="科学推理-力学-杠杆滑轮"
+        )
+        self.assertEqual(extras_k["batch_constraints"]["focus_tag"], "科学推理-力学-杠杆滑轮")
+        self.assertNotIn("kepui_layout", extras_k["batch_constraints"])
+        self.assertNotIn("kepui_pack", extras_k)
+
+    def test_kepui_payload_caps_letters(self):
+        extras = nab.generation_payload_extras("科学推理", 5, "daily-k")
+        self.assertEqual(extras["batch_constraints"]["answer_max_per_letter"], 2)
+        self.assertGreaterEqual(extras["batch_constraints"]["answer_min_letters"], 3)
+        self.assertEqual(len({row["answer"] for row in extras["answer_plan"]}), 4)
+
+    def test_material_blank_lines_collapse_to_single_newline(self):
+        materials = [{"content": "第一段。\n\n第二段。\n\n\n第三段。"}]
+        self.assertEqual(nab.normalize_materials(materials), 1)
+        self.assertEqual(materials[0]["content"], "第一段。\n第二段。\n第三段。")
+        self.assertEqual(nab.normalize_materials(materials), 0)
 
 
 if __name__ == "__main__":

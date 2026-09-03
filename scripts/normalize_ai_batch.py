@@ -12,7 +12,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from scheduler_common import daily_source_for_batch
+from scheduler_common import daily_source_for_batch, module_from_daily_batch
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ziliao_paper_answers,
@@ -165,7 +165,13 @@ def compact_ziliao_pack(pack: dict) -> dict:
     return {"paper_style": pack.get("paper_style") or "gd", "materials": materials}
 
 
-def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | None = None) -> dict:
+def generation_payload_extras(
+    module: str,
+    n: int,
+    seed: str,
+    db_path: Path | None = None,
+    focus_tag: str = "",
+) -> dict:
     letters = planned_letters(module, n, seed)
     counts = Counter(letters)
     extras: dict[str, Any] = {
@@ -178,6 +184,10 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
     }
     extras["batch_constraints"]["answer_max_per_letter"] = max(counts.values()) if counts else 1
     extras["batch_constraints"]["answer_min_letters"] = len(counts)
+    tag = str(focus_tag or "").strip()
+    if tag:
+        extras["batch_constraints"]["focus_tag"] = tag
+        return extras
     if module == CAT_SHULIANG and n == 15:
         extras["batch_constraints"]["shuliang_layout"] = "5_sequence_plus_10_math"
     if module == CAT_PANDUAN and n == 20:
@@ -246,6 +256,35 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
             except (sqlite3.Error, OSError, ImportError):
                 pass
     return extras
+
+
+
+def is_kepui_batch(manifest: dict, questions: list[dict]) -> bool:
+    batch_id = str(manifest.get("batch_id") or "")
+    module = str(manifest.get("module") or manifest.get("category") or "")
+    if "-kepui-" in batch_id or module == CAT_KEPUI:
+        return True
+    generated = generated_questions(questions)
+    if len(generated) != 5:
+        return False
+    from panduan_pack import is_science_question
+
+    return all(is_science_question(item) for item in generated)
+
+
+def rewrite_kepui_category(manifest: dict, questions: list[dict]) -> int:
+    """Force independent 科学推理 papers onto CAT_KEPUI; do not trust the LLM."""
+    if not is_kepui_batch(manifest, questions):
+        return 0
+    changed = 0
+    for question in generated_questions(questions):
+        if str(question.get("category") or "") != CAT_KEPUI:
+            question["category"] = CAT_KEPUI
+            changed += 1
+        if str(question.get("sub_category") or "").strip() != CAT_KEPUI:
+            question["sub_category"] = CAT_KEPUI
+            changed += 1
+    return changed
 
 
 def current_answer(question: dict) -> str:
@@ -433,6 +472,17 @@ def assign_target_letters(questions: list[dict], manifest: dict) -> dict[str, st
     return targets
 
 
+def image_locks_option_letters(question: dict) -> bool:
+    """Stem/option images already print A–D; swapping keys makes the figure lie."""
+    has_image = bool(question.get("stem_images")) or any(
+        option.get("images") for option in question.get("options") or []
+    )
+    if not has_image:
+        return False
+    texts = [str(option.get("text") or "").strip() for option in question.get("options") or []]
+    return bool(texts) and all(len(text) <= 2 for text in texts)
+
+
 def redistribute_answers(questions: list[dict], manifest: dict, calculations: dict[str, dict]) -> int:
     if answer_distribution_ok(manifest, questions):
         return 0
@@ -443,6 +493,8 @@ def redistribute_answers(questions: list[dict], manifest: dict, calculations: di
         dst = targets.get(qid)
         src = current_answer(question)
         if not dst or not src or src == dst:
+            continue
+        if image_locks_option_letters(question):
             continue
         if swap_option_pair(question, src, dst):
             rewritten += 1
@@ -642,14 +694,38 @@ def write_json(path: Path, value: Any) -> None:
 
 
 
+def collapse_material_blank_lines(text: str) -> str:
+    raw = str(text or "").replace("\r\n", "\n")
+    return re.sub(r"[ \t]*\n(?:[ \t]*\n)+", "\n", raw).strip("\n")
+
+
+def normalize_materials(materials: list | None) -> int:
+    changed = 0
+    if not isinstance(materials, list):
+        return 0
+    for material in materials:
+        if not isinstance(material, dict):
+            continue
+        content = material.get("content")
+        if not isinstance(content, str):
+            continue
+        cleaned = collapse_material_blank_lines(content)
+        if cleaned != content:
+            material["content"] = cleaned
+            changed += 1
+    return changed
+
+
 def stamp_daily_source(manifest: dict, questions: list[dict], materials: list | None = None) -> int:
-    module = ""
-    for question in questions:
-        if isinstance(question, dict) and question.get("category"):
-            module = str(question["category"])
-            break
-    module = module or str(manifest.get("category") or manifest.get("module") or "")
-    name = daily_source_for_batch(str(manifest.get("batch_id") or ""), module)
+    batch_id = str(manifest.get("batch_id") or "")
+    module = module_from_daily_batch(batch_id)
+    if not module:
+        for question in questions:
+            if isinstance(question, dict) and question.get("category"):
+                module = str(question["category"])
+                break
+        module = module or str(manifest.get("category") or manifest.get("module") or "")
+    name = daily_source_for_batch(batch_id, module)
     if not name:
         return 0
     changed = 0
@@ -683,6 +759,7 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
         loaded = json.loads(materials_path.read_text(encoding="utf-8"))
         if isinstance(loaded, list):
             materials = loaded
+    kepui_rewritten = rewrite_kepui_category(manifest, questions)
     filled = 0
     for question in generated_questions(questions):
         filled += len(fill_bookkeeping(question))
@@ -698,13 +775,14 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
     rewritten = redistribute_answers(questions, manifest, by_id)
     contexts = repair_reference_contexts(manifest, questions)
     sourced = stamp_daily_source(manifest, questions, materials)
-    changed = bool(filled or rewritten or contexts or sourced or ordered)
-    if filled or rewritten or sourced or ordered:
+    compacted = normalize_materials(materials)
+    changed = bool(filled or rewritten or contexts or sourced or ordered or kepui_rewritten or compacted)
+    if filled or rewritten or sourced or ordered or kepui_rewritten:
         write_json(questions_path, questions)
         if raw_calc is not None and rewritten:
             write_json(calc_path, raw_calc)
-        if sourced and materials is not None:
-            write_json(materials_path, materials)
+    if materials is not None and (sourced or compacted):
+        write_json(materials_path, materials)
     if filled or rewritten or contexts or sourced:
         write_json(manifest_path, manifest)
     return {

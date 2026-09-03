@@ -33,7 +33,7 @@ ZHENTI = ROOT / "data" / "zhenti"
 DB = ROOT / "data" / "exam.db"
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("CLIPROXY_PDF_MODEL", "gemini-3.7-flash-high")
+MODEL = os.environ.get("CLIPROXY_PDF_MODEL", "gemini-3.8-flash-high")
 WORKERS = 3
 RETRIES = 3
 
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS flash_eval (
     latency_ms  INTEGER,
     raw         TEXT,
     model       TEXT NOT NULL,
-    run_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    run_at      TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
     UNIQUE(paper, number, model)
 );
 """

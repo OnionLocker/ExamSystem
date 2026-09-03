@@ -102,8 +102,8 @@ KEPUI_LAYOUT_NAME = "5_kepui_distinct_subjects"
 KEPUI_TAG_WEIGHT = {
     "科学推理-地理-等高线": 4,
     "科学推理-地理-锋面天气": 3,
-    "科学推理-地理-海陆风": 2,
-    "科学推理-地理-地球自转": 2,
+    "科学推理-地理-海陆风": 3,
+    "科学推理-地理-地球自转": 1,
     "科学推理-地理-气候": 2,
     "科学推理-地理-板块": 1,
     "科学推理-地理-区域地理": 1,
@@ -205,6 +205,8 @@ def logic_family(tag: str) -> str:
 def validate_kepui_slots(questions: list[dict], *, require_images: bool = False) -> None:
     if len(questions) != 5:
         raise ValueError(f"科学推理须为独立 5 题，当前 {len(questions)} 题")
+    if any(str(item.get("category") or "") != CAT_KEPUI for item in questions):
+        raise ValueError("科学推理独立卷每题 category 必须是科学推理，禁止写成判断推理")
     if any(question_kind(item) != "science" for item in questions):
         raise ValueError("科学推理 5 题每题须标明科学推理（category 或 sub_category）")
     buckets = [kepui_bucket(_blob(item)) for item in questions]
@@ -251,6 +253,58 @@ def validate_panduan_paper(questions: list[dict]) -> None:
     }
     if len(families) < 4:
         raise ValueError("逻辑判断须覆盖加强/削弱/分析/解释/结构相似等，不得单题型堆满")
+    validate_panduan_kaodian(questions)
+
+
+def validate_panduan_kaodian(questions: list[dict]) -> None:
+    """标签说的考法必须出现在设问里；同卷不得用同一论证骨架换皮。短题干视为单测夹具，跳过。"""
+    logic = [
+        item for item in questions
+        if isinstance(item, dict) and question_kind(item) == "logic"
+    ]
+    real = [item for item in logic if len(str(item.get("stem") or "")) >= 40]
+    if len(real) < 10:
+        return
+    ask = {
+        "结构相似": ("相似", "结构", "逻辑错误"),
+        "原因解释": ("解释",),
+        "翻译推理": ("推出", "推知", "得出", "可知"),
+        "削弱": ("削弱", "质疑", "反驳", "漏洞"),
+        "加强前提": ("支持", "加强", "前提", "假设"),
+        "归因": ("原因", "归因", "主要", "质疑"),
+    }
+    for item in real:
+        family = logic_family(question_primary_tag(item))
+        hints = ask.get(family)
+        if not hints:
+            continue
+        stem = str(item.get("stem") or "")
+        if not any(token in stem for token in hints):
+            raise ValueError(
+                f"考点与设问不符：{item.get('external_id')} 标签是{family}，"
+                "题干设问却不像在考该知识点（换皮不算变式）"
+            )
+    analysis = [item for item in real if logic_family(question_primary_tag(item)) == "分析推理"]
+    matching = 0
+    for item in analysis:
+        stem = str(item.get("stem") or "")
+        if "甲" in stem and "乙" in stem and any(token in stem for token in ("分别", "各不相同", "对应")):
+            matching += 1
+    if matching >= 3:
+        raise ValueError("分析推理不得三道都是甲乙丙对象匹配；换排序或分组")
+    weaken = [
+        item for item in real
+        if logic_family(question_primary_tag(item)) in {"削弱", "归因"}
+    ]
+    bili = 0
+    for item in weaken:
+        stem = str(item.get("stem") or "")
+        if ("占比" in stem or "高达" in stem) and any(
+            token in stem for token in ("危险因素", "更容易", "主要原因")
+        ):
+            bili += 1
+    if bili >= 2:
+        raise ValueError("削弱/归因不得两道都用「样本占比推因果」同一骨架")
 
 
 def _rank(tag: str, by_tag: dict, mistakes: dict) -> tuple:
@@ -307,11 +361,70 @@ def _pick_kepui_tag(pool: tuple[str, ...] | list[str], by_tag: dict, mistakes: d
     return rng.choices(list(pool), weights=weights, k=1)[0]
 
 
-def _slot(tag: str, section: str, reason: str) -> dict:
+# 同一粗标签下必须换认知动作，禁止换景区/电商接着考同一个「另有他因」
+GRAPHIC_EXAM_MOVES = {
+    "数量规律": ("封闭面递增",),
+    "位置规律": ("箭头平移旋转",),
+    "样式规律": ("去同存异",),
+    "属性规律": ("对称性分类",),
+    "特殊规律": ("开闭性分类",),
+    "空间类": ("六面体展开还原", "立方体截面", "小方块三视图"),
+}
+
+LOGIC_EXAM_MOVES = {
+    "加强前提": (
+        "搭桥：补上论据与结论之间缺失的联系",
+        "必要条件：找出结论成立不可少的前提",
+        "对比实验：无因则无果或控制变量",
+    ),
+    "削弱": (
+        "另有他因",
+        "切断论据与结论的推理链",
+        "样本缺陷或实验前测不等",
+    ),
+    "分析推理": (
+        "对象与属性一一匹配",
+        "名次或时间先后排序",
+        "分组或条件组合（不要再写成第三人称职业匹配）",
+    ),
+    "结构相似": (
+        "推理形式平行（假言/联言结构）",
+        "逻辑谬误平行（偷换概念或否定前件）",
+    ),
+    "原因解释": (
+        "解释矛盾或反常现象",
+        "解释比例与绝对量不一致",
+    ),
+    "翻译推理": ("逆否或选言连锁，正确项不得复述已知事实",),
+    "归因": ("针对「A是主因」提出更强的替代原因或因果倒置",),
+}
+
+
+def _slot(tag: str, section: str, reason: str, exam_move: str | None = None) -> dict:
     row = {"tag": tag, "section": section, "reason": reason}
+    if exam_move:
+        row["exam_move"] = exam_move
     if tag in KEPUI_TAG_DIFFICULTY:
         row["difficulty"] = tag_difficulty(tag)
     return row
+
+
+def _exam_move_for(
+    tag: str, section: str, used: Counter, rng: random.Random | None = None
+) -> str:
+    rng = rng or random.Random(0)
+    if section == "graphic":
+        family = tag.rsplit("-", 1)[-1]
+        moves = GRAPHIC_EXAM_MOVES.get(family) or (family,)
+        unused = [move for move in moves if not used[move]]
+        move = rng.choice(unused or list(moves))
+        used[move] += 1
+        return move
+    family = logic_family(tag)
+    moves = LOGIC_EXAM_MOVES.get(family) or (family,)
+    move = moves[used[family] % len(moves)]
+    used[family] += 1
+    return move
 
 
 def _select_graphic(by_tag: dict, mistakes: dict) -> list[str]:
@@ -386,9 +499,10 @@ def select_panduan_paper(
     rng = rng or random.Random(0)
     graphic = _select_graphic(by_tag, mistakes)
     logic = _select_logic(by_tag, mistakes)
+    used_moves: Counter = Counter()
     slots = (
-        [_slot(tag, "graphic", "图形推理") for tag in graphic]
-        + [_slot(tag, "logic", "逻辑判断") for tag in logic]
+        [_slot(tag, "graphic", "图形推理", _exam_move_for(tag, "graphic", used_moves, rng)) for tag in graphic]
+        + [_slot(tag, "logic", "逻辑判断", _exam_move_for(tag, "logic", used_moves, rng)) for tag in logic]
     )
     if letters:
         for slot, letter in zip(slots, letters):
@@ -424,6 +538,7 @@ def _compact_slots(pack: dict, layout: str) -> dict:
                     "index": index + 1,
                     "section": slot.get("section"),
                     "tag": slot.get("tag"),
+                    "exam_move": slot.get("exam_move"),
                     "reason": slot.get("reason"),
                     "answer": slot.get("answer"),
                     "difficulty": slot.get("difficulty"),
@@ -453,6 +568,8 @@ def render_panduan_pack(pack: dict) -> str:
         extra = f" 答{answer}" if answer else ""
         diff = slot.get("difficulty")
         extra += f" 难度{diff}" if diff else ""
+        move = slot.get("exam_move") or ""
+        extra += f" 考{move}" if move else ""
         lines.append(f"{slot.get('index') or ''} {slot.get('section')} {slot.get('tag')}{extra}")
     return "\n".join(lines)
 

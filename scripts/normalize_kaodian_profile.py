@@ -176,7 +176,7 @@ def rebuild(conn: sqlite3.Connection, apply: bool) -> dict:
                   :kaodian, :module, :subtype, :attempts, :correct, :total_ms,
                   :last_seen, :streak, :note, :mastery, :mastery_note,
                   :mastery_confidence, :mastery_samples, :mastery_source,
-                  datetime('now'), datetime('now')
+                  datetime('now', '+8 hours'), datetime('now', '+8 hours')
                 )
                 """,
                 row,

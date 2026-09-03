@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="80" y1="80" x2="200" y2="80" stroke="#111111" stroke-width="2" stroke-linecap="round"/>
+<polyline points="200,80 220,50 238,110 256,50 274,110 292,50 310,110 328,50 346,110 370,80" fill="none" stroke="#111111" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+<rect x="370" y="55" width="50" height="50" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="500" y1="80" x2="430" y2="80" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="430,80 441,74 441,86" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<text x="520" y="86" fill="#111111" font-size="14" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">F</text>
+</svg>

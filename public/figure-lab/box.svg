@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="340" viewBox="0 0 640 340">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="300" y1="250" x2="438.56" y2="330" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="438.56" y1="330" x2="369.28" y2="370" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="369.28" y1="370" x2="230.72" y2="290" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="230.72" y1="290" x2="300" y2="250" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="300" y1="170" x2="438.56" y2="250" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="438.56" y1="250" x2="369.28" y2="290" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="369.28" y1="290" x2="230.72" y2="210" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="230.72" y1="210" x2="300" y2="170" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="300" y1="250" x2="300" y2="170" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="438.56" y1="330" x2="438.56" y2="250" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="369.28" y1="370" x2="369.28" y2="290" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="230.72" y1="290" x2="230.72" y2="210" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

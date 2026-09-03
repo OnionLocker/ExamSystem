@@ -238,7 +238,7 @@ const upsert = db.prepare(`
     region = excluded.region,
     source_url = excluded.source_url,
     imported_by = excluded.imported_by,
-    updated_at = CURRENT_TIMESTAMP
+    updated_at = datetime('now', '+8 hours')
 `);
 const selectOne = db.prepare('SELECT * FROM reference_questions WHERE external_id = ?');
 

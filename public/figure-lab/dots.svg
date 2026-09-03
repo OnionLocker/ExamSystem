@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polygon points="90,50 210,50 210,180 90,180" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="150" cy="115" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<polygon points="280,50 420,50 350,180" fill="none" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<circle cx="320" cy="90" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<circle cx="380" cy="90" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<circle cx="350" cy="150" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<rect x="500" y="50" width="140" height="130" fill="none" stroke="#111111" stroke-width="1.8"/>
+<line x1="500" y1="115" x2="640" y2="115" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="570" y1="50" x2="570" y2="180" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<circle cx="535" cy="82" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<circle cx="605" cy="82" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<circle cx="535" cy="148" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<circle cx="605" cy="148" r="4" fill="#111111" stroke="#111111" stroke-width="1"/>
+<text x="150" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">1 点</text>
+<text x="350" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">3 点</text>
+<text x="570" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">4 点</text>
+</svg>

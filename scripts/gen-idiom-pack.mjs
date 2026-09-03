@@ -31,7 +31,7 @@ const WORDS_FILE = argVal('--words', '');
 const TAG = argVal('--tag', '');
 const PACK_ID = argVal('--pack-id', 'zhenti-idioms');
 
-const MODEL = process.env.VOCAB_GEN_MODEL || 'gemini-3.7-flash-high';
+const MODEL = process.env.VOCAB_GEN_MODEL || 'gemini-3.8-flash-high';
 const BASE_URL = (process.env.CLIPROXY_BASE_URL || 'http://127.0.0.1:8889/v1').replace(/\/$/, '');
 const KEY = (() => {
   if (process.env.CLIPROXY_API_KEY) return process.env.CLIPROXY_API_KEY.trim();

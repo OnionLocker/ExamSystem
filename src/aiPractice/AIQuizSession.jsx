@@ -19,6 +19,7 @@ import {
 import { api, getToken } from '../api.js';
 import { openKnowledge } from '../knowledge/nav.js';
 import DraftLayer from './DraftLayer.jsx';
+import ExamText from './ExamText.jsx';
 import { scrollHost } from './scrollHost.js';
 import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
 
@@ -110,15 +111,15 @@ const useTick = (running) => {
 const ImageList = ({ images, wide = false }) => {
   if (!images || images.length === 0) return null;
   const size = wide
-    ? 'max-w-full max-h-[480px]'
-    : 'sm:max-w-[420px] max-h-[320px]';
+    ? 'max-w-full max-h-[560px]'
+    : 'w-full max-w-full max-h-[420px] sm:max-h-[480px]';
   const frame = wide
     ? `block w-auto max-w-full ${size} object-contain`
     : `block w-auto max-w-full ${size} object-contain rounded-lg border border-[#e8d5b0] bg-white`;
   return (
     <div className={wide ? 'mt-4 space-y-5' : 'mt-3 space-y-2'}>
       {images.map((src, i) => (
-        <img key={i} src={src} alt="" loading="lazy" className={frame} />
+        <img key={`${src}-${i}`} src={src} alt="" loading="lazy" className={frame} />
       ))}
     </div>
   );
@@ -152,7 +153,9 @@ const OptionRow = ({ option, state, onClick, disabled }) => {
         {option.key}
       </span>
       <span className="flex-1 min-w-0 pt-1.5">
-        <span className="block text-[20px] leading-relaxed break-words whitespace-pre-wrap">{option.text}</span>
+        <span className="exam-text block text-[20px] leading-relaxed break-words whitespace-pre-wrap">
+          <ExamText text={option.text} />
+        </span>
         <ImageList images={option.images} />
       </span>
       {state === 'correct' && <Check size={20} className="shrink-0 text-[#4caf50] mt-2" />}
@@ -332,10 +335,10 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
               本题考察知识点：{item.knowledge_points[0]}
             </button>
           )}
-          <div className="text-[22px] leading-[1.8] whitespace-pre-wrap break-words font-medium">
-            {item.content}
+          <div className="exam-text text-[22px] leading-[1.8] whitespace-pre-wrap break-words font-medium">
+            <ExamText text={item.content} />
           </div>
-          <ImageList images={item.stem_images} />
+          <ImageList images={item.stem_images} wide />
           <div className="space-y-2.5">
             {opts.map((o) => (
               <OptionRow key={o.key} option={o} state={stateOf(o.key)} disabled onClick={() => {}} />
@@ -348,7 +351,9 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
               <span className="text-sm font-black tracking-widest text-[#a8935a]">解析</span>
             </div>
             {item.explanation ? (
-              <div className="text-[20px] leading-[1.8] whitespace-pre-wrap break-words">{item.explanation}</div>
+              <div className="exam-text text-[20px] leading-[1.8] whitespace-pre-wrap break-words">
+                <ExamText text={item.explanation} />
+              </div>
             ) : (
               <p className="text-sm text-[#bbb] italic">（本题暂无解析）</p>
             )}
@@ -1025,10 +1030,10 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                 </div>
               </div>
 
-              <div className="text-[22px] leading-[1.8] text-[#1a1a1a] whitespace-pre-wrap break-words font-medium">
-                {current?.content}
+              <div className="exam-text text-[22px] leading-[1.8] text-[#1a1a1a] whitespace-pre-wrap break-words font-medium">
+                <ExamText text={current?.content} />
               </div>
-              <ImageList images={current?.stem_images} />
+              <ImageList images={current?.stem_images} wide />
 
               {current?.question_type === 'multi' && (
                 <p className="mt-4 text-sm font-black tracking-widest text-[#6b5428]">
@@ -1072,8 +1077,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                   )}
                 </div>
                 <div className="px-5 pb-8 sm:px-7">
-                  <div className="ziliao-material whitespace-pre-wrap break-words">
-                    {current.material.content}
+                  <div className="ziliao-material exam-text whitespace-pre-wrap break-words">
+                    <ExamText text={current.material.content} collapseBlank />
                   </div>
                   <ImageList images={current.material.images} wide />
                 </div>

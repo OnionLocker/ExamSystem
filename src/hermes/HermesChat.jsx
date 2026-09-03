@@ -28,6 +28,7 @@ import {
   isSystemInjectedNotice,
   normalizeHermesHistory,
 } from './hermesProtocol.js';
+import { buildExamReviewLead, buildPracticeReviewLead } from './reviewSpec.js';
 
 let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
@@ -968,47 +969,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
       : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
-    const examReviewLead = review
-      ? [
-          `下面这个 Markdown 是我那场《${review.title}》的录屏复盘报告，请先打开。`,
-          review.path,
-          '',
-          examScoreLine,
-          '回复的第一行必须是 `### 01 · 题型名`。禁止先写「一、全卷知识点对照标定」「短处与致命失分点」「长短处诊断」或任何知识点总表。直接按题讲，口吻必须和 AI 练题复盘一样。',
-          '复盘必须同时用三份材料：① 报告开头 PDF 判分表和原题；② 「录屏行为记录」里每题的停留、标签、过程、时间线；③ 各题草稿。对错、你的答案、正确答案只抄 PDF 判分表。报告里旧的「差距」「你怎么做的」若和判分表或行为记录冲突，以判分表和行为记录为准。',
-          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
-          '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`（对错抄判分表），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。知识点不要开篇罗列，只在后台写入画像；用户可见处最多在作答结果后写一行 `本题考察知识点：模块-一级-二级`。',
-          '3. `#### 草稿诊断` 必须先写：结合行为记录、草稿和 PDF，卡在审题、方法、推理、计算还是检查。要点出本题实际发生过的行为（停留偏长、跳过、回头、改选项、只划线没列式等），不要另开「行为分析」标题。',
-          '4. 正确题不能按对错直接跳过。用时偏长、改过选项、草稿乱、方法绕、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`，给出能压缩步骤的动作。禁止用「确认通过」「没问题」打发。',
-          '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
-          '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特等包装。',
-          '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号、行为或草稿，禁止空话和知识点总表。建议仍是考场动作。',
-          '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
-          '',
-        ].join('\n')
-      : '';
-    const practiceReviewLead = review
-      ? [
-          `下面这个 Markdown 是我选中的《${review.title}》，请先直接打开文件。`,
-          review.path,
-          `本场共 ${review.total || 0} 题；已附上 ${review.draftCount || 0} 张实际保存的草稿纸。请逐题对应，不要把附件数量误认为题目总数。`,
-          '',
-          '回复的第一行必须是 `### 01 · 题型名`。禁止先写总况、长短处、知识点总表或模块总评。直接按题讲。',
-          '言语、判断、数量、资料必须同一套标题，禁止按模块换版式。展开的题五段标题一行都不能少：`### 02 · 题型名` → `> **原题**` → `**作答结果**` → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。禁止改成「为什么会错 / 解题流程 / 下次遇到怎么做」，禁止把「下次动作」收成没有标题的一句收尾。',
-          '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析。除原题外，不要机械复述报告统计或现成解析。',
-          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
-          '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时明确提示查看对应题图或草稿图，并结合实际图片分析，禁止凭文字补造图形。',
-          '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
-          '4. 正确题不能按结果直接跳过。有草稿、用时偏长、涂改多、方法绕远、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`。禁止用「确认通过」「没问题」打发，禁止省略 `#### 下次动作`。',
-          '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
-          '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
-          '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号、行为或草稿，禁止空话和知识点总表。建议仍是考场动作。',
-          '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
-          '',
-        ].join('\n')
-      : '';
+    const examReviewLead = review ? buildExamReviewLead(review, examScoreLine) : '';
+    const practiceReviewLead = review ? buildPracticeReviewLead(review) : '';
     const reviewLead = review?.kind === 'practice' ? practiceReviewLead : examReviewLead;
     const voiceLead = audio
       ? '下面附了我的口述录音，请直接听，不要让我改成文字。'
@@ -1061,22 +1023,20 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
         ].join('\n');
-    const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
+    const wantsQuiz = /给我出|帮我出|出题|考考我|刷题|AI\s*练题|专项练题|生成.{0,6}练习|(?:我要|我想|继续|针对).{0,12}练|(?:来|出)\s*[\d一二两三四五六七八九十几半]+\s*(?:道|个)|(?:来|出).{0,10}(?:翻译推理|科学推理|资料分析|判断推理|数量关系|言语)|(?:来|出)\s*(?:几|两)?\s*道.{0,8}题/.test(text);
     const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(text);
     const quizNudge = wantsQuiz && !wantsInlineQuiz
       ? [
-          'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
-          "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
-          `Default non-data-analysis batch is 10: first run python3 ${projectRoot}/scripts/reference_style.py practice --tag '<规范主标签>' --count 2 and put those origin=zhenti items into questions.json unchanged. Then generate 8 new questions. If the user explicitly requests 全原创/all-original, generate all 10 and do not insert real questions. Data analysis remains 4 Guangdong materials × 5 questions = 20 original questions.`,
-          `Before writing, read quiz-pipeline/references/reference-style-principles.md and reference-style-profile.md (GONGKAO-STYLE-v1). Do not call reference_style.py context --role generate for each stem. After the draft is complete, run python3 ${projectRoot}/scripts/reference_style.py context --role evaluate --count 1 once per tag family as a holdout check. If that command fails or the JSON has skipped=no_holdout_syllabus_mock, omit evaluation_contexts for those items and continue; do not rewrite the slot. Correctness and D-route visual gates still apply. The item is a syllabus mock. Copy 省考 length and ask-style from the internalized profile; do not write easier than the shallowest 国考 cognitive steps recorded there.`,
-          `For data analysis, feed Gemini Flash the complete common+gd sections of quiz-pipeline/references/ziliao-paper-styles.md and the active R001/R005/R006/R007/R009/R016/R017/R018 rules. Default each material to 4 paragraphs and 420-650 Chinese characters; omit simulation disclaimers and slogan filler. Use data from at least 3 paragraphs, give every wrong option a distinct reproducible error path, reject cross-material formula/stem/error-path clones, and use images=yes holdout references for chart questions.`,
-          'For 翻译推理: the keyed option must not restate 已知/现已知 instance facts, including synonyms. Need at least one contrapositive, a disjunctive syllogism, or a two-step chain. Keep the subject neutral (某企业/某团队) and do not leak the conclusion into the subject. Formalize 已知 facts as standalone literals. verify-logic.py rejects echo_given_fact; R029 is a hard fail.',
-          'When generating a 20-question 判断推理 paper (daily or 成套): exactly 图形推理 5 + 逻辑判断 15 covering 加强/削弱/分析/解释/结构相似 (翻译推理 at most 2; never 定义判断 or 类比推理). Do NOT put 科学推理 in this paper. 科学推理 is a separate 5-question module: one each from 力学、压强与浮力、电学、生物、地理 (physics 2-3 + biology 1 + geography 1), every item with a figure, junior-high Guangdong level. Follow panduan_pack / kepui_pack if present: write the slot.tag. 科学推理-地理-等高线 is a contour-map item with a figure (route D), difficulty 3: 疏密判坡 / 河谷凸向高处 / 河流由高到低 / 简单选址, one of these, not 地球自转 and not stacked olympiad constraints. Missing holdout in the bank does not skip the slot. Targeted 10-question drills are exempt.',
-          'The AI-generated batch manifest must record style_marker. Map evaluation_contexts only where a holdout exists; omit them for syllabus mocks when the bank has no matching holdout. generation_contexts is optional. zhenti- items are not gated and must not appear in context question_ids.',
-          `Use the exact requested knowledge point. For B-route items write calculations.json; for image-dependent D-route items write image-specs.json with IMAGE_FACTS and MUST_DERIVE. Assign each generated item an answer letter from a balanced ABCD plan before writing options; put the computed/correct value on that letter and do not rewrite numbers to chase a letter. generation_gate will reshuffle if needed. Run python3 ${projectRoot}/scripts/generation_gate.py issue <batch>; ExamSystem itself performs A/B/C/D correctness checks and the independent real-exam quality review. Never handwrite PASS evidence.`,
-          'If the system gate rejects, read evidence/system-quality.json, revise only the rejected items, refresh evaluation-context mappings when IDs change, and rerun the complete gate. Replace an item after its second failed revision.',
-          'questions.json tags[0] must be the canonical 模块-一级-二级 card tag. For permutation questions use 基础原理/特殊模型/反面容斥, never 数量关系-数学运算-排列组合. knowledge_point is only a fallback; the stored field is tags.',
-          'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
+          'This is a question-generation request. Delivery is ExamSystem AI Practice, never inline chat.',
+          'You are an intent router only. Do NOT write stems, options, questions.json, or PASS evidence.',
+          'Do NOT skill_view quiz-pipeline references, do NOT call reference_style.py, generation_gate.py, or import-batch.mjs yourself.',
+          'Do NOT fall back to the old in-session draft pipeline even if MEMORY.md or gd-gongkao-coach still describe it.',
+          'Extract module / count / optional 三级 tag, then call exactly this script and wait for its JSON:',
+          `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<模块-一级-二级>' --count N --batch-id 'YYYYMMDD_hermes_<考点>_01' --interactive`,
+          'Run it via terminal with background=true and notify_on_complete=true (workdir=/home/ubuntu/ExamSystem). Foreground max is 600s; this job often takes 5–40 minutes. Never kill it and hand-write a paper.',
+          'If the user named a 考点, always pass --tag. Defaults if count omitted: 判断推理 20, 科学推理 5, 资料分析 20, 数量关系 15, 言语理解与表达 15.',
+          'On status=success, reply only with batch_id, imported count, and tell them to open 「AI 练题」. Never print stems or options.',
+          'On status=error, report the tool message. Do not rewrite the paper yourself.',
         ].join('\n')
       : '';
     const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
@@ -1287,7 +1247,39 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       // not a hand-picked subset that can hide a correct-but-slow approach.
       const drafted = items.filter((it) => it.draft_url);
 
+      const asDataUrl = async (src) => {
+        const res = await fetch(src);
+        if (!res.ok) throw new Error('题图加载失败');
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      };
+
       const images = [];
+      for (const it of items) {
+        const stems = [...(it.stem_images || [])];
+        for (const opt of it.options || []) stems.push(...(opt.images || []));
+        for (const [index, src] of stems.entries()) {
+          try {
+            const dataUrl = await asDataUrl(src);
+            if (dataUrl) {
+              images.push({
+                id: uid(),
+                name: `q${noOf(it)}-stem${index ? `-${index}` : ''}.png`,
+                dataUrl,
+                contextKind: 'practice',
+                contextId: Number(sessionId),
+                hidden: true,
+              });
+            }
+          } catch { /* 单张题图失败不阻塞 */ }
+        }
+      }
+      const stemCount = images.length;
       for (const it of drafted) {
         try {
           const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
@@ -1316,7 +1308,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         name: info.name,
         title: info.title || `AI 练题复盘：${s.display_title || s.category || '未命名批次'}`,
         label: `AI练题复盘 · ${fmtDateTime(s.ended_at)} · ${s.display_title || s.category || '未命名批次'} · ${s.correct}/${s.total}`,
-        draftCount: images.length,
+        stemCount,
+        draftCount: images.length - stemCount,
         total: Number(s.total || items.length || 0),
         profileReviewed: Boolean(s.profile_reviewed_at),
       });
@@ -1825,7 +1818,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   )}
 
                   {(m.content || !m.streaming) && (
-                    <MarkdownMessage content={m.content} streaming={m.streaming} />
+                    <MarkdownMessage
+                      content={m.content}
+                      streaming={m.streaming}
+                      practiceSessionId={practiceSessionForMessage(m.id)}
+                    />
                   )}
                 </div>
               )}
@@ -1998,7 +1995,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             {reviewMdErr ? (
               <p className="text-sm font-bold text-slate-400">{reviewMdErr}</p>
             ) : reviewMd ? (
-              <MarkdownMessage content={reviewMd} />
+              <MarkdownMessage
+                content={reviewMd}
+                practiceSessionId={reviewPreview.kind === 'practice' ? Number(reviewPreview.id) : null}
+              />
             ) : (
               <div className="flex items-center gap-2 text-[11px] text-[#999]">
                 <Loader2 size={11} className="animate-spin" />

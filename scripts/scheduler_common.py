@@ -33,6 +33,8 @@ MODULE_QUOTAS = (
 
 DAILY_SOURCE_PREFIX = "广东省考行测"
 _DAILY_BATCH_ID = re.compile(r"^daily-(\d{8})-")
+_DAILY_BATCH_SLUG = re.compile(r"^daily-\d{8}-([a-z]+)-")
+_MODULE_BY_SLUG = {slug: module for module, slug, _ in MODULE_QUOTAS}
 
 
 def daily_source_name(module: str, plan_date: dt.date | str) -> str:
@@ -43,8 +45,14 @@ def daily_source_name(module: str, plan_date: dt.date | str) -> str:
     return f"{DAILY_SOURCE_PREFIX}-{module}-{compact}"
 
 
+def module_from_daily_batch(batch_id: str) -> str:
+    match = _DAILY_BATCH_SLUG.match(str(batch_id or ""))
+    return _MODULE_BY_SLUG.get(match.group(1), "") if match else ""
+
+
 def daily_source_for_batch(batch_id: str, module: str) -> str | None:
     match = _DAILY_BATCH_ID.match(str(batch_id or ""))
+    module = module or module_from_daily_batch(batch_id)
     if not match or not module:
         return None
     return daily_source_name(module, match.group(1))
@@ -95,6 +103,19 @@ def wait_unlocked(path: Path, timeout: int, interval: float = 10) -> None:
             time.sleep(min(interval, remaining))
 
 
+def current_slot() -> str:
+    return (os.environ.get("DAILY_SLOT") or "daily").strip() or "daily"
+
+
+def run_date_key(day: dt.date | str) -> str:
+    """Same calendar day can have a second weekend evening paper: 2026-09-05+pm."""
+    if isinstance(day, str):
+        day = dt.date.fromisoformat(day[:10])
+    if current_slot() == "pm":
+        return f"{day.isoformat()}+pm"
+    return day.isoformat()
+
+
 def local_today() -> dt.date:
     return dt.datetime.now(TZ).date()
 
@@ -127,8 +148,8 @@ def ensure_run_schema(conn: sqlite3.Connection) -> None:
           source TEXT NOT NULL DEFAULT 'hermes',
           generated_at TEXT,
           imported_at TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
           UNIQUE(plan_date, module)
         )
         """
@@ -145,11 +166,13 @@ def ensure_run_schema(conn: sqlite3.Connection) -> None:
 
 
 def new_batch_id(day: dt.date, slug: str) -> str:
-    return f"daily-{day:%Y%m%d}-{slug}-{uuid.uuid4().hex[:20]}"
+    mid = "pm-" if current_slot() == "pm" else ""
+    return f"daily-{day:%Y%m%d}-{mid}{slug}-{uuid.uuid4().hex[:20]}"
 
 
 def reserve_runs(conn: sqlite3.Connection, day: dt.date) -> list[dict]:
     ensure_run_schema(conn)
+    key = run_date_key(day)
     for module, slug, count in MODULE_QUOTAS:
         batch_id = new_batch_id(day, slug)
         while conn.execute(
@@ -164,7 +187,7 @@ def reserve_runs(conn: sqlite3.Connection, day: dt.date) -> list[dict]:
             ON CONFLICT(plan_date,module) DO NOTHING
             """,
             (
-                str(day),
+                key,
                 module,
                 batch_id,
                 "scheduled",
@@ -195,7 +218,7 @@ def load_runs(
          WHERE plan_date=?
          ORDER BY id
         """,
-        (str(day),),
+        (run_date_key(day),),
     ).fetchall()
     return [dict(row) for row in rows]
 
@@ -203,7 +226,7 @@ def load_runs(
 def preview_runs(day: dt.date) -> list[dict]:
     return [
         {
-            "plan_date": str(day),
+            "plan_date": run_date_key(day),
             "module": module,
             "batch_id": new_batch_id(day, slug),
             "status": "dry-run",
@@ -235,7 +258,7 @@ def update_run(
         f"""
         UPDATE ai_daily_batch_runs
            SET status=?, error=?{generated_sql}{imported_sql},
-               updated_at=CURRENT_TIMESTAMP
+               updated_at=datetime('now', '+8 hours')
          WHERE batch_id=?
         """,
         values,

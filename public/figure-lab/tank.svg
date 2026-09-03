@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="320" viewBox="0 0 640 320">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<polyline points="160,60 160,280 300,280 300,60" fill="none" stroke="#111111" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="380,100 380,280 520,280 520,100" fill="none" stroke="#111111" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="160" y1="200" x2="300" y2="200" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<line x1="380" y1="230" x2="520" y2="230" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="160,200 300,200 300,280 160,280" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<polygon points="380,230 520,230 520,280 380,280" fill="url(#dots)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<text x="230" y="190" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">h1</text>
+<text x="450" y="220" fill="#111111" font-size="13" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">h2</text>
+</svg>

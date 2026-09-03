@@ -77,7 +77,7 @@ router.post('/', (req, res) => {
   const info = db
     .prepare(
       `INSERT INTO review_modules (name, sort_order, updated_at)
-       VALUES (?, ?, CURRENT_TIMESTAMP)`
+       VALUES (?, ?, datetime('now', '+8 hours'))`
     )
     .run(name, maxSort + 1);
 
@@ -105,7 +105,7 @@ router.put('/:id', (req, res) => {
   }
   if (!sets.length) return res.json(moduleRow(id));
 
-  sets.push('updated_at = CURRENT_TIMESTAMP');
+  sets.push('updated_at = datetime('now', '+8 hours')');
   db.prepare(`UPDATE review_modules SET ${sets.join(', ')} WHERE id = @id`).run(params);
   res.json(moduleRow(id));
 });
@@ -193,7 +193,7 @@ router.post('/:id/images', (req, res) => {
     )
     .run(id, filename, orig_name ? String(orig_name).slice(0, 200) : null, mime, maxSort + 1);
 
-  db.prepare('UPDATE review_modules SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+  db.prepare('UPDATE review_modules SET updated_at = datetime('now', '+8 hours') WHERE id = ?').run(id);
 
   const row = db.prepare('SELECT * FROM review_images WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({
@@ -219,7 +219,7 @@ router.put('/:id/images/:imageId', (req, res) => {
   if (name.length > 200) return res.status(400).json({ error: '名称过长' });
 
   db.prepare('UPDATE review_images SET orig_name = ? WHERE id = ?').run(name, imageId);
-  db.prepare('UPDATE review_modules SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(moduleId);
+  db.prepare('UPDATE review_modules SET updated_at = datetime('now', '+8 hours') WHERE id = ?').run(moduleId);
 
   const updated = db.prepare('SELECT * FROM review_images WHERE id = ?').get(imageId);
   res.json({
@@ -256,7 +256,7 @@ router.delete('/:id/images/:imageId', (req, res) => {
 
   db.prepare('DELETE FROM review_images WHERE id = ?').run(imageId);
   safeUnlink(row.filename);
-  db.prepare('UPDATE review_modules SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(moduleId);
+  db.prepare('UPDATE review_modules SET updated_at = datetime('now', '+8 hours') WHERE id = ?').run(moduleId);
   res.json({ ok: true });
 });
 

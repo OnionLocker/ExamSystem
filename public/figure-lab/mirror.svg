@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="280" viewBox="0 0 640 280">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="320" y1="40" x2="320" y2="240" stroke="#111111" stroke-width="2.2" stroke-linecap="round"/>
+<line x1="320" y1="50" x2="308" y2="60" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="66" x2="308" y2="76" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="82" x2="308" y2="92" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="98" x2="308" y2="108" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="114" x2="308" y2="124" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="130" x2="308" y2="140" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="146" x2="308" y2="156" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="162" x2="308" y2="172" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="178" x2="308" y2="188" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="194" x2="308" y2="204" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="210" x2="308" y2="220" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="320" y1="226" x2="308" y2="236" stroke="#111111" stroke-width="1" stroke-linecap="round"/>
+<line x1="120" y1="80" x2="318" y2="140" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="318,140 305.73,142.55 309.21,131.07" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="318" y1="140" x2="140" y2="210" stroke="#111111" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="140,210 148.04,200.39 152.43,211.56" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<text x="200" y="70" fill="#111111" font-size="12" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">入射</text>
+<text x="200" y="230" fill="#111111" font-size="12" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">反射</text>
+</svg>
