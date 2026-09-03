@@ -370,6 +370,39 @@ def run_system_quality_gate(batch_dir: Path, ids: list[str]) -> Path:
     return output
 
 
+def run_anti_clone_check(batch_dir: Path) -> Path:
+    """运行反克隆检测，防止生成题照搬参考题结构"""
+    output = batch_dir / "evidence" / "anti-clone.json"
+    db_path = os.environ.get("EXAM_DB") or Path(__file__).parent.parent / "data" / "exam.db"
+    command = [
+        sys.executable, str(Path(__file__).with_name("anti_clone_checker.py")),
+        str(batch_dir), "--db", str(db_path), "--output", str(output),
+    ]
+    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
+    if result.returncode != 0:
+        detail = (result.stdout or result.stderr).strip()
+        evidence = read_json(output) if output.is_file() else {}
+        if evidence.get("verdict") == "REJECT":
+            clones = evidence.get("clones", [])
+            clone_summary = "\n".join(
+                f"  - {c['question_id']}: {'; '.join(c['reasons'][:2])}"
+                for c in clones[:5]
+            )
+            raise ValueError(f"反克隆检测失败：发现 {len(clones)} 道疑似克隆题\n{clone_summary}")
+        raise ValueError(f"反克隆检测执行失败：{detail[-2000:]}")
+    evidence = read_json(output)
+    if not isinstance(evidence, dict):
+        raise ValueError("反克隆检测证据必须是 JSON 对象")
+    if evidence.get("verdict") != "PASS":
+        clones = evidence.get("clones", [])
+        clone_summary = "\n".join(
+            f"  - {c['question_id']}: {'; '.join(c['reasons'][:2])}"
+            for c in clones[:5]
+        )
+        raise ValueError(f"反克隆检测未通过：发现 {len(clones)} 道疑似克隆题\n{clone_summary}")
+    return output
+
+
 def atomic_json(path: Path, value: dict) -> None:
     fd, temp = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
@@ -636,6 +669,10 @@ def issue(
     validate_paper_hard_rules(manifest, questions, batch_dir)
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
+
+    # 反克隆检测（防止照搬参考题结构）
+    anti_clone_path = run_anti_clone_check(batch_dir)
+
     system_path = run_system_quality_gate(batch_dir, ids)
     image_paths = ziliao_image_paths(batch_dir)
     visual_path = run_ziliao_visual_gate(batch_dir, image_paths)
@@ -649,6 +686,10 @@ def issue(
         "artifacts": artifact_digests(batch_dir),
         "reference_contexts": context_digests,
         "question_ids": ids,
+        "anti_clone": {
+            "path": str(anti_clone_path.relative_to(batch_dir)),
+            "sha256": digest(anti_clone_path),
+        },
         "system_quality": {
             "path": str(system_path.relative_to(batch_dir)),
             "sha256": digest(system_path),

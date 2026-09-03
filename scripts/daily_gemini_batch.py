@@ -215,6 +215,8 @@ def pop_figure(holder: dict) -> dict | None:
 
 
 def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     specs = draft.get("image_specs") or draft.get("image-specs") or {}
     spec_rows = specs.get("questions") if isinstance(specs, dict) else specs
     by_id = {
@@ -222,6 +224,10 @@ def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
         for item in (spec_rows or [])
         if isinstance(item, dict)
     }
+
+    # 收集所有需要生成的图像任务（需要 AI 生成的）
+    ai_image_tasks = []  # (facts, dest, question, index)
+
     for index, question in enumerate(draft.get("questions") or [], 1):
         spec = by_id.get(str(question.get("external_id") or ""))
         facts = list((spec or {}).get("image_facts") or [])
@@ -234,7 +240,7 @@ def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
             rel = (question.get("stem_images") or [f"images/q-{index:02d}-stem.png"])[0]
             dest = batch_dir / rel
             question["stem_images"] = [rel]
-            generate_line_image(facts, dest, deadline)
+            ai_image_tasks.append((facts, dest))
         for option in question.get("options") or []:
             opt_fig = pop_figure(option)
             if not opt_fig:
@@ -244,6 +250,17 @@ def render_assets(batch_dir: Path, draft: dict, deadline: float) -> None:
                 rel = f"images/q-{index:02d}-opt-{option.get('key')}.png"
             render_one(opt_fig, batch_dir / rel)
             option["images"] = [rel]
+
+    # 并行生成所有 AI 图像（判断推理5张图 + 科学推理5张图可以同时生成）
+    if ai_image_tasks:
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            futures = [
+                pool.submit(generate_line_image, facts, dest, deadline)
+                for facts, dest in ai_image_tasks
+            ]
+            for future in as_completed(futures):
+                future.result()  # 抛出异常则整个批次失败
+
     for index, material in enumerate(draft.get("materials") or [], 1):
         fig = pop_figure(material)
         if not fig:
@@ -352,6 +369,15 @@ def run_cmd(command: list[str], deadline: float, env: dict[str, str]) -> str:
     return (result.stdout or "").strip()
 
 
+def parse_failed_question_ids(error_message: str) -> list[str]:
+    """从 gate 错误信息中解析出失败的题目 ID"""
+    import re
+    # 匹配类似 "20260903_判断_01_03" 的题目 ID
+    pattern = r'\b\d{8}_[^_\s]+_\d+_\d+\b'
+    matches = re.findall(pattern, error_message)
+    return list(set(matches))
+
+
 def generate_and_import(
     run: dict,
     batch_dir: Path,
@@ -362,8 +388,42 @@ def generate_and_import(
     deadline = time.monotonic() + timeout
     env = {**os.environ, "EXAM_DB": str(db_path)}
     error = None
-    for _attempt in range(2):
-        draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+    for attempt in range(2):
+        if attempt == 0:
+            # 首次生成：完整批次
+            draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+        else:
+            # 第二次：尝试增量修复
+            failed_ids = parse_failed_question_ids(error or "")
+            if failed_ids and len(failed_ids) < int(run["planned_count"]) // 2:
+                # 如果失败题目少于一半，尝试只修复这些题
+                print(f"尝试增量修复 {len(failed_ids)} 道失败题: {', '.join(failed_ids[:3])}...")
+                # 读取现有草稿，只重新生成失败的题
+                existing = batch_dir / "questions.json"
+                if existing.is_file():
+                    import json
+                    existing_draft = json.loads(existing.read_text(encoding='utf-8'))
+                    # 提取失败题的索引
+                    failed_indices = []
+                    for i, q in enumerate(existing_draft.get("questions") or []):
+                        if str(q.get("external_id")) in failed_ids:
+                            failed_indices.append(i + 1)
+
+                    if failed_indices:
+                        # 构建增量修复 prompt
+                        patch_prompt = augment_prompt(prompt, run, batch_dir, error)
+                        patch_prompt += f"\n\n# 增量修复模式\n只需修复以下题号: {', '.join(map(str, failed_indices))}\n"
+                        patch_prompt += "保持其他题目不变，只输出完整的 questions.json（包含修复后的题目）。\n"
+                        draft = call_gemini(patch_prompt, deadline)
+                    else:
+                        # 无法定位失败题，全批重生成
+                        draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+                else:
+                    draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+            else:
+                # 失败题目太多或无法解析，全批重生成
+                draft = call_gemini(augment_prompt(prompt, run, batch_dir, error), deadline)
+
         write_batch(run, batch_dir, draft)
         render_assets(batch_dir, draft, deadline)
         dump(batch_dir / "questions.json", draft["questions"])

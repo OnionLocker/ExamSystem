@@ -136,7 +136,7 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         )
     tier_rule = (
         f"本批难度档：difficulty_tier={tier}（日练隔天轮换：公历偶数序数日=简单 easy、奇数=难 hard；"
-        "同一广东卷结构/知识点/模块配比不变，只调节‘弯子多少’）。\n"
+        "同一广东卷结构/知识点/模块配比不变，只调节’弯子多少’）。\n"
         + ("【简单档 easy】每题 1–2 步、设问直接、干扰项为常见错法；少跨段、少多约束——"
            "资料少综合判断与跨段、数量少表示转换、逻辑少多层论证、图形规律直观。\n"
            if tier == "easy" else
@@ -144,6 +144,29 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
            "数量多步组合、逻辑多层论证。仍在广东卷面内，不得改成国考篇幅、不得出类比/定义。\n")
         + "在 manifest 写入 difficulty_tier；可选给每题加 difficulty:\"easy\"/\"hard\" 软标注（非硬性 GATE）。\n"
     )
+
+    # 质量强化规则（防止骨架感）
+    quality_rules = """
+【结构变式铁律】（R009 强化版）
+1. 参考包（evaluate holdout）的作用是学习"认知步骤、信息披露程度、干扰项分类"，不是让你照着改数字。
+2. 禁止复用参考题的：
+   - 特有实体名（如"甲公司/乙部门/丙项目"）
+   - 数字链或人物关系（如"A比B多20%，B是C的1.5倍"）
+   - 罕见术语组合（如"碳配额交易/反向抵押贷款/数字孪生"）
+   - 叙事顺序（如"先介绍背景→再列举条件→最后问推导"的固定模式）
+   - 整组选项措辞（如四个选项都是"...有助于..."句式）
+3. 排除固定设问后，若出现**连续8个汉字与参考题重合**，整题打回。
+4. 同一槽位的多道题必须：
+   - 改变信息结构（已知量与未知量互换）
+   - 改变设问角度（求最大值 vs 求方案数 vs 求概率）
+   - 改变错误路径（三个错项分别对应不同错误类型）
+
+【自查清单】（生成后立即执行）
+□ 我的题干场景是否与参考题完全不同？（企业→项目→政策→活动，至少跨两个领域）
+□ 我的数字/实体/人物关系是否独立设计？（不是把参考题的85改成92）
+□ 我的三个错项是否来自三种不同错误？（不是"A取错分子、B也取错分子、C算错单位"）
+□ 去掉固定设问后，是否没有连续8个汉字与参考题重合？
+"""
     return (
         "You are ExamSystem's daily question writer for one module. Output one JSON object only.\n"
         "No markdown fences, no commentary, no tool calls, no shell.\n"
@@ -156,6 +179,7 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         "Obey every 【GATE】 rule in module-hard-rules.md (脏数字≥40%、禁某省、Q5综合判断跨篇轮换、禁课纲词、"
         "加强/削弱项须对准结论、数字推理五规律不克隆、数学运算禁鸡兔/长方形周长面积/纯相遇口算)。\n"
         f"{tier_rule}"
+        f"{quality_rules}"
         "Draft from internalized GONGKAO-STYLE principles+profile. Python attaches evaluate holdout after you write; omit evaluation_contexts. generation_contexts may be omitted.\n"
         "Put the correct option on answer_plan[i].answer. Do not change computed values to chase a letter. "
         "generation_gate will reshuffle options if the draft ignores the plan. Keep Guangdong paper question order; do not shuffle questions.\n"
