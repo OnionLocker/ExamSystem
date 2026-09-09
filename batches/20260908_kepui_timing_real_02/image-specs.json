@@ -1,0 +1,135 @@
+{
+  "questions": [
+    {
+      "question_id": "20260908_kepui_timing_real_02_01",
+      "image_facts": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "A"
+      ],
+      "image_only_facts": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9"
+      ],
+      "must_derive": [
+        "6号个体与7号个体的基因型均为Aa"
+      ],
+      "must_not": [
+        "Aa",
+        "aa",
+        "AA"
+      ],
+      "kind": "pedigree"
+    },
+    {
+      "question_id": "20260908_kepui_timing_real_02_02",
+      "image_facts": [
+        "S",
+        "L",
+        "R",
+        "V",
+        "A"
+      ],
+      "image_only_facts": [
+        "S",
+        "L",
+        "R",
+        "V",
+        "A"
+      ],
+      "must_derive": [
+        "灯L断路导致A为0且V接近电源电压"
+      ],
+      "must_not": [
+        "短路",
+        "断路",
+        "故障"
+      ],
+      "kind": "circuit"
+    },
+    {
+      "question_id": "20260908_kepui_timing_real_02_03",
+      "image_facts": [
+        "程序绘制的图形"
+      ],
+      "image_only_facts": [
+        "水热配置呈现夏干冬雨的非同期特征"
+      ],
+      "must_derive": [
+        "夏热干冬温雨推断为地中海气候对应亚热带常绿硬叶林"
+      ],
+      "must_not": [
+        "地中海气候",
+        "硬叶林",
+        "答案"
+      ],
+      "kind": "climate"
+    },
+    {
+      "question_id": "20260908_kepui_timing_real_02_04",
+      "image_facts": [
+        "薄壁圆柱形容器甲",
+        "水平桌面",
+        "甲",
+        "乙",
+        "A"
+      ],
+      "image_only_facts": [
+        "薄壁圆柱形容器甲",
+        "薄壁圆柱形容器乙",
+        "初始液面高度h",
+        "悬浮小球A",
+        "漂浮小球B",
+        "水平桌面"
+      ],
+      "must_derive": [
+        "根据悬浮和漂浮得出液体密度关系及压力增加量相等"
+      ],
+      "must_not": [
+        "浮力大小公式",
+        "压力变化数值",
+        "答案"
+      ],
+      "kind": "tank"
+    },
+    {
+      "question_id": "20260908_kepui_timing_real_02_05",
+      "image_facts": [
+        "水平地面",
+        "甲",
+        "乙"
+      ],
+      "image_only_facts": [
+        "竖直抛出线",
+        "高度h1的抛出点甲",
+        "高度h2的抛出点乙",
+        "平抛运动轨迹",
+        "水平地面",
+        "接收孔P"
+      ],
+      "must_derive": [
+        "位移相同高度大则时间长从而推导初速度较小"
+      ],
+      "must_not": [
+        "初速度大小比较",
+        "时间大小比较",
+        "答案"
+      ],
+      "kind": "motion"
+    }
+  ]
+}

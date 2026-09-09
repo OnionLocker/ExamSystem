@@ -82,6 +82,14 @@ LOGIC_TAGS = (
     "判断推理-逻辑判断-秒杀模型与速解技巧",
 )
 
+LOGIC_ASKS = {
+    "支持": "最能支持上述结论的是",
+    "质疑": "最能削弱上述结论的是",
+    "分析": "根据以上信息可以推出对应关系的是",
+    "解释": "最能解释上述现象的是",
+    "秒杀": "下列哪项与题干逻辑结构或逻辑错误最为相似",
+}
+
 
 def panduan_paper(g=5, lg=15):
     out = []
@@ -89,6 +97,28 @@ def panduan_paper(g=5, lg=15):
         out.append(q(f"G{i}", "判断推理", "图形推理", "判断推理-图形推理-位置规律"))
     for i in range(lg):
         out.append(q(f"L{i}", "判断推理", "逻辑判断", LOGIC_TAGS[i % len(LOGIC_TAGS)]))
+    return _balance(out)
+
+
+def panduan20_logic():
+    """纯逻辑 20 判断题套：类型分布满足硬规则，题干设问与考点匹配（带足长度）。"""
+    tags = (
+        "判断推理-逻辑判断-逻辑论证-支持与前提假设",
+        "判断推理-逻辑判断-逻辑论证-一般质疑",
+        "判断推理-逻辑判断-分析类-日常分析推理",
+        "判断推理-逻辑判断-比例类论证与解释说明",
+        "判断推理-逻辑判断-秒杀模型与速解技巧",
+    )
+    out = []
+    for i in range(20):
+        tag = tags[i % len(tags)]
+        ask = next(text for key, text in LOGIC_ASKS.items() if key in tag)
+        out.append(
+            q(
+                f"L{i:02d}", "判断推理", "逻辑判断", tag,
+                stem="背景叙述" * 8 + ask,
+            )
+        )
     return _balance(out)
 
 
@@ -187,7 +217,7 @@ class HardRulesTest(unittest.TestCase):
                 it["stem"] = "普通计算题"
         with tempfile.TemporaryDirectory() as d:
             self._clean_ziliao_dir(d)
-            with self.assertRaisesRegex(ValueError, "综合判断"):
+            with self.assertRaisesRegex(ValueError, r"综合判断（Q5）：Z04, Z14, Z24, Z34"):
                 validate_paper_hard_rules({}, items, Path(d))
 
     def test_ziliao_same_judge_form_rejected(self):
@@ -200,18 +230,26 @@ class HardRulesTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "跨篇轮换"):
                 validate_paper_hard_rules({}, items, Path(d))
 
+    def test_ziliao_q5_not_q3_counts(self):
+        items = ziliao_paper(distinct=True)
+        for it in items:
+            if it["stem"].startswith("根据资料"):
+                it["stem"] = "2024年产值约为多少"
+            elif it["external_id"].endswith("2"):
+                it["stem"] = "根据资料，以下说法可以判断属实的是（  ）。"
+        with tempfile.TemporaryDirectory() as d:
+            self._clean_ziliao_dir(d)
+            with self.assertRaisesRegex(ValueError, r"综合判断（Q5）：Z04"):
+                validate_paper_hard_rules({}, items, Path(d))
+
 
 class ScienceTest(unittest.TestCase):
-    def test_clean_passes(self):
+    """科推已从每日任务剔除；硬规则闸门不再对科学推理做任何检查。"""
+
+    def test_science_items_are_not_gated(self):
         validate_paper_hard_rules({}, science_paper(5, with_images=True))
-
-    def test_missing_image_rejected(self):
-        with self.assertRaisesRegex(ValueError, "必带图"):
-            validate_paper_hard_rules({}, science_paper(5, with_images=False))
-
-    def test_wrong_count_rejected(self):
-        with self.assertRaisesRegex(ValueError, "科学推理须为 5 题"):
-            validate_paper_hard_rules({}, science_paper(4, with_images=True))
+        validate_paper_hard_rules({}, science_paper(5, with_images=False))
+        validate_paper_hard_rules({}, science_paper(4, with_images=True))
 
 
 class AnswerBalanceTest(unittest.TestCase):
@@ -236,18 +274,14 @@ class AnswerBalanceTest(unittest.TestCase):
             validate_paper_hard_rules({}, p)
 
 
+
 class ScienceLevelTest(unittest.TestCase):
-    def test_overlevel_rejected(self):
+    """科推超纲检查随科推下架而移除：题目不再拦。"""
+
+    def test_overlevel_not_gated(self):
         sp = science_paper(5, with_images=True)
         sp[0]["stem"] = "如图，一定质量的理想气体经历等温过程，求末状态压强。"
-        with self.assertRaisesRegex(ValueError, "初中难度"):
-            validate_paper_hard_rules({}, sp)
-
-    def test_momentum_rejected(self):
-        sp = science_paper(5, with_images=True)
-        sp[1]["stem"] = "如图，两滑块碰撞，由动量守恒求碰后速度。"
-        with self.assertRaisesRegex(ValueError, "初中难度"):
-            validate_paper_hard_rules({}, sp)
+        validate_paper_hard_rules({}, sp)
 
 
 def compressed_daily_paper():
@@ -263,18 +297,19 @@ def compressed_daily_paper():
 
 class PanduanLayoutTest(unittest.TestCase):
     def test_clean_passes(self):
-        validate_paper_hard_rules({}, panduan_paper(5, 15))
+        validate_paper_hard_rules({}, panduan20_logic())
 
-    def test_wrong_split_rejected(self):
-        with self.assertRaisesRegex(ValueError, "图形 5 \\+ 逻辑 15"):
-            validate_paper_hard_rules({}, panduan_paper(6, 14))
+    def test_graphic_in_panduan_rejected(self):
+        # 判断推理整卷纯逻辑 20：含图形题会被拦下
+        with self.assertRaisesRegex(ValueError, "纯逻辑 20"):
+            validate_paper_hard_rules({}, panduan_paper(5, 15))
 
     def test_compressed_kepui_tail_rejected(self):
         with self.assertRaisesRegex(ValueError, "不得含科学推理"):
             validate_paper_hard_rules({}, compressed_daily_paper())
 
     def test_science_inside_panduan20_rejected_even_without_images(self):
-        paper = panduan_paper(5, 15)
+        paper = panduan20_logic()
         paper[19]["sub_category"] = "科学推理"
         paper[19]["tags"] = ["科学推理-力学-杠杆滑轮"]
         with self.assertRaisesRegex(ValueError, "不得含科学推理"):

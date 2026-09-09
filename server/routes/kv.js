@@ -38,10 +38,10 @@ router.put('/:key', (req, res) => {
   }
   db.prepare(`
     INSERT INTO user_kv (k, v, updated_at)
-    VALUES (?, ?, CURRENT_TIMESTAMP)
+    VALUES (?, ?, datetime('now', '+8 hours'))
     ON CONFLICT(k) DO UPDATE SET
       v = excluded.v,
-      updated_at = CURRENT_TIMESTAMP
+      updated_at = datetime('now', '+8 hours')
   `).run(req.params.key, str);
   res.json({ ok: true });
 });
@@ -61,10 +61,10 @@ router.post('/batch', (req, res) => {
   }
   const stmt = db.prepare(`
     INSERT INTO user_kv (k, v, updated_at)
-    VALUES (?, ?, CURRENT_TIMESTAMP)
+    VALUES (?, ?, datetime('now', '+8 hours'))
     ON CONFLICT(k) DO UPDATE SET
       v = excluded.v,
-      updated_at = CURRENT_TIMESTAMP
+      updated_at = datetime('now', '+8 hours')
   `);
   let written = 0;
   const tx = db.transaction(() => {

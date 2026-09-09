@@ -1,0 +1,298 @@
+{
+  "elapsed_sec": 674.05,
+  "events": [
+    {
+      "name": "gemini_draft",
+      "sec": 75.348
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.005
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.025
+    },
+    {
+      "name": "gate_issue",
+      "sec": 22.421
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 32.841
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.007
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.151
+    },
+    {
+      "name": "gate_issue",
+      "sec": 30.75
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.005
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.069
+    },
+    {
+      "name": "gate_issue",
+      "sec": 27.982
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 11.325
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.005
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.18
+    },
+    {
+      "name": "gate_issue",
+      "sec": 25.692
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.005
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.274
+    },
+    {
+      "name": "gate_issue",
+      "sec": 25.562
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 11.868
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_01",
+      "sec": 0.008
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_flashqa_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.251
+    },
+    {
+      "name": "gate_issue",
+      "sec": 25.578
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 0.0
+    },
+    {
+      "name": "quality_flash",
+      "sec": 6.48
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.777
+    },
+    {
+      "name": "quality_flash",
+      "sec": 13.298
+    },
+    {
+      "name": "quality_flash",
+      "sec": 7.447
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.106
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.415
+    },
+    {
+      "name": "quality_flash",
+      "sec": 16.724
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.392
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.121
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.216
+    },
+    {
+      "name": "quality_flash",
+      "sec": 14.606
+    },
+    {
+      "name": "quality_flash",
+      "sec": 11.747
+    },
+    {
+      "name": "quality_flash",
+      "sec": 7.285
+    },
+    {
+      "name": "quality_flash",
+      "sec": 14.442
+    },
+    {
+      "name": "quality_flash",
+      "sec": 14.97
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.591
+    },
+    {
+      "name": "quality_flash",
+      "sec": 4.511
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.969
+    },
+    {
+      "name": "quality_flash",
+      "sec": 16.43
+    },
+    {
+      "name": "quality_flash",
+      "sec": 7.614
+    },
+    {
+      "name": "quality_flash",
+      "sec": 6.432
+    },
+    {
+      "name": "quality_flash",
+      "sec": 12.914
+    },
+    {
+      "name": "quality_flash",
+      "sec": 14.295
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.806
+    }
+  ],
+  "status": "failed",
+  "slots": [
+    "科学推理-地理-等高线",
+    "科学推理-生物-生态系统与能量",
+    "科学推理-力学-平抛运动",
+    "科学推理-压强与浮力-液体压强",
+    "科学推理-电学-电路故障"
+  ],
+  "error": "timed out before Gemini draft"
+}

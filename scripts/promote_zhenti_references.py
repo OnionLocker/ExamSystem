@@ -248,7 +248,7 @@ ON CONFLICT(external_id) DO UPDATE SET
   year = excluded.year,
   region = excluded.region,
   imported_by = excluded.imported_by,
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = datetime('now', '+8 hours')
 """
 
 

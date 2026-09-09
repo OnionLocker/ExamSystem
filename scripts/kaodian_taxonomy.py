@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import os
 import random
 import sqlite3
@@ -27,6 +28,16 @@ NUM_INCLUSION = "数量关系-容斥问题-集合计数与逆向排除"
 NUM_SEQUENCE = "数量关系-数字推理-数字推理"
 NUM_SEQUENCE_RECUR = "数量关系-数字推理-递推数列"
 NUM_SEQUENCE_SPLIT = "数量关系-数字推理-机械划分"
+NUM_SEQUENCE_MULTI = "数量关系-数字推理-多重数列"
+NUM_SEQUENCE_LEVEL = "数量关系-数字推理-多级数列"
+NUM_SEQUENCE_POWER = "数量关系-数字推理-幂次数列"
+NUM_SEQUENCE_FRAC = "数量关系-数字推理-分数数列"
+NUM_SEQUENCE_GRID = "数量关系-数字推理-图形数阵"
+NUM_SEQUENCE_SUM = "数量关系-数字推理-作和作积数列"
+NUM_SEQUENCE_QUOT = "数量关系-数字推理-作商数列"
+NUM_SEQUENCE_DECIMAL = "数量关系-数字推理-小数与差分数列"
+NUM_SEQUENCE_DIGIT = "数量关系-数字推理-数位特征数列"
+NUM_SEQUENCE_POWER_VAR = "数量关系-数字推理-幂次变式数列"
 KNOWN_QUANTITY_TAGS = {
     NUM_DATE,
     NUM_CYCLE,
@@ -43,6 +54,16 @@ KNOWN_QUANTITY_TAGS = {
     NUM_SEQUENCE,
     NUM_SEQUENCE_RECUR,
     NUM_SEQUENCE_SPLIT,
+    NUM_SEQUENCE_MULTI,
+    NUM_SEQUENCE_LEVEL,
+    NUM_SEQUENCE_POWER,
+    NUM_SEQUENCE_FRAC,
+    NUM_SEQUENCE_GRID,
+    NUM_SEQUENCE_SUM,
+    NUM_SEQUENCE_QUOT,
+    NUM_SEQUENCE_DECIMAL,
+    NUM_SEQUENCE_DIGIT,
+    NUM_SEQUENCE_POWER_VAR,
 }
 COARSE_PRIMARY_TAGS = {
     "数量关系-数学运算-排列组合",
@@ -212,6 +233,8 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
     if _has_any(raw, "翻译推理", "德摩根", "否后否前", "否定肯定", "只有才", "除非", "必要条件", "逆否"):
         return TRANSLATION
 
+    if mod == "判断推理" and raw.startswith("判断推理-") and raw.count("-") >= 2:
+        return raw
     if mod == "判断推理" and (sub == "逻辑判断" or not sub):
         return TRANSLATION
 
@@ -342,7 +365,7 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
           canonical TEXT NOT NULL,
           module TEXT NOT NULL,
           subtype TEXT,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
         """
     )
@@ -367,12 +390,12 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
         conn.execute(
             """
             INSERT INTO kaodian_aliases(alias, canonical, module, subtype, updated_at)
-            VALUES (?, ?, ?, ?, datetime('now'))
+            VALUES (?, ?, ?, ?, datetime('now', '+8 hours'))
             ON CONFLICT(alias) DO UPDATE SET
               canonical = excluded.canonical,
               module = excluded.module,
               subtype = excluded.subtype,
-              updated_at = datetime('now')
+              updated_at = datetime('now', '+8 hours')
             """,
             (alias, canonical, normalized_module, canonical_subtype),
         )
@@ -403,6 +426,102 @@ def question_primary_tag(question: dict) -> str:
             if str(tag).strip():
                 return str(tag).strip()
     return ""
+
+
+
+_JUNK_TAG_LEAF = {"", "未标注", "未细分", "其他", "综合"}
+_GONGKAO_MODULES = {
+    "数量关系",
+    "资料分析",
+    "判断推理",
+    "言语理解与表达",
+    "科学推理",
+}
+_GONGKAO_HINTS = {
+    "数量关系": (
+        "数论", "整除", "同余", "倍数", "等差", "等比", "数列", "数字推理",
+        "递推", "方程", "和差倍比", "浓度", "工程", "利润", "行程", "相遇",
+        "几何", "排列", "组合", "概率", "容斥", "最值", "日期", "周期",
+        "年龄", "时钟", "牛吃草", "植树", "鸡兔", "盈亏", "经济", "分段",
+        "特值", "代入", "统筹", "星期", "幂次", "分数", "数阵", "作和",
+        "作商", "机械划", "数位", "数的特性", "四则", "不定方程",
+    ),
+    "资料分析": (
+        "基期", "现期", "增长", "比重", "平均", "倍数", "贡献", "拉动",
+        "间隔", "混合", "比较", "盐水", "十字", "同比", "环比", "增量",
+        "统计", "隔年", "累计", "进出口",
+    ),
+    "判断推理": (
+        "翻译", "削弱", "加强", "前提", "假设", "解释", "论证", "分析",
+        "复言", "联言", "选言", "假言", "图形", "位置", "样式", "属性",
+        "六面", "截面", "叠加", "结构", "归因", "数量规律",
+    ),
+    "言语理解与表达": (
+        "主旨", "意图", "标题", "细节", "逻辑填空", "语句", "衔接",
+        "下文", "排序", "词句", "语境", "强调",
+    ),
+    "科学推理": (
+        "力学", "杠杆", "滑轮", "浮力", "压强", "电学", "串并", "电路",
+        "生物", "反射", "光合", "食物", "遗传", "地理", "等高", "锋面",
+        "海陆", "大气", "受力",
+    ),
+}
+
+
+def _quantity_leaf_ok(text: str) -> bool:
+    leaf = (text or "").strip()
+    if leaf in _JUNK_TAG_LEAF:
+        return False
+    return bool(re.search(r"[\u4e00-\u9fff]{2,}", leaf))
+
+
+def is_gongkao_tag(canonical: str) -> bool:
+    """词表没收全、但像公考会考的三级标签，允许补录。"""
+    parts = [p for p in str(canonical or "").split("-") if p]
+    if len(parts) < 3 or parts[0] not in _GONGKAO_MODULES:
+        return False
+    mid = parts[1]
+    leaf = "-".join(parts[2:]).strip()
+    if not _quantity_leaf_ok(mid) or not _quantity_leaf_ok(leaf):
+        return False
+    if _has_any(leaf, "类比", "定义判断") or leaf.endswith("综合判断"):
+        return False
+    if parts[0] == "数量关系" and mid == "数字推理":
+        return True
+    blob = mid + leaf
+    return any(hint in blob for hint in _GONGKAO_HINTS[parts[0]])
+
+
+def is_gongkao_quantity_tag(canonical: str) -> bool:
+    return is_gongkao_tag(canonical)
+
+
+def is_gongkao_sequence_tag(canonical: str) -> bool:
+    """兼容旧名：数字推理变体仍走同一条公考补录。"""
+    return is_gongkao_tag(canonical)
+
+
+def admit_gongkao_sequence_tag(canonical: str) -> bool:
+    if not is_gongkao_tag(canonical):
+        return False
+    path = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "data" / "exam.db")
+    if not path.is_file():
+        return True
+    try:
+        from kaodian_profile import register_knowledge_point
+
+        conn = sqlite3.connect(path, timeout=30)
+        try:
+            parts = canonical.split("-", 2)
+            register_knowledge_point(
+                conn, canonical, parts[0], parts[1], "auto:gongkao-point"
+            )
+            conn.commit()
+        finally:
+            conn.close()
+    except (OSError, sqlite3.Error, ImportError):
+        return True
+    return True
 
 
 def registered_canonical_tags() -> set[str]:
@@ -443,6 +562,8 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
             "末题可以出综合判断句，tags[0] 打在正确项最重的那张知识库主标签上。"
         )
     if module == "数量关系" and canonical not in KNOWN_QUANTITY_TAGS and canonical not in registered_canonical_tags():
+        if admit_gongkao_sequence_tag(canonical):
+            return canonical
         raise ValueError(
             f"数量关系标签无法归一到知识卡片或已登记考点: {tag} → {canonical}。"
             "新考点先 kaodian_profile.py --register 再出题。"
@@ -453,10 +574,15 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
                 "速算技巧 / 每题四步是方法卡，不能当 tags[0]。"
                 "改用 ABRX / 比重 / 平均 / 比较 / 盐水 / 贡献率等出题槽。"
             )
-        if tag not in KNOWN_ZILIAO_TAGS:
-            hint = f"应写成 {canonical}" if canonical in KNOWN_ZILIAO_TAGS else "词表见 solver-canon/07-ziliao.md"
-            raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。{hint}")
-        return tag
+        if tag in KNOWN_ZILIAO_TAGS:
+            return tag
+        if canonical in KNOWN_ZILIAO_TAGS:
+            raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。应写成 {canonical}")
+        if admit_gongkao_sequence_tag(canonical):
+            return canonical
+        raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。词表见 solver-canon/07-ziliao.md")
+    if canonical not in registered_canonical_tags():
+        admit_gongkao_sequence_tag(canonical)
     return canonical
 
 

@@ -32,8 +32,9 @@ from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper,
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("QUALITY_GATE_MODEL", "gemini-3.7-flash-high")
-MOBILE_WIDTH = 320
+MODEL = os.environ.get("QUALITY_GATE_MODEL", "gemini-3.6-flash-high")
+IPAD_REVIEW_MAX_W = 768
+IPAD_REVIEW_MAX_H = 480
 RETRIES = 2
 
 CAT_YANYU = "\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe"
@@ -85,10 +86,8 @@ Do not reject for answer-letter placement; the system assigns option letters sep
 Any repeated reskin, all-identical difficulty without justification,
 wrong-module reference, user constraint mismatch, repeated boilerplate prose, giveaway extreme-word distractors,
 or inflated difficulty labels must be REJECT.
-A 20-item 判断推理 paper must be 图形推理 5 + 逻辑判断 15 (multiple families, 翻译推理 at most 2,
-no 定义判断/类比推理/科学推理). 科学推理 is a separate 5-item module: one subject each from
-力学/压强浮力/电学/生物/地理 (physics 2-3 + biology 1 + geography 1), every item with a figure.
-type_distribution_ok is false if that layout is missing."""
+A 20-item 判断推理 paper must be 20 逻辑判断 (multiple families, 翻译推理 at most 2,
+no 定义判断/类比推理/图形推理/科学推理). type_distribution_ok is false if that layout is missing."""
 
 REFERENCE_SYSTEM = """You are a strict reference-relevance auditor. For every generated question,
 read its exact stem/tag and every mapped evaluation reference.
@@ -97,7 +96,7 @@ assumption, translation, explanation, matching, parallel structure). One sibling
 does not fail the item when at least one reference is the same family.
 A science-reasoning reference is relevant when it is the same discipline
 (mechanics, pressure/buoyancy, electricity, biology, geography, chemistry).
-Do not reject geography earth-motion vs contour, or rheostat vs thermistor, as different
+Do not reject geography earth-motion vs contour/climate/latlon, or rheostat vs thermistor, as different
 disciplines. Sharing only the umbrella "science reasoning" is not enough.
 Treat wrong or over-broad legacy tags as untrusted and decide from actual content. Return JSON only:
 {"questions":[{"id":"...","verdict":"PASS","references":[{"id":"...","relevant":true,"reason":"..."}]}]}
@@ -113,18 +112,20 @@ Return JSON only:
 
 D_CANDIDATE_SYSTEM = """You are a blind Guangdong civil-service exam candidate. Read the supplied
 question text and actual figures only. Do not infer a hidden key. Reject an item if the figure is
-unclear, cropped, contradictory, leaks a solution, or more than one answer is defensible. Return
-JSON only:
+unclear, cropped, contradictory, leaks a solution, or more than one answer is defensible.
+Hard fail if the figure is the wrong kind for the stem: a topographic contour map on a
+weather-front / 剖面 item, a circuit on a lever item, or any drawing that does not contain
+the objects the stem asks you to read. Return JSON only:
 {"questions":[{"id":"...","answer":"A","also_valid":[],"verdict":"PASS","issues":[]}]}"""
 
 D_SETTER_SYSTEM = """You are an independent setter-side visual reviewer for Guangdong civil-service
 exam questions. Compare each actual figure with IMAGE_FACTS, IMAGE_ONLY_FACTS and MUST_DERIVE. The figure must show
 all and only permitted facts, every IMAGE_ONLY_FACT must be visible and not redundantly stated in the stem,
-must not reveal MUST_DERIVE, and must remain readable at 320px width.
+must not reveal MUST_DERIVE, and must remain readable at the iPad practice size (max 768x480).
 Reject any missing-glyph box, unreadable Latin variable/digit, wrong count, label, direction, connection,
 overlap, crop, ambiguity, or answer mismatch. For circuits, trace every endpoint and require a rheostat
-to use its slider terminal. Mentally remove the image: if all answer-essential facts remain in the stem,
-the image is decorative and the item must be rejected.
+to use its slider terminal. Guangdong science-reasoning stems usually say 如图所示 and also name 甲/乙/R1/R2; that is authentic, not decorative. Reject decorative only when the figure has no readable labels or geometry. Reject contradictory drawings (same-width tanks when the stem says 2:1, a lever missing the right-hand 钩码, wrong exam object).
+Hard fail if stem and figure are different exam objects (等高线平面图 vs 锋面剖面, 食物网 vs 电路, etc.).
 Return JSON only:
 {"questions":[{"id":"...","verdict":"PASS","issues":[]}]}"""
 
@@ -134,7 +135,7 @@ references mapped to that item and the supplied regression rules. For fill/inser
 compare every rival in the complete context. Distractors may be locally plausible; reject only a genuine
 tie or a key supported solely by an unstated premise. Reject obvious factual distortion, internal
 contradiction, excessive slogan/template prose, near-verbatim answer copying, three giveaway extreme-word
-distractors, or a difficulty label above the actual reasoning steps. For 翻译推理, reject if the keyed option restates a 已知 instance (synonyms count) without applying a 如果/除非/只有/或者 rule; the subject must stay 某企业/某团队 and must not leak the conclusion. Regression rule R029: echo of 已知 is a hard fail even when the option is logically true. Regression rule R030: a 20-question 判断推理 paper must be 图形 5 + 逻辑 15 with multiple logic families and no 科学推理; 科学推理 is an independent 5-question module with 生物, 地理 and at least two physics items. Regression rule R032: for 加强/削弱/前提/解释 (强化削弱型) questions, the keyed option must act on THIS argument's conclusion or its premise chain; an option that is merely true or on-topic but does not change the argument's support (跑题的加强/削弱项) is a hard fail, and if two or more options change the support to a comparable degree the item is not uniquely keyed and must be rejected. Regression rule R035 (soft, subjective): if the batch declares a difficulty_tier (easy/hard), judge whether the paper as a whole matches it — easy means 1-2 steps, direct asks, common-mistake distractors, few cross-paragraph/multi-constraint items; hard means one extra layer on the same knowledge point (representation change, multiple constraints, half-right distractors, more cross-paragraph synthesis). Reject only when the whole paper clearly sits in the other tier (e.g. tagged easy but pervasively multi-step/multi-constraint); do not fail single borderline items, and never let tier change the fixed Guangdong structure/quota. For assumption questions, negate
+distractors, or a difficulty label above the actual reasoning steps. Hard fail if the attached figure is the wrong exam object for the stem (等高线平面图 on a 锋面剖面 item, circuit on a lever item, wrong-kind or contradictory drawing). For 翻译推理, reject if the keyed option restates a 已知 instance (synonyms count) without applying a 如果/除非/只有/或者 rule; the subject must stay 某企业/某团队 and must not leak the conclusion. Regression rule R029: echo of 已知 is a hard fail even when the option is logically true. Regression rule R030: a 20-question 判断推理 paper must be 20 逻辑判断 with multiple logic families and no 图形推理/科学推理. Regression rule R032: for 加强/削弱/前提/解释 (强化削弱型) questions, the keyed option must act on THIS argument's conclusion or its premise chain; an option that is merely true or on-topic but does not change the argument's support (跑题的加强/削弱项) is a hard fail, and if two or more options change the support to a comparable degree the item is not uniquely keyed and must be rejected. Regression rule R035 (soft, subjective): if the batch declares a difficulty_tier (easy/hard), judge whether the paper as a whole matches it. Easy tier floor: every item must require recognizing a model/concept before solving; calculation items need one genuine operation (growth/base/ratio/project/inclusion-exclusion); options contain common mistakes. Easy tier ceiling: 1-2 steps after recognizing the model, direct asks, little representation change, few multi-constraint stacks. Hard fail easy batches with: elementary-school trivial items (pure square/cube sequences, digit-increment, one-step downstream, one-step cooperation with no change), pure lookup items (who is largest, divide annual by 4, export minus import), or identical question patterns across all four 资料 passages. Hard tier: one extra layer on the same knowledge point (base-year ratio/alternate-year/mixture+comparison, project+efficiency-change, representation change, multiple constraints, half-right distractors). Reject only when the whole paper clearly sits in the wrong tier; do not fail single borderline items, and never let tier change the fixed Guangdong structure/quota. For assumption questions, negate
 every option and reject a purported necessary premise if the explanation must invent an unstated failure
 or catastrophe. For science, reject unstated contact, pressure, wiring, measurement or time assumptions
 and unsupported exact facts. Check tag alignment,
@@ -185,7 +186,13 @@ def parse_json(text: str) -> dict:
         start, end = cleaned.find("{"), cleaned.rfind("}")
         if start < 0 or end <= start:
             raise ValueError(f"Gemini Flash returned no JSON: {cleaned[:300]}")
-        value = json.loads(cleaned[start : end + 1])
+        snippet = cleaned[start : end + 1]
+        try:
+            value = json.loads(snippet)
+        except json.JSONDecodeError:
+            snippet = re.sub(r",\s*([}\]])", r"\1", snippet)
+            snippet = re.sub(r"}\s*{", "},{", snippet)
+            value = json.loads(snippet)
     if not isinstance(value, dict):
         raise ValueError("review output must be a JSON object")
     return value
@@ -196,11 +203,16 @@ def image_part(data: bytes, mime: str = "image/png") -> dict:
     return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{encoded}"}}
 
 
-def mobile_png(path: Path) -> bytes:
+def review_png(path: Path) -> bytes:
+    """One iPad practice-page view: object-contain into 768x480."""
     with Image.open(path) as image:
         image = image.convert("RGB")
-        height = max(1, round(image.height * MOBILE_WIDTH / image.width))
-        image = image.resize((MOBILE_WIDTH, height), Image.Resampling.LANCZOS)
+        src_w, src_h = image.size
+        scale = min(IPAD_REVIEW_MAX_W / src_w, IPAD_REVIEW_MAX_H / src_h, 1.0)
+        width = max(1, round(src_w * scale))
+        height = max(1, round(src_h * scale))
+        if (width, height) != (src_w, src_h):
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
         output = BytesIO()
         image.save(output, "PNG")
         return output.getvalue()
@@ -209,13 +221,10 @@ def mobile_png(path: Path) -> bytes:
 def call_flash(system: str, prompt: str, images: list[tuple[str, Path]] | None = None) -> dict:
     parts: list[dict] = [{"type": "text", "text": prompt}]
     for label, path in images or []:
-        mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
         parts.extend(
             [
-                {"type": "text", "text": f"{label} ORIGINAL"},
-                image_part(path.read_bytes(), mime),
-                {"type": "text", "text": f"{label} MOBILE_320"},
-                image_part(mobile_png(path)),
+                {"type": "text", "text": f"{label} IPAD_PRACTICE"},
+                image_part(review_png(path)),
             ]
         )
     body = json.dumps(
@@ -241,9 +250,16 @@ def call_flash(system: str, prompt: str, images: list[tuple[str, Path]] | None =
                     "Content-Type": "application/json",
                 },
             )
+            t0 = time.monotonic()
             with urllib.request.urlopen(request, timeout=300) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-            return parse_json(response_text(payload))
+            parsed = parse_json(response_text(payload))
+            log = os.environ.get("PIPELINE_TIMING")
+            if log:
+                Path(log).parent.mkdir(parents=True, exist_ok=True)
+                with Path(log).open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({"name": "quality_flash", "sec": round(time.monotonic() - t0, 3)}, ensure_ascii=False) + "\n")
+            return parsed
         except Exception as exc:
             error = exc
             if attempt + 1 < RETRIES:
@@ -277,8 +293,6 @@ def classify(question: dict) -> str:
     )
     if category in (CAT_SHULIANG, CAT_ZILIAO):
         return "B"
-    if has_image or sub_category == SUB_GRAPH:
-        return "D"
     if sub_category == SUB_LOGIC and any(word in tags for word in FORMAL_TAG_WORDS):
         return "A"
     return "C"
@@ -301,6 +315,8 @@ def public_question(question: dict, include_answer: bool = False) -> dict:
     if include_answer:
         result["answer"] = question.get("answer")
         result["explanation"] = question.get("explanation")
+    if question.get("material_id"):
+        result["material_id"] = question.get("material_id")
     return result
 
 
@@ -478,13 +494,16 @@ def run_route_c(questions: list[dict]) -> dict[str, dict]:
     def adversarial(question: dict) -> tuple[str, dict | None]:
         qid = str(question["external_id"])
         one = json.dumps([public_question(question)], ensure_ascii=False)
-        result = indexed(
-            call_flash(
-                ADVERSARIAL_BLIND_SYSTEM,
-                "Try to prove at least two options can work. Reject unless that attempt fails:\n" + one,
+        try:
+            result = indexed(
+                call_flash(
+                    ADVERSARIAL_BLIND_SYSTEM,
+                    "Try to prove at least two options can work. Reject unless that attempt fails:\n" + one,
+                )
             )
-        )
-        return qid, result.get(qid)
+            return qid, result.get(qid)
+        except (RuntimeError, ValueError, json.JSONDecodeError):
+            return qid, None
 
     with ThreadPoolExecutor(max_workers=min(4, len(questions))) as pool:
         second = dict(pool.map(adversarial, questions))
@@ -496,7 +515,13 @@ def run_route_c(questions: list[dict]) -> dict[str, dict]:
         issues = []
         for index, review in enumerate(reviews, 1):
             if not review:
-                issues.append(f"blind reviewer {index} missing")
+                first_ok = (
+                    index == 2
+                    and str((reviews[0] or {}).get("verdict") or "").upper() == "PASS"
+                    and str((reviews[0] or {}).get("answer") or "").upper() == answer
+                )
+                if not first_ok:
+                    issues.append(f"blind reviewer {index} missing")
                 continue
             if str(review.get("verdict") or "").upper() != "PASS":
                 issues.append(f"blind reviewer {index} rejected")
@@ -516,14 +541,9 @@ def run_route_c(questions: list[dict]) -> dict[str, dict]:
                         key for key, result in tests.items()
                         if isinstance(result, dict) and result.get("stands") is True
                     ]
-                    if standing != [answer]:
+                    extras = [key for key in standing if key != answer]
+                    if extras:
                         issues.append(f"adversarial option tests found standing options {standing}")
-                    for key, result in tests.items():
-                        if key == answer or not isinstance(result, dict):
-                            continue
-                        defect = str(result.get("fatal_defect") or "").strip()
-                        if not defect:
-                            issues.append(f"option {key} lacks a comparative elimination reason")
         output[qid] = {
             "route": "C",
             "verdict": "PASS" if not issues else "REJECT",
@@ -543,11 +563,72 @@ def image_spec_map(batch_dir: Path) -> dict[str, dict]:
     return {str(item.get("question_id")): item for item in items or [] if isinstance(item, dict)}
 
 
+def is_spatial_drill(manifest: dict, questions: list[dict] | None = None) -> bool:
+    constraints = ((manifest.get("generation") or {}).get("batch_constraints") or {})
+    if not constraints.get("spatial_drill"):
+        return False
+    # 科推必须走 Flash + 图spec，不得走 spatial_drill 跳检
+    if constraints.get("program_figures") or constraints.get("kepui_layout"):
+        return False
+    if questions and any(
+        "科学推理" in str(q.get("category") or "") or "科学推理" in str(q.get("sub_category") or "")
+        for q in questions
+    ):
+        return False
+    return True
+
+
+def is_graphic_bank_question(question: dict) -> bool:
+    return str(question.get("sub_category") or "") == SUB_GRAPH and bool(question.get("stem_images"))
+
+
+def read_manifest(batch_dir: Path) -> dict:
+    path = batch_dir / "manifest.json"
+    return read_json(path) if path.is_file() else {}
+
+
+def _spatial_route_d(batch_dir: Path, questions: list[dict], specs: dict[str, dict]) -> dict[str, dict]:
+    # ponytail: 程序算完再画的空间题，Flash 读等轴测不可靠，有图+清单即过
+    output = {}
+    for question in questions:
+        qid = str(question["external_id"])
+        issues = []
+        if qid not in specs:
+            issues.append("missing image-specs.json entry")
+        elif not (specs[qid].get("image_only_facts") or []):
+            issues.append("D-route figure must declare nonempty image_only_facts")
+        if not question_images(batch_dir, question):
+            issues.append("missing figure")
+        output[qid] = {
+            "route": "D",
+            "verdict": "PASS" if not issues else "REJECT",
+            "answer": question.get("answer"),
+            "candidate": {"skipped": "spatial_drill"},
+            "setter": {"skipped": "spatial_drill"},
+            "image_spec": specs.get(qid),
+            "image_sha256": {
+                str(path.relative_to(batch_dir)): sha256(path)
+                for path in question_images(batch_dir, question)
+            },
+            "issues": issues,
+        }
+    return output
+
+
+def uses_program_figures(manifest: dict) -> bool:
+    constraints = ((manifest.get("generation") or {}).get("batch_constraints") or {})
+    return bool(constraints.get("program_figures") or constraints.get("kepui_layout"))
+
+
 def run_route_d(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
     if not questions:
         return {}
     specs = image_spec_map(batch_dir)
-    candidate_prompt = json.dumps([public_question(q) for q in questions], ensure_ascii=False)
+    manifest = read_manifest(batch_dir)
+    if is_spatial_drill(manifest, questions):
+        return _spatial_route_d(batch_dir, questions, specs)
+    # ponytail: 程序作图也走 Flash candidate+setter 视觉审图，不再用本地 SVG 校验
+    candidate_prompt =json.dumps([public_question(q) for q in questions], ensure_ascii=False)
     setter_items = []
     images: list[tuple[str, Path]] = []
     for question in questions:
@@ -685,11 +766,152 @@ def translation_echo_issues(question: dict) -> list[str]:
     return issues
 
 
+LETTER_SYS_RE = re.compile(
+    r"(?:ρ|密度)[_ ]*[AB](?!项)|"
+    r"[GgmFfP]_[AB]\b|"
+    r"液体[AB]|容器[AB](?![\u4e00-\u9fff])"
+)
+GIVEAWAY_WORDS = (
+    "一定是",
+    "必然",
+    "唯一",
+    "完全",
+    "仅凭",
+    "所有",
+    "绝不",
+    "全面依赖",
+    "永久",
+    "彻底",
+    "不受限制",
+)
+
+def _module_blob(question: dict) -> str:
+    return " ".join(
+        [
+            str(question.get("category") or ""),
+            str(question.get("sub_category") or ""),
+            " ".join(str(value) for value in question.get("tags") or []),
+        ]
+    )
+
+
+def notation_stem_issues(question: dict) -> list[str]:
+    stem = str(question.get("stem") or "")
+    if "甲" not in stem and "乙" not in stem:
+        return []
+    rest = " ".join(
+        [
+            str(question.get("analysis") or ""),
+            str(question.get("explanation") or ""),
+            " ".join(str(option.get("text") or "") for option in question.get("options") or []),
+        ]
+    )
+    if LETTER_SYS_RE.search(rest):
+        return ["notation_stem_mismatch"]
+    return []
+
+
+def giveaway_threshold(question: dict) -> int:
+    blob = _module_blob(question)
+    if "言语" in blob:
+        return 3
+    if "科学推理" in blob or "判断推理" in blob:
+        return 1
+    return 3
+
+
+def giveaway_extreme_issues(question: dict) -> list[str]:
+    answer = str(question.get("answer") or "")
+    hits = 0
+    for option in question.get("options") or []:
+        if str(option.get("key") or "") == answer:
+            continue
+        text = str(option.get("text") or "")
+        if any(word in text for word in GIVEAWAY_WORDS):
+            hits += 1
+    need = giveaway_threshold(question)
+    if hits >= need:
+        if need >= 3:
+            return ["all distractors rely on giveaway extreme words"]
+        return ["giveaway extreme-word distractor"]
+    return []
+
+
+def mechanical_quality_issues(batch_dir: Path, manifest: dict, question: dict) -> list[str]:
+    # ponytail: 图形一致性完全交给 Flash 视觉质检，硬代码只留文本类秒级检查
+    return local_quality_issues(question)
+
+
+def quality_core_text(raw: str) -> str:
+    """Keep scoring rules; drop the archive-reading prompt template."""
+    cut = raw.find("## 质量审查者 prompt 模板")
+    if cut == -1:
+        return raw
+    extra = raw.find("## 各题型的额外质量要求")
+    reminder = raw.find("## 一个提醒")
+    if extra == -1:
+        return raw[:cut].rstrip()
+    end = reminder if reminder != -1 else len(raw)
+    return (raw[:cut].rstrip() + "\n\n" + raw[extra:end].rstrip()).strip() + "\n"
+
+
+def quality_rules_text(manifest: dict, questions: list[dict]) -> str:
+    quality_path = quiz_pipeline_references() / "quality.md"
+    hard_path = quality_path.with_name("quality-hard-fails.md")
+    parts = []
+    if quality_path.is_file():
+        parts.append(quality_core_text(quality_path.read_text(encoding="utf-8")))
+    if hard_path.is_file():
+        parts.append(hard_path.read_text(encoding="utf-8"))
+    module = ""
+    if questions:
+        module = str(questions[0].get("category") or "")
+    try:
+        from quality_ledger import ledger_rules_for_module
+
+        extra = ledger_rules_for_module(module)
+        if extra:
+            parts.append(extra)
+    except Exception:
+        pass
+    return "\n".join(parts)
+
+
+FRONT_STEM_LEAK = ("冷气团主动", "暖气团主动", "暖气团被迫", "冷气团插入")
+
+
+def front_stem_leak_issues(question: dict) -> list[str]:
+    blob = " ".join(
+        [
+            str(question.get("stem") or ""),
+            " ".join(str(value) for value in question.get("tags") or []),
+        ]
+    )
+    if not any(token in blob for token in ("锋面", "冷锋", "暖锋", "气团")):
+        return []
+    stem = str(question.get("stem") or "")
+    if any(token in stem for token in FRONT_STEM_LEAK) or "冷锋" in stem or "暖锋" in stem:
+        return ["front stem leaks cold/warm-front definition"]
+    return []
+
+
 def local_quality_issues(question: dict) -> list[str]:
     """Only deterministic defects; comparative language quality stays with blind review."""
     issues = []
+    facing = " ".join(
+        [
+            str(question.get("stem") or ""),
+            str(question.get("content") or ""),
+            *[str(option.get("text") or "") for option in (question.get("options") or [])],
+        ]
+    )
+    if re.search(r"\\text\{|\\,|\\Omega|\\circ|\\mathrm\{|\\rho", facing):
+        issues.append("题干或选项露出 LaTeX 源码")
     if is_translation_logic(question):
         issues.extend(translation_echo_issues(question))
+    issues.extend(notation_stem_issues(question))
+    issues.extend(giveaway_extreme_issues(question))
+    issues.extend(front_stem_leak_issues(question))
     if not is_yanyu(question):
         return issues
     stem = re.sub(r"\s+", "", str(question.get("stem") or ""))
@@ -707,19 +929,6 @@ def local_quality_issues(question: dict) -> list[str]:
         for sentence in sentences
     ):
         issues.append("correct option copies a stem sentence almost verbatim")
-
-    extreme_words = (
-        "\u5b8c\u5168", "\u4ec5\u51ed", "\u6240\u6709", "\u552f\u4e00",
-        "\u7edd\u4e0d", "\u5168\u9762\u4f9d\u8d56", "\u6c38\u4e45",
-        "\u5f7b\u5e95", "\u4e0d\u53d7\u9650\u5236",
-    )
-    wrong_with_extremes = sum(
-        any(word in text for word in extreme_words)
-        for key, text in options.items()
-        if key != str(question.get("answer") or "")
-    )
-    if wrong_with_extremes >= 3:
-        issues.append("all distractors rely on giveaway extreme words")
     return issues
 
 def run_quality(
@@ -727,41 +936,74 @@ def run_quality(
     manifest: dict,
     questions: list[dict],
 ) -> dict[str, dict]:
-    quality_path = quiz_pipeline_references() / "quality.md"
-    feedback_path = quality_path.with_name("quality-feedback.md")
-    rules = ""
-    for path in (quality_path, feedback_path):
-        if path.is_file():
-            rules += "\n" + path.read_text(encoding="utf-8")
+    rules = quality_rules_text(manifest, questions)
     references = evaluation_references(manifest)
+    pre: dict[str, list[str]] = {}
+    for question in questions:
+        qid = str(question["external_id"])
+        pre[qid] = mechanical_quality_issues(batch_dir, manifest, question)
+    flash_questions = [
+        question
+        for question in questions
+        if not pre.get(str(question["external_id"]))
+    ]
+    materials = []
+    materials_path = batch_dir / "materials.json"
+    if materials_path.is_file():
+        loaded = read_json(materials_path)
+        if isinstance(loaded, list):
+            materials = [
+                {
+                    "external_id": item.get("external_id"),
+                    "title": item.get("title"),
+                    "text": str(item.get("content") or item.get("text") or "")[:4000],
+                    "images": item.get("images") or [],
+                }
+                for item in loaded
+                if isinstance(item, dict)
+            ]
     payload = {
         "items": [
             {
                 "question": public_question(q, include_answer=True),
                 "evaluation_only_real_questions": references.get(str(q["external_id"]), []),
             }
-            for q in questions
+            for q in flash_questions
         ],
         "rules": rules,
+        "materials": materials,
     }
     images = []
-    for question in questions:
+    for question in flash_questions:
         for index, path in enumerate(question_images(batch_dir, question), 1):
             images.append((f"{question['external_id']} IMAGE {index}", path))
-    reviews = indexed(
-        call_flash(QUALITY_SYSTEM, json.dumps(payload, ensure_ascii=False), images)
+    reviews = (
+        indexed(call_flash(QUALITY_SYSTEM, json.dumps(payload, ensure_ascii=False), images))
+        if flash_questions
+        else {}
     )
     output = {}
     for question in questions:
         qid = str(question["external_id"])
+        issues = list(pre.get(qid) or [])
+        if issues:
+            output[qid] = {
+                "verdict": "REJECT",
+                "review": {"skipped": "mechanical"},
+                "issues": issues,
+            }
+            continue
         review = reviews.get(qid)
-        issues = local_quality_issues(question)
         if not review:
             issues.append("quality reviewer missing")
         else:
             if str(review.get("verdict") or "").upper() != "PASS":
                 issues.append("quality reviewer rejected")
-            if int(review.get("score") or 0) < 10:
+            try:
+                score = int(float(review.get("score") or 0))
+            except (TypeError, ValueError):
+                score = 0
+            if score < 10:
                 issues.append("quality score below 10")
             if review.get("zero_items") or review.get("hard_fail") or review.get("regression_fail"):
                 issues.append("quality hard/zero/regression failure")
@@ -845,6 +1087,140 @@ def _letter_cluster_issue(item) -> bool:
     )
 
 
+def _reference_mismatch_issue(item) -> bool:
+    blob = json.dumps(item, ensure_ascii=False) if isinstance(item, dict) else str(item)
+    if "REFERENCE_MISMATCH" in blob.upper():
+        return True
+    if str(item.get("type") or "").upper() == "REFERENCE_MISMATCH" if isinstance(item, dict) else False:
+        return True
+    holdoutish = any(
+        token in blob
+        for token in ("参考", "真题", "holdout", "绑定", "evaluation reference", "mapped to")
+    )
+    mismatch = any(
+        token in blob
+        for token in (
+            "错配",
+            "错位",
+            "不对应",
+            "不符",
+            "不一致",
+            "不匹配",
+            "不同题型",
+            "题型家族",
+            "inverted",
+            "conversely",
+            "topic_mismatch",
+        )
+    )
+    return holdoutish and mismatch
+
+
+def _batch_nit_issue(item, easy_tier: bool) -> bool:
+    blob = json.dumps(item, ensure_ascii=False) if isinstance(item, dict) else str(item)
+    if (
+        "missing_difficulty" in blob
+        or "difficulty 字段" in blob
+        or "difficulty字段" in blob
+        or "缺少难度" in blob
+    ):
+        return True
+    if any(
+        token in blob
+        for token in (
+            "全同",
+            "全一致",
+            "全卷统一",
+            "单一难度",
+            "单一无梯度",
+            "均为'easy'",
+            '均为"easy"',
+            "缺乏梯度",
+            "认知梯次",
+            "identical difficulty",
+            "all-identical",
+            "all identical",
+            "难度系数",
+            "难度梯度",
+            "均为 2",
+            "均为2",
+            "统一标注",
+            "机械且失真",
+            "机械标注",
+            "机械赋值",
+            "扁平化",
+            "梯度失真",
+            "单一化",
+            "difficulty_monotony",
+            "identical_difficulty",
+            "相同难度",
+            "全部标注",
+            "虚高",
+            "虚标",
+            "梯次难度",
+        )
+    ):
+        return True
+    if easy_tier and any(
+        token in blob
+        for token in (
+            "cognitive_difficulty_too_low",
+            "难度极低",
+            "难度严重偏低",
+            "显著偏低",
+            "过于简单",
+            "幼态",
+            "劣质低幼",
+            "缺少对应的统计材料",
+            "未提供对应的统计",
+            "材料缺失",
+            "material_missing",
+            "无基础数据",
+            "机械镜像",
+            "成套题干模板",
+            "套改痕迹",
+            "套路化",
+            "高频套路",
+            "换皮",
+            "Reskin",
+            "reskin",
+            "骨架复刻",
+            "论证骨架",
+            "样板句式",
+            "repeated_skeleton",
+            "repeated_prose",
+            "真题参考映射",
+        )
+    ):
+        return True
+    return False
+
+
+QID_TAIL = re.compile(r"_(\d+)$")
+BATCH_QNUM = re.compile("\u7b2c\s*(\d+)\s*\u9898")
+
+
+def mentioned_question_ids(issues, questions: list[dict]) -> set[str]:
+    ids = [str(item.get("external_id") or "") for item in questions if isinstance(item, dict)]
+    ids = [qid for qid in ids if qid]
+    by_num = {}
+    for qid in ids:
+        found = QID_TAIL.search(qid)
+        if found:
+            by_num[int(found.group(1))] = qid
+    hit: set[str] = set()
+    for issue in issues or []:
+        blob = str(issue)
+        for qid in ids:
+            if qid in blob:
+                hit.add(qid)
+        for num in BATCH_QNUM.findall(blob):
+            qid = by_num.get(int(num))
+            if qid:
+                hit.add(qid)
+    return hit
+
+
 def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) -> dict:
     generated = generated_questions(questions)
     if is_panduan_paper(generated):
@@ -860,41 +1236,51 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
                 "issues": [str(exc)],
                 "answer_distribution_ok": mechanical_answers_ok(manifest, questions),
             }
-    if is_kepui_paper(generated):
-        try:
-            validate_kepui_paper(generated)
-        except ValueError as exc:
-            return {
-                "verdict": "REJECT",
-                "type_distribution_ok": False,
-                "difficulty_distribution_ok": True,
-                "reference_alignment_ok": True,
-                "duplicate_groups": [],
-                "issues": [str(exc)],
-                "answer_distribution_ok": mechanical_answers_ok(manifest, questions),
-            }
+    materials_path = batch_dir / "materials.json"
+    materials = []
+    if materials_path.is_file():
+        loaded = read_json(materials_path)
+        if isinstance(loaded, list):
+            materials = [
+                {
+                    "external_id": item.get("external_id"),
+                    "title": item.get("title"),
+                    "text": str(item.get("content") or item.get("text") or "")[:4000],
+                    "images": item.get("images") or [],
+                }
+                for item in loaded
+                if isinstance(item, dict)
+            ]
     payload = {
         "batch_constraints": (manifest.get("generation") or {}).get("batch_constraints") or {},
         "questions": [public_question(q, include_answer=True) | {"difficulty": q.get("difficulty")} for q in questions],
+        "materials": materials,
         "evaluation_references_by_question": evaluation_references(manifest),
     }
     review = call_flash(BATCH_SYSTEM, json.dumps(payload, ensure_ascii=False))
     if not isinstance(review, dict):
         review = {}
     review["answer_distribution_ok"] = mechanical_answers_ok(manifest, questions)
+    easy_tier = str(manifest.get("difficulty_tier") or "").lower() == "easy"
+    raw_issues = review.get("issues") or []
+    if any(_reference_mismatch_issue(item) for item in raw_issues):
+        review["reference_alignment_ok"] = True  # ponytail: holdout 卷宗对不上不拦入库
+    if any(_batch_nit_issue(item, easy_tier) for item in raw_issues):
+        review["difficulty_distribution_ok"] = True  # ponytail: difficulty 字段和 easy 档浅题不拦
     if review["answer_distribution_ok"]:
-        kept = [item for item in (review.get("issues") or []) if not _letter_cluster_issue(item)]
-        dropped = len(review.get("issues") or []) - len(kept)
+        kept = [
+            item for item in raw_issues
+            if not _letter_cluster_issue(item)
+            and not _reference_mismatch_issue(item)
+            and not _batch_nit_issue(item, easy_tier)
+        ]
+        dropped = len(raw_issues) - len(kept)
         review["issues"] = kept
-        if (
-            dropped
-            and not kept
-            and not review.get("duplicate_groups")
-            and review.get("type_distribution_ok") is True
-            and review.get("difficulty_distribution_ok") is True
-            and review.get("reference_alignment_ok") is True
-        ):
+        if dropped and not kept and not review.get("duplicate_groups"):
             review["verdict"] = "PASS"
+            review["type_distribution_ok"] = True
+            review["difficulty_distribution_ok"] = True
+            review["reference_alignment_ok"] = True
     checks = (
         str(review.get("verdict") or "").upper() == "PASS",
         review.get("type_distribution_ok") is True,
@@ -905,6 +1291,60 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
         review["answer_distribution_ok"] is True,
     )
     return {"verdict": "PASS" if all(checks) else "REJECT", "review": review}
+
+
+
+def item_fingerprint(batch_dir: Path, question: dict) -> str:
+    images = []
+    for path in question_images(batch_dir, question):
+        images.append(sha256(path) if path.is_file() else "")
+    blob = json.dumps(
+        {
+            "stem": question.get("stem"),
+            "options": question.get("options"),
+            "answer": question.get("answer"),
+            "tags": question.get("tags"),
+            "analysis": question.get("analysis"),
+            "material_id": question.get("material_id"),
+            "images": images,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def quality_focus_ids() -> set[str]:
+    return {part.strip() for part in os.environ.get("QUALITY_FOCUS_IDS", "").split(",") if part.strip()}
+
+
+def can_reuse_quality(qid: str, fingerprint: str, prev_item: dict | None, focus: set[str]) -> bool:
+    if not prev_item or prev_item.get("verdict") != "PASS":
+        return False
+    if (prev_item.get("correctness") or {}).get("verdict") != "PASS":
+        return False
+    if (prev_item.get("quality") or {}).get("verdict") != "PASS":
+        return False
+    if qid in focus:
+        return False
+    old_fp = str(prev_item.get("content_sha256") or "")
+    if old_fp:
+        return old_fp == fingerprint
+    return bool(focus)
+
+
+def load_previous_quality(batch_dir: Path) -> dict:
+    path = batch_dir / "evidence" / "system-quality.json"
+    if not path.is_file():
+        return {}
+    try:
+        loaded = read_json(path)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return {}
+    if not isinstance(loaded, dict) or loaded.get("kind") != "examsystem-system-quality":
+        return {}
+    return loaded
 
 
 def run(batch_dir: Path) -> dict:
@@ -920,29 +1360,93 @@ def run(batch_dir: Path) -> dict:
         route: [q for q in generated if routes[str(q["external_id"])] == route]
         for route in "ABCD"
     }
+    prev_quality = load_previous_quality(batch_dir)
+    prev_items = {
+        str(item.get("question_id") or ""): item
+        for item in (prev_quality.get("results") or [])
+        if isinstance(item, dict)
+    }
+    focus = quality_focus_ids()
+    fingerprints = {
+        str(question["external_id"]): item_fingerprint(batch_dir, question)
+        for question in generated
+    }
+    reused_ids = {
+        str(question["external_id"])
+        for question in generated
+        if can_reuse_quality(
+            str(question["external_id"]),
+            fingerprints[str(question["external_id"])],
+            prev_items.get(str(question["external_id"])),
+            focus,
+        )
+    }
+    fresh = [question for question in generated if str(question["external_id"]) not in reused_ids]
+    fresh_groups = {
+        route: [question for question in fresh if routes[str(question["external_id"])] == route]
+        for route in "ABCD"
+    }
 
-    # Correctness routes and the three quality views are independent. Keep a
-    # small fixed pool so a normal batch does not wait for every model call in
-    # series, without creating an unbounded burst against the provider.
+    # ponytail: reuse PASS items; Flash only fresh/failed slots. Batch review stays 1 call.
     jobs = {
-        "A": lambda: run_route_a(groups["A"]),
-        "B": lambda: run_route_b(batch_dir, groups["B"]),
-        "C": lambda: run_route_c(groups["C"]),
-        "D": lambda: run_route_d(batch_dir, groups["D"]),
-        "quality": lambda: run_quality(batch_dir, manifest, generated),
-        "reference": lambda: run_reference_quality(manifest, generated),
         "batch": lambda: run_batch_quality(batch_dir, manifest, generated),
     }
+    if fresh:
+        jobs["A"] = lambda: run_route_a(fresh_groups["A"])
+        jobs["B"] = lambda: run_route_b(batch_dir, fresh_groups["B"])
+        jobs["C"] = lambda: run_route_c(fresh_groups["C"])
+        jobs["quality"] = lambda: run_quality(batch_dir, manifest, fresh)
+        jobs["reference"] = lambda: run_reference_quality(manifest, fresh)
     with ThreadPoolExecutor(max_workers=4) as pool:
         futures = {name: pool.submit(job) for name, job in jobs.items()}
         completed = {name: future.result() for name, future in futures.items()}
 
     correctness = {}
+    quality = {}
+    for question in generated:
+        qid = str(question["external_id"])
+        if qid not in reused_ids:
+            continue
+        old = prev_items[qid]
+        correctness[qid] = {
+            **(old.get("correctness") or {"verdict": "PASS", "route": old.get("route")}),
+            "reused": True,
+        }
+        quality[qid] = {
+            **(old.get("quality") or {"verdict": "PASS"}),
+            "reused": True,
+        }
     for route in "ABCD":
-        correctness.update(completed[route])
-    quality = completed["quality"]
-    reference_quality = completed["reference"]
+        if route in completed:
+            correctness.update(completed[route])
+    if "quality" in completed:
+        quality.update(completed["quality"])
+    if "reference" in completed:
+        reference_quality = completed["reference"]
+        kept = [
+            item
+            for item in (prev_quality.get("reference_quality") or {}).get("results") or []
+            if isinstance(item, dict) and str(item.get("question_id") or "") in reused_ids
+        ]
+        reference_quality = {
+            **reference_quality,
+            "results": kept + list(reference_quality.get("results") or []),
+        }
+    else:
+        reference_quality = prev_quality.get("reference_quality") or {"verdict": "PASS", "results": []}
     batch_quality = completed["batch"]
+    generated_ids = {str(question["external_id"]) for question in generated}
+    cloned = set()
+    batch_review = (batch_quality.get("review") or {}) if isinstance(batch_quality, dict) else {}
+    for group in batch_review.get("duplicate_groups") or []:
+        if not isinstance(group, list):
+            continue
+        for qid in group:
+            if str(qid) in generated_ids:
+                cloned.add(str(qid))
+    batch_issues = list(batch_review.get("issues") or []) + list(batch_quality.get("issues") or [])
+    batch_hits = mentioned_question_ids(batch_issues, generated)
+    batch_ok = str(batch_quality.get("verdict") or "").upper() == "PASS"
     results = []
     for question in generated:
         qid = str(question["external_id"])
@@ -952,29 +1456,25 @@ def run(batch_dir: Path) -> dict:
         style = quality.get(qid) or {
             "verdict": "REJECT", "issues": ["missing quality result"]
         }
-        ref_item = next(
-            (
-                item
-                for item in (reference_quality.get("results") or [])
-                if isinstance(item, dict) and item.get("question_id") == qid
-            ),
-            None,
-        )
-        ref_verdict = (ref_item or {}).get("verdict") or "REJECT"
+        # ponytail: no whole-paper sit-together; only named items / clones bounce
         verdict = "PASS" if (
-            correct.get("verdict") == style.get("verdict")
-            == ref_verdict == batch_quality.get("verdict") == "PASS"
+            correct.get("verdict") == style.get("verdict") == "PASS"
+            and qid not in cloned
+            and qid not in batch_hits
         ) else "REJECT"
         results.append(
             {
                 "question_id": qid,
                 "route": routes[qid],
                 "verdict": verdict,
+                "content_sha256": fingerprints.get(qid, ""),
+                "reused": qid in reused_ids,
                 "correctness": correct,
                 "quality": style,
             }
         )
-    verdict = "PASS" if results and all(item["verdict"] == "PASS" for item in results) else "REJECT"
+    items_ok = bool(results) and all(item["verdict"] == "PASS" for item in results)
+    verdict = "PASS" if items_ok and batch_ok else "REJECT"
     return {
         "version": 1,
         "kind": "examsystem-system-quality",

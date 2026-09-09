@@ -18,13 +18,7 @@ const COUNT_BY_CAT = {
   data: 12,
 };
 
-export const east8Today = (now = new Date()) =>
-  new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
+export { east8Today } from '../lib/beijingTime.js';
 
 const countFor = (catId) => COUNT_BY_CAT[catId] || 15;
 

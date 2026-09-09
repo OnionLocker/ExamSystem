@@ -1,0 +1,306 @@
+{
+  "elapsed_sec": 614.529,
+  "events": [
+    {
+      "name": "gemini_draft",
+      "sec": 58.643
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 1.996
+    },
+    {
+      "name": "gate_issue",
+      "sec": 6.73
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.51
+    },
+    {
+      "name": "gate_issue",
+      "sec": 19.844
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.197
+    },
+    {
+      "name": "gate_issue",
+      "sec": 10.106
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 15.883
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.094
+    },
+    {
+      "name": "gate_issue",
+      "sec": 9.544
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.001
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.225
+    },
+    {
+      "name": "gate_issue",
+      "sec": 15.215
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.152
+    },
+    {
+      "name": "gate_issue",
+      "sec": 10.908
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 15.479
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 1.903
+    },
+    {
+      "name": "gate_issue",
+      "sec": 3.378
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_02",
+      "sec": 0.001
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_fast_01_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 1.988
+    },
+    {
+      "name": "gate_issue",
+      "sec": 12.36
+    },
+    {
+      "name": "quality_flash",
+      "sec": 5.978
+    },
+    {
+      "name": "quality_flash",
+      "sec": 8.427
+    },
+    {
+      "name": "quality_flash",
+      "sec": 18.83
+    },
+    {
+      "name": "quality_flash",
+      "sec": 8.044
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.154
+    },
+    {
+      "name": "quality_flash",
+      "sec": 4.112
+    },
+    {
+      "name": "quality_flash",
+      "sec": 8.651
+    },
+    {
+      "name": "quality_flash",
+      "sec": 6.167
+    },
+    {
+      "name": "quality_flash",
+      "sec": 14.243
+    },
+    {
+      "name": "quality_flash",
+      "sec": 8.193
+    },
+    {
+      "name": "quality_flash",
+      "sec": 9.962
+    },
+    {
+      "name": "quality_flash",
+      "sec": 2.629
+    },
+    {
+      "name": "quality_flash",
+      "sec": 10.552
+    },
+    {
+      "name": "quality_flash",
+      "sec": 11.447
+    }
+  ],
+  "status": "failed",
+  "slots": [
+    "科学推理-力学-受力平衡",
+    "科学推理-地理-气候",
+    "科学推理-压强与浮力-阿基米德原理",
+    "科学推理-电学-串并联",
+    "科学推理-生物-人体调节"
+  ],
+  "error": "generation gate failed: ExamSystem 系统质检失败：{\"rejected\": [\"20260908_kepui_fast_01_01\", \"20260908_kepui_fast_01_02\", \"20260908_kepui_fast_01_03\", \"20260908_kepui_fast_01_04\"], \"batch_issues\": [], \"item_issues\": [\"20260908_kepui_fast_01_01: corr=['20260908_kepui_fast_01_01: 清单有 A，图上没有', '20260908_kepui_fast_01_01: 清单有 F1，图上没有', '20260908_kepui_fast_01_01: 清单有 F2，图上没有'] quality=['20260908_kepui_fast_01_01: 清单有 A，图上没有', '20260908_kepui_fast_01_01: 清单有 F1，图上没有', '20260908_kepui_fast_01_01: 清单有 F2，图上没有']\", \"20260908_kepui_fast_01_02: corr=[] quality=['quality reviewer rejected', 'quality score below 10', 'quality hard/zero/regression failure', 'facts are not closed or answer is not unique']\", \"20260908_kepui_fast_01_03: corr=['20260908_kepui_fast_01_03: 清单有 物块，图上没有'] quality=['20260908_kepui_fast_01_03: 清单有 物块，图上没有']\", \"20260908_kepui_fast_01_04: corr=['20260908_kepui_fast_01_04: 清单有 S1，图上没有', '20260908_kepui_fast_01_04: 清单有 S2，图上没有'] quality=['20260908_kepui_fast_01_04: 清单有 S1，图上没有', '20260908_kepui_fast_01_04: 清单有 S2，图上没有']\"]}"
+}

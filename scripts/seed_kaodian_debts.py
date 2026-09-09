@@ -32,7 +32,7 @@ def main() -> int:
           last_wrong_at TEXT,
           last_seen_at TEXT,
           mastered INTEGER NOT NULL DEFAULT 0,
-          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
         """
     )

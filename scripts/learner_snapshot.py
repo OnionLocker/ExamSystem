@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import re
 import datetime as dt
 import json
 import os
@@ -30,10 +31,14 @@ from kaodian_taxonomy import (
 from panduan_pack import (
     compact_kepui_pack,
     compact_panduan_pack,
+    compact_shuliang_pack,
+    compact_yanyu_pack,
     render_kepui_pack,
     render_panduan_pack,
     select_kepui_paper,
     select_panduan_paper,
+    select_shuliang_paper,
+    select_yanyu_paper,
 )
 
 ZILIAO_FOREIGN_MODULES = {
@@ -54,6 +59,71 @@ SESSION_FAMILY_HINTS = (
     ("date_cycle", "数量关系-有规律的周期循环与要算准的日期星期"),
     ("date-cycle", "数量关系-有规律的周期循环与要算准的日期星期"),
 )
+
+SUGGESTED_TIMES = json.loads((Path(__file__).resolve().parents[1] / 'src/hermes/suggestedTimes.json').read_text())
+
+
+def collect_recent_practice_signals(conn: sqlite3.Connection) -> list[dict]:
+    conn.row_factory = sqlite3.Row
+    today = dt.datetime.now(TZ).date()
+    aliases = dict(conn.execute('SELECT alias, canonical FROM kaodian_aliases'))
+    family_last = collect_family_last_seen(conn, aliases)
+    signals: dict[str, dict] = {}
+    for row in conn.execute('''
+        SELECT q.tags, q.category, q.sub_category, pa.is_correct, pa.user_answer,
+               pa.time_spent_sec, s.ended_at
+        FROM practice_answers pa JOIN practice_sessions s ON s.id=pa.session_id
+        JOIN questions q ON q.id=pa.question_id
+        WHERE s.ended_at >= ? AND pa.id = (
+          SELECT MAX(p.id) FROM practice_answers p
+          WHERE p.session_id=pa.session_id AND p.question_id=pa.question_id)
+        ORDER BY s.ended_at DESC
+    ''', (str(today - dt.timedelta(days=21)),)):
+        tags = parse_tags(row['tags'])
+        if not tags:
+            continue
+        tag = aliases.get(tags[0]) or canonicalize(tags[0], row['category'] or '', row['sub_category'] or '')
+        family = kaodian_family(tag)
+        signal = signals.setdefault(tag, dict(
+            kaodian=tag, module=normalize_module(row['category'] or ''), family=family,
+            attempts=0, wrong=0, skipped=0, slow=0, total_sec=0,
+            last_seen=row['ended_at'], days_since=days_since(row['ended_at'], today),
+            family_days_since=days_since(family_last.get(family), today),
+            confidence=0, mastery=None, streak=0,
+        ))
+        hay = ' '.join([row['category'] or '', row['sub_category'] or '', *tags])
+        maximum = next((rule['max'] for rule in SUGGESTED_TIMES if re.search(rule['pattern'], hay)), 60)
+        elapsed = max(0, row['time_spent_sec'] or 0)
+        signal['attempts'] += 1
+        signal['skipped'] += int(not row['user_answer'])
+        signal['wrong'] += int(bool(row['user_answer']) and not row['is_correct'])
+        signal['slow'] += int(bool(row['user_answer']) and bool(row['is_correct']) and elapsed > maximum)
+        signal['total_sec'] += elapsed
+    for signal in signals.values():
+        signal['avg_sec'] = round(signal.pop('total_sec') / signal['attempts'])
+        signal['reason'] = '错题结构变式' if signal['wrong'] else '限时变式' if signal['slow'] else '低置信待测'
+    return list(signals.values())
+
+
+def apply_practice_signals(conn, by_tag, mistakes, module):
+    for signal in collect_recent_practice_signals(conn):
+        if signal['module'] != module:
+            continue
+        tag = signal['kaodian']
+        row = by_tag.setdefault(tag, dict(signal))
+        row['attempts'] = max(row.get('attempts') or 0, signal['attempts'])
+        row['days_since'] = signal['family_days_since']
+        row['practice_signal'] = signal
+        mistakes[tag] = max(mistakes.get(tag, 0), signal['wrong'])
+
+
+def annotate_practice_slots(slots, by_tag):
+    for slot in slots:
+        signal = (by_tag.get(slot['tag']) or {}).get('practice_signal')
+        if signal:
+            slot['reason'] += '；' + signal['reason'] + '（仅作答信号，不代表掌握）'
+            if family_too_recent(signal):
+                slot['reason'] += '；同族刚练过，只做结构变式，禁止同场景换数字'
 
 
 def days_since(value: str | None, today: dt.date) -> int | None:
@@ -148,6 +218,7 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
         for row in conn.execute("SELECT alias,canonical FROM kaodian_aliases")
     }
     family_last = collect_family_last_seen(conn, alias_map)
+    practice_signals = collect_recent_practice_signals(conn)
 
     profiles = [
         compact_profile(row, today, family_last)
@@ -250,6 +321,7 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
         ("高置信弱项", weaknesses),
         ("到期回捞", overdue),
         ("低置信待测", needs_measurement),
+        ("近期作答待验证", practice_signals),
     ):
         for row in rows:
             if row["kaodian"] in seen_kaodian:
@@ -290,6 +362,7 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
             for tag, count in mistake_counts.most_common(8)
         ],
         "recent_sessions": recent_sessions,
+        "recent_practice_signals": practice_signals,
         "recent_digest": recent_digest,
     }
     snapshot["compact"] = render_compact(snapshot)
@@ -317,6 +390,8 @@ def _ziliao_rank(tag: str, by_tag: dict, mistakes: dict) -> tuple:
     debt = mistakes.get(tag, 0)
     if ((mastery < 60 or streak <= -2) and conf >= 40) or debt:
         return (0, mastery, -conf, -debt)
+    if (row.get('practice_signal') or {}).get('slow'):
+        return (1, 0, -conf, -debt)
     if row and conf < 40:
         return (1, mastery, -conf, -debt)
     if row:
@@ -556,11 +631,37 @@ def collect_kepui_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
     return by_tag, dict(mistakes)
 
 
+def recent_daily_tags(conn: sqlite3.Connection, module: str, days: int = 14) -> set[str]:
+    """近两周日练已入库的主标签，选槽时避开刚考过的。"""
+    found: set[str] = set()
+    try:
+        rows = conn.execute(
+            """
+            SELECT tags FROM questions
+            WHERE created_at >= datetime('now', ?)
+              AND (category = ? OR source LIKE ?)
+            """,
+            (f"-{days} days", module, f"%{module}%"),
+        )
+    except sqlite3.Error:
+        return found
+    for (raw,) in rows:
+        try:
+            tags = json.loads(raw) if raw else []
+        except (TypeError, json.JSONDecodeError):
+            tags = [raw]
+        if isinstance(tags, list) and tags:
+            found.add(str(tags[0]))
+    return found
+
+
 def build_panduan_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
     by_tag, mistakes = collect_panduan_state(conn)
+    apply_practice_signals(conn, by_tag, mistakes, '判断推理')
     practiced = {tag: row for tag, row in by_tag.items() if (row.get("attempts") or 0) > 0}
     rng = random.Random(seed or "panduan")
     slots = select_panduan_paper(practiced, mistakes, letters=letters, rng=rng)
+    annotate_practice_slots(slots, by_tag)
     return {
         "empty_profile": not practiced and not mistakes,
         "paper_style": "gd",
@@ -570,9 +671,13 @@ def build_panduan_pack(conn: sqlite3.Connection, letters: list[str] | None = Non
 
 def build_kepui_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
     by_tag, mistakes = collect_kepui_state(conn)
+    apply_practice_signals(conn, by_tag, mistakes, '科学推理')
     practiced = {tag: row for tag, row in by_tag.items() if (row.get("attempts") or 0) > 0}
     rng = random.Random(seed or "kepui")
-    slots = select_kepui_paper(practiced, mistakes, letters=letters, rng=rng)
+    slots = select_kepui_paper(
+        practiced, mistakes, letters=letters, rng=rng, recent=recent_daily_tags(conn, "科学推理")
+    )
+    annotate_practice_slots(slots, by_tag)
     return {
         "empty_profile": not practiced and not mistakes,
         "paper_style": "gd",
@@ -580,13 +685,28 @@ def build_kepui_pack(conn: sqlite3.Connection, letters: list[str] | None = None,
     }
 
 
+def build_shuliang_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
+    rng = random.Random(seed or "shuliang")
+    slots = select_shuliang_paper(letters=letters, rng=rng, recent=recent_daily_tags(conn, "数量关系"))
+    return {"paper_style": "gd", "slots": slots}
+
+
+def build_yanyu_pack(conn: sqlite3.Connection, letters: list[str] | None = None, seed: str = "") -> dict:
+    rng = random.Random(seed or "yanyu")
+    slots = select_yanyu_paper(letters=letters, rng=rng, recent=recent_daily_tags(conn, "言语理解与表达"))
+    return {"paper_style": "gd", "slots": slots}
+
+
 def build_ziliao_pack(conn: sqlite3.Connection) -> dict:
     by_tag, mistakes = collect_ziliao_state(conn)
+    apply_practice_signals(conn, by_tag, mistakes, '资料分析')
     practiced = {
         tag: row for tag, row in by_tag.items()
         if (row.get("attempts") or 0) > 0
     }
     materials = select_ziliao_paper(practiced, mistakes)
+    for material in materials:
+        annotate_practice_slots(material['slots'], by_tag)
     return {
         "empty_profile": not practiced and not mistakes,
         "paper_style": "gd",
@@ -635,6 +755,10 @@ def render_compact(snapshot: dict) -> str:
             f"{summary['open_debt_families']}类/{summary['open_mistakes']}题。"
         ),
     ]
+    for signal in (snapshot.get('recent_practice_signals') or [])[:12]:
+        lines.append(f"近期作答（低置信）：{signal['kaodian']}｜{signal['attempts']}题 "
+                     f"错{signal['wrong']} 空{signal['skipped']} 正确超时{signal['slow']} "
+                     f"均时{signal['avg_sec']}s｜{signal['reason']}｜同族{signal['family_days_since']}天前")
     if snapshot["recent_sessions"]:
         bits = [
             f"{row['category']} {row['correct']}/{row['total']} {row['ended_at']}"

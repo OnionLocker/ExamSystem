@@ -12,7 +12,7 @@ from pathlib import Path
 
 from daily_plan_state import reconcile, save_plan, today
 from kaodian_taxonomy import NUM_DATE
-from learner_snapshot import build_snapshot
+from learner_snapshot import build_snapshot, collect_recent_practice_signals, apply_practice_signals
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -116,7 +116,7 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     session_id = conn.execute(
         """
         INSERT INTO practice_sessions(category,total,correct,duration_sec,ended_at)
-        VALUES ('test',1,1,30,datetime('now')) RETURNING id
+        VALUES ('test',1,1,30,datetime('now', '+8 hours')) RETURNING id
         """
     ).fetchone()[0]
     conn.execute(
@@ -128,6 +128,24 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     )
     conn.commit()
     plan = reconcile(conn, plan_date)
+    signal = collect_recent_practice_signals(conn)[0]
+    assert signal['attempts'] == 1 and signal['slow'] == 0 and signal['wrong'] == 0
+    conn.execute('UPDATE practice_answers SET time_spent_sec=90 WHERE session_id=?', (session_id,))
+    signal = collect_recent_practice_signals(conn)[0]
+    assert signal['slow'] == 1 and signal['reason'] == '限时变式'
+    assert signal['confidence'] == 0 and signal['mastery'] is None
+    state, mistakes = {NUM_DATE: {'attempts': 0, 'mastery': None}}, {}
+    apply_practice_signals(conn, state, mistakes, '数量关系')
+    assert state[NUM_DATE]['practice_signal']['slow'] == 1
+    assert state[NUM_DATE]['attempts'] == 1
+    assert state[NUM_DATE]['days_since'] == 0
+    conn.execute("UPDATE practice_answers SET user_answer='B', is_correct=0 WHERE session_id=?", (session_id,))
+    signal = collect_recent_practice_signals(conn)[0]
+    assert signal['wrong'] == 1 and signal['slow'] == 0 and signal['reason'] == '错题结构变式'
+    conn.execute("UPDATE practice_answers SET user_answer='' WHERE session_id=?", (session_id,))
+    signal = collect_recent_practice_signals(conn)[0]
+    assert signal['skipped'] == 1 and signal['wrong'] == 0
+    assert '近期作答（低置信）' in build_snapshot(conn)['compact']
     assert plan["items"][0]["done"] == 1
     assert plan["items"][0]["status"] == "done"
     assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"

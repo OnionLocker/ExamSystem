@@ -17,7 +17,7 @@ except ValueError as exc:
     assert "单位" in str(exc)
 render_pie("图2 测试", [("快充", 27.0), ("慢充", 18.0)], pie)
 assert Image.open(table).size[0] > 100
-assert Image.open(bars).size[0] > 200
+assert Image.open(bars).size[0] >= 600
 assert Image.open(pie).size[0] > 100
 assert Image.open(table).getpixel((2, 2)) == BG
 print("ok", Image.open(table).size, Image.open(bars).size, Image.open(pie).size)

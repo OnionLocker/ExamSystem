@@ -12,9 +12,35 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image
+import pytest
 
 import generation_gate
 import quality_orchestrator as qo
+
+
+def test_review_png_fits_ipad_practice(tmp_path: Path) -> None:
+    from io import BytesIO
+
+    png = tmp_path / "fig.png"
+    Image.new("RGB", (1400, 700), "white").save(png)
+    review = Image.open(BytesIO(qo.review_png(png)))
+    assert review.size == (768, 384)
+    assert qo.IPAD_REVIEW_MAX_W == 768
+    assert qo.IPAD_REVIEW_MAX_H == 480
+
+
+def test_ziliao_standard_correct_statement_form():
+    assert generation_gate._judge_form('下列说法正确的是（ ）。') == '属实'
+    assert generation_gate._judge_form('以下表述正确的是？') == '属实'
+    assert generation_gate._judge_form('下列关于发电情况的表述，属实的是：') == '属实'
+    assert generation_gate._judge_form('下列说法中不能从上述资料中推出的是：') == '无法推出'
+    assert generation_gate._judge_form('下列表述能够从上述资料中推出的是：') == '能推出'
+    assert generation_gate._judge_form('增长率是多少？') == ''
+
+
+@pytest.fixture
+def root(tmp_path: Path) -> Path:
+    return tmp_path
 
 
 def write_json(path: Path, value) -> None:
@@ -63,7 +89,8 @@ def test_routes_and_calculations(root: Path) -> None:
         f"{qo.CAT_PANDUAN}-{qo.SUB_SCIENCE}-\u529b\u5b66",
     )
     image_q["stem_images"] = ["images/q-d.png"]
-    assert [qo.classify(item) for item in (yanyu, logic, quantity, image_q)] == list("CABD")
+    # \u5e26\u56fe\u9898\u4e0d\u518d\u8fdb\u5165 D \u89c6\u89c9\u8def\u7ebf\uff0c\u4e00\u5f8b\u8d70 C\uff08\u6587\u672c\u76f2\u5ba1\uff09\uff1aC/A/B/C
+    assert [qo.classify(item) for item in (yanyu, logic, quantity, image_q)] == list("CABC")
 
     assert qo.safe_eval("sum([10, 20]) / 3") == 10
     try:
@@ -360,6 +387,124 @@ def test_translation_echo_local_quality() -> None:
     assert not any("restates" in item for item in issues), issues
 
 
+def test_rejects_raw_latex_in_stem() -> None:
+    issues = qo.local_quality_issues(
+        {
+            "category": "科学推理",
+            "stem": r"电源电压恒为6\text{ V}",
+            "options": [{"key": "A", "text": r"高于$0^\circ\text{C}$"}],
+        }
+    )
+    assert any("LaTeX" in item for item in issues), issues
+
+def test_notation_stem_mismatch_and_kepui_giveaway() -> None:
+    mixed = {
+        "external_id": "K003",
+        "category": "科学推理",
+        "sub_category": "科学推理",
+        "tags": ["科学推理-压强与浮力-液体压强"],
+        "stem": "甲、乙两容器盛有深度相同的液体。",
+        "options": [
+            {"key": "A", "text": "p_甲 < p_乙"},
+            {"key": "B", "text": "p_甲 > p_乙"},
+            {"key": "C", "text": "两者相等"},
+            {"key": "D", "text": "无法判断"},
+        ],
+        "answer": "B",
+        "analysis": "ρ_A > ρ_B，所以 G_A > G_B。",
+    }
+    issues = qo.local_quality_issues(mixed)
+    assert "notation_stem_mismatch" in issues, issues
+
+    giveaway = {
+        "external_id": "K004",
+        "category": "科学推理",
+        "sub_category": "科学推理",
+        "tags": ["科学推理-生物-人体调节"],
+        "stem": "反射弧①–⑤如图。",
+        "options": [
+            {"key": "A", "text": "①是感受器"},
+            {"key": "B", "text": "传导方向是⑤→①"},
+            {"key": "C", "text": "可判断损伤部位一定是①"},
+            {"key": "D", "text": "属于条件反射"},
+        ],
+        "answer": "A",
+        "analysis": "②有神经节，①为感受器。",
+    }
+    issues = qo.local_quality_issues(giveaway)
+    assert "giveaway extreme-word distractor" in issues, issues
+
+    leak = {
+        "external_id": "K005",
+        "category": "科学推理",
+        "sub_category": "科学推理",
+        "tags": ["科学推理-地理-锋面天气"],
+        "stem": "如图所示为某天气系统的垂直剖面示意图，冷气团主动向暖气团方向移动，暖气团被迫抬升。",
+        "options": [
+            {"key": "A", "text": "该天气系统为冷锋"},
+            {"key": "B", "text": "该天气系统为暖锋"},
+            {"key": "C", "text": "过境后气温升高"},
+            {"key": "D", "text": "过境后气压下降"},
+        ],
+        "answer": "A",
+        "analysis": "冷气团主动推进为冷锋。",
+    }
+    issues = qo.local_quality_issues(leak)
+    assert "front stem leaks cold/warm-front definition" in issues, issues
+
+
+def test_quality_rules_skip_feedback_archive() -> None:
+    text = qo.quality_rules_text({}, [{"category": "科学推理"}])
+    assert "六条评分项" in text
+    assert "notation_stem_mismatch" in text
+    assert "用户反馈沉淀" not in text
+    assert "质量审查者 prompt 模板" not in text
+    assert "如果无法读取，质量闸门不得判为通过" not in text
+
+
+def test_verbal_single_extreme_is_not_giveaway() -> None:
+    item = {
+        "external_id": "Y002",
+        "category": "言语理解与表达",
+        "stem": "这段文字意在强调的是：",
+        "options": [
+            {"key": "A", "text": "行业需要双向发力"},
+            {"key": "B", "text": "一定是政策推动的结果"},
+            {"key": "C", "text": "技术迭代改变了生产结构"},
+            {"key": "D", "text": "区域差异仍将长期存在"},
+        ],
+        "answer": "A",
+        "analysis": "文段围绕双向发力展开。",
+    }
+    issues = qo.local_quality_issues(item)
+    assert "giveaway extreme-word distractor" not in issues
+    assert "all distractors rely on giveaway extreme words" not in issues
+
+
+def test_mechanical_notation_skips_flash() -> None:
+    item = {
+        "external_id": "K-MECH",
+        "category": "科学推理",
+        "sub_category": "科学推理",
+        "tags": ["科学推理-压强与浮力-液体压强"],
+        "stem": "甲、乙两容器盛有深度相同的液体。",
+        "options": [
+            {"key": "A", "text": "p_甲 < p_乙"},
+            {"key": "B", "text": "p_甲 > p_乙"},
+            {"key": "C", "text": "两者相等"},
+            {"key": "D", "text": "无法判断"},
+        ],
+        "answer": "B",
+        "analysis": "ρ_A > ρ_B，所以 G_A > G_B。",
+    }
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        root = Path(temp)
+        with patch.object(qo, "call_flash", side_effect=RuntimeError("flash must not run")):
+            style = qo.run_quality(root, {}, [item])
+    assert style["K-MECH"]["verdict"] == "REJECT", style
+    assert style["K-MECH"]["review"]["skipped"] == "mechanical"
+    assert "notation_stem_mismatch" in style["K-MECH"]["issues"]
+
 
 def test_syllabus_mock_holdout_lookup_does_not_crash() -> None:
     contour_tag = "%s-%s-等高线" % (qo.CAT_PANDUAN, qo.SUB_SCIENCE)
@@ -447,23 +592,178 @@ def test_reference_quality_one_relevant_is_enough() -> None:
     assert result["results"][0]["verdict"] == "PASS"
 
 
-def test_question_verdict_is_per_item() -> None:
-    correct = {"verdict": "PASS"}
-    style = {"verdict": "PASS"}
-    # batch-level reference REJECT must not poison a passing item
-    ref_item = {"question_id": "Q1", "verdict": "PASS"}
-    assert (
-        correct.get("verdict")
-        == style.get("verdict")
-        == ref_item.get("verdict")
-        == "PASS"
+def test_spatial_drill_skips_flash(root: Path) -> None:
+    image = root / "images" / "q.png"
+    image.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (200, 200), "white").save(image)
+    item = question(
+        "Q-S",
+        qo.CAT_PANDUAN,
+        qo.SUB_GRAPH,
+        f"{qo.CAT_PANDUAN}-{qo.SUB_GRAPH}-\u7a7a\u95f4\u7c7b",
+        "B",
     )
+    item["stem_images"] = ["images/q.png"]
+    item["analysis"] = "computed"
+    write_json(
+        root / "manifest.json",
+        {"generation": {"batch_constraints": {"spatial_drill": True, "answer_max_per_letter": 4}}},
+    )
+    write_json(
+        root / "image-specs.json",
+        {"questions": [{"question_id": "Q-S", "image_only_facts": ["net"], "must_derive": ["fold"]}]},
+    )
+    # \u56fe\u50cf\u8d28\u68c0\u5df2\u4e0b\u7ebf\uff1a\u5e26\u56fe\u9898\u4e0d\u518d\u8d70 D \u89c6\u89c9\u8def\u7ebf\uff0c`run_route_d` \u4f1a\u56e0\u7f3a\u56fe/\u7f3a\u6e05\u5355\u8fd4\u56de REJECT\uff0c
+    # \u8d70 Flash \u7684 `run_quality` \u9700\u8981\u771f\u5b9e\u6a21\u578b\u8c03\u7528\uff0c\u56e0\u6b64\u8fd9\u91cc\u53ea\u9a8c\u8bc1\u8def\u7531\u5f52\u7c7b\u3002
+    assert qo.classify(item) == "C"
+
+
+def _quality_pass(qid: str, answer: str = "A") -> dict:
+    wrong = [key for key in "ABCD" if key != answer]
+    return {
+        "questions": [
+            {
+                "id": qid,
+                "verdict": "PASS",
+                "score": 11,
+                "zero_items": [],
+                "hard_fail": [],
+                "regression_fail": [],
+                "module_match": True,
+                "style_match": True,
+                "facts_closed": True,
+                "answer_unique": True,
+                "distractor_paths": {key: f"wrong {key}" for key in wrong},
+                "reference_ids": [],
+            }
+        ]
+    }
+
+
+def _program_kepui_item(root: Path, stem: str, svg_text: str) -> dict:
+    image = root / "images" / "q.png"
+    image.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (1400, 700), "white").save(image)
+    image.with_suffix(".svg").write_text(svg_text, encoding="utf-8")
+    item = question("Q-P", "科学推理", "科学推理", "科学推理-地理-锋面天气", "A")
+    item["stem"] = stem
+    item["stem_images"] = ["images/q.png"]
+    item["analysis"] = "computed"
+    write_json(root / "manifest.json", {"generation": {"batch_constraints": {"program_figures": True}}})
+    write_json(
+        root / "image-specs.json",
+        {"questions": [{"question_id": "Q-P", "image_only_facts": ["冷气团楔"], "must_derive": ["冷锋"]}]},
+    )
+    return item
+
+
+def test_region_geo_climate_matches_earth_slot() -> None:
+    issues = qo.local_quality_issues(
+        {
+            "category": "科学推理",
+            "tags": ["科学推理-地理-区域地理"],
+            "stem": "如图所示为甲、乙两地的气候资料图（包含各月气温曲线和降水量柱状图）。",
+            "options": [{"key": "A", "text": "甲地的气温年较差更大"}],
+        }
+    )
+    assert not any("不一致" in item for item in issues), issues
+
+
+def test_easy_tier_nits_low_difficulty_and_holdout_mismatch() -> None:
+    assert qo._batch_nit_issue("认知难度显著偏低，不符合广东省考", True)
+    assert qo._batch_nit_issue("第5题过于简单幼态化", True)
+    assert qo._batch_nit_issue("全卷难度标签均为'easy'，缺乏梯度", False)
+    assert qo._batch_nit_issue("逻辑判断全部缺少难度评定", False)
+    assert qo._batch_nit_issue("All 15 items have identical difficulty = 2", False)
+    assert qo._batch_nit_issue("本套题全部 5 道题目的难度系数均为 2，缺乏合理的难度梯度分布且无说明理由。", False)
+    assert qo._reference_mismatch_issue(
+        "evaluation reference is sentence completion, whereas item 14 is rearrangement; conversely inverted"
+    )
+    assert qo._batch_nit_issue("整卷难度系数全部机械标为2，难度分布完全单一无梯度", False)
+    assert qo._batch_nit_issue({"issue_type": "material_missing", "description": "统计文字资料材料缺失"}, True)
+    assert qo._reference_mismatch_issue("题目参考真题跨知识点错配严重")
+    assert qo._reference_mismatch_issue("绑定的真题评估参考考查题型不一致")
+    assert qo._reference_mismatch_issue("第01题与该真题考点完全不符")
+    assert qo._reference_mismatch_issue("关联的参考真题为语句填空题，考点与题型不匹配")
+    assert qo._batch_nit_issue("材料一与材料三机械镜像复制，成套题干模板复用", True)
+    assert qo._batch_nit_issue("削弱/加强题目存在套路化模版与高频套路", True)
+    assert qo._batch_nit_issue("第07题与第14题存在骨架复刻与套路换皮（Reskin）", True)
+    assert qo._batch_nit_issue({"kind": "repeated_skeleton", "detail": "论证骨架复用"}, True)
+    assert qo._batch_nit_issue({"kind": "difficulty_monotony", "detail": "全部机械标注为难度2"}, False)
+    assert qo._batch_nit_issue("难度设置扁平化且梯度失真：全部机械赋值为2", False)
+
+
+def test_run_batch_quality_drops_easy_nits(root: Path) -> None:
+    write_json(root / "manifest.json", {"difficulty_tier": "easy", "generation": {"batch_constraints": {}}})
+    write_json(root / "materials.json", [{"external_id": "M1", "content": "2024年社会物流总额"}])
+    item = question("Q1", qo.CAT_ZILIAO, qo.CAT_ZILIAO, f"{qo.CAT_ZILIAO}-\u589e\u957f\u91cf")
+    item["material_id"] = "M1"
+    review = {
+        "verdict": "REJECT",
+        "type_distribution_ok": False,
+        "difficulty_distribution_ok": False,
+        "reference_alignment_ok": False,
+        "duplicate_groups": [],
+        "issues": [
+            "真实认知难度过低：部分题目过于简单幼态化",
+            "第01题与该真题考点完全不符",
+            {"issue_type": "material_missing", "description": "统计文字资料材料缺失"},
+        ],
+    }
+    with patch.object(qo, "call_flash", return_value=review):
+        result = qo.run_batch_quality(
+            root,
+            json.loads((root / "manifest.json").read_text()),
+            [item],
+        )
+    assert result["verdict"] == "PASS", result
+    assert result["review"]["issues"] == []
+
+
+def test_can_reuse_quality_skips_unchanged_pass() -> None:
+    import quality_orchestrator as qo
+
+    prev = {
+        "verdict": "PASS",
+        "correctness": {"verdict": "PASS"},
+        "quality": {"verdict": "PASS"},
+        "content_sha256": "abc",
+    }
+    assert qo.can_reuse_quality("a_01", "abc", prev, set()) is True
+    assert qo.can_reuse_quality("a_01", "zzz", prev, set()) is False
+    assert qo.can_reuse_quality("a_01", "abc", prev, {"a_01"}) is False
+    no_hash = {**prev, "content_sha256": ""}
+    assert qo.can_reuse_quality("a_02", "x", no_hash, set()) is False
+    assert qo.can_reuse_quality("a_02", "x", no_hash, {"a_01"}) is True
+
+
+def test_question_verdict_is_per_item() -> None:
+    import quality_orchestrator as qo
+
+    qs = [{"external_id": "b_01"}, {"external_id": "b_17"}]
+    hit = qo.mentioned_question_ids(
+        ["\u7b2c17\u9898\u9898\u5e72\u997c\u56fe"],
+        qs,
+    )
+    assert hit == {"b_17"}, hit
+    cloned = {"b_04"}
+    batch_hits = hit
+    def verdict(qid, correct="PASS", style="PASS"):
+        return "PASS" if (
+            correct == style == "PASS" and qid not in cloned and qid not in batch_hits
+        ) else "REJECT"
+    assert verdict("b_01") == "PASS"
+    assert verdict("b_17") == "REJECT"
+    assert verdict("b_04") == "REJECT"
 
 
 def main() -> None:
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        test_review_png_fits_ipad_practice(Path(temp))
     test_syllabus_mock_holdout_lookup_does_not_crash()
     test_syllabus_mock_reference_quality_passes()
     test_reference_quality_one_relevant_is_enough()
+    test_can_reuse_quality_skips_unchanged_pass()
     test_question_verdict_is_per_item()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_routes_and_calculations(Path(temp) / "calc")
@@ -471,10 +771,36 @@ def main() -> None:
         test_blind_conflict_and_image_requirements(Path(temp))
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_context_and_v3_tamper(Path(temp))
+    test_region_geo_climate_matches_earth_slot()
+    test_easy_tier_nits_low_difficulty_and_holdout_mismatch()
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        test_run_batch_quality_drops_easy_nits(Path(temp))
     test_verbal_local_quality_regressions()
     test_translation_echo_local_quality()
+    test_notation_stem_mismatch_and_kepui_giveaway()
+    test_quality_rules_skip_feedback_archive()
+    test_verbal_single_extreme_is_not_giveaway()
+    test_mechanical_notation_skips_flash()
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        test_spatial_drill_skips_flash(Path(temp))
+    test_plain_text_without_images_is_not_rejected()
     print("quality gate regression: ok")
 
 
 if __name__ == "__main__":
     main()
+
+
+def test_plain_text_without_images_is_not_rejected() -> None:
+    # 纯文字题不再触发任何图片一致性检查
+    issues = qo.local_quality_issues(
+        {
+            "category": "判断推理",
+            "tags": ["判断推理-逻辑判断-翻译推理"],
+            "stem": "如果某批货物获得认证，则免于现场查验。现已知某批货物未获得认证。由此可推出：",
+            "options": [{"key": "A", "text": "应选A"}, {"key": "B", "text": "应选B"}, {"key": "C", "text": "应选C"}, {"key": "D", "text": "应选D"}],
+            "answer": "D",
+            "analysis": "否前无法推出。",
+        }
+    )
+    assert issues == [], issues

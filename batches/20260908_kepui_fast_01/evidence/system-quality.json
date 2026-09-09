@@ -1,0 +1,395 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260908_kepui_fast_01",
+  "model": "gemini-3.6-flash-high",
+  "reviewed_at": "2026-09-08T14:41:48+00:00",
+  "verdict": "REJECT",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 0,
+    "D": 5
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": [],
+      "answer_distribution_ok": true
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "20260908_kepui_fast_01_05",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_fast_01_01",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_fast_01_02",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_fast_01_03",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_fast_01_04",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      }
+    ]
+  },
+  "questions_sha256": "956e8e276ded277e5bb49cbdd4f2613281ceaa46f91e5a13a2f99a986e2af713",
+  "manifest_sha256": "8611b986e5fd2a2f327639bcfd589ba6c8d4b4274dc022e8a05acf714a1513be",
+  "results": [
+    {
+      "question_id": "20260908_kepui_fast_01_01",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "b3e90ca48c19215f4df561aa4b97b2bfb5530e7330e86f4760c7d02c3368569f",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "A",
+        "candidate": {
+          "skipped": "program_figure"
+        },
+        "setter": {
+          "skipped": "program_figure"
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_fast_01_01",
+          "image_facts": [
+            "A",
+            "B",
+            "F1",
+            "F2",
+            "水平地面"
+          ],
+          "image_only_facts": [
+            "A",
+            "B",
+            "F1",
+            "F2"
+          ],
+          "must_derive": [
+            "静摩擦力"
+          ],
+          "must_not": [
+            "f",
+            "摩擦力"
+          ],
+          "kind": "force"
+        },
+        "image_sha256": {
+          "images/q-01-stem.png": "f8b0bae38bb402c1bfbc5cfcb9f664d6efd29053a58d6e65ded3cbe2eddfa262"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_01: 清单有 A，图上没有",
+          "20260908_kepui_fast_01_01: 清单有 F1，图上没有",
+          "20260908_kepui_fast_01_01: 清单有 F2，图上没有"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "skipped": "mechanical"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_01: 清单有 A，图上没有",
+          "20260908_kepui_fast_01_01: 清单有 F1，图上没有",
+          "20260908_kepui_fast_01_01: 清单有 F2，图上没有"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_02",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "15117026f63fe8241f0fd77257efa43877817a3210f96029c426ca82b5434e83",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "B",
+        "candidate": {
+          "skipped": "program_figure"
+        },
+        "setter": {
+          "skipped": "program_figure"
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_fast_01_02",
+          "image_facts": [
+            "甲",
+            "乙",
+            "气温",
+            "降水量"
+          ],
+          "image_only_facts": [
+            "甲",
+            "乙"
+          ],
+          "must_derive": [
+            "甲地夏季高温多雨",
+            "乙地夏季炎热干燥、冬季温和多雨"
+          ],
+          "must_not": [],
+          "kind": "climate"
+        },
+        "image_sha256": {
+          "images/q-02-stem.png": "605625d2384e787b9f2a4a9881660651312903b039af18f9076aa050df1945e7"
+        },
+        "issues": []
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260908_kepui_fast_01_02",
+          "score": 5,
+          "zero_items": [
+            "载体真实或符合题型原生形态"
+          ],
+          "hard_fail": [
+            "题图与解析矛盾",
+            "图像数据存在物理与事实错误"
+          ],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": false,
+          "answer_unique": false,
+          "distractor_paths": {
+            "A": "错将甲地极值与乙地极值读数颠倒，导致气温年较差大小判断错误",
+            "C": "忽视乙地夏季高雨量特征（图中呈现），误以为两地降水分配规律相同",
+            "D": "混淆南北半球最热月与最冷月对应的月份特征"
+          },
+          "reference_ids": [],
+          "verdict": "REJECT",
+          "issues": [
+            "HARD_FAIL: 题图与解析严重矛盾。解析说明乙地为地中海气候（夏季炎热干燥、降水集中在冬季），但附图中乙地7月降水柱最高（接近200mm）、1月降水柱最低（接近0mm），图像呈现的是典型的‘雨热同期’特征，直接否决了正确答案B选项的成立条件。",
+            "HARD_FAIL: 题图存在明显绘制错乱与物理错误。甲地1月的降水量柱状图绘制到了0刻度线下方（出现‘负降水量’）；乙地左侧Y轴刻度数字重叠交错（‘30 250 20 200’等挤在一起），无法规范读图。"
+          ]
+        },
+        "issues": [
+          "quality reviewer rejected",
+          "quality score below 10",
+          "quality hard/zero/regression failure",
+          "facts are not closed or answer is not unique"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_03",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "0c986f203e625f89c8266c436407fdcf4a91aea37e2b43a0c93db1657c8bf0a5",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "D",
+        "candidate": {
+          "skipped": "program_figure"
+        },
+        "setter": {
+          "skipped": "program_figure"
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_fast_01_03",
+          "image_facts": [
+            "甲",
+            "乙",
+            "物块"
+          ],
+          "image_only_facts": [
+            "甲",
+            "乙",
+            "物块"
+          ],
+          "must_derive": [
+            "浮力等于重力",
+            "液体密度大小关系",
+            "容器底部增加压强相等"
+          ],
+          "must_not": [
+            "密度关系"
+          ],
+          "kind": "tank"
+        },
+        "image_sha256": {
+          "images/q-03-stem.png": "254eb6811b0e4a02bed729054185896dcb374521509460a79c9ae9c64675caca"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_03: 清单有 物块，图上没有"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "skipped": "mechanical"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_03: 清单有 物块，图上没有"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_04",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "b9fe5325484be9022bb008879b3afdf4d7a7e76caad53d9c45622f1194b3f3ad",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "C",
+        "candidate": {
+          "skipped": "program_figure"
+        },
+        "setter": {
+          "skipped": "program_figure"
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_fast_01_04",
+          "image_facts": [
+            "R1",
+            "S1",
+            "S2",
+            "A"
+          ],
+          "image_only_facts": [
+            "R1",
+            "R2",
+            "S1",
+            "S2",
+            "A"
+          ],
+          "must_derive": [
+            "电源电压",
+            "R2电功率"
+          ],
+          "must_not": [
+            "3.6W",
+            "0.4A",
+            "1.0A",
+            "A1",
+            "S"
+          ],
+          "kind": "circuit"
+        },
+        "image_sha256": {
+          "images/q-04-stem.png": "7901f489a8864a6c38e38dd889a0738034addf010bf25626f0ca93dc85cf96a7"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_04: 清单有 S1，图上没有",
+          "20260908_kepui_fast_01_04: 清单有 S2，图上没有"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "skipped": "mechanical"
+        },
+        "issues": [
+          "20260908_kepui_fast_01_04: 清单有 S1，图上没有",
+          "20260908_kepui_fast_01_04: 清单有 S2，图上没有"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_05",
+      "route": "D",
+      "verdict": "PASS",
+      "content_sha256": "199a5cdd5081caad425f7a2807ce3ee384b4f3eda0e7e043bdfd36639da0828e",
+      "reused": true,
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "A",
+        "candidate": {
+          "skipped": "program_figure"
+        },
+        "setter": {
+          "skipped": "program_figure"
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_fast_01_05",
+          "image_facts": [
+            "①",
+            "⑤"
+          ],
+          "image_only_facts": [
+            "①",
+            "②",
+            "③",
+            "④",
+            "⑤"
+          ],
+          "must_derive": [
+            "根据神经节辨识传入神经"
+          ],
+          "must_not": [
+            "兴奋传递方向箭头"
+          ],
+          "kind": "reflex"
+        },
+        "image_sha256": {
+          "images/q-05-stem.png": "b6a57b5f941dbc49b54fee91fc3891fce4c95261f13e8e83a9c256d0abfd066a"
+        },
+        "issues": [],
+        "reused": true
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260908_kepui_fast_01_05",
+          "score": 12,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "B": "误看反射弧结构，将带有神经节的传入神经②错认做传出神经",
+            "C": "混淆反射与普通肌肉收缩，忽视了反射活动必须依赖完整反射弧这一核心条件",
+            "D": "将兴奋在神经纤维上的双向传导错误套用到神经中枢的突触结构上，忽略了突触单向传递特性"
+          },
+          "reference_ids": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": [],
+        "reused": true
+      }
+    }
+  ]
+}

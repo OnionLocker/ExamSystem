@@ -16,7 +16,7 @@ export const RAW_DIR = path.join(VIDEO_DIR, 'raw');
 export const PDF_DIR = path.join(ROOT, 'data', 'exam-pdfs');
 for (const d of [VIDEO_DIR, RAW_DIR, PDF_DIR]) fs.mkdirSync(d, { recursive: true });
 
-const MODEL = process.env.EXAM_ANALYSIS_MODEL || 'gemini-3.7-flash-high';
+const MODEL = process.env.EXAM_ANALYSIS_MODEL || 'gemini-3.8-flash-high';
 const PROXY = (process.env.CLIPROXY_BASE_URL || 'http://127.0.0.1:8889/v1').replace(/\/v1\/?$/, '');
 const SEGMENT_SEC = 600;
 
@@ -35,7 +35,7 @@ const setState = (id, patch) => {
   if (cols.length === 0) return;
   db.prepare(
     `UPDATE exam_analyses SET ${cols.map((c) => `${c} = @${c}`).join(', ')},
-       updated_at = datetime('now') WHERE id = @id`,
+       updated_at = datetime('now', '+8 hours') WHERE id = @id`,
   ).run({ ...patch, id });
 };
 

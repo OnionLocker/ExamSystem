@@ -136,7 +136,7 @@ router.get('/meta/batches', (req, res) => {
   const where = [includeScheduled ? '1 = 1' : 'b.count > 0'];
   const params = [];
   if (module) { where.push('COALESCE(r.module, b.category) = ?'); params.push(module); }
-  const planDate = `COALESCE(r.plan_date, CASE WHEN substr(b.batch_id, 1, 8) GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' THEN substr(b.batch_id, 1, 4) || '-' || substr(b.batch_id, 5, 2) || '-' || substr(b.batch_id, 7, 2) END, date(b.created_at, '+8 hours'))`;
+  const planDate = `COALESCE(r.plan_date, CASE WHEN substr(b.batch_id, 1, 8) GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]' THEN substr(b.batch_id, 1, 4) || '-' || substr(b.batch_id, 5, 2) || '-' || substr(b.batch_id, 7, 2) END, date(b.created_at))`;
   if (date) { where.push(`${planDate} = ?`); params.push(date); }
   const rows = db.prepare(
     `WITH question_batches AS (
@@ -202,7 +202,7 @@ router.delete('/batch/:batchId', (req, res) => {
     const s = db.prepare('DELETE FROM practice_sessions WHERE category = ?').run(batchId);
     const q = db.prepare('DELETE FROM questions WHERE batch_id = ?').run(batchId);
     db.prepare('DELETE FROM materials WHERE batch_id = ?').run(batchId);
-    db.prepare("UPDATE ai_daily_batch_runs SET status='deleted', error=NULL, updated_at=datetime('now') WHERE batch_id=?").run(batchId);
+    db.prepare("UPDATE ai_daily_batch_runs SET status='deleted', error=NULL, updated_at=datetime('now', '+8 hours') WHERE batch_id=?").run(batchId);
     return { sessions: s.changes, questions: q.changes };
   });
 

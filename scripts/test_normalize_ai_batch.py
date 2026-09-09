@@ -124,6 +124,24 @@ class NormalizeBatchTest(unittest.TestCase):
         self.assertEqual(nab.redistribute_answers(questions, manifest, {}), 0)
         self.assertEqual([q["answer"] for q in questions], before)
 
+    def test_graphic_image_letters_are_not_reshuffled(self):
+        questions = [
+            item(f"G{i:02d}", CAT_PANDUAN, TAG_LOGIC, "A", sub_category="图形推理", stem_images=["images/g.png"])
+            for i in range(5)
+        ]
+        for q in questions:
+            q["options"] = [{"key": k, "text": k} for k in "ABCD"]
+        questions.extend(
+            item(f"L{i:02d}", CAT_PANDUAN, TAG_LOGIC, "A") for i in range(15)
+        )
+        manifest = {
+            "batch_id": "graphic-lock",
+            "generation": {"batch_constraints": nab.default_answer_constraints(20)},
+        }
+        nab.redistribute_answers(questions, manifest, {})
+        self.assertEqual([q["answer"] for q in questions[:5]], ["A"] * 5)
+        self.assertEqual([opt["text"] for opt in questions[0]["options"]], list("ABCD"))
+
     def test_ziliao_all_b_becomes_paper_layout(self):
         questions = []
         for material in range(1, 5):
@@ -205,6 +223,17 @@ class NormalizeBatchTest(unittest.TestCase):
             self.assertTrue(nab.answer_distribution_ok(saved_manifest, saved))
             generation_gate.validate_batch_constraints(saved_manifest, saved)
 
+    def test_stamp_daily_source_uses_batch_slug(self):
+        questions = [item("K01", CAT_ZILIAO, TAG_ZILIAO, "A")]
+        questions[0]["source"] = "广东省考行测-判断推理-20260902"
+        manifest = {
+            "batch_id": "daily-20260902-ziliao-abc",
+            "source": "广东省考行测-判断推理-20260902",
+        }
+        nab.stamp_daily_source(manifest, questions)
+        self.assertEqual(manifest["source"], "广东省考行测-资料分析-20260902")
+        self.assertEqual(questions[0]["source"], "广东省考行测-资料分析-20260902")
+
     def test_daily_source_is_stamped(self):
         questions = [item("Q01", CAT_SHULIANG, TAG_EQ, "A")]
         questions[0]["source"] = "random title"
@@ -235,15 +264,13 @@ class NormalizeBatchTest(unittest.TestCase):
         validate_ziliao_paper_answers(extras_z["ziliao_answer_groups"])
         extras_p = nab.generation_payload_extras(CAT_PANDUAN, 20, "daily-p")
         self.assertEqual(len(extras_p["panduan_pack"]["slots"]), 20)
-        self.assertEqual(extras_p["batch_constraints"]["panduan_layout"], "5_graphic_plus_15_logic")
-        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"][:5]], ["graphic"] * 5)
-        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"][5:]], ["logic"] * 15)
+        self.assertEqual(extras_p["batch_constraints"]["panduan_layout"], "20_logic_no_graphic")
+        self.assertEqual([slot["section"] for slot in extras_p["panduan_pack"]["slots"]], ["logic"] * 20)
         self.assertNotIn("kepui_subjects", extras_p["batch_constraints"])
-        extras_k = nab.generation_payload_extras("科学推理", 5, "daily-k")
-        self.assertEqual(len(extras_k["kepui_pack"]["slots"]), 5)
-        self.assertEqual(extras_k["batch_constraints"]["kepui_layout"], "5_kepui_distinct_subjects")
-        self.assertEqual([slot["section"] for slot in extras_k["kepui_pack"]["slots"]], ["science"] * 5)
         self.assertEqual(extras["batch_constraints"]["shuliang_layout"], "5_sequence_plus_10_math")
+        self.assertEqual(len(extras["shuliang_pack"]["slots"]), 15)
+        extras_y = nab.generation_payload_extras(CAT_YANYU, 15, "daily-y")
+        self.assertEqual(len(extras_y["yanyu_pack"]["slots"]), 15)
 
     def test_daily_paper_order_is_restored(self):
         seq = item("Q-seq", CAT_SHULIANG, "数量关系-数字推理-递推数列", "A", sub_category="数字推理")
@@ -255,19 +282,65 @@ class NormalizeBatchTest(unittest.TestCase):
             [q["external_id"] for q in nab.sort_daily_questions([math, seq, math])],
             ["Q-seq", "Q-math", "Q-math"],
         )
+        # 判断推理整卷纯逻辑：不再按「图形在前」排序，保持原卷顺序
         self.assertEqual(
             [q["external_id"] for q in nab.sort_daily_questions([logic, graphic])],
-            ["Q-g", "Q-l"],
-        )
-        self.assertEqual(
-            [q["external_id"] for q in nab.sort_daily_questions([sci])],
-            ["Q-s"],
+            ["Q-l", "Q-g"],
         )
         paper = [seq] * 5 + [math] * 10
         nab.validate_daily_paper_order("daily-20260902-shuliang-abc", paper)
         with self.assertRaises(ValueError):
             nab.validate_daily_paper_order("daily-20260902-shuliang-abc", [math] * 15)
         nab.validate_daily_paper_order("targeted-drill", [math] * 15)
+
+
+    def test_focus_tag_skips_daily_layout_packs(self):
+        extras_p = nab.generation_payload_extras(
+            CAT_PANDUAN, 5, "hermes-fanyi", focus_tag="判断推理-逻辑判断-翻译推理"
+        )
+        self.assertEqual(extras_p["batch_constraints"]["focus_tag"], "判断推理-逻辑判断-翻译推理")
+        self.assertEqual(extras_p["batch_constraints"]["question_count"], 5)
+        self.assertNotIn("panduan_layout", extras_p["batch_constraints"])
+        self.assertNotIn("panduan_pack", extras_p)
+
+    def test_kepui_payload_caps_letters(self):
+        extras = nab.generation_payload_extras("科学推理", 5, "daily-k")
+        self.assertEqual(extras["batch_constraints"]["answer_max_per_letter"], 2)
+        self.assertGreaterEqual(extras["batch_constraints"]["answer_min_letters"], 3)
+        self.assertEqual(len({row["answer"] for row in extras["answer_plan"]}), 4)
+
+    def test_ziliao_q5_statement_stem_rewritten(self):
+        questions = []
+        for material in range(4):
+            for n in range(5):
+                q = item(f"Z{material}{n}", CAT_ZILIAO, TAG_ZILIAO, "ABCD"[n % 4])
+                q["material_id"] = f"M{material}"
+                if n == 4:
+                    q["stem"] = "2024年产值增长了多少"
+                    q["options"] = [
+                        {"key": "A", "text": "2024年G省软件收入占比超过一半"},
+                        {"key": "B", "text": "2024年嵌入式系统软件收入同比上升"},
+                        {"key": "C", "text": "珠三角核心区收入高于上年同期"},
+                        {"key": "D", "text": "2023年利润总额超过两千亿元"},
+                    ]
+                questions.append(q)
+        self.assertEqual(generation_gate.ensure_ziliao_q5_judge_stems(questions), 4)
+        forms = {generation_gate._judge_form(questions[index]["stem"]) for index in (4, 9, 14, 19)}
+        self.assertTrue(all(forms))
+        self.assertGreaterEqual(len(forms), 2)
+
+    def test_ziliao_q5_numeric_stem_left_alone(self):
+        q = item("Z04", CAT_ZILIAO, TAG_ZILIAO, "A", material_id="M0")
+        q["stem"] = "2024年产值增长了多少"
+        q["options"] = [{"key": k, "text": n} for k, n in zip("ABCD", ("12.0%", "13.5%", "14.8%", "16.2%"))]
+        self.assertEqual(generation_gate.ensure_ziliao_q5_judge_stems([q] * 5), 0)
+        self.assertEqual(q["stem"], "2024年产值增长了多少")
+
+    def test_material_blank_lines_collapse_to_single_newline(self):
+        materials = [{"content": "第一段。\n\n第二段。\n\n\n第三段。"}]
+        self.assertEqual(nab.normalize_materials(materials), 1)
+        self.assertEqual(materials[0]["content"], "第一段。\n第二段。\n第三段。")
+        self.assertEqual(nab.normalize_materials(materials), 0)
 
 
 if __name__ == "__main__":

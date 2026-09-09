@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import PopupPractice from './practice/PopupPractice.jsx'
+import TodayTasksPopup from './practice/TodayTasksPopup.jsx'
 
 // 顶层错误边界：哪怕子树渲染抛错，也别让整页变白
 class RootErrorBoundary extends Component {
@@ -66,11 +67,11 @@ class RootErrorBoundary extends Component {
   }
 }
 
-// 根据 URL 参数决定入口：?popup=1 时启动"小窗练习"独立页
-const isPopup = new URLSearchParams(window.location.search).get('popup') === '1'
+// 根据 URL 参数决定入口：?popup=1 小窗练习，?popup=today 今日任务小窗
+const popupMode = new URLSearchParams(window.location.search).get('popup')
 // 入口文件按设计不导出任何东西，fast-refresh 规则在这里不适用
 // eslint-disable-next-line react-refresh/only-export-components
-const Root = isPopup ? PopupPractice : App
+const Root = popupMode === 'today' ? TodayTasksPopup : popupMode === '1' ? PopupPractice : App
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

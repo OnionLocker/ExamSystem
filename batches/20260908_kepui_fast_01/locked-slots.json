@@ -1,0 +1,27 @@
+[
+  {
+    "index": 1,
+    "tag": "科学推理-力学-受力平衡",
+    "kind": "force"
+  },
+  {
+    "index": 2,
+    "tag": "科学推理-地理-气候",
+    "kind": "climate"
+  },
+  {
+    "index": 3,
+    "tag": "科学推理-压强与浮力-阿基米德原理",
+    "kind": "tank"
+  },
+  {
+    "index": 4,
+    "tag": "科学推理-电学-串并联",
+    "kind": "circuit"
+  },
+  {
+    "index": 5,
+    "tag": "科学推理-生物-人体调节",
+    "kind": "reflex"
+  }
+]

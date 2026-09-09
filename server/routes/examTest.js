@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { beijingNow } from '../../src/lib/beijingTime.js';
 
 const run = promisify(execFile);
 const router = Router();
@@ -116,7 +117,7 @@ router.post('/', (req, res, next) => {
   const meta = {
     id: req.testId,
     title,
-    created_at: new Date().toISOString(),
+    created_at: beijingNow(),
     video_file: video.filename,
     video_orig: video.originalname,
     video_bytes: video.size,

@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { api } from '../api.js';
+import { parseBeijingMs } from '../lib/beijingTime.js';
 import AIQuizSession from './AIQuizSession.jsx';
 
 const MODULES = ['言语理解与表达', '判断推理', '科学推理', '数量关系', '资料分析'];
@@ -59,7 +60,7 @@ const formatDotDate = (date) => {
 
 const relativeTime = (iso) => {
   if (!iso) return null;
-  const timestamp = new Date(iso).getTime();
+  const timestamp = parseBeijingMs(iso);
   if (!Number.isFinite(timestamp)) return null;
   const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
   if (minutes < 1) return '刚刚';

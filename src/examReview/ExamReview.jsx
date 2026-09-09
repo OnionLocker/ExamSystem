@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api, getToken } from '../api.js';
 import MarkdownMessage from '../hermes/MarkdownMessage.jsx';
+import { east8Today } from '../lib/beijingTime.js';
 
 const POLL_MS = 4000;
 
@@ -183,7 +184,7 @@ const ExamReview = () => {
   const [video, setVideo] = useState(null);
   const [pdf, setPdf] = useState(null);
   const [title, setTitle] = useState('');
-  const [examDate, setExamDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [examDate, setExamDate] = useState(() => east8Today());
   const [uploading, setUploading] = useState(false);
   const [upPct, setUpPct] = useState(0);
   const [upRate, setUpRate] = useState(0);   // 字节/秒

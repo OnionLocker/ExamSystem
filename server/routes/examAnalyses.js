@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import db from '../db.js';
 import { enqueue, VIDEO_DIR, RAW_DIR, PDF_DIR } from '../examWorker.js';
+import { east8Today } from '../../src/lib/beijingTime.js';
 
 const REVIEW_DIR = path.join(path.dirname(VIDEO_DIR), 'exam-reviews');
 fs.mkdirSync(REVIEW_DIR, { recursive: true });
@@ -65,7 +66,7 @@ router.post('/', (req, res, next) => {
   const kind = req.body?.kind === 'taoti' ? 'taoti' : 'zhenti';
   const fallback = kind === 'taoti' ? '套题复盘' : '模考复盘';
   const title = String(req.body?.title || '').trim() || `${fallback} ${new Date().toLocaleDateString('zh-CN')}`;
-  const examDate = String(req.body?.exam_date || '').trim() || new Date().toISOString().slice(0, 10);
+  const examDate = String(req.body?.exam_date || '').trim() || east8Today();
 
   const info = db
     .prepare(
@@ -145,7 +146,7 @@ router.delete('/:id/video', (req, res) => {
       fs.unlinkSync(p);
     }
   }
-  db.prepare("UPDATE exam_analyses SET video_deleted=1, updated_at=datetime('now') WHERE id=?").run(id);
+  db.prepare("UPDATE exam_analyses SET video_deleted=1, updated_at=datetime('now', '+8 hours') WHERE id=?").run(id);
   res.json({ ok: true, freed });
 });
 

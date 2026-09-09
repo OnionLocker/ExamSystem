@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, X, SkipForward, RotateCcw, Eye, EyeOff, Timer, BookOpen, ChevronLeft } from 'lucide-react';
-import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs, isSubAvailable } from './generators.js';
+import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE } from './generators.js';
 import { recordPromotionResult, getRank } from './ranks.js';
 import RankBadge from './RankBadge.jsx';
 import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
 import { loadHistory, saveHistory } from './history.js';
+import { applyNumericTodayRace } from './todayTasks.js';
 
 
 // 小窗练习组件
@@ -23,10 +24,13 @@ const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 
 const readParams = () => {
   const p = new URLSearchParams(window.location.search);
+  const n = Number(p.get('n'));
   return {
     catId: p.get('cat') || 'basic',
     subId: p.get('sub') || '',
     mode: p.get('mode') || 'train',
+    raceSize: Number.isFinite(n) && n >= 1 ? Math.min(200, n) : RACE_SIZE_DEFAULT,
+    stealth: p.get('stealth') === '1',
   };
 };
 
@@ -48,23 +52,40 @@ const fmtDuration = (ms) => {
   return `${pad(m)}:${pad(sec)}`;
 };
 
-const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false } = {}) => {
+const PopupPractice = ({
+  catId: pCat,
+  subId: pSub,
+  mode: pMode,
+  raceSize: pRaceSize,
+  embedded = false,
+  stealthDefault = false,
+  onExit = null,
+  onStealthChange = null,
+  todayTask = null,
+} = {}) => {
   // 参数来源：props 优先（PiP 模式），否则读 URL；之后可在小窗内换模块
   const init = useMemo(() => {
+    const url = readParams();
     if (pCat || pSub) {
       return {
         catId: pCat || 'basic',
         subId: pSub || '',
         mode: pMode === 'race' ? 'race' : 'train',
+        raceSize: Number(pRaceSize) > 0 ? Number(pRaceSize) : url.raceSize,
+        stealth: stealthDefault || url.stealth,
       };
     }
-    return readParams();
-  }, [pCat, pSub, pMode]);
+    return {
+      ...url,
+      mode: url.mode === 'race' ? 'race' : 'train',
+      stealth: stealthDefault || url.stealth,
+    };
+  }, [pCat, pSub, pMode, pRaceSize, stealthDefault]);
 
   const [catId, setCatId] = useState(init.catId);
   const [subId, setSubId] = useState(init.subId);
   const [mode, setMode] = useState(init.mode === 'race' ? 'race' : 'train');
-  const [raceSize, setRaceSize] = useState(RACE_SIZE_DEFAULT);
+  const [raceSize, setRaceSize] = useState(init.raceSize);
   const [raceDone, setRaceDone] = useState(null); // 晋升结束小结
   // picking: null | 'cat' | 'sub' | 'mode'
   const [picking, setPicking] = useState(null);
@@ -75,12 +96,18 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   const [draftRaceSize, setDraftRaceSize] = useState(RACE_SIZE_DEFAULT);
 
   const cat = CATEGORIES.find((c) => c.id === catId);
-  const requested = getSub(catId, subId);
-  const sub = (requested && isSubAvailable(requested) ? requested : null) || visibleSubs(cat)[0];
+  const sub = getSub(catId, subId) || cat?.subs?.[0];
   const availableCats = useMemo(() => CATEGORIES.filter((c) => c.available && c.kind !== 'selfReport'), []);
 
   // stealth: 伪装模式（低调主题、可隐藏题目内容）
-  const [stealth, setStealth] = useState(false);
+  const [stealth, setStealth] = useState(init.stealth);
+  const toggleStealth = () => {
+    setStealth((v) => {
+      const next = !v;
+      onStealthChange?.(next);
+      return next;
+    });
+  };
   const [blurred, setBlurred] = useState(false);
   const [showTable, setShowTable] = useState(false);
 
@@ -147,7 +174,6 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       if (s.length >= 12) return s;
       if (ch === '.' && s.includes('.')) return s;
       if (ch === '-' && s !== '') return s;
-      if ((ch === '/' || ch === ':') && (s.includes('/') || s.includes(':'))) return s;
       return s + ch;
     });
   };
@@ -184,7 +210,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
   const submit = () => {
     if (feedback || !question || raceDone) return;
-    if (input === '' || input === '-' || input === '.' || input === '/' || input === ':') return;
+    if (input === '' || input === '-' || input === '.') return;
     const timeMs = now - qStartedAt;
     const isCorrect = judge(question, input);
     const nextStats = {
@@ -229,11 +255,12 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     setFeedback(null);
     setShowTable(false);
     setRaceDone(null);
+    if (onExit && todayTask) {
+      onExit();
+      return;
+    }
     // 纠正空 subId：界面可能正用 cat.subs[0] 出题，但 state 还是 ''
-    const requestedSub = getSub(catId, subId);
-    const effectiveSub = (requestedSub && isSubAvailable(requestedSub) ? requestedSub : null)
-      || visibleSubs(cat)[0]
-      || null;
+    const effectiveSub = getSub(catId, subId) || cat?.subs?.[0] || null;
     const effectiveSubId = effectiveSub?.id || '';
     const effectiveCatId = catId || effectiveSub && CATEGORIES.find((c) => c.subs.some((s) => s.id === effectiveSubId))?.id || 'basic';
     if (effectiveSubId && effectiveSubId !== subId) setSubId(effectiveSubId);
@@ -256,13 +283,12 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     const nextCat = CATEGORIES.find((c) => c.id === id);
     // 换大类时：若当前 draft 子项不属于该类，落到该类第一项
     const keep = draftSubId && getSub(id, draftSubId);
-    setDraftSubId(keep && isSubAvailable(keep) ? draftSubId : (visibleSubs(nextCat)[0]?.id || ''));
+    setDraftSubId(keep ? draftSubId : (nextCat?.subs?.[0]?.id || ''));
     setPicking('sub');
   };
 
   const pickSub = (nextCatId, nextSubId) => {
-    const next = getSub(nextCatId, nextSubId);
-    if (!next || !isSubAvailable(next)) return;
+    if (!getSub(nextCatId, nextSubId)) return;
     setDraftCatId(nextCatId);
     setDraftSubId(nextSubId);
     setDraftMode(mode);
@@ -343,6 +369,15 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       correct: result.correct,
       score: scoreNumeric(result.total, result.correct),
     });
+    const items = applyNumericTodayRace({
+      catId,
+      subId,
+      total,
+      correct: finalStats.correct,
+      totalMs,
+    });
+    const hit = (items || []).find((task) => task.catId === catId && task.subId === subId);
+    if (hit) result.todayStatus = hit.status;
     setRaceDone(result);
   };
 
@@ -391,7 +426,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       if (e.ctrlKey || e.metaKey || e.altKey) {
         if ((e.ctrlKey || e.metaKey) && (e.key === 'h' || e.key === 'H')) {
           e.preventDefault();
-          setStealth((v) => !v);
+          toggleStealth();
         }
         if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
           e.preventDefault();
@@ -402,7 +437,6 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       if (e.key >= '0' && e.key <= '9') appendChar(e.key);
       else if (e.key === '.') appendChar('.');
       else if (e.key === '-' && input === '') appendChar('-');
-      else if (e.key === '/' || e.key === ':') appendChar(e.key);
       else if (e.key === 'Backspace') {
         e.preventDefault();
         backspace();
@@ -439,7 +473,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       <div
         ref={rootRef}
         tabIndex={-1}
-        className={`popup-root relative h-full min-h-full flex flex-col ${stealth ? 'bg-[#fafafa] text-slate-700' : 'bg-[#1a1a1a] text-white'} select-none overflow-hidden focus:outline-none`}
+        className={`popup-root relative h-full min-h-full flex flex-col ${stealth ? 'bg-[#f2e4c4] text-[#2a2418]' : 'bg-[#1a1a1a] text-white'} select-none overflow-hidden focus:outline-none`}
       >
         <PopupModulePicker
           stealth={stealth}
@@ -472,20 +506,20 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     );
   }
 
-  // 配色：常规 = 黑黄；伪装 = 白灰（看起来像个文档）
+  // 配色：常规 = 黑黄；伪装 = 暖米色（文档感，跟主站同色）
   const theme = stealth
     ? {
-        wrap: 'bg-[#fafafa] text-slate-700',
-        card: 'bg-white border border-slate-200/80',
-        prompt: 'text-slate-800',
-        hint: 'text-slate-400',
-        accent: 'text-slate-600',
-        answer: 'text-slate-500',
-        inputBg: 'bg-slate-50 border border-slate-100',
+        wrap: 'bg-[#f2e4c4] text-[#2a2418]',
+        card: 'bg-[#f8efd8] border border-[#e8d5b0]',
+        prompt: 'text-[#1a1a1a]',
+        hint: 'text-[#8d7348]',
+        accent: 'text-[#6b5428]',
+        answer: 'text-[#6b5428]',
+        inputBg: 'bg-[#efe3c8] border border-[#e8d5b0]',
         fbOk: 'bg-emerald-50 ring-1 ring-emerald-200',
         fbWrong: 'bg-rose-50 ring-1 ring-rose-200',
-        fbSkip: 'bg-slate-100 ring-1 ring-slate-200',
-        strike: 'text-slate-300',
+        fbSkip: 'bg-[#e8d5b0] ring-1 ring-[#d4c09a]',
+        strike: 'text-[#c4b090]',
       }
     : {
         wrap: 'bg-gradient-to-br from-[#1a1a1a] via-[#1a1a1a] to-[#2a2618] text-white',
@@ -529,7 +563,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     >
       {/* 顶栏 */}
       <div
-        className={`flex items-center justify-between px-3 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-widest ${stealth ? 'text-slate-400' : 'text-white/50'}`}
+        className={`flex items-center justify-between px-3 pt-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-widest ${stealth ? 'text-[#8d7348]' : 'text-white/50'}`}
       >
         <div className="flex items-center space-x-1.5 min-w-0">
           <button
@@ -538,7 +572,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
             title="返回选模式（训练/晋升）"
             className={`flex items-center gap-0.5 shrink-0 rounded-md px-1 py-0.5 transition-colors ${
               stealth
-                ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                ? 'text-[#8d7348] hover:text-[#1a1a1a] hover:bg-[#e8d5b0]'
                 : 'text-[#6b5428] hover:bg-white/10'
             }`}
           >
@@ -549,7 +583,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
             type="button"
             onClick={openModulePicker}
             title="切换练习模块"
-            className={`truncate text-left min-w-0 hover:opacity-100 opacity-90 ${stealth ? 'hover:text-slate-700' : 'hover:text-white'}`}
+            className={`truncate text-left min-w-0 hover:opacity-100 opacity-90 ${stealth ? 'hover:text-[#1a1a1a]' : 'hover:text-white'}`}
           >
             {stealth
               ? '文档 · 草稿'
@@ -578,7 +612,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
             {blurred ? <EyeOff size={12} /> : <Eye size={12} />}
           </IconBtn>
           <IconBtn
-            onClick={() => setStealth((v) => !v)}
+            onClick={toggleStealth}
             title="Ctrl+H 伪装模式"
             stealth={stealth}
             wide
@@ -652,13 +686,23 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
 
       {/* 底栏：统计 */}
       <div
-        className={`px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-between ${stealth ? 'text-slate-400' : 'text-white/45'}`}
+        className={`px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-between ${stealth ? 'text-[#8d7348]' : 'text-white/45'}`}
       >
         <div className="flex items-center space-x-2">
           {mode === 'race' && (
             <>
               <span className={`${theme.accent} text-[11px] normal-case tracking-normal`}>
                 {Math.min(total, raceSize)}/{raceSize}
+              </span>
+              <span className="opacity-40">·</span>
+            </>
+          )}
+          {todayTask && !stealth && (
+            <>
+              <span className="normal-case tracking-normal opacity-80">
+                ≥{Math.round((todayTask.minAccuracy || 0) * 100)}%
+                {' · ≤'}
+                {(Number(todayTask.maxAvgMs) / 1000).toFixed(1)}s
               </span>
               <span className="opacity-40">·</span>
             </>
@@ -721,6 +765,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
             setRaceDone(null);
             openModulePicker('mode'); // 一层一层退：练习 → 模式 → 题型 → 大类
           }}
+          backLabel={todayTask ? '九宫格' : undefined}
         />
       )}
 
@@ -759,7 +804,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
   );
 };
 
-const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
+const PopupRaceResult = ({ stealth, result, onRetry, onPickModule, backLabel }) => {
   const lp = result?.rankChange?.lp;
   const before = lp ? getRank(lp.rankBefore) : null;
   const after = lp ? getRank(lp.rankAfter) : null;
@@ -771,17 +816,17 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
     ? (stealth ? 'text-emerald-600' : 'text-emerald-400')
     : delta < 0
       ? (stealth ? 'text-rose-600' : 'text-[#ff6b6b]')
-      : (stealth ? 'text-slate-500' : 'text-white/50');
+      : (stealth ? 'text-[#8d7348]' : 'text-white/50');
   const status = promoted
     ? { text: '升段！', cls: stealth ? 'text-amber-600' : 'text-[#6b5428]' }
     : demoted
       ? { text: '掉段', cls: stealth ? 'text-rose-600' : 'text-[#ff6b6b]' }
       : lp?.protected
         ? { text: '保留段位 · 实力保护', cls: stealth ? 'text-emerald-600' : 'text-emerald-400' }
-        : { text: '保留段位', cls: stealth ? 'text-slate-600' : 'text-white/70' };
+        : { text: '保留段位', cls: stealth ? 'text-[#6b5428]' : 'text-white/70' };
 
   return (
-    <div className={`absolute inset-0 z-30 flex flex-col ${stealth ? 'bg-[#fafafa] text-slate-800' : 'bg-[#1a1a1a] text-white'}`}>
+    <div className={`absolute inset-0 z-30 flex flex-col ${stealth ? 'bg-[#f2e4c4] text-[#1a1a1a]' : 'bg-[#1a1a1a] text-white'}`}>
       <div className="flex-1 flex flex-col items-center justify-center px-3 text-center gap-1.5 min-h-0 overflow-y-auto py-2">
         <p className="text-[10px] font-black uppercase tracking-widest opacity-60">晋升完成</p>
         <p className={`text-2xl font-black tabular-nums ${stealth ? '' : 'text-[#6b5428]'}`}>
@@ -790,10 +835,16 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
         <p className="text-[11px] font-bold opacity-70">
           用时 {fmtDuration(result.totalMs)} · 均 {fmtMs(result.avgMs)}
         </p>
+        {result.todayStatus === 'done' && (
+          <p className={`text-xs font-black ${stealth ? 'text-emerald-600' : 'text-emerald-400'}`}>今日已点亮</p>
+        )}
+        {result.todayStatus === 'partial' && (
+          <p className={`text-xs font-black ${stealth ? 'text-amber-700' : 'text-amber-300'}`}>未达标 · 可再来一局</p>
+        )}
 
         {lp && (
           <div className={`w-full mt-2 rounded-2xl border px-3 py-2.5 ${
-            stealth ? 'border-slate-200 bg-white' : 'border-white/10 bg-white/[0.04]'
+            stealth ? 'border-[#e8d5b0] bg-[#f8efd8]' : 'border-white/10 bg-white/[0.04]'
           }`}>
             <p className={`text-3xl font-black italic tabular-nums leading-none ${deltaCls}`}
               style={{ animation: 'pop 280ms ease-out' }}>
@@ -824,7 +875,7 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
             </div>
 
             {kept && after.id !== 'king' && (
-              <div className={`mt-2 h-1.5 rounded-full overflow-hidden ${stealth ? 'bg-slate-100' : 'bg-white/10'}`}>
+              <div className={`mt-2 h-1.5 rounded-full overflow-hidden ${stealth ? 'bg-[#e8d5b0]' : 'bg-white/10'}`}>
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -843,8 +894,8 @@ const PopupRaceResult = ({ stealth, result, onRetry, onPickModule }) => {
           再来一局
         </button>
         <button type="button" onClick={onPickModule}
-          className={`flex-1 py-2 rounded-xl border text-xs font-black ${stealth ? 'border-slate-300' : 'border-white/20'}`}>
-          返回
+          className={`flex-1 py-2 rounded-xl border text-xs font-black ${stealth ? 'border-[#d4c09a]' : 'border-white/20'}`}>
+          {backLabel || '返回'}
         </button>
       </div>
     </div>
@@ -869,19 +920,19 @@ const PopupModulePicker = ({
   onDraftRaceSize,
   onStart,
 }) => {
-  const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
-  const muted = stealth ? 'text-slate-500' : 'text-white/60';
-  const titleCls = stealth ? 'text-slate-800' : 'text-white';
+  const bg = stealth ? 'bg-[#f2e4c4]' : 'bg-[#1a1a1a]';
+  const muted = stealth ? 'text-[#8d7348]' : 'text-white/60';
+  const titleCls = stealth ? 'text-[#1a1a1a]' : 'text-white';
   const cell = stealth
-    ? 'bg-white border-slate-200 text-slate-800 hover:border-slate-400'
+    ? 'bg-[#f8efd8] border-[#e8d5b0] text-[#1a1a1a] hover:border-[#6b5428]'
     : 'bg-white/[0.06] border-white/10 text-white hover:border-[#6b5428]/50 hover:bg-white/[0.1]';
   const active = stealth
-    ? 'bg-slate-800 text-white border-slate-800'
+    ? 'bg-[#2c261c] text-white border-[#6b5428]'
     : 'bg-[#2c261c] text-white border-[#6b5428]';
   // 高亮跟「当前浏览」走，不要静默掉回 cats[0]/cats[1]
   const selectedCatId = pickCatId || draftCatId || currentCatId;
   const pickCat = cats.find((c) => c.id === selectedCatId) || null;
-  const selectedSubId = draftSubId || (pickCat?.id === currentCatId ? currentSubId : '') || visibleSubs(pickCat)[0]?.id || '';
+  const selectedSubId = draftSubId || (pickCat?.id === currentCatId ? currentSubId : '') || pickCat?.subs?.[0]?.id || '';
   const draftSub = getSub(pickCat?.id, selectedSubId);
   const head =
     step === 'mode'
@@ -914,13 +965,13 @@ const PopupModulePicker = ({
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate">{c.name}</span>
                 <span className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${c.id === selectedCatId ? '' : muted}`}>
-                  {visibleSubs(c).length} 项
+                  {c.subs.length} 项
                 </span>
               </div>
             </button>
           ))}
         {step === 'sub' &&
-          visibleSubs(pickCat).map((s) => (
+          (pickCat?.subs || []).map((s) => (
             <button
               key={s.id}
               type="button"
@@ -994,7 +1045,7 @@ const IconBtn = ({ children, onClick, title, stealth, wide }) => (
     title={title}
     className={`${wide ? 'px-1.5' : 'p-1'} rounded-md text-[9px] transition-colors ${
       stealth
-        ? 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+        ? 'text-[#8d7348] hover:text-[#1a1a1a] hover:bg-[#e8d5b0]'
         : 'text-white/50 hover:text-white hover:bg-white/10'
     }`}
   >
@@ -1004,9 +1055,9 @@ const IconBtn = ({ children, onClick, title, stealth, wide }) => (
 
 // 小窗内的百化分对照表（铺满整个小窗内容区）
 const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
-  const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
-  const cellBg = stealth ? 'bg-white border-slate-200' : 'bg-white/[0.06] border-white/10';
-  const text = stealth ? 'text-slate-800' : 'text-white';
+  const bg = stealth ? 'bg-[#f2e4c4]' : 'bg-[#1a1a1a]';
+  const cellBg = stealth ? 'bg-[#f8efd8] border-[#e8d5b0]' : 'bg-white/[0.06] border-white/10';
+  const text = stealth ? 'text-[#1a1a1a]' : 'text-white';
 
   return (
     <div
@@ -1015,7 +1066,7 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
       style={{ animation: 'fade-in 150ms ease-out' }}
     >
       <div
-        className={`flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-widest ${stealth ? 'text-slate-500' : 'text-white/70'}`}
+        className={`flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-widest ${stealth ? 'text-[#8d7348]' : 'text-white/70'}`}
       >
         <span>百化分 · 1/3 ~ 1/19</span>
         <span className="normal-case tracking-normal opacity-70">点空白 / ESC 关闭</span>
@@ -1051,9 +1102,9 @@ const PopupBaiHuaFenTable = ({ stealth, onClose }) => {
 
 // 小窗内的常见平方数对照表
 const PopupSquareTable = ({ stealth, onClose }) => {
-  const bg = stealth ? 'bg-[#fafafa]' : 'bg-[#1a1a1a]';
-  const cellBg = stealth ? 'bg-white border-slate-200' : 'bg-white/[0.06] border-white/10';
-  const text = stealth ? 'text-slate-800' : 'text-white';
+  const bg = stealth ? 'bg-[#f2e4c4]' : 'bg-[#1a1a1a]';
+  const cellBg = stealth ? 'bg-[#f8efd8] border-[#e8d5b0]' : 'bg-white/[0.06] border-white/10';
+  const text = stealth ? 'text-[#1a1a1a]' : 'text-white';
 
   return (
     <div
@@ -1062,7 +1113,7 @@ const PopupSquareTable = ({ stealth, onClose }) => {
       style={{ animation: 'fade-in 150ms ease-out' }}
     >
       <div
-        className={`flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-widest ${stealth ? 'text-slate-500' : 'text-white/70'}`}
+        className={`flex items-center justify-between px-3 py-2 text-[11px] font-bold uppercase tracking-widest ${stealth ? 'text-[#8d7348]' : 'text-white/70'}`}
       >
         <span>常见平方数 · 11² ~ 29²</span>
         <span className="normal-case tracking-normal opacity-70">点空白 / ESC 关闭</span>

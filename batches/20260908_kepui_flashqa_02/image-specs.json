@@ -1,0 +1,128 @@
+{
+  "questions": [
+    {
+      "question_id": "20260908_kepui_flashqa_02_01",
+      "image_facts": [
+        "甲",
+        "乙",
+        "丙",
+        "丁"
+      ],
+      "image_only_facts": [
+        "甲",
+        "乙",
+        "丙",
+        "丁"
+      ],
+      "must_derive": [
+        "甲乙相对高度",
+        "丙处坡度比丁处平缓"
+      ],
+      "must_not": [
+        "气温数值",
+        "坡度陡缓文字"
+      ],
+      "kind": "contour"
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_02",
+      "image_facts": [
+        "农作物"
+      ],
+      "image_only_facts": [
+        "农作物",
+        "害虫",
+        "鼠",
+        "青蛙",
+        "蛇",
+        "食物网箭头"
+      ],
+      "must_derive": [
+        "农作物为第一营养级",
+        "害虫和鼠为第二营养级"
+      ],
+      "must_not": [
+        "传递效率标注",
+        "能量数值",
+        "答案提示"
+      ],
+      "kind": "food"
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_03",
+      "image_facts": [
+        "甲",
+        "乙",
+        "P",
+        "小球甲",
+        "小球乙",
+        "水平地面"
+      ],
+      "image_only_facts": [
+        "甲",
+        "乙",
+        "P"
+      ],
+      "must_derive": [
+        "t甲>t乙",
+        "v甲<v乙"
+      ],
+      "must_not": [
+        "v甲",
+        "v乙"
+      ],
+      "kind": "motion"
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_04",
+      "image_facts": [
+        "甲",
+        "乙",
+        "水平桌面",
+        "容器甲"
+      ],
+      "image_only_facts": [
+        "甲",
+        "乙",
+        "水平桌面"
+      ],
+      "must_derive": [
+        "根据容器形状推出体积关系",
+        "根据质量与体积推导密度关系",
+        "分别计算液体底压与桌面压强"
+      ],
+      "must_not": [
+        "密度大小标注",
+        "压强结论"
+      ],
+      "kind": "tank"
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_05",
+      "image_facts": [
+        "S",
+        "L1",
+        "L2",
+        "电源",
+        "开关S"
+      ],
+      "image_only_facts": [
+        "S",
+        "L1",
+        "L2",
+        "A",
+        "V"
+      ],
+      "must_derive": [
+        "L1和L2串联",
+        "电流表A串联在干路中",
+        "电压表V跨接在L1两端"
+      ],
+      "must_not": [
+        "短路标注",
+        "故障提示"
+      ],
+      "kind": "circuit"
+    }
+  ]
+}

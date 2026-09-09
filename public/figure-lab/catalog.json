@@ -1,0 +1,131 @@
+{
+  "style": "black-white-line",
+  "groups": [
+    {
+      "id": "batch-1",
+      "title": "批次1",
+      "items": [
+        {
+          "id": "k01",
+          "title": "容器底部受力",
+          "file": "batches/batch-1/k01.png",
+          "ok": true
+        },
+        {
+          "id": "k02",
+          "title": "固体压强",
+          "file": "batches/batch-1/k02.png",
+          "ok": true
+        },
+        {
+          "id": "k03",
+          "title": "电路故障",
+          "file": "batches/batch-1/k03.png",
+          "ok": true
+        },
+        {
+          "id": "k04",
+          "title": "遗传系谱",
+          "file": "batches/batch-1/k04.png",
+          "ok": true
+        },
+        {
+          "id": "k05",
+          "title": "食物网",
+          "file": "batches/batch-1/k05.png",
+          "ok": true
+        },
+        {
+          "id": "k06",
+          "title": "海陆风",
+          "file": "batches/batch-1/k06.png",
+          "ok": true
+        },
+        {
+          "id": "k07",
+          "title": "锋面天气",
+          "file": "batches/batch-1/k07.png",
+          "ok": true
+        },
+        {
+          "id": "k08",
+          "title": "地球自转",
+          "file": "batches/batch-1/k08.png",
+          "ok": true
+        },
+        {
+          "id": "k09",
+          "title": "摩擦与惯性",
+          "file": "batches/batch-1/k09.png",
+          "ok": true
+        },
+        {
+          "id": "k10",
+          "title": "平抛运动",
+          "file": "batches/batch-1/k10.png",
+          "ok": true
+        },
+        {
+          "id": "p01",
+          "title": "六面体展开还原",
+          "file": "batches/batch-1/p01.png",
+          "ok": true
+        },
+        {
+          "id": "p02",
+          "title": "过三点截面",
+          "file": "batches/batch-1/p02.png",
+          "ok": false
+        },
+        {
+          "id": "p03",
+          "title": "小方块三视图",
+          "file": "batches/batch-1/p03.png",
+          "ok": true
+        },
+        {
+          "id": "p04",
+          "title": "封闭面递增",
+          "file": "batches/batch-1/p04.png",
+          "ok": true
+        },
+        {
+          "id": "p05",
+          "title": "箭头平移转向",
+          "file": "batches/batch-1/p05.png",
+          "ok": true
+        },
+        {
+          "id": "p06",
+          "title": "去同存异",
+          "file": "batches/batch-1/p06.png",
+          "ok": true
+        },
+        {
+          "id": "p07",
+          "title": "对称性分类",
+          "file": "batches/batch-1/p07.png",
+          "ok": true
+        },
+        {
+          "id": "p08",
+          "title": "开闭性分类",
+          "file": "batches/batch-1/p08.png",
+          "ok": true
+        },
+        {
+          "id": "p09",
+          "title": "对比实验装置",
+          "file": "batches/batch-1/p09.png",
+          "ok": true
+        },
+        {
+          "id": "p10",
+          "title": "对象属性匹配",
+          "file": "batches/batch-1/p10.png",
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

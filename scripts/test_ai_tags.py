@@ -118,4 +118,38 @@ else:
 seeded = select_ziliao_paper({}, {}, rng=random.Random(2))
 validate_ziliao_paper_answers([row["answers"] for row in seeded])
 assert all(slot.get("answer") in "ABCD" for row in seeded for slot in row["slots"])
+
+assert validate_ai_primary_tag("数量关系-数字推理-小数与差分数列", "数量关系") == "数量关系-数字推理-小数与差分数列"
+assert validate_ai_primary_tag("数量关系-数字推理-多重数列", "数量关系") == "数量关系-数字推理-多重数列"
+assert validate_ai_primary_tag("数量关系-数字推理-分组多重新变式", "数量关系").endswith("分组多重新变式")
+assert validate_ai_primary_tag(
+    "数量关系-数量基础之数论及数的特性-等差数列与整除", "数量关系"
+) == "数量关系-数量基础之数论及数的特性-等差数列与整除"
+try:
+    validate_ai_primary_tag("数量关系-数字推理-x", "数量关系")
+except ValueError as exc:
+    assert "无法归一" in str(exc)
+else:
+    raise SystemExit("latin-only sequence leaf should fail")
+try:
+    validate_ai_primary_tag("数量关系-今天心情-随便写写", "数量关系")
+except ValueError as exc:
+    assert "无法归一" in str(exc)
+else:
+    raise SystemExit("non-gongkao quantity tag should fail")
+assert validate_ai_primary_tag(
+    "资料分析-时间序列-隔年合并拆分", "资料分析"
+) == "资料分析-时间序列-隔年合并拆分"
+try:
+    validate_ai_primary_tag("资料分析-今天心情-随便写写", "资料分析")
+except ValueError as exc:
+    assert "知识库主标签" in str(exc)
+else:
+    raise SystemExit("non-gongkao ziliao tag should fail")
+assert validate_ai_primary_tag(
+    "判断推理-图形推理-黑白运算", "判断推理"
+) == "判断推理-图形推理-黑白运算"
+assert validate_ai_primary_tag(
+    "言语理解与表达-片段阅读-对策意图", "言语理解与表达"
+) == "言语理解与表达-片段阅读-对策意图"
 print("ai tags: ok")

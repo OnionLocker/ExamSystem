@@ -1,0 +1,527 @@
+{
+  "version": 1,
+  "kind": "examsystem-system-quality",
+  "batch_id": "20260908_kepui_flashqa_02",
+  "model": "gemini-3.6-flash-high",
+  "reviewed_at": "2026-09-08T15:02:42+00:00",
+  "verdict": "REJECT",
+  "routes": {
+    "A": 0,
+    "B": 0,
+    "C": 0,
+    "D": 5
+  },
+  "batch_quality": {
+    "verdict": "PASS",
+    "review": {
+      "verdict": "PASS",
+      "type_distribution_ok": true,
+      "difficulty_distribution_ok": true,
+      "reference_alignment_ok": true,
+      "duplicate_groups": [],
+      "issues": [],
+      "answer_distribution_ok": true
+    }
+  },
+  "reference_quality": {
+    "verdict": "PASS",
+    "rejected_question_ids": [],
+    "results": [
+      {
+        "question_id": "20260908_kepui_flashqa_02_02",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_flashqa_02_01",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_flashqa_02_03",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_flashqa_02_04",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      },
+      {
+        "question_id": "20260908_kepui_flashqa_02_05",
+        "verdict": "PASS",
+        "review": {
+          "skipped": "no_holdout_syllabus_mock"
+        }
+      }
+    ]
+  },
+  "questions_sha256": "2ddf84f42f1257bdb12a9b9752368754f21522f2cd4853cf3e6a6b697a220664",
+  "manifest_sha256": "0fbd9c02f31f72217fb0bebe89177e4ed38da7bc0a925392232a0713feba486e",
+  "results": [
+    {
+      "question_id": "20260908_kepui_flashqa_02_01",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "ab81782329ffec6c5f4f063306b5fd01c9d05fbfb4c197407994a54c15e6ded0",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "A",
+        "candidate": {
+          "id": "20260908_kepui_flashqa_02_01",
+          "answer": "A",
+          "also_valid": [],
+          "verdict": "REJECT",
+          "issues": [
+            "图文不符：题干指出“沿虚线从丙处和丁处分别修筑了上山步道”，但图像中左侧步道虚线旁标注为“乙”而非“丙”，存在标注错误与矛盾。"
+          ]
+        },
+        "setter": {
+          "id": "20260908_kepui_flashqa_02_01",
+          "verdict": "REJECT",
+          "issues": [
+            "Missing required labels: Stem and spec require labels '丙' and '丁' for the two mountain paths, but the image only shows '甲' and '乙'.",
+            "Contradictory contour values: Stem specifies 甲 at 350m and 乙 at 150m, but the figure marks peak contours as 400 and 200."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_flashqa_02_01",
+          "image_facts": [
+            "甲",
+            "乙",
+            "丙",
+            "丁"
+          ],
+          "image_only_facts": [
+            "甲",
+            "乙",
+            "丙",
+            "丁"
+          ],
+          "must_derive": [
+            "甲乙相对高度",
+            "丙处坡度比丁处平缓"
+          ],
+          "must_not": [
+            "气温数值",
+            "坡度陡缓文字"
+          ],
+          "kind": "contour"
+        },
+        "image_sha256": {
+          "images/q-01-stem.png": "32dfedaa75ec980d3360bf19c706628e977d5cc823c1e5045886f040c99f4d3c"
+        },
+        "issues": [
+          "candidate visual review rejected or missing",
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260908_kepui_flashqa_02_01",
+          "score": 4,
+          "zero_items": [
+            "图文一致性/标号完整性"
+          ],
+          "hard_fail": [
+            "HARD_FAIL: 题图缺标号 (fig_missing_label: 题干及选项C涉及丙、丁两处步道，但等高线地形图中完全未标注丙和丁的位置)"
+          ],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": false,
+          "answer_unique": false,
+          "distractor_paths": {
+            "B": "相对高度计算错误且混淆海拔与气温关系",
+            "C": "图中标号缺失无法据图判断坡度",
+            "D": "山谷与山脊地形概念混淆"
+          },
+          "reference_ids": [],
+          "verdict": "REJECT",
+          "issues": [
+            "题干和选项C中明确提到‘丙处’和‘丁处’的步道，但给出的等高线地形图中只有‘甲’和‘乙’，缺失‘丙’与‘丁’的视觉标注，无法正常解题。"
+          ]
+        },
+        "issues": [
+          "quality reviewer rejected",
+          "quality score below 10",
+          "quality hard/zero/regression failure",
+          "facts are not closed or answer is not unique"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_02",
+      "route": "D",
+      "verdict": "PASS",
+      "content_sha256": "6c54e1b1c75d8e5e6b4d5781afdcfab1ff2c89487faa4d23c6b69b5ac0526650",
+      "reused": true,
+      "correctness": {
+        "route": "D",
+        "verdict": "PASS",
+        "answer": "C",
+        "candidate": {
+          "id": "20260908_kepui_flashqa_02_02",
+          "answer": "C",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260908_kepui_flashqa_02_02",
+          "verdict": "PASS",
+          "issues": []
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_flashqa_02_02",
+          "image_facts": [
+            "农作物"
+          ],
+          "image_only_facts": [
+            "农作物",
+            "害虫",
+            "鼠",
+            "青蛙",
+            "蛇",
+            "食物网箭头"
+          ],
+          "must_derive": [
+            "农作物为第一营养级",
+            "害虫和鼠为第二营养级"
+          ],
+          "must_not": [
+            "传递效率标注",
+            "能量数值",
+            "答案提示"
+          ],
+          "kind": "food"
+        },
+        "image_sha256": {
+          "images/q-02-stem.png": "e3bffb64ea8295f1c443ba3b2a321224db0b134c7bb3b767c33b1a00db2f7c21"
+        },
+        "issues": [],
+        "reused": true
+      },
+      "quality": {
+        "verdict": "PASS",
+        "review": {
+          "id": "20260908_kepui_flashqa_02_02",
+          "score": 11,
+          "zero_items": [],
+          "hard_fail": [],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": true,
+          "facts_closed": true,
+          "answer_unique": true,
+          "distractor_paths": {
+            "A": "错将传递效率按20%计算或误算第二营养级能量值",
+            "B": "漏算第一到第二营养级的传递衰减，仅计算了一层传递",
+            "D": "忽视蛇可经两条链捕食，误按单条链两代10%传递效率计算消耗量"
+          },
+          "reference_ids": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "issues": [],
+        "reused": true
+      }
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_03",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "85d30e8ae53290ac73491a8348dabf790d956ec2af96bd2fabaf3720bc61ef12",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "A",
+        "candidate": {
+          "id": "20260908_kepui_flashqa_02_03",
+          "answer": "A",
+          "also_valid": [],
+          "verdict": "REJECT",
+          "issues": [
+            "配图类型错误：题干考查两小球的平抛运动，但给出的图片为路程-时间（s-t）直线运动图象，与题干物理情境完全不符。"
+          ]
+        },
+        "setter": {
+          "id": "20260908_kepui_flashqa_02_03",
+          "verdict": "REJECT",
+          "issues": [
+            "Wrong exam object / image mismatch: Stem describes a physical projectile motion setup (两球平抛运动), but the image shows a linear s-t graph (位移-时间图像)."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_flashqa_02_03",
+          "image_facts": [
+            "甲",
+            "乙",
+            "P",
+            "小球甲",
+            "小球乙",
+            "水平地面"
+          ],
+          "image_only_facts": [
+            "甲",
+            "乙",
+            "P"
+          ],
+          "must_derive": [
+            "t甲>t乙",
+            "v甲<v乙"
+          ],
+          "must_not": [
+            "v甲",
+            "v乙"
+          ],
+          "kind": "motion"
+        },
+        "image_sha256": {
+          "images/q-03-stem.png": "013cef5beb42323bfa3e5629c066518fa4c7c1ea07cc3adad4fb32f41a95d7ee"
+        },
+        "issues": [
+          "candidate visual review rejected or missing",
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260908_kepui_flashqa_02_03",
+          "score": 2,
+          "zero_items": [
+            "图文一致性"
+          ],
+          "hard_fail": [
+            "HARD_FAIL: 题图不符 (fig_kind_mismatch: 题干考查两球从墙面抛出的平抛运动，配图错置为一维直线运动的 s-t 位移-时间图像)"
+          ],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": false,
+          "facts_closed": false,
+          "answer_unique": false,
+          "distractor_paths": {
+            "B": "错误认为高度低运动时间长",
+            "C": "忽略高度不同导致下落时间不同",
+            "D": "错误认为平抛水平位移相同高度大则初速度大"
+          },
+          "reference_ids": [],
+          "verdict": "REJECT",
+          "issues": [
+            "严重图文错配：题干描述的是平抛运动（抛出点高度不同落于同一地面点P），但附图为直线运动的 s-t 位移-时间坐标图，图文完全脱节。"
+          ]
+        },
+        "issues": [
+          "quality reviewer rejected",
+          "quality score below 10",
+          "quality hard/zero/regression failure",
+          "module or real-exam style mismatch",
+          "facts are not closed or answer is not unique"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_04",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "c5092a0a098fc5de60acc04cfee5fea0788e335c611207f152fa1a9b1909cd9c",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "B",
+        "candidate": {
+          "id": "20260908_kepui_flashqa_02_04",
+          "answer": "B",
+          "also_valid": [],
+          "verdict": "REJECT",
+          "issues": [
+            "图文矛盾：题干明确说明“甲容器为直筒状柱形容器，乙容器为上宽下窄的敞口容器”，但配图中甲、乙两个容器被绘制为完全相同的直筒状柱形容器。"
+          ]
+        },
+        "setter": {
+          "id": "20260908_kepui_flashqa_02_04",
+          "verdict": "REJECT",
+          "issues": [
+            "Contradictory drawing: Stem specifies container 甲 as a straight cylinder and container 乙 as upper-wide and lower-narrow (上宽下窄), but the figure draws both containers as identical straight cylinders."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_flashqa_02_04",
+          "image_facts": [
+            "甲",
+            "乙",
+            "水平桌面",
+            "容器甲"
+          ],
+          "image_only_facts": [
+            "甲",
+            "乙",
+            "水平桌面"
+          ],
+          "must_derive": [
+            "根据容器形状推出体积关系",
+            "根据质量与体积推导密度关系",
+            "分别计算液体底压与桌面压强"
+          ],
+          "must_not": [
+            "密度大小标注",
+            "压强结论"
+          ],
+          "kind": "tank"
+        },
+        "image_sha256": {
+          "images/q-04-stem.png": "254eb6811b0e4a02bed729054185896dcb374521509460a79c9ae9c64675caca"
+        },
+        "issues": [
+          "candidate visual review rejected or missing",
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260908_kepui_flashqa_02_04",
+          "score": 2,
+          "zero_items": [
+            "图文一致性"
+          ],
+          "hard_fail": [
+            "HARD_FAIL: 题图矛盾 (题干明确说明‘乙容器为上宽下窄的敞口容器’，但配图中甲、乙均为完全相同的直筒圆柱形容器)"
+          ],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": false,
+          "facts_closed": false,
+          "answer_unique": false,
+          "distractor_paths": {
+            "A": "错将柱形与敞口容器液体对底压强混淆",
+            "C": "密度关系判断反向",
+            "D": "桌面压强大小关系推导错误"
+          },
+          "reference_ids": [],
+          "verdict": "REJECT",
+          "issues": [
+            "题图矛盾：题干设定乙容器为上宽下窄敞口容器，图例中乙容器却画成了与甲容器一模一样的直筒圆柱容器，导致考生看图无法获得解题所需的几何形状特征。"
+          ]
+        },
+        "issues": [
+          "quality reviewer rejected",
+          "quality score below 10",
+          "quality hard/zero/regression failure",
+          "module or real-exam style mismatch",
+          "facts are not closed or answer is not unique"
+        ]
+      }
+    },
+    {
+      "question_id": "20260908_kepui_flashqa_02_05",
+      "route": "D",
+      "verdict": "REJECT",
+      "content_sha256": "503c75dcf71a516d38d41539b680886dfb22074b3c24f5e18bee221bcba68ddf",
+      "reused": false,
+      "correctness": {
+        "route": "D",
+        "verdict": "REJECT",
+        "answer": "D",
+        "candidate": {
+          "id": "20260908_kepui_flashqa_02_05",
+          "answer": "C",
+          "also_valid": [],
+          "verdict": "PASS",
+          "issues": []
+        },
+        "setter": {
+          "id": "20260908_kepui_flashqa_02_05",
+          "verdict": "REJECT",
+          "issues": [
+            "Circuit topology mismatch: Stem and explanation require L1 and L2 to be connected in series with V across L1, but the figure shows a parallel circuit with V connected directly across the power source."
+          ]
+        },
+        "image_spec": {
+          "question_id": "20260908_kepui_flashqa_02_05",
+          "image_facts": [
+            "S",
+            "L1",
+            "L2",
+            "电源",
+            "开关S"
+          ],
+          "image_only_facts": [
+            "S",
+            "L1",
+            "L2",
+            "A",
+            "V"
+          ],
+          "must_derive": [
+            "L1和L2串联",
+            "电流表A串联在干路中",
+            "电压表V跨接在L1两端"
+          ],
+          "must_not": [
+            "短路标注",
+            "故障提示"
+          ],
+          "kind": "circuit"
+        },
+        "image_sha256": {
+          "images/q-05-stem.png": "a3888d40f314f04ae969f3fa0f43bee389cb6ba8aa1f88ccaaceaf99ca33c6d2"
+        },
+        "issues": [
+          "candidate answer mismatch or non-unique",
+          "setter visual review rejected or missing"
+        ]
+      },
+      "quality": {
+        "verdict": "REJECT",
+        "review": {
+          "id": "20260908_kepui_flashqa_02_05",
+          "score": 2,
+          "zero_items": [
+            "语义一致性",
+            "图文一致性"
+          ],
+          "hard_fail": [
+            "HARD_FAIL: 语义不一致 (解析按串联电路及电压表测L1分析，但配图画的是并联电路且电压表跨接在电源两端)"
+          ],
+          "regression_fail": [],
+          "module_match": true,
+          "style_match": false,
+          "facts_closed": false,
+          "answer_unique": false,
+          "distractor_paths": {
+            "A": "误判断路故障",
+            "B": "忽略短路对电压表示数的影响",
+            "C": "断路导致电流表示数变零与题干不符"
+          },
+          "reference_ids": [],
+          "verdict": "REJECT",
+          "issues": [
+            "严重题图与解析矛盾：解析明确说明‘L1和L2串联，电压表并联在L1两端’，但所给电路图明显绘制为‘L1与L2并联，电压表并联在电源两端’。按照图中并联结构，若L2短路会导致电源短路，与解析逻辑完全冲突。"
+          ]
+        },
+        "issues": [
+          "quality reviewer rejected",
+          "quality score below 10",
+          "quality hard/zero/regression failure",
+          "module or real-exam style mismatch",
+          "facts are not closed or answer is not unique"
+        ]
+      }
+    }
+  ]
+}

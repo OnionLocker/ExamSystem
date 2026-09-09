@@ -259,7 +259,7 @@ def run(db_path: Path, apply: bool) -> dict[str, object]:
             unmapped[key] += 1
     if apply and updates:
         conn.executemany(
-            "UPDATE reference_questions SET tags = ?, updated_at = CURRENT_TIMESTAMP WHERE external_id = ?",
+            "UPDATE reference_questions SET tags = ?, updated_at = datetime('now', '+8 hours') WHERE external_id = ?",
             updates,
         )
         conn.commit()

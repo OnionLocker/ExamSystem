@@ -1,0 +1,15 @@
+{
+  "questions": [
+    {
+      "question_id": "20260908_kepui_timing_real_02_01",
+      "correct": 0,
+      "options": {
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "D": 0
+      },
+      "tolerance": 0.01
+    }
+  ]
+}

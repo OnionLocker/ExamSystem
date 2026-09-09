@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="540" viewBox="0 0 1100 540" overflow="hidden">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="80" y1="500" x2="1020" y2="500" stroke="#111111" stroke-width="3.4" stroke-linecap="round"/>
+<text x="550" y="528" fill="#111111" font-size="22" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">水平桌面</text>
+<line x1="180" y1="106" x2="180" y2="450" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+<line x1="480" y1="106" x2="480" y2="450" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+<ellipse cx="330" cy="106" rx="150" ry="22" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="180,285 480,285 480,450 180,450" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<ellipse cx="330" cy="285" rx="150" ry="18" fill="none" stroke="#111111" stroke-width="1.8"/>
+<ellipse cx="330" cy="450" rx="150" ry="22" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="330" y="64" fill="#111111" font-size="26" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">甲</text>
+<line x1="620" y1="106" x2="620" y2="450" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+<line x1="920" y1="106" x2="920" y2="450" stroke="#111111" stroke-width="3.2" stroke-linecap="round"/>
+<ellipse cx="770" cy="106" rx="150" ry="22" fill="none" stroke="#111111" stroke-width="1.8"/>
+<polygon points="620,285 920,285 920,450 620,450" fill="url(#hatch)" stroke="#111111" stroke-width="1.8" stroke-linejoin="round"/>
+<ellipse cx="770" cy="285" rx="150" ry="18" fill="none" stroke="#111111" stroke-width="1.8"/>
+<ellipse cx="770" cy="450" rx="150" ry="22" fill="none" stroke="#111111" stroke-width="1.8"/>
+<text x="770" y="64" fill="#111111" font-size="26" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">乙</text>
+</svg>

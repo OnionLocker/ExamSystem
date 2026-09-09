@@ -1447,7 +1447,7 @@ export const XINGCE = {
       id: "panduan",
       name: "判断推理",
       qty: "20 题",
-      blurb: "图形 5 + 逻辑 15。先按题型拆论证或扫描图形规律；广东不启用定义判断，类比推理已取消。",
+      blurb: "纯逻辑 20（不再出图）。先按题型拆论证；广东不启用定义判断，类比推理、图形推理已取消。",
       types: [
         T(
           "graph-method-forms",

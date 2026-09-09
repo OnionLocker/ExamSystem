@@ -12,7 +12,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from scheduler_common import daily_source_for_batch
+from scheduler_common import daily_source_for_batch, module_from_daily_batch
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ziliao_paper_answers,
@@ -22,16 +22,11 @@ from kaodian_taxonomy import (
 LETTERS = ("A", "B", "C", "D")
 CAT_ZILIAO = "\u8d44\u6599\u5206\u6790"
 CAT_PANDUAN = "\u5224\u65ad\u63a8\u7406"
-CAT_KEPUI = "\u79d1\u5b66\u63a8\u7406"
 CAT_SHULIANG = "\u6570\u91cf\u5173\u7cfb"
 CAT_YANYU = "\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe"
 ALLOWED_SUBS = {
     "\u6570\u91cf\u5173\u7cfb": ("\u6570\u5b57\u63a8\u7406", "\u6570\u5b66\u8fd0\u7b97"),
-    "\u5224\u65ad\u63a8\u7406": (
-        "\u56fe\u5f62\u63a8\u7406",
-        "\u903b\u8f91\u5224\u65ad",
-    ),
-    "\u79d1\u5b66\u63a8\u7406": ("\u79d1\u5b66\u63a8\u7406",),
+    "\u5224\u65ad\u63a8\u7406": ("\u903b\u8f91\u5224\u65ad",),
 }
 
 _MENTION = re.compile(
@@ -68,10 +63,6 @@ def paper_rank(question: dict) -> tuple:
     if cat == CAT_SHULIANG:
         return (0 if "\u6570\u5b57\u63a8\u7406" in blob else 1, "")
     if cat == CAT_PANDUAN:
-        if "\u56fe\u5f62\u63a8\u7406" in blob:
-            return (0, "")
-        return (1, "")
-    if cat == CAT_KEPUI:
         return (0, "")
     if cat == CAT_YANYU:
         return (0 if "\u903b\u8f91\u586b\u7a7a" in blob else 1, "")
@@ -165,7 +156,13 @@ def compact_ziliao_pack(pack: dict) -> dict:
     return {"paper_style": pack.get("paper_style") or "gd", "materials": materials}
 
 
-def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | None = None) -> dict:
+def generation_payload_extras(
+    module: str,
+    n: int,
+    seed: str,
+    db_path: Path | None = None,
+    focus_tag: str = "",
+) -> dict:
     letters = planned_letters(module, n, seed)
     counts = Counter(letters)
     extras: dict[str, Any] = {
@@ -178,10 +175,50 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
     }
     extras["batch_constraints"]["answer_max_per_letter"] = max(counts.values()) if counts else 1
     extras["batch_constraints"]["answer_min_letters"] = len(counts)
+    tag = str(focus_tag or "").strip()
+    if tag:
+        extras["batch_constraints"]["focus_tag"] = tag
+        return extras
     if module == CAT_SHULIANG and n == 15:
         extras["batch_constraints"]["shuliang_layout"] = "5_sequence_plus_10_math"
+        from panduan_pack import compact_shuliang_pack, select_shuliang_paper
+
+        packed = None
+        if db_path is not None:
+            try:
+                from learner_snapshot import build_shuliang_pack
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    packed = build_shuliang_pack(conn, letters, seed)
+                finally:
+                    conn.close()
+            except (sqlite3.Error, OSError, ImportError):
+                packed = None
+        if packed is None:
+            packed = {"paper_style": "gd", "slots": select_shuliang_paper(letters, random.Random(seed))}
+        extras["shuliang_pack"] = compact_shuliang_pack(packed)
+    if module == CAT_YANYU and n == 15:
+        extras["batch_constraints"]["yanyu_layout"] = "5_fill_plus_10_read"
+        from panduan_pack import compact_yanyu_pack, select_yanyu_paper
+
+        packed = None
+        if db_path is not None:
+            try:
+                from learner_snapshot import build_yanyu_pack
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    packed = build_yanyu_pack(conn, letters, seed)
+                finally:
+                    conn.close()
+            except (sqlite3.Error, OSError, ImportError):
+                packed = None
+        if packed is None:
+            packed = {"paper_style": "gd", "slots": select_yanyu_paper(letters, random.Random(seed))}
+        extras["yanyu_pack"] = compact_yanyu_pack(packed)
     if module == CAT_PANDUAN and n == 20:
-        extras["batch_constraints"]["panduan_layout"] = "5_graphic_plus_15_logic"
+        extras["batch_constraints"]["panduan_layout"] = "20_logic_no_graphic"
         from panduan_pack import compact_panduan_pack, select_panduan_paper
 
         packed = None
@@ -202,36 +239,6 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
                 "slots": select_panduan_paper({}, {}, letters=letters, rng=random.Random(seed)),
             }
         extras["panduan_pack"] = compact_panduan_pack(packed)
-    if module == CAT_KEPUI and n == 5:
-        extras["batch_constraints"]["kepui_layout"] = "5_kepui_distinct_subjects"
-        extras["batch_constraints"]["kepui_subjects"] = [
-            "\u529b\u5b66",
-            "\u538b\u5f3a\u6d6e\u529b",
-            "\u7535\u5b66",
-            "\u751f\u7269",
-            "\u5730\u7406",
-        ]
-        extras["batch_constraints"]["image_dependent_count"] = {"min": 5, "max": 5}
-        from panduan_pack import compact_kepui_pack, select_kepui_paper
-
-        packed = None
-        if db_path is not None:
-            try:
-                from learner_snapshot import build_kepui_pack
-
-                conn = sqlite3.connect(db_path)
-                try:
-                    packed = build_kepui_pack(conn, letters, seed)
-                finally:
-                    conn.close()
-            except (sqlite3.Error, OSError, ImportError):
-                packed = None
-        if packed is None:
-            packed = {
-                "paper_style": "gd",
-                "slots": select_kepui_paper({}, {}, letters=letters, rng=random.Random(seed)),
-            }
-        extras["kepui_pack"] = compact_kepui_pack(packed)
     if module == CAT_ZILIAO and n == 20:
         extras["ziliao_answer_groups"] = [letters[index : index + 5] for index in range(0, 20, 5)]
         if db_path is not None:
@@ -246,6 +253,7 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
             except (sqlite3.Error, OSError, ImportError):
                 pass
     return extras
+
 
 
 def current_answer(question: dict) -> str:
@@ -298,6 +306,26 @@ def has_question_images(question: dict) -> bool:
     return any(option.get("images") for option in question.get("options") or [])
 
 
+
+def bind_ziliao_materials(questions: list[dict], materials: list | None) -> int:
+    """20 题 + 4 篇材料时按 5 题一篇补 material_id。"""
+    if not isinstance(materials, list) or len(materials) != 4:
+        return 0
+    mids = [str(item.get("external_id") or "") for item in materials if isinstance(item, dict)]
+    mids = [mid for mid in mids if mid]
+    if len(mids) != 4:
+        return 0
+    ziliao = [q for q in questions if isinstance(q, dict) and str(q.get("category") or "") == CAT_ZILIAO]
+    if len(ziliao) != 20:
+        return 0
+    changed = 0
+    for index, question in enumerate(ziliao):
+        mid = mids[index // 5]
+        if str(question.get("material_id") or "") != mid:
+            question["material_id"] = mid
+            changed += 1
+    return changed
+
 def fill_bookkeeping(question: dict) -> list[str]:
     changed = []
     if not str(question.get("answer") or "").strip() and question.get("correct_answer"):
@@ -316,16 +344,15 @@ def fill_bookkeeping(question: dict) -> list[str]:
                 changed.append("tags")
     category = str(question.get("category") or "")
     allowed = ALLOWED_SUBS.get(category) or ()
+    if not allowed and question.get("sub_category") not in (None, ""):
+        question.pop("sub_category", None)
+        changed.append("sub_category")
     if allowed and not str(question.get("sub_category") or "").strip():
         tag = question_primary_tag(question)
-        if "\u79d1\u5b66\u63a8\u7406" in tag:
-            question["sub_category"] = "\u79d1\u5b66\u63a8\u7406"
+        parts = [part for part in tag.split("-") if part]
+        if len(parts) >= 2 and parts[1] in allowed:
+            question["sub_category"] = parts[1]
             changed.append("sub_category")
-        else:
-            parts = [part for part in tag.split("-") if part]
-            if len(parts) >= 2 and parts[1] in allowed:
-                question["sub_category"] = parts[1]
-                changed.append("sub_category")
     if not str(question.get("analysis") or "").strip():
         explanation = str(question.get("explanation") or "").strip()
         if explanation:
@@ -433,6 +460,17 @@ def assign_target_letters(questions: list[dict], manifest: dict) -> dict[str, st
     return targets
 
 
+def image_locks_option_letters(question: dict) -> bool:
+    """Stem/option images already print A–D; swapping keys makes the figure lie."""
+    has_image = bool(question.get("stem_images")) or any(
+        option.get("images") for option in question.get("options") or []
+    )
+    if not has_image:
+        return False
+    texts = [str(option.get("text") or "").strip() for option in question.get("options") or []]
+    return bool(texts) and all(len(text) <= 2 for text in texts)
+
+
 def redistribute_answers(questions: list[dict], manifest: dict, calculations: dict[str, dict]) -> int:
     if answer_distribution_ok(manifest, questions):
         return 0
@@ -443,6 +481,8 @@ def redistribute_answers(questions: list[dict], manifest: dict, calculations: di
         dst = targets.get(qid)
         src = current_answer(question)
         if not dst or not src or src == dst:
+            continue
+        if image_locks_option_letters(question):
             continue
         if swap_option_pair(question, src, dst):
             rewritten += 1
@@ -517,6 +557,12 @@ def _item_matches(item: dict, questions_by_id: dict[str, dict], role: str, conn:
         return False
     if refs != list(item.get("reference_ids") or []):
         return False
+    for rid in refs:
+        if conn.execute(
+            "SELECT 1 FROM reference_questions WHERE external_id = ?",
+            (str(rid),),
+        ).fetchone() is None:
+            return False
     for qid in item.get("question_ids") or []:
         question = questions_by_id.get(str(qid))
         if question is None:
@@ -595,7 +641,6 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
         for item in eval_items:
             if _item_matches(item, questions_by_id, "evaluate", conn):
                 rebuilt.append(item)
-                exclude.update(str(ref) for ref in (item.get("reference_ids") or []))
         covered = {str(qid) for item in rebuilt for qid in (item.get("question_ids") or [])}
         for (category, sub, tag, image_mode), qids in _group_questions(generated):
             if all(qid in covered for qid in qids):
@@ -613,14 +658,22 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
                 )
             except (RuntimeError, sqlite3.Error, TypeError, ValueError):
                 continue
+            refs = [str(ref) for ref in result.get("reference_ids") or []]
+            if not refs or any(
+                conn.execute(
+                    "SELECT 1 FROM reference_questions WHERE external_id = ?",
+                    (ref,),
+                ).fetchone() is None
+                for ref in refs
+            ):
+                continue
             rebuilt.append(
                 {
                     "context_id": result["context_id"],
-                    "reference_ids": list(result.get("reference_ids") or []),
+                    "reference_ids": refs,
                     "question_ids": qids,
                 }
             )
-            exclude.update(str(ref) for ref in result.get("reference_ids") or [])
             covered.update(qids)
         if rebuilt != list(eval_items):
             generation["evaluation_contexts"] = rebuilt
@@ -642,14 +695,38 @@ def write_json(path: Path, value: Any) -> None:
 
 
 
+def collapse_material_blank_lines(text: str) -> str:
+    raw = str(text or "").replace("\r\n", "\n")
+    return re.sub(r"[ \t]*\n(?:[ \t]*\n)+", "\n", raw).strip("\n")
+
+
+def normalize_materials(materials: list | None) -> int:
+    changed = 0
+    if not isinstance(materials, list):
+        return 0
+    for material in materials:
+        if not isinstance(material, dict):
+            continue
+        content = material.get("content")
+        if not isinstance(content, str):
+            continue
+        cleaned = collapse_material_blank_lines(content)
+        if cleaned != content:
+            material["content"] = cleaned
+            changed += 1
+    return changed
+
+
 def stamp_daily_source(manifest: dict, questions: list[dict], materials: list | None = None) -> int:
-    module = ""
-    for question in questions:
-        if isinstance(question, dict) and question.get("category"):
-            module = str(question["category"])
-            break
-    module = module or str(manifest.get("category") or manifest.get("module") or "")
-    name = daily_source_for_batch(str(manifest.get("batch_id") or ""), module)
+    batch_id = str(manifest.get("batch_id") or "")
+    module = module_from_daily_batch(batch_id)
+    if not module:
+        for question in questions:
+            if isinstance(question, dict) and question.get("category"):
+                module = str(question["category"])
+                break
+        module = module or str(manifest.get("category") or manifest.get("module") or "")
+    name = daily_source_for_batch(batch_id, module)
     if not name:
         return 0
     changed = 0
@@ -683,6 +760,9 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
         loaded = json.loads(materials_path.read_text(encoding="utf-8"))
         if isinstance(loaded, list):
             materials = loaded
+    bound = bind_ziliao_materials(questions, materials)
+    from generation_gate import ensure_ziliao_q5_judge_stems
+    judged = ensure_ziliao_q5_judge_stems(questions)
     filled = 0
     for question in generated_questions(questions):
         filled += len(fill_bookkeeping(question))
@@ -698,13 +778,14 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
     rewritten = redistribute_answers(questions, manifest, by_id)
     contexts = repair_reference_contexts(manifest, questions)
     sourced = stamp_daily_source(manifest, questions, materials)
-    changed = bool(filled or rewritten or contexts or sourced or ordered)
-    if filled or rewritten or sourced or ordered:
+    compacted = normalize_materials(materials)
+    changed = bool(filled or rewritten or contexts or sourced or ordered or compacted or bound or judged)
+    if filled or rewritten or sourced or ordered or bound or judged:
         write_json(questions_path, questions)
         if raw_calc is not None and rewritten:
             write_json(calc_path, raw_calc)
-        if sourced and materials is not None:
-            write_json(materials_path, materials)
+    if materials is not None and (sourced or compacted):
+        write_json(materials_path, materials)
     if filled or rewritten or contexts or sourced:
         write_json(manifest_path, manifest)
     return {

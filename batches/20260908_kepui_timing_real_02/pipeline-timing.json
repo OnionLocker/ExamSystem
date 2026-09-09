@@ -1,0 +1,254 @@
+{
+  "elapsed_sec": 256.054,
+  "events": [
+    {
+      "name": "gemini_draft",
+      "sec": 58.056
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 5.426
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.629
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 3.647
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.376
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 68.52
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.092
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.359
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 1.956
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.363
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 22.979
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.121
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.371
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.124
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.363
+    },
+    {
+      "name": "gemini_draft",
+      "sec": 76.441
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 2.014
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.383
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_01",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_02",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_03",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_04",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_svg 20260908_kepui_timing_real_02_05",
+      "sec": 0.0
+    },
+    {
+      "name": "draw_png_batch",
+      "sec": 1.985
+    },
+    {
+      "name": "gate_issue",
+      "sec": 0.366
+    }
+  ],
+  "status": "failed",
+  "slots": [
+    "科学推理-生物-遗传",
+    "科学推理-电学-电路故障",
+    "科学推理-地理-气候",
+    "科学推理-压强与浮力-液体压强",
+    "科学推理-力学-平抛运动"
+  ],
+  "error": "generation gate failed: 程序作图质检未过：20260908_kepui_timing_real_02_01: 像素过低 1280x680（至少 1400x500）；20260908_kepui_timing_real_02_02: 清单有 R，图上没有；20260908_kepui_timing_real_02_04: 清单有 薄壁圆柱形容器甲，图上没有；20260908_kepui_timing_real_02_04: 清单有 薄壁圆柱形容器乙，图上没有；20260908_kepui_timing_real_02_04: 清单有 初始液面高度h，图上没有；20260908_kepui_timing_real_02_04: 清单有 悬浮小球A，图上没有；20260908_kepui_timing_real_02_04: 清单有 漂浮小球B，图上没有；20260908_kepui_timing_real_02_05: 清单有 竖直抛出线，图上没有"
+}

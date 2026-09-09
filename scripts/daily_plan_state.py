@@ -39,8 +39,8 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
           items TEXT NOT NULL,
           source TEXT NOT NULL DEFAULT 'hermes',
           snapshot_at TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
         )
         """
     )
@@ -57,8 +57,8 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
           source TEXT NOT NULL DEFAULT 'hermes',
           generated_at TEXT,
           imported_at TEXT,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
           UNIQUE(plan_date, module)
         )
         """
@@ -243,8 +243,8 @@ def sync_runs(
               generated_at,imported_at
             ) VALUES (
               ?,?,?,?,?,?,
-              CASE WHEN ? THEN CURRENT_TIMESTAMP END,
-              CASE WHEN ? THEN CURRENT_TIMESTAMP END
+              CASE WHEN ? THEN datetime('now', '+8 hours') END,
+              CASE WHEN ? THEN datetime('now', '+8 hours') END
             )
             ON CONFLICT(plan_date,module) DO UPDATE SET
               batch_id=COALESCE(excluded.batch_id,ai_daily_batch_runs.batch_id),
@@ -262,7 +262,7 @@ def sync_runs(
               imported_at=COALESCE(
                 ai_daily_batch_runs.imported_at,excluded.imported_at
               ),
-              updated_at=CURRENT_TIMESTAMP
+              updated_at=datetime('now', '+8 hours')
             """,
             (
                 date,
@@ -297,7 +297,7 @@ def save_plan(
           items=excluded.items,
           source=excluded.source,
           snapshot_at=excluded.snapshot_at,
-          updated_at=CURRENT_TIMESTAMP
+          updated_at=datetime('now', '+8 hours')
         """,
         (
             date,
@@ -327,7 +327,7 @@ def reconcile(conn: sqlite3.Connection, date: str) -> dict | None:
           FROM practice_answers pa
           JOIN questions q ON q.id=pa.question_id
          WHERE pa.user_answer!=''
-           AND date(pa.answered_at, '+8 hours')=?
+           AND date(pa.answered_at)=?
         """,
         (date,),
     ):

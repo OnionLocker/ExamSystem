@@ -20,8 +20,18 @@ const fmtDateTime = (raw) => {
 
 const MODULES = ['言语理解与表达', '判断推理', '科学推理', '数量关系', '资料分析'];
 const TIME_TAB = '时间';
+const SLUG_MODULE = {
+  yanyu: MODULES[0], panduan: MODULES[1], kepui: MODULES[2], shuliang: MODULES[3], ziliao: MODULES[4],
+};
+
+const slugModuleOf = (id) => {
+  const match = String(id || '').match(/^daily-\d{8}-([a-z]+)-/);
+  return match ? (SLUG_MODULE[match[1]] || '') : '';
+};
 
 const moduleOf = (run) => {
+  const fromSlug = slugModuleOf(run.category);
+  if (fromSlug) return fromSlug;
   if (MODULES.includes(run.module)) return run.module;
   const text = `${run.module || ''} ${run.display_title || ''} ${run.category || ''}`.toLowerCase();
   if (text.includes('言语理解与表达') || text.includes('yanyu') || text.includes('verbal')) return MODULES[0];
@@ -30,6 +40,13 @@ const moduleOf = (run) => {
   if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[3];
   if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[4];
   return '';
+};
+
+const nameOf = (run) => {
+  const date = dailyDateOf(run);
+  const module = moduleOf(run);
+  if (date && module) return `广东省考行测-${module}-${date.replaceAll('-', '')}`;
+  return run.display_title || run.category || '未命名批次';
 };
 
 const dailyDateOf = (run) => {
@@ -380,7 +397,7 @@ export default function HermesContextPickers({
                 >
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2 min-w-0">
-                      <span className="block text-xs font-black truncate">{run.display_title || run.category || '未命名批次'}</span>
+                      <span className="block text-xs font-black truncate">{nameOf(run)}</span>
                       {activeModule === TIME_TAB && moduleOf(run) && (
                         <span className="shrink-0 rounded-full border border-[#e8d5b0] bg-[#fcfaf6] px-2 py-0.5 text-[10px] font-black text-[#6b5428]">
                           {moduleOf(run)}
@@ -405,7 +422,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              和时间、言语、判断、数量、资料同一套索引：定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
+              和时间、言语、判断、科学、数量、资料同一套索引：定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
             </p>
           </div>
         </ModalShell>,

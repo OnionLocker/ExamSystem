@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" overflow="hidden">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<line x1="140" y1="520" x2="960" y2="520" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<line x1="140" y1="520" x2="140" y2="140" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<circle cx="220" cy="420" r="7" fill="#111111" stroke="#111111" stroke-width="1.8"/>
+<text x="220" y="556" fill="#111111" font-size="24" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">1月</text>
+<circle cx="420" cy="340" r="7" fill="#111111" stroke="#111111" stroke-width="1.8"/>
+<text x="420" y="556" fill="#111111" font-size="24" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">4月</text>
+<circle cx="620" cy="200" r="7" fill="#111111" stroke="#111111" stroke-width="1.8"/>
+<text x="620" y="556" fill="#111111" font-size="24" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">7月</text>
+<circle cx="820" cy="360" r="7" fill="#111111" stroke="#111111" stroke-width="1.8"/>
+<text x="820" y="556" fill="#111111" font-size="24" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">10月</text>
+<polyline points="220,420 420,340 620,200 820,360" fill="none" stroke="#111111" stroke-width="3.0" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="100" y="150" fill="#111111" font-size="22" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">气温</text>
+<text x="550" y="80" fill="#111111" font-size="26" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">气温年变化</text>
+</svg>
