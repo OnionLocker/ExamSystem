@@ -7,6 +7,7 @@ import {
   hasNextActionKoujue,
   hasWrongCause,
   isEmptyPraise,
+  needsPracticeImage,
   resolveSuggestedTime,
 } from './reviewSpec.js';
 
@@ -257,7 +258,7 @@ export function assemblePracticeReportMarkdown({ session = {}, items = [] } = {}
   const avgSec = times.length ? times.reduce((sum, value) => sum + value, 0) / times.length : 0;
   const slowThreshold = Math.max(60, Math.ceil(avgSec * 1.5));
   const focusItems = list.filter((item) =>
-    !item.is_correct || item.draft_url || Number(item.time_spent_sec) >= slowThreshold);
+    needsPracticeImage(item) || item.draft_url || Number(item.time_spent_sec) >= slowThreshold);
 
   const lines = [
     `# AI 练题复盘：${session.display_title || session.category || '未命名批次'}`,
@@ -324,7 +325,7 @@ export function assemblePracticeReportMarkdown({ session = {}, items = [] } = {}
       lines.push(`- 知识点：${item.knowledge_points.join('、')}`);
     }
     if (questionImages.length) lines.push(`- 题图：${questionImages.join(' ')}`);
-    if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
+    if (item.draft_url) lines.push(`- 草稿：${item.draft_path || item.draft_url}（可能未附图，诊断前按需读取）`);
     if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
   }
   return lines.join('\n');

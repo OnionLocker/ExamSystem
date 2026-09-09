@@ -1,0 +1,32 @@
+{
+  "batch_id": "20260908_kepui_timing_real_02",
+  "source": "20260908-科学推理-timing-test",
+  "region": "广东-省直",
+  "year": 2026,
+  "kind": "ai-generated",
+  "difficulty_tier": "hard",
+  "generation": {
+    "style_marker": "GONGKAO-STYLE-v1",
+    "batch_constraints": {
+      "all_original": true,
+      "question_count": 5,
+      "answer_max_per_letter": 2,
+      "answer_min_letters": 4,
+      "kepui_layout": "5_kepui_distinct_subjects",
+      "kepui_subjects": [
+        "力学",
+        "压强浮力",
+        "电学",
+        "生物",
+        "地理"
+      ],
+      "image_dependent_count": {
+        "min": 5,
+        "max": 5
+      },
+      "program_figures": true
+    },
+    "generation_contexts": [],
+    "evaluation_contexts": []
+  }
+}

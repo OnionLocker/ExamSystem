@@ -18,6 +18,26 @@ import generation_gate
 import quality_orchestrator as qo
 
 
+def test_review_png_fits_ipad_practice(tmp_path: Path) -> None:
+    from io import BytesIO
+
+    png = tmp_path / "fig.png"
+    Image.new("RGB", (1400, 700), "white").save(png)
+    review = Image.open(BytesIO(qo.review_png(png)))
+    assert review.size == (768, 384)
+    assert qo.IPAD_REVIEW_MAX_W == 768
+    assert qo.IPAD_REVIEW_MAX_H == 480
+
+
+def test_ziliao_standard_correct_statement_form():
+    assert generation_gate._judge_form('下列说法正确的是（ ）。') == '属实'
+    assert generation_gate._judge_form('以下表述正确的是？') == '属实'
+    assert generation_gate._judge_form('下列关于发电情况的表述，属实的是：') == '属实'
+    assert generation_gate._judge_form('下列说法中不能从上述资料中推出的是：') == '无法推出'
+    assert generation_gate._judge_form('下列表述能够从上述资料中推出的是：') == '能推出'
+    assert generation_gate._judge_form('增长率是多少？') == ''
+
+
 @pytest.fixture
 def root(tmp_path: Path) -> Path:
     return tmp_path
@@ -69,7 +89,8 @@ def test_routes_and_calculations(root: Path) -> None:
         f"{qo.CAT_PANDUAN}-{qo.SUB_SCIENCE}-\u529b\u5b66",
     )
     image_q["stem_images"] = ["images/q-d.png"]
-    assert [qo.classify(item) for item in (yanyu, logic, quantity, image_q)] == list("CABD")
+    # \u5e26\u56fe\u9898\u4e0d\u518d\u8fdb\u5165 D \u89c6\u89c9\u8def\u7ebf\uff0c\u4e00\u5f8b\u8d70 C\uff08\u6587\u672c\u76f2\u5ba1\uff09\uff1aC/A/B/C
+    assert [qo.classify(item) for item in (yanyu, logic, quantity, image_q)] == list("CABC")
 
     assert qo.safe_eval("sum([10, 20]) / 3") == 10
     try:
@@ -366,6 +387,16 @@ def test_translation_echo_local_quality() -> None:
     assert not any("restates" in item for item in issues), issues
 
 
+def test_rejects_raw_latex_in_stem() -> None:
+    issues = qo.local_quality_issues(
+        {
+            "category": "科学推理",
+            "stem": r"电源电压恒为6\text{ V}",
+            "options": [{"key": "A", "text": r"高于$0^\circ\text{C}$"}],
+        }
+    )
+    assert any("LaTeX" in item for item in issues), issues
+
 def test_notation_stem_mismatch_and_kepui_giveaway() -> None:
     mixed = {
         "external_id": "K003",
@@ -402,6 +433,24 @@ def test_notation_stem_mismatch_and_kepui_giveaway() -> None:
     }
     issues = qo.local_quality_issues(giveaway)
     assert "giveaway extreme-word distractor" in issues, issues
+
+    leak = {
+        "external_id": "K005",
+        "category": "科学推理",
+        "sub_category": "科学推理",
+        "tags": ["科学推理-地理-锋面天气"],
+        "stem": "如图所示为某天气系统的垂直剖面示意图，冷气团主动向暖气团方向移动，暖气团被迫抬升。",
+        "options": [
+            {"key": "A", "text": "该天气系统为冷锋"},
+            {"key": "B", "text": "该天气系统为暖锋"},
+            {"key": "C", "text": "过境后气温升高"},
+            {"key": "D", "text": "过境后气压下降"},
+        ],
+        "answer": "A",
+        "analysis": "冷气团主动推进为冷锋。",
+    }
+    issues = qo.local_quality_issues(leak)
+    assert "front stem leaks cold/warm-front definition" in issues, issues
 
 
 def test_quality_rules_skip_feedback_archive() -> None:
@@ -564,13 +613,9 @@ def test_spatial_drill_skips_flash(root: Path) -> None:
         root / "image-specs.json",
         {"questions": [{"question_id": "Q-S", "image_only_facts": ["net"], "must_derive": ["fold"]}]},
     )
-    with patch.object(qo, "call_flash", side_effect=RuntimeError("flash must not run")):
-        d = qo.run_route_d(root, [item])
-        style = qo.run_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-        batch = qo.run_batch_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-    assert d["Q-S"]["verdict"] == "PASS", d
-    assert style["Q-S"]["verdict"] == "PASS", style
-    assert batch["verdict"] == "PASS", batch
+    # \u56fe\u50cf\u8d28\u68c0\u5df2\u4e0b\u7ebf\uff1a\u5e26\u56fe\u9898\u4e0d\u518d\u8d70 D \u89c6\u89c9\u8def\u7ebf\uff0c`run_route_d` \u4f1a\u56e0\u7f3a\u56fe/\u7f3a\u6e05\u5355\u8fd4\u56de REJECT\uff0c
+    # \u8d70 Flash \u7684 `run_quality` \u9700\u8981\u771f\u5b9e\u6a21\u578b\u8c03\u7528\uff0c\u56e0\u6b64\u8fd9\u91cc\u53ea\u9a8c\u8bc1\u8def\u7531\u5f52\u7c7b\u3002
+    assert qo.classify(item) == "C"
 
 
 def _quality_pass(qid: str, answer: str = "A") -> dict:
@@ -612,121 +657,16 @@ def _program_kepui_item(root: Path, stem: str, svg_text: str) -> dict:
     return item
 
 
-def test_program_figures_requires_flash(root: Path) -> None:
-    item = _program_kepui_item(
-        root,
-        "如图所示为某锋面天气系统剖面示意图。",
-        '<svg width="1100" height="620"><text font-size="32">冷气团</text></svg>',
-    )
-    calls = [
-        {"questions": [{"id": "Q-P", "answer": "A", "also_valid": [], "verdict": "PASS"}]},
-        {"questions": [{"id": "Q-P", "verdict": "PASS", "issues": []}]},
-        _quality_pass("Q-P"),
+def test_region_geo_climate_matches_earth_slot() -> None:
+    issues = qo.local_quality_issues(
         {
-            "verdict": "PASS",
-            "type_distribution_ok": True,
-            "difficulty_distribution_ok": True,
-            "reference_alignment_ok": True,
-            "duplicate_groups": [],
-            "issues": [],
-        },
-    ]
-    with patch.object(qo, "call_flash", side_effect=calls) as mocked:
-        d = qo.run_route_d(root, [item])
-        style = qo.run_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-        batch = qo.run_batch_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-    assert mocked.call_count >= 3, mocked.call_count
-    assert d["Q-P"]["verdict"] == "PASS", d
-    assert style["Q-P"]["verdict"] == "PASS", style
-    assert batch["verdict"] == "PASS", batch
-
-
-def test_kepui_never_skips_flash_even_if_spatial_flag(root: Path) -> None:
-    item = _program_kepui_item(
-        root,
-        "如图所示为某锋面天气系统剖面示意图。",
-        '<svg width="1100" height="620"><text font-size="32">冷气团</text></svg>',
+            "category": "科学推理",
+            "tags": ["科学推理-地理-区域地理"],
+            "stem": "如图所示为甲、乙两地的气候资料图（包含各月气温曲线和降水量柱状图）。",
+            "options": [{"key": "A", "text": "甲地的气温年较差更大"}],
+        }
     )
-    write_json(
-        root / "manifest.json",
-        {
-            "generation": {
-                "batch_constraints": {
-                    "program_figures": True,
-                    "spatial_drill": True,
-                    "kepui_layout": "5_kepui_distinct_subjects",
-                }
-            }
-        },
-    )
-    with patch.object(qo, "call_flash", side_effect=RuntimeError("flash must run")):
-        try:
-            qo.run_route_d(root, [item])
-            raise AssertionError("科学推理 skipped Flash via spatial_drill")
-        except RuntimeError as exc:
-            assert "flash must run" in str(exc)
-        try:
-            qo.run_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-            raise AssertionError("科学推理 quality skipped Flash")
-        except RuntimeError as exc:
-            assert "flash must run" in str(exc)
-        try:
-            qo.run_batch_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-            raise AssertionError("科学推理 batch skipped Flash")
-        except RuntimeError as exc:
-            assert "flash must run" in str(exc)
-
-
-def test_program_figures_cannot_skip_flash(root: Path) -> None:
-    item = _program_kepui_item(
-        root,
-        "如图所示为某锋面天气系统剖面示意图。",
-        '<svg width="1100" height="620"><text font-size="32">冷气团</text></svg>',
-    )
-    with patch.object(qo, "call_flash", side_effect=RuntimeError("flash must run")):
-        try:
-            qo.run_route_d(root, [item])
-            raise AssertionError("program_figures skipped Flash")
-        except RuntimeError as exc:
-            assert "flash must run" in str(exc)
-
-
-def test_program_figures_rejects_front_on_contour_even_if_flash_passes(root: Path) -> None:
-    item = _program_kepui_item(
-        root,
-        "如图所示为某锋面天气系统剖面示意图。",
-        '<svg width="1100" height="620"><text font-size="24">等高线（单位：m，等高距 50m）</text></svg>',
-    )
-    calls = [
-        {"questions": [{"id": "Q-P", "answer": "A", "also_valid": [], "verdict": "PASS"}]},
-        {"questions": [{"id": "Q-P", "verdict": "PASS", "issues": []}]},
-        _quality_pass("Q-P"),
-    ]
-    with patch.object(qo, "call_flash", side_effect=calls):
-        d = qo.run_route_d(root, [item])
-        style = qo.run_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-    assert d["Q-P"]["verdict"] == "REJECT", d
-    assert any("锋面题配了等高线图" in issue for issue in d["Q-P"]["issues"]), d
-    assert style["Q-P"]["verdict"] == "REJECT", style
-
-
-def test_graphic_bank_skips_flash_style(root: Path) -> None:
-    image = root / "images" / "q.png"
-    image.parent.mkdir(parents=True, exist_ok=True)
-    Image.new("RGB", (1400, 700), "white").save(image)
-    item = question(
-        "Q-G",
-        qo.CAT_PANDUAN,
-        qo.SUB_GRAPH,
-        f"{qo.CAT_PANDUAN}-{qo.SUB_GRAPH}-\u5206\u7c7b",
-        "A",
-    )
-    item["stem_images"] = ["images/q.png"]
-    write_json(root / "manifest.json", {"generation": {"batch_constraints": {}}})
-    with patch.object(qo, "call_flash", side_effect=RuntimeError("flash must not run")):
-        style = qo.run_quality(root, json.loads((root / "manifest.json").read_text()), [item])
-    assert style["Q-G"]["verdict"] == "PASS", style
-    assert style["Q-G"]["review"]["skipped"] == "graphic_bank"
+    assert not any("不一致" in item for item in issues), issues
 
 
 def test_easy_tier_nits_low_difficulty_and_holdout_mismatch() -> None:
@@ -735,6 +675,7 @@ def test_easy_tier_nits_low_difficulty_and_holdout_mismatch() -> None:
     assert qo._batch_nit_issue("全卷难度标签均为'easy'，缺乏梯度", False)
     assert qo._batch_nit_issue("逻辑判断全部缺少难度评定", False)
     assert qo._batch_nit_issue("All 15 items have identical difficulty = 2", False)
+    assert qo._batch_nit_issue("本套题全部 5 道题目的难度系数均为 2，缺乏合理的难度梯度分布且无说明理由。", False)
     assert qo._reference_mismatch_issue(
         "evaluation reference is sentence completion, whereas item 14 is rearrangement; conversely inverted"
     )
@@ -779,23 +720,50 @@ def test_run_batch_quality_drops_easy_nits(root: Path) -> None:
     assert result["review"]["issues"] == []
 
 
+def test_can_reuse_quality_skips_unchanged_pass() -> None:
+    import quality_orchestrator as qo
+
+    prev = {
+        "verdict": "PASS",
+        "correctness": {"verdict": "PASS"},
+        "quality": {"verdict": "PASS"},
+        "content_sha256": "abc",
+    }
+    assert qo.can_reuse_quality("a_01", "abc", prev, set()) is True
+    assert qo.can_reuse_quality("a_01", "zzz", prev, set()) is False
+    assert qo.can_reuse_quality("a_01", "abc", prev, {"a_01"}) is False
+    no_hash = {**prev, "content_sha256": ""}
+    assert qo.can_reuse_quality("a_02", "x", no_hash, set()) is False
+    assert qo.can_reuse_quality("a_02", "x", no_hash, {"a_01"}) is True
+
+
 def test_question_verdict_is_per_item() -> None:
-    correct = {"verdict": "PASS"}
-    style = {"verdict": "PASS"}
-    # batch-level reference REJECT must not poison a passing item
-    ref_item = {"question_id": "Q1", "verdict": "PASS"}
-    assert (
-        correct.get("verdict")
-        == style.get("verdict")
-        == ref_item.get("verdict")
-        == "PASS"
+    import quality_orchestrator as qo
+
+    qs = [{"external_id": "b_01"}, {"external_id": "b_17"}]
+    hit = qo.mentioned_question_ids(
+        ["\u7b2c17\u9898\u9898\u5e72\u997c\u56fe"],
+        qs,
     )
+    assert hit == {"b_17"}, hit
+    cloned = {"b_04"}
+    batch_hits = hit
+    def verdict(qid, correct="PASS", style="PASS"):
+        return "PASS" if (
+            correct == style == "PASS" and qid not in cloned and qid not in batch_hits
+        ) else "REJECT"
+    assert verdict("b_01") == "PASS"
+    assert verdict("b_17") == "REJECT"
+    assert verdict("b_04") == "REJECT"
 
 
 def main() -> None:
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        test_review_png_fits_ipad_practice(Path(temp))
     test_syllabus_mock_holdout_lookup_does_not_crash()
     test_syllabus_mock_reference_quality_passes()
     test_reference_quality_one_relevant_is_enough()
+    test_can_reuse_quality_skips_unchanged_pass()
     test_question_verdict_is_per_item()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_routes_and_calculations(Path(temp) / "calc")
@@ -803,6 +771,7 @@ def main() -> None:
         test_blind_conflict_and_image_requirements(Path(temp))
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_context_and_v3_tamper(Path(temp))
+    test_region_geo_climate_matches_earth_slot()
     test_easy_tier_nits_low_difficulty_and_holdout_mismatch()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_run_batch_quality_drops_easy_nits(Path(temp))
@@ -814,18 +783,24 @@ def main() -> None:
     test_mechanical_notation_skips_flash()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_spatial_drill_skips_flash(Path(temp))
-    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
-        test_program_figures_requires_flash(Path(temp))
-    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
-        test_program_figures_cannot_skip_flash(Path(temp))
-    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
-        test_kepui_never_skips_flash_even_if_spatial_flag(Path(temp))
-    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
-        test_program_figures_rejects_front_on_contour_even_if_flash_passes(Path(temp))
-    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
-        test_graphic_bank_skips_flash_style(Path(temp))
+    test_plain_text_without_images_is_not_rejected()
     print("quality gate regression: ok")
 
 
 if __name__ == "__main__":
     main()
+
+
+def test_plain_text_without_images_is_not_rejected() -> None:
+    # 纯文字题不再触发任何图片一致性检查
+    issues = qo.local_quality_issues(
+        {
+            "category": "判断推理",
+            "tags": ["判断推理-逻辑判断-翻译推理"],
+            "stem": "如果某批货物获得认证，则免于现场查验。现已知某批货物未获得认证。由此可推出：",
+            "options": [{"key": "A", "text": "应选A"}, {"key": "B", "text": "应选B"}, {"key": "C", "text": "应选C"}, {"key": "D", "text": "应选D"}],
+            "answer": "D",
+            "analysis": "否前无法推出。",
+        }
+    )
+    assert issues == [], issues

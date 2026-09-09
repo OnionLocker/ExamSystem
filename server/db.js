@@ -151,6 +151,7 @@ db.exec(`
 CREATE TABLE IF NOT EXISTS practice_sessions (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   category     TEXT,
+  question_ids TEXT,                         -- JSON: 本次实际加载的题目 id 快照
   total        INTEGER DEFAULT 0,
   correct      INTEGER DEFAULT 0,
   duration_sec INTEGER DEFAULT 0,
@@ -375,6 +376,9 @@ if (!mCols.has('correct_streak')) {
 }
 
 const psCols = new Set(db.prepare('PRAGMA table_info(practice_sessions)').all().map((r) => r.name));
+if (!psCols.has('question_ids')) {
+  db.exec('ALTER TABLE practice_sessions ADD COLUMN question_ids TEXT');
+}
 if (!psCols.has('profile_reviewed_at')) {
   db.exec('ALTER TABLE practice_sessions ADD COLUMN profile_reviewed_at TEXT');
 }

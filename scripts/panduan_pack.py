@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""广东判断推理 20 题套（图形 5 + 逻辑 15）与独立科学推理 5 题套。"""
+"""广东判断推理 20 题套（纯逻辑 20）与独立科学推理 5 题套。"""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ LOGIC_TAGS = (
     "判断推理-逻辑判断-翻译推理",
     "判断推理-逻辑判断-逻辑论证-归因论证",
 )
-# 15 道逻辑：论证类为主，翻译最多 1 槽（弱项时再加 1）
+# 20 道逻辑：论证类为主，翻译最多 2 槽（弱项时再加 1）；每标签最多 3 次（7 标签×3=21 > 20）
 LOGIC_DEFAULT = (
     LOGIC_TAGS[0],
     LOGIC_TAGS[1],
@@ -46,9 +46,14 @@ LOGIC_DEFAULT = (
     LOGIC_TAGS[2],
     LOGIC_TAGS[3],
     LOGIC_TAGS[4],
+    LOGIC_TAGS[5],
+    LOGIC_TAGS[6],
     LOGIC_TAGS[0],
     LOGIC_TAGS[1],
     LOGIC_TAGS[2],
+    LOGIC_TAGS[3],
+    LOGIC_TAGS[4],
+    LOGIC_TAGS[5],
 )
 TRANSLATION_TAG = LOGIC_TAGS[5]
 
@@ -95,19 +100,11 @@ KEPUI_BUCKETS = {
 }
 DEFAULT_KEPUI_BUCKETS = ("力学", "压强浮力", "电学", "生物", "地理")
 PHYSICS_BUCKETS = {"力学", "压强浮力", "电学", "热学与光学"}
-LAYOUT_NAME = "5_graphic_plus_15_logic"
+LAYOUT_NAME = "20_logic_no_graphic"
 KEPUI_LAYOUT_NAME = "5_kepui_distinct_subjects"
 
-# 广东科推地理：库里可能没有同家族 holdout，仍按考频给槽，抽检按学科相关即可。
-KEPUI_TAG_WEIGHT = {
-    "科学推理-地理-等高线": 4,
-    "科学推理-地理-锋面天气": 3,
-    "科学推理-地理-海陆风": 3,
-    "科学推理-地理-地球自转": 1,
-    "科学推理-地理-气候": 2,
-    "科学推理-地理-板块": 1,
-    "科学推理-地理-区域地理": 1,
-}
+# 各地理点同等抽，不因为锋面/等高线更好画就加重。
+KEPUI_TAG_WEIGHT = {}
 KEPUI_TAG_DIFFICULTY = {
     "科学推理-地理-等高线": 3,
     "科学推理-地理-锋面天气": 3,
@@ -216,6 +213,8 @@ def validate_kepui_slots(questions: list[dict], *, require_images: bool = False)
         raise ValueError("科学推理 5 题不得重复同一学科")
     if "生物" not in buckets or "地理" not in buckets:
         raise ValueError("科学推理 5 题须含生物和地理各 1 题")
+    if "压强浮力" not in buckets:
+        raise ValueError("科学推理 5 题须含压强浮力 1 题")
     if sum(1 for bucket in buckets if bucket in PHYSICS_BUCKETS) < 2:
         raise ValueError("科学推理 5 题物理至少 2 题（力学/压强浮力/电学），对齐近年真题")
     if require_images:
@@ -238,11 +237,11 @@ def validate_panduan_paper(questions: list[dict]) -> None:
     if "banned" in kinds:
         raise ValueError("判断推理套不得出现定义判断或类比推理")
     if any(kind == "science" for kind in kinds):
-        raise ValueError("判断推理 20 题不得含科学推理；科学推理是独立 5 题模块，日练不得再走压缩模型")
-    if kinds.count("graphic") != 5 or kinds.count("logic") != 15:
+        raise ValueError("判断推理 20 题不得含科学推理；科学推理是独立模块，日练不再出科推")
+    if kinds.count("graphic") != 0 or kinds.count("logic") != 20:
         raise ValueError(
-            f"广东判断 20 题须图形 5 + 逻辑 15，当前 "
-            f"{kinds.count('graphic')}/{kinds.count('logic')}"
+            f"广东判断 20 题须纯逻辑 20（不再出图），当前 "
+            f"graphic {kinds.count('graphic')}/logic {kinds.count('logic')}"
         )
     if sum(1 for item in questions if is_translation(item)) > 2:
         raise ValueError("翻译推理每年只考 1–2 题，20 题套最多 2 道")
@@ -268,8 +267,8 @@ def validate_panduan_kaodian(questions: list[dict]) -> None:
     ask = {
         "结构相似": ("相似", "结构", "逻辑错误"),
         "原因解释": ("解释",),
-        "翻译推理": ("推出", "推知", "得出", "可知"),
-        "削弱": ("削弱", "质疑", "反驳", "漏洞"),
+        "翻译推理": ("推出", "推知", "得出", "可知", "正确的是", "无法推出", "不能推出", "一定为真", "可能为真"),
+        "削弱": ("削弱", "质疑", "反驳", "漏洞", "切断", "推理链", "不能支持"),
         "加强前提": ("支持", "加强", "前提", "假设"),
         "归因": ("原因", "归因", "主要", "质疑"),
     }
@@ -309,12 +308,18 @@ def validate_panduan_kaodian(questions: list[dict]) -> None:
 
 def _rank(tag: str, by_tag: dict, mistakes: dict) -> tuple:
     row = by_tag.get(tag) or {}
+    signal = row.get('practice_signal') or {}
+    gap = signal.get('family_days_since')
+    if gap is not None and gap <= 1:
+        return (4, 50, 0, 0)
     mastery = row["mastery"] if row.get("mastery") is not None else 50
     conf = row.get("confidence") or 0
     streak = row.get("streak") or 0
     debt = mistakes.get(tag, 0)
     if ((mastery < 60 or streak <= -2) and conf >= 40) or debt:
         return (0, mastery, -conf, -debt)
+    if signal.get('slow'):
+        return (1, 0, -conf, -debt)
     if row and conf < 40:
         return (1, mastery, -conf, -debt)
     if row:
@@ -352,12 +357,27 @@ def tag_difficulty(tag: str) -> int:
     return int(KEPUI_TAG_DIFFICULTY.get(tag) or 3)
 
 
-def _pick_kepui_tag(pool: tuple[str, ...] | list[str], by_tag: dict, mistakes: dict, rng: random.Random) -> str:
+def _pick_kepui_tag(
+    pool: tuple[str, ...] | list[str],
+    by_tag: dict,
+    mistakes: dict,
+    rng: random.Random,
+    recent: set[str] | None = None,
+) -> str:
+    recent = set(recent or ())
     k_state, k_debt = _effective_state(pool, by_tag, mistakes)
     ordered = sorted(pool, key=lambda tag: _rank(tag, k_state, k_debt))
-    if _rank(ordered[0], k_state, k_debt)[0] == 0:
+    if _rank(ordered[0], k_state, k_debt)[0] == 0 and ordered[0] not in recent:
         return ordered[0]
-    weights = [KEPUI_TAG_WEIGHT.get(tag, 1) for tag in pool]
+    weights = []
+    for tag in pool:
+        weight = KEPUI_TAG_WEIGHT.get(tag, 1)
+        rank = _rank(tag, k_state, k_debt)[0]
+        if tag in recent or rank == 4:
+            weight *= 0.15
+        elif (k_state.get(tag) or {}).get("practice_signal", {}).get("slow"):
+            weight *= 2
+        weights.append(weight)
     return rng.choices(list(pool), weights=weights, k=1)[0]
 
 
@@ -427,12 +447,24 @@ def _exam_move_for(
     return move
 
 
-def _select_graphic(by_tag: dict, mistakes: dict) -> list[str]:
-    graphic_pool = (*GRAPHIC_TAGS, GRAPHIC_ALT)
+def _select_graphic(by_tag: dict, mistakes: dict, rng: random.Random | None = None) -> list[str]:
+    rng = rng or random.Random(0)
+    graphic_pool = list((*GRAPHIC_TAGS, GRAPHIC_ALT))
     g_state, g_debt = _effective_state(graphic_pool, by_tag, mistakes)
     graphic_order = sorted(graphic_pool, key=lambda tag: _rank(tag, g_state, g_debt))
-    graphic: list[str] = []
+    # 同分时打乱，避免永远丢掉空间类或特殊规律
+    groups: list[list[str]] = []
     for tag in graphic_order:
+        if not groups or _rank(tag, g_state, g_debt) != _rank(groups[-1][0], g_state, g_debt):
+            groups.append([tag])
+        else:
+            groups[-1].append(tag)
+    ordered: list[str] = []
+    for group in groups:
+        rng.shuffle(group)
+        ordered.extend(group)
+    graphic: list[str] = []
+    for tag in ordered:
         if tag not in graphic:
             graphic.append(tag)
         if len(graphic) == 5:
@@ -450,40 +482,43 @@ def _select_logic(by_tag: dict, mistakes: dict) -> list[str]:
     def take_logic(tag: str) -> bool:
         if tag == TRANSLATION_TAG and used[TRANSLATION_TAG] >= translation_quota:
             return False
-        if used[tag] >= 3:
+        cap = 3 if tag == TRANSLATION_TAG else 4
+        if used[tag] >= cap:
             return False
         logic.append(tag)
         used[tag] += 1
         return True
 
     for tag in LOGIC_DEFAULT:
-        if len(logic) >= 15:
+        if len(logic) >= 20:
             break
         take_logic(tag)
     weak_logic = sorted(LOGIC_TAGS, key=lambda tag: _rank(tag, l_state, l_debt))
     for tag in weak_logic:
-        if len(logic) >= 15:
+        if len(logic) >= 20:
             break
         take_logic(tag)
-    while len(logic) < 15:
+    while len(logic) < 20:
         progressed = False
         for tag in LOGIC_DEFAULT:
             if take_logic(tag):
                 progressed = True
-            if len(logic) >= 15:
+            if len(logic) >= 20:
                 break
         if not progressed:
             break
-    if len(logic) != 15:
-        raise ValueError("无法凑满逻辑判断 15 题槽")
+    if len(logic) != 20:
+        raise ValueError("无法凑满逻辑判断 20 题槽")
     return logic
 
 
-def _select_kepui_tags(by_tag: dict, mistakes: dict, rng: random.Random) -> list[str]:
+def _select_kepui_tags(
+    by_tag: dict, mistakes: dict, rng: random.Random, recent: set[str] | None = None
+) -> list[str]:
     buckets = list(DEFAULT_KEPUI_BUCKETS)
-    if rng.randrange(3) == 0:
-        buckets[1] = "化学"
-    kepui = [_pick_kepui_tag(KEPUI_BUCKETS[bucket], by_tag, mistakes, rng) for bucket in buckets]
+    kepui = [
+        _pick_kepui_tag(KEPUI_BUCKETS[bucket], by_tag, mistakes, rng, recent) for bucket in buckets
+    ]
     rng.shuffle(kepui)
     return kepui
 
@@ -497,13 +532,9 @@ def select_panduan_paper(
     by_tag = by_tag or {}
     mistakes = mistakes or {}
     rng = rng or random.Random(0)
-    graphic = _select_graphic(by_tag, mistakes)
     logic = _select_logic(by_tag, mistakes)
     used_moves: Counter = Counter()
-    slots = (
-        [_slot(tag, "graphic", "图形推理", _exam_move_for(tag, "graphic", used_moves, rng)) for tag in graphic]
-        + [_slot(tag, "logic", "逻辑判断", _exam_move_for(tag, "logic", used_moves, rng)) for tag in logic]
-    )
+    slots = [_slot(tag, "logic", "逻辑判断", _exam_move_for(tag, "logic", used_moves, rng)) for tag in logic]
     if letters:
         for slot, letter in zip(slots, letters):
             slot["answer"] = letter
@@ -515,11 +546,12 @@ def select_kepui_paper(
     mistakes: dict | None = None,
     letters: list[str] | None = None,
     rng: random.Random | None = None,
+    recent: set[str] | None = None,
 ) -> list[dict]:
     by_tag = by_tag or {}
     mistakes = mistakes or {}
     rng = rng or random.Random(0)
-    kepui = _select_kepui_tags(by_tag, mistakes, rng)
+    kepui = _select_kepui_tags(by_tag, mistakes, rng, recent)
     slots = [_slot(tag, "science", "科学推理") for tag in kepui]
     if letters:
         for slot, letter in zip(slots, letters):
@@ -558,10 +590,128 @@ def compact_kepui_pack(pack: dict) -> dict:
     return _compact_slots(pack, KEPUI_LAYOUT_NAME)
 
 
+SHULIANG_SEQ_POOL = (
+    "数量关系-数字推理-递推数列",
+    "数量关系-数字推理-机械划分",
+    "数量关系-数字推理-多重数列",
+    "数量关系-数字推理-多级数列",
+    "数量关系-数字推理-幂次数列",
+    "数量关系-数字推理-分数数列",
+    "数量关系-数字推理-图形数阵",
+    "数量关系-数字推理-作和作积数列",
+    "数量关系-数字推理-作商数列",
+    "数量关系-数字推理-小数与差分数列",
+    "数量关系-数字推理-数位特征数列",
+    "数量关系-数字推理-幂次变式数列",
+)
+SHULIANG_MATH_POOL = (
+    "数量关系-有规律的周期循环与要算准的日期星期-日期推算与余数",
+    "数量关系-有规律的周期循环与要算准的日期星期-周期排班与公倍数",
+    "数量关系-逢考必有的排列组合与概率-基础原理与几何概型",
+    "数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）",
+    "数量关系-逢考必有的排列组合与概率-反面容斥与逆向思维",
+    "数量关系-既烧脑又能套公式的最值问题-和定最值与构造",
+    "数量关系-要抓住常考图形的几何问题-平面图形周长与面积",
+    "数量关系-能“七十二变”的行程问题-基础行程、平均速度与相对运动",
+    "数量关系-容易找到等式关系的利润问题-利润与分段计费",
+    "数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作",
+    "数量关系-和差倍比与方程法-方程、比例与代入验证",
+    "数量关系-容斥问题-集合计数与逆向排除",
+    "数量关系-数量基础之数论及数的特性-数的特性（倍数、整除与同余）",
+    "数量关系-“溶质不变”的浓度问题与便捷的十字相乘法-03“溶质不变”的浓度问题与便捷的十字相乘法",
+    "数量关系-古老的“牛吃草”与不变的容斥问题-04古老的“牛吃草”与不变的容斥问题",
+    "数量关系-小学奥数之特殊情景应用题-鸡兔同笼、盈亏、年龄与方阵",
+    "数量关系-能“七十二变”的行程问题-流水行船、扶梯、过桥与队伍",
+)
+YANYU_FILL_POOL = (
+    "言语理解与表达-逻辑填空-词语辨析",
+    "言语理解与表达-逻辑填空-逻辑对应",
+    "言语理解与表达-逻辑填空-成语实词混搭",
+)
+YANYU_READ_POOL = (
+    "言语理解与表达-片段阅读-主旨概括",
+    "言语理解与表达-片段阅读-细节判断",
+    "言语理解与表达-片段阅读-意图判断",
+    "言语理解与表达-片段阅读-标题添加",
+    "言语理解与表达-片段阅读-词句理解",
+)
+YANYU_SENT_POOL = (
+    "言语理解与表达-语句表达-语句排序",
+    "言语理解与表达-语句表达-语句填空",
+    "言语理解与表达-语句表达-下文推断",
+)
+
+
+def _pick_rotate(pool: tuple[str, ...] | list[str], n: int, rng: random.Random, recent: set[str]) -> list[str]:
+    pool = list(pool)
+    if not pool or n <= 0:
+        return []
+    fresh = [tag for tag in pool if tag not in recent]
+    stale = [tag for tag in pool if tag in recent]
+    rng.shuffle(fresh)
+    rng.shuffle(stale)
+    ordered = fresh + stale
+    picked: list[str] = []
+    while len(picked) < n:
+        picked.extend(ordered[: n - len(picked)])
+        if not ordered:
+            break
+        rng.shuffle(ordered)
+    return picked[:n]
+
+
+def select_shuliang_paper(
+    letters: list[str] | None = None,
+    rng: random.Random | None = None,
+    recent: set[str] | None = None,
+) -> list[dict]:
+    rng = rng or random.Random(0)
+    recent = set(recent or ())
+    tags = _pick_rotate(SHULIANG_SEQ_POOL, 5, rng, recent) + _pick_rotate(
+        SHULIANG_MATH_POOL, 10, rng, recent
+    )
+    slots = [_slot(tag, "sequence" if index < 5 else "math", "数字推理" if index < 5 else "数学运算")
+             for index, tag in enumerate(tags)]
+    if letters:
+        for slot, letter in zip(slots, letters):
+            slot["answer"] = letter
+    return slots
+
+
+def select_yanyu_paper(
+    letters: list[str] | None = None,
+    rng: random.Random | None = None,
+    recent: set[str] | None = None,
+) -> list[dict]:
+    rng = rng or random.Random(0)
+    recent = set(recent or ())
+    tags = (
+        _pick_rotate(YANYU_FILL_POOL, 5, rng, recent)
+        + _pick_rotate(YANYU_READ_POOL, 7, rng, recent)
+        + _pick_rotate(YANYU_SENT_POOL, 3, rng, recent)
+    )
+    slots = []
+    for index, tag in enumerate(tags):
+        section = "fill" if index < 5 else "read" if index < 12 else "sentence"
+        slots.append(_slot(tag, section, "逻辑填空" if index < 5 else "片段阅读" if index < 12 else "语句表达"))
+    if letters:
+        for slot, letter in zip(slots, letters):
+            slot["answer"] = letter
+    return slots
+
+
+def compact_shuliang_pack(pack: dict) -> dict:
+    return _compact_slots(pack, "5_sequence_plus_10_math")
+
+
+def compact_yanyu_pack(pack: dict) -> dict:
+    return _compact_slots(pack, "5_fill_plus_10_read")
+
+
 def render_panduan_pack(pack: dict) -> str:
     lines = [
-        "判断推理20题套（广东真卷：图形推理 5 + 逻辑判断 15）",
-        "不出定义判断/类比推理；翻译推理最多 2 题。科学推理是独立 5 题模块，不写入本套。",
+        "判断推理20题套（纯逻辑判断 20，不再出图）",
+        "不出定义判断/类比推理/图形推理；翻译推理最多 2 题。科学推理是独立模块，不写入本套。",
     ]
     for slot in pack.get("slots") or []:
         answer = slot.get("answer") or ""

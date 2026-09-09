@@ -31,6 +31,10 @@ IMAGE_KINDS = (
     ("科学推理", "contour", "等高线", PROGRAM, "program_figure"),
     ("科学推理", "food_web", "食物网/系谱", PROGRAM, "program_figure"),
     ("科学推理", "front", "锋面剖面", PROGRAM, "program_figure"),
+    ("科学推理", "breeze", "海陆风", PROGRAM, "program_figure"),
+    ("科学推理", "earth", "地球自转", PROGRAM, "program_figure"),
+    ("科学推理", "climate", "气候年变化", PROGRAM, "program_figure"),
+    ("科学推理", "plate", "板块运动", PROGRAM, "program_figure"),
     ("科学推理", "reflex", "反射弧", PROGRAM, "program_figure"),
     # 数量：广东卷面多为纯文字
     ("数量关系", "geometry", "平面/立体几何附图", PROGRAM, "日练暂少出，有图也按尺规画"),

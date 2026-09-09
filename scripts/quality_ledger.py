@@ -19,8 +19,10 @@ CLASSES = (
     "fig_no_intersection",
     "fig_extra_object",
     "fig_kind_mismatch",
+    "fig_empty_drawing",
     "fig_leak_answer",
     "fig_low_res",
+    "fig_unrenderable",
     "notation_stem_mismatch",
     "giveaway_extreme",
     "empty_analysis",
@@ -39,8 +41,10 @@ CHECKERS = {
     "fig_no_intersection": "figure_qa.check_question",
     "fig_extra_object": "figure_qa.check_question",
     "fig_kind_mismatch": "figure_qa.check_question",
+    "fig_empty_drawing": "figure_qa.check_question",
     "fig_leak_answer": "figure_qa.check_question",
     "fig_low_res": "figure_qa.check_question",
+    "fig_unrenderable": "draw_agent.draw_figure",
     "notation_stem_mismatch": "quality_orchestrator.notation_stem_issues",
     "giveaway_extreme": "quality_orchestrator.giveaway_extreme_issues",
     "empty_analysis": "quality_orchestrator.local_quality_issues",
@@ -52,8 +56,10 @@ MUST_FIX = {
     "fig_no_intersection": "清单要求交点时折线必须相交，刻度要能读出交点坐标。",
     "fig_extra_object": "图上不得多画清单/题干没有的铁块、木块、草兔等。",
     "fig_kind_mismatch": "锋面用剖面、等高线用平面图、反射弧不得配食物网。",
+    "fig_empty_drawing": "图上必须有装置线稿：电路要导线、系谱要世代连线、锋面要气团剖面，禁止只扔标签。",
     "fig_leak_answer": "图上不得写出冷锋/感受器等 must_derive。",
     "fig_low_res": "题图至少 1400x500，字号至少 20。",
+    "fig_unrenderable": "题干与可画图种冲突。必须改考点或改装置后再出，禁止重复原题干反复画同一张坏图。",
     "notation_stem_mismatch": "题干用甲乙则解析/选项不得改用 ρ_A、液体A。",
     "giveaway_extreme": "错项禁止「一定是/必然/唯一」等送分绝对词。",
     "empty_analysis": "每题必须有解析。",
@@ -70,8 +76,10 @@ LAYER_FOR = {
     "fig_no_intersection": "figure_qa",
     "fig_extra_object": "figure_qa",
     "fig_kind_mismatch": "figure_qa",
+    "fig_empty_drawing": "figure_qa",
     "fig_leak_answer": "figure_qa",
     "fig_low_res": "figure_qa",
+    "fig_unrenderable": "figure_qa",
     "notation_stem_mismatch": "local",
     "giveaway_extreme": "local",
     "empty_analysis": "local",
@@ -229,6 +237,11 @@ def classify_figure_issue(text: str) -> str:
         return "fig_low_res"
     if any(token in blob for token in ("must_derive", "图上写了")):
         return "fig_leak_answer"
+    if any(
+        token in blob
+        for token in ("只有文字标签", "缺少导线", "世代连线", "气团剖面", "环流箭头", "空白和几个字", "没有装置线稿", "坐标落在原点", "地球圆面")
+    ):
+        return "fig_empty_drawing"
     if any(token in blob for token in ("等高线图", "食物网", "没有椭圆")):
         return "fig_kind_mismatch"
     if any(token in blob for token in ("交点", "不相交")):
@@ -242,9 +255,27 @@ def classify_figure_issue(text: str) -> str:
 
 def classify_chunk(text: str) -> str:
     blob = str(text or "")
+    if "FIGURE_REGEN" in blob or "题干无法出图" in blob:
+        return "fig_unrenderable"
     if "程序作图质检未过" in blob or any(
         token in blob
-        for token in ("图上没有", "图上多了", "像素过低", "字号", "折线不相交", "食物网", "等高线图")
+        for token in (
+            "图上没有",
+            "图上多了",
+            "像素过低",
+            "字号",
+            "折线不相交",
+            "食物网",
+            "等高线图",
+            "只有文字标签",
+            "缺少导线",
+            "世代连线",
+            "气团剖面",
+            "环流箭头",
+            "空白和几个字",
+            "坐标落在原点",
+            "地球圆面",
+        )
     ):
         return classify_figure_issue(blob)
     if any(token in blob for token in ("ρ_A", "ρ_B", "液体A", "液体B", "notation_inconsistency", "符号与题干")):

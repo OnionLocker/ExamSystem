@@ -52,9 +52,11 @@ class Svg:
 
     def polygon(self, pts, fill="none", w=SW) -> None:
         d = " ".join(f"{_n(x)},{_n(y)}" for x, y in pts)
+        stroke = "none" if w <= 0 else INK
+        sw = 0 if w <= 0 else w
         self.add(
-            f'<polygon points="{d}" fill="{fill}" stroke="{INK}" '
-            f'stroke-width="{w}" stroke-linejoin="round"/>'
+            f'<polygon points="{d}" fill="{fill}" stroke="{stroke}" '
+            f'stroke-width="{sw}" stroke-linejoin="round"/>'
         )
 
     def circle(self, c, r, fill="none", w=SW) -> None:
@@ -92,7 +94,8 @@ class Svg:
             w=1,
         )
 
-    def text(self, p, s, size=14, anchor="middle") -> None:
+    def text(self, p, s, size=22, anchor="middle") -> None:
+        size = max(20, int(size or 22))
         safe = (
             str(s)
             .replace("&", "&amp;")
@@ -110,7 +113,7 @@ class Svg:
         body = "\n".join(self.buf)
         dest.write_text(
             f'<svg xmlns="http://www.w3.org/2000/svg" width="{self.w}" height="{self.h}" '
-            f'viewBox="0 0 {self.w} {self.h}">\n'
+            f'viewBox="0 0 {self.w} {self.h}" overflow="hidden">\n'
             f'<rect width="100%" height="100%" fill="{BG}"/>\n{body}\n</svg>\n',
             encoding="utf-8",
         )
@@ -175,7 +178,7 @@ MARK = {
 
 def cube_faces(x, y, z, ox, oy, s):
     p = {(i, j, k): iso(x + i, y + j, z + k, ox, oy, s) for i in (0, 1) for j in (0, 1) for k in (0, 1)}
-    # 相机沿 +x+y+z，可见的是 +z 顶、+x 右、+y 左。
+    # 相机沌 +x+y+z，可见的昼 +z 顶、+x 右、+y 左、
     top = [p[0, 0, 1], p[1, 0, 1], p[1, 1, 1], p[0, 1, 1]]
     east = [p[1, 0, 0], p[1, 1, 0], p[1, 1, 1], p[1, 0, 1]]
     south = [p[0, 1, 0], p[1, 1, 0], p[1, 1, 1], p[0, 1, 1]]
@@ -200,6 +203,38 @@ def draw_voxels(s: Svg, voxels: set, ox, oy, size) -> None:
             s.polygon(faces["east"], fill=BG)
         if (x, y, z + 1) not in occ:
             s.polygon(faces["top"], fill=BG)
+
+
+def voxel_corners(voxels):
+    pts = []
+    for x, y, z in voxels:
+        for i in (0, 1):
+            for j in (0, 1):
+                for k in (0, 1):
+                    pts.append((x + i, y + j, z + k))
+    return pts
+
+
+def fit_iso(points3, box, pad=36):
+    """Scale and center 3D points so their isometric projection fits in (x, y, w, h)."""
+    x0, y0, w, h = box
+    raw = [iso(*p, 0, 0, 1) for p in points3]
+    if not raw:
+        return x0 + w / 2, y0 + h / 2, 40.0
+    xs = [p[0] for p in raw]
+    ys = [p[1] for p in raw]
+    minx, maxx, miny, maxy = min(xs), max(xs), min(ys), max(ys)
+    sc = min((w - 2 * pad) / max(maxx - minx, 1e-6), (h - 2 * pad) / max(maxy - miny, 1e-6))
+    ox = x0 + (w - (maxx - minx) * sc) / 2 - minx * sc
+    oy = y0 + (h - (maxy - miny) * sc) / 2 - miny * sc
+    return ox, oy, sc
+
+
+def iso_inside(points3, ox, oy, sc, w, h, margin=4):
+    return all(
+        margin <= p[0] <= w - margin and margin <= p[1] <= h - margin
+        for p in (iso(*q, ox, oy, sc) for q in points3)
+    )
 
 
 # ---------- 资料 ----------
@@ -227,8 +262,8 @@ def fig_bars() -> Svg:
         h = v * 2.6
         x = 140 + i * 130
         s.rect(x, 340 - h, 70, h, fill="url(#hatch)" if i % 2 else BG)
-        s.text((x + 35, 362), lab, 13)
-        s.text((x + 35, 330 - h), str(v), 13)
+        s.text((x + 35, 362), lab, 22)
+        s.text((x + 35, 330 - h), str(v), 22)
     return s
 
 
@@ -241,7 +276,7 @@ def fig_line() -> Svg:
     s.polyline(pts, 2.2)
     for p, lab in zip(pts, ["1月", "2月", "3月", "4月"]):
         s.circle(p, 4, fill=INK, w=1)
-        s.text((p[0], 362), lab, 13)
+        s.text((p[0], 362), lab, 22)
     return s
 
 
@@ -268,7 +303,7 @@ def fig_pie() -> Svg:
 
 def fig_combo() -> Svg:
     s = Svg(720, 400)
-    s.text((360, 28), "图4  柱+折", 16)
+    s.text((360, 28), "图4  某+折", 16)
     s.line((80, 340), (640, 340))
     s.line((80, 340), (80, 50))
     bars = [60, 80, 70, 90]
@@ -344,7 +379,7 @@ def fig_xor() -> Svg:
     cell(60, 80, "NEWV")
     cell(220, 80, "NEV")
     cell(380, 80, "W")
-    s.text((500, 150), "→", 28)
+    s.text((500, 150), "ↄ17", 28)
     s.rect(540, 80, 120, 120)
     s.text((600, 155), "?", 36)
     return s
@@ -410,8 +445,8 @@ def fig_cube_iso() -> Svg:
     s = Svg(720, 360)
     draw_cube(s, 220, 230, 90, {"top": "pent", "south": "circle", "east": "x"})
     draw_cube(s, 520, 230, 90, {"top": "dia", "south": "plus", "east": "sq"})
-    s.text((220, 340), "可见三面贴纸随面剪切", 13)
-    s.text((520, 340), "另一取向", 13)
+    s.text((220, 340), "可见三面贴纸随面剪切", 22)
+    s.text((520, 340), "另一取向", 22)
     return s
 
 
@@ -455,12 +490,15 @@ def fig_views() -> Svg:
 def fig_section() -> Svg:
     s = Svg(720, 380)
     voxels = {(0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 1)}
-    draw_voxels(s, voxels, 200, 280, 48)
-    cut = [iso(x, y, 0.5, 200, 280, 48) for x, y in ((0, 0), (2, 0), (2, 2), (0, 2))]
-    s.polygon(cut, fill="url(#hatch)")
-    s.rect(460, 80, 80, 80)
-    s.line((460, 120), (540, 120), 1.6)
-    s.line((500, 80), (500, 160), 1.6)
+    cut3 = [(x, y, 0.5) for x, y in ((0, 0), (2, 0), (2, 2), (0, 2))]
+    ox, oy, sc = fit_iso(voxel_corners(voxels) + cut3, (16, 16, 400, 348), pad=22)
+    draw_voxels(s, voxels, ox, oy, sc)
+    s.polygon([iso(*pt, ox, oy, sc) for pt in cut3], fill="url(#hatch)", w=0)
+    for a, b in zip(cut3, cut3[1:] + cut3[:1]):
+        s.line(iso(*a, ox, oy, sc), iso(*b, ox, oy, sc), 2.2, dash="8 6")
+    s.rect(500, 90, 80, 80)
+    s.line((500, 130), (580, 130), 1.6)
+    s.line((540, 90), (540, 170), 1.6)
     s.text((500, 200), "水平截面", 22)
     return s
 
@@ -468,7 +506,7 @@ def fig_section() -> Svg:
 def fig_section_abc() -> Svg:
     s = Svg(720, 400)
     ox, oy, sc = 280, 300, 70
-    # 长方体 2x1x1 + 前凸 0.5
+    # 长方位17 2x1x1 + 前凸 0.5
     corners = {
         "A": iso(0, 0, 1, ox, oy, sc),
         "B": iso(2, 1, 1, ox, oy, sc),
@@ -509,28 +547,88 @@ def fig_section_abc() -> Svg:
 def fig_lever(fig=None) -> Svg:
     fig = fig or {}
     left_slot = int(fig.get("left_slot") or 2)
-    left_n = int(fig.get("left_n") or 3)
+    left_n = int(fig["left_n"]) if "left_n" in fig else 3
+    right_slot = int(fig.get("right_slot") or 0)
+    right_n = int(fig["right_n"]) if "right_n" in fig else 0
     ticks = int(fig.get("ticks") or 5)
-    s = Svg(1100, 500)
-    ox, oy, span = 550, 300, 420
+    s = Svg(1100, 560)
+    ox, oy, span = 550, 220, 420
     s.line((ox - span, oy), (ox + span, oy), 4.2)
     s.polygon([(ox, oy + 10), (ox - 32, oy + 78), (ox + 32, oy + 78)], fill=BG, w=2.8)
     s.text((ox, oy + 120), "O", 28)
     step = span / ticks
+
+    def hang(x, n):
+        if n <= 0:
+            return
+        s.line((x, oy), (x, oy + 18), 2.2)
+        for i in range(n):
+            s.rect(x - 22, oy + 18 + i * 40, 44, 36, fill=BG, sw=2.6)
+        s.text((x, oy + 28 + n * 40), f"{n}个钩码", 24)
+
     for i in range(1, ticks + 1):
         for sign in (-1, 1):
             x = ox + sign * i * step
             s.line((x, oy - 16), (x, oy + 16), 2.6)
-            s.text((x, oy + 52), str(i), 22)
-    xw = ox - left_slot * step
-    for i in range(left_n):
-        s.rect(xw - 24, oy - 40 - i * 42, 48, 38, fill=BG, sw=2.6)
-    s.text((xw, oy - 48 - left_n * 42), f"{left_n}个钩码", 24)
+            s.text((x, oy - 36), str(i), 22)
+    hang(ox - left_slot * step, left_n)
+    if right_slot > 0:
+        hang(ox + right_slot * step, right_n)
+    return s
+
+
+
+def _fig_circuit_series_parallel(fig=None) -> Svg:
+    fig = fig or {}
+    r1 = str(fig.get("left") or fig.get("r1") or "R1")
+    r2 = str(fig.get("right") or fig.get("r2") or "R2")
+    r3 = str(fig.get("r3") or "R3")
+    s = Svg(1100, 560)
+
+    def resistor(c, name):
+        s.rect(c[0] - 32, c[1] - 16, 64, 32, sw=2.6)
+        s.text((c[0], c[1] + 8), name, 24)
+
+    def sw(c, name, closed=False):
+        s.circle((c[0] - 18, c[1]), 5, fill=INK, w=1)
+        s.circle((c[0] + 18, c[1]), 5, fill=INK, w=1)
+        if closed:
+            s.line((c[0] - 18, c[1]), (c[0] + 18, c[1]), 2.8)
+        else:
+            s.line((c[0] - 18, c[1]), (c[0] + 14, c[1] - 22), 2.8)
+        s.text((c[0], c[1] - 36), name, 22)
+
+    s.line((120, 200), (120, 430), 2.8)
+    s.line((104, 300), (136, 300), 5)
+    s.line((110, 324), (130, 324), 3.2)
+    s.text((78, 292), "+", 22)
+    s.text((78, 360), "\u2212", 22)
+    s.text((120, 470), "电源", 22)
+    s.line((120, 200), (220, 200), 2.8)
+    sw((270, 200), "S1", closed=True)
+    s.line((288, 200), (400, 200), 2.8)
+    resistor((460, 200), r1)
+    s.line((492, 200), (580, 200), 2.8)
+    s.circle((580, 200), 5, fill=INK, w=1)
+    s.line((580, 200), (700, 200), 2.8)
+    resistor((760, 200), r2)
+    s.line((792, 200), (920, 200), 2.8)
+    s.circle((920, 200), 5, fill=INK, w=1)
+    s.line((580, 200), (580, 360), 2.8)
+    sw((660, 360), "S2", closed=False)
+    s.line((678, 360), (760, 360), 2.8)
+    resistor((820, 360), r3)
+    s.line((852, 360), (920, 360), 2.8)
+    s.line((920, 360), (920, 200), 2.8)
+    s.line((920, 200), (920, 430), 2.8)
+    s.line((920, 430), (120, 430), 2.8)
     return s
 
 
 def fig_circuit(fig=None) -> Svg:
     fig = fig or {}
+    if fig.get("topology") == "series_parallel" or fig.get("r3") or str(fig.get("switches") or "") == "2":
+        return _fig_circuit_series_parallel(fig)
     left = str(fig.get("left") or "L1")
     right = str(fig.get("right") or "L2")
     branch_meter = str(fig.get("meter") or ("A" if left.startswith("L") else "A1"))
@@ -561,18 +659,23 @@ def fig_circuit(fig=None) -> Svg:
     s.line((74, 210), (106, 210), 5)
     s.line((80, 236), (100, 236), 3.2)
     s.text((54, 200), "+", 22)
+    if fig.get("show_u") or str(fig.get("left") or "").startswith("R"):
+        s.text((54, 268), "U", 22)
     s.line((90, 80), (272, 80), 2.8)
     s.circle((272, 80), 5, fill=INK, w=1)
     s.circle((312, 80), 5, fill=INK, w=1)
     s.line((272, 80), (306, 54), 2.8)
     s.text((292, 42), "S", 24)
-    s.line((312, 80), (980, 80), 2.8)
-    s.line((980, 80), (980, 460), 2.8)
-    s.line((980, 460), (90, 460), 2.8)
+    s.line((312, 80), (780, 80), 2.8)
+    s.line((780, 460), (90, 460), 2.8)
     if main_meter:
         s.line((90, 460), (200, 460), 2.8)
         meter_box((256, 460), main_meter)
-        s.line((282, 460), (980, 460), 2.8)
+        s.line((282, 460), (780, 460), 2.8)
+    s.circle((480, 80), 5, fill=INK, w=1)
+    s.circle((780, 80), 5, fill=INK, w=1)
+    s.circle((480, 460), 5, fill=INK, w=1)
+    s.circle((780, 460), 5, fill=INK, w=1)
     s.line((480, 80), (480, 200), 2.8)
     meter_box((480, 222), branch_meter)
     s.line((480, 244), (480, 280), 2.8)
@@ -590,11 +693,22 @@ def fig_circuit(fig=None) -> Svg:
     return s
 
 
-def _one_tank(s: Svg, cx: float, label: str, obj_name: str, state: str, cylinder: bool, water: float | None = None) -> None:
-    rx, rim, floor = (150, 90, 450) if cylinder else (170, 80, 450)
+def _one_tank(s: Svg, cx: float, label: str, obj_name: str, state: str, cylinder: bool, water: float | None = None, scale: float = 1.0, shape: str = "", string: bool = False) -> None:
+    shape = (shape or ("cylinder" if cylinder else "box")).lower()
+    wide = shape in {"wide_bottom", "taper", "cone"} or "上细" in shape
+    rx, rim, floor = (150, 90, 450) if (cylinder or wide or shape == "cylinder") else (170, 80, 450)
+    rx = max(40.0, float(rx) * float(scale or 1.0))
     if water is None:
-        water = 285 if state in {"suspend", "悬"} else 315
-    if cylinder:
+        water = 285 if state in {"float", "浮"} else 315
+    if wide:
+        top_rx = max(36.0, rx * 0.48)
+        bot_rx = rx
+        s.polyline([(cx - top_rx, rim + 16), (cx - bot_rx, floor), (cx + bot_rx, floor), (cx + top_rx, rim + 16)], 3.2)
+        t = (water - (rim + 16)) / max(floor - (rim + 16), 1)
+        water_half = top_rx + (bot_rx - top_rx) * t
+        s.polygon([(cx - water_half, water), (cx + water_half, water), (cx + bot_rx, floor), (cx - bot_rx, floor)], fill="url(#hatch)")
+        s.line((cx - water_half, water), (cx + water_half, water), 2.4)
+    elif cylinder or shape == "cylinder":
         s.line((cx - rx, rim + 16), (cx - rx, floor), 3.2)
         s.line((cx + rx, rim + 16), (cx + rx, floor), 3.2)
         s.ellipse((cx, rim + 16), rx, 22)
@@ -613,18 +727,27 @@ def _one_tank(s: Svg, cx: float, label: str, obj_name: str, state: str, cylinder
         )
     s.text((cx, 64), label or "薄壁容器", 26)
     if obj_name:
+        hang = string or state in {"suspend", "悬", "浸"}
+        sunk = state in {"sink", "沉", "底"}
         if "球" in obj_name:
-            if state in {"suspend", "悬"}:
+            if hang:
                 cy = water + 70
-            elif state in {"sink", "沉", "底"}:
+            elif sunk:
                 cy = floor - 36
             else:
                 cy = water - 8
             s.circle((cx, cy), 28, fill=BG, w=2.6)
             s.text((cx + 46, cy + 8), obj_name, 22, "start")
-        elif state in {"sink", "沉", "底"}:
+            if hang:
+                s.line((cx, rim + 16), (cx, cy - 28), 2.2)
+        elif sunk:
             s.rect(cx - 40, floor - 70, 80, 56, fill=INK, sw=2.6)
             s.text((cx, floor - 82), obj_name, 22)
+        elif hang:
+            top = water + 20
+            s.rect(cx - 36, top, 72, 50, fill=BG, sw=2.6)
+            s.text((cx, top + 34), obj_name, 22)
+            s.line((cx, rim + 16), (cx, top), 2.2)
         else:
             s.rect(cx - 40, water - 40, 80, 56, fill=BG, sw=2.6)
             s.text((cx, water - 52), obj_name, 22)
@@ -638,9 +761,11 @@ def fig_tank(fig=None) -> Svg:
     if not vessels:
         names = [str(item) for item in (fig.get("names") or fig.get("labels") or []) if str(item)]
         if len(names) >= 2:
+            obj = str(fig.get("object") or fig.get("obj") or "")
+            states = [str(item) for item in (fig.get("states") or []) if str(item)]
             vessels = [
-                {"name": names[0], "object": "小球", "state": "float"},
-                {"name": names[1], "object": "小球", "state": "suspend"},
+                {"name": names[0], "object": obj, "state": states[0] if states else "float", "string": bool(fig.get("string")) and (not states or states[0] == "suspend")},
+                {"name": names[1], "object": obj, "state": states[1] if len(states) > 1 else "float", "string": False},
             ]
         else:
             raw = fig.get("objects")
@@ -662,7 +787,22 @@ def fig_tank(fig=None) -> Svg:
         first = objs[0] if objs else {}
         name = first.get("name") if isinstance(first, dict) else str(first)
         state = first.get("state") if isinstance(first, dict) else "float"
-        _one_tank(s, cx, str(vessel.get("name") or ""), str(name or ""), str(state or "float"), cylinder)
+        scales = fig.get("widths") or ([1.0, 1.0] if len(vessels) > 1 else [1.0])
+        scale = 1.0
+        try:
+            idx = list(vessels).index(vessel)
+            scale = float(scales[idx]) if idx < len(scales) else 1.0
+        except (ValueError, TypeError, IndexError):
+            scale = 1.0
+        vessel_shape = str(vessel.get("shape") or "")
+        shapes = fig.get("shapes") or []
+        if not vessel_shape:
+            try:
+                vidx = list(vessels).index(vessel)
+                vessel_shape = str(shapes[vidx] or "") if vidx < len(shapes) else ""
+            except (ValueError, TypeError, IndexError):
+                vessel_shape = ""
+        _one_tank(s, cx, str(vessel.get("name") or ""), str(name or ""), str(state or "float"), cylinder, scale=scale, shape=vessel_shape, string=bool(vessel.get("string") or (isinstance(first, dict) and first.get("string"))))
     return s
 
 
@@ -670,14 +810,31 @@ def fig_motion(fig=None) -> Svg:
     fig = fig or {}
     ylabel = str(fig.get("ylabel") or "s/m")
     xlabel = str(fig.get("xlabel") or "t/s")
-    xmax = float(fig.get("xmax") or 4)
-    ymax = float(fig.get("ymax") or 6)
-    xticks = [float(x) for x in (fig.get("xticks") or [0, 1, 2, 3, 4])]
-    yticks = [float(y) for y in (fig.get("yticks") or [0, 2, 3, 4, 6])]
+    def _num(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+    xmax = _num(fig.get("xmax")) or 4
+    ymax = _num(fig.get("ymax")) or 6
+    xticks = [x for x in (_num(v) for v in (fig.get("xticks") or [0, 1, 2, 3, 4])) if x is not None] or [0, 1, 2, 3, 4]
+    yticks = [y for y in (_num(v) for v in (fig.get("yticks") or [0, 2, 3, 4, 6])) if y is not None] or [0, 2, 3, 4, 6]
     series = fig.get("series") or [
         {"name": "甲", "points": [[0, 6], [4, 0]]},
         {"name": "乙", "points": [[0, 0], [4, 6]]},
     ]
+    extra_x, extra_y = [], []
+    for item in series:
+        if not isinstance(item, dict):
+            continue
+        for pt in item.get("points") or []:
+            if isinstance(pt, (list, tuple)) and len(pt) >= 2:
+                x, y = _num(pt[0]), _num(pt[1])
+                if x is not None and y is not None:
+                    extra_x.append(x)
+                    extra_y.append(y)
+    xticks = sorted(set(xticks) | set(extra_x))
+    yticks = sorted(set(yticks) | set(extra_y))
     s = Svg(1100, 620)
     ox, oy, width, height = 120, 540, 860, 440
 
@@ -746,6 +903,7 @@ def _contours(fn, x0, x1, y0, y1, nx, ny, levels):
 
 
 def fig_contour(fig=None) -> Svg:
+    fig = fig or {}
     s = Svg(1080, 640)
 
     def f(x, y):
@@ -767,7 +925,11 @@ def fig_contour(fig=None) -> Svg:
     s.text(to_sc((5.85, 4.6)), "甲", 40)
     s.line(to_sc((3.2, 3.4)), to_sc((1.05, 7.35)), 3.6, dash="14 9")
     s.text(to_sc((1.45, 6.55)), "乙", 40)
-    s.text((540, 618), "等高线（单位：m，等高距 50m）", 24)
+    s.text(to_sc((5.1, 7.35)), "一", 40)
+    s.text(to_sc((8.15, 2.15)), "一", 40)
+    interval = fig.get("interval") or fig.get("contour_interval")
+    caption = f"等高线（单位：m，等高距 {interval}m（" if interval else "等高线（单位：m）"
+    s.text((540, 618), caption, 24)
     return s
 
 
@@ -795,7 +957,7 @@ def fig_front(fig=None) -> Svg:
         s.text((300, 180), "雨区", 28)
         s.text((550, 580), "锋面剖面示意图", 26)
     else:
-        # 冷锋：坡陡，冷气团从左向右插入，雨区在锋后
+        # 冷锋：坡陡，冷气团从左向右插入，雨区在锋合17
         s.polygon([(50, 500), (640, 500), (210, 150)], fill="url(#hatch)")
         s.line((210, 150), (640, 500), 3.6)
         s.arrow((90, 430), (260, 430), 3.0)
@@ -808,6 +970,142 @@ def fig_front(fig=None) -> Svg:
         s.text((820, 260), "暖气团", 32)
         s.text((360, 180), "雨区", 28)
         s.text((550, 580), "锋面剖面示意图", 26)
+    s.text((180, 545), "甲", 32)
+    s.text((920, 545), "乙", 32)
+    return s
+
+
+def fig_breeze(fig=None) -> Svg:
+    fig = fig or {}
+    night = str(fig.get("breeze") or fig.get("type") or "").lower() in {"land", "陆风", "night"}
+    numbered = fig.get("numbered")
+    if numbered is None:
+        numbered = True
+    s = Svg(1100, 620)
+    s.polygon([(60, 430), (540, 430), (540, 560), (60, 560)], fill="url(#hatch)")
+    s.line((60, 430), (1040, 430), 3.4)
+    s.text((300, 510), "陆地", 28)
+    s.text((800, 510), "海洋", 28)
+    s.text((70, 150), "高空", 22)
+    s.text((88, 390), "近地面", 22)
+    p1, p2, p3, p4 = (260, 370), (860, 370), (260, 170), (860, 170)
+    if night:
+        s.arrow(p1, p2, 3.0)
+        s.arrow(p4, p3, 3.0)
+        s.arrow(p3, p1, 3.0)
+        s.arrow(p2, p4, 3.0)
+        title = "海陆热力环流"
+    else:
+        s.arrow(p2, p1, 3.0)
+        s.arrow(p3, p4, 3.0)
+        s.arrow(p1, p3, 3.0)
+        s.arrow(p4, p2, 3.0)
+        title = "海陆热力环流"
+    s.text((550, 80), title, 26)
+    if numbered:
+        for pt, lab in ((p1, "①"), (p2, "②"), (p3, "③"), (p4, "④")):
+            s.circle(pt, 16, fill=BG, w=2.2)
+            s.text((pt[0], pt[1] + 8), lab, 22)
+    names = [str(item) for item in (fig.get("names") or fig.get("labels") or []) if str(item)]
+    if not names:
+        stem = str(fig.get("stem") or "")
+        names = [token for token in ("甲", "乙", "丙", "丁") if token in stem]
+    anchors = [p1, p2, p3, p4]
+    for pt, name in zip(anchors, names):
+        s.text((pt[0], pt[1] + 42), name, 26)
+    return s
+
+
+def fig_earth(fig=None) -> Svg:
+    """地球自转侧视：昼夜半球与自转方向。"""
+    s = Svg(1100, 620)
+    s.circle((550, 300), 180, w=3.2)
+    s.polygon([(550, 120), (550, 480), (370, 430), (370, 170)], fill="url(#hatch)")
+    s.line((550, 120), (550, 480), 2.6, dash="12 8")
+    s.arrow((760, 210), (760, 390), 3.0)
+    s.text((300, 300), "复", 32)
+    s.text((760, 300), "昼", 32)
+    s.text((550, 80), "地球自转", 26)
+    s.text((370, 545), "甲", 32)
+    s.text((730, 545), "乙", 32)
+    return s
+
+
+def fig_climate(fig=None) -> Svg:
+    """气温折线；甲乙两地时加降水柱。"""
+    fig = fig or {}
+    names = [str(item) for item in (fig.get("names") or fig.get("labels") or []) if str(item)]
+    months = ["1月", "4月", "7月", "10月"]
+    series = fig.get("temps") or {"甲": [6, 16, 28, 18], "乙": [-4, 12, 26, 10]}
+    rains = fig.get("rains") or {"甲": [80, 160, 220, 90], "乙": [10, 40, 180, 30]}
+    if len(names) < 2:
+        names = ["甲", "乙"] if ("甲" in str(fig.get("title") or "") or fig.get("pair")) else []
+    if len(names) >= 2:
+        s = Svg(1160, 620)
+        for idx, name in enumerate(names[:2]):
+            ox = 80 + idx * 540
+            oy, width, height = 500, 460, 340
+            s.text((ox + width / 2, 70), name + "地", 26)
+            s.line((ox, oy), (ox + width, oy), 2.4)
+            s.line((ox, oy), (ox, oy - height), 2.4)
+            for tv in (-10, 0, 10, 20, 30):
+                y = oy - 40 - (tv + 10) * 6
+                s.line((ox - 6, y), (ox, y), 1.4)
+                s.text((ox - 28, y + 6), str(tv), 20)
+            s.text((ox - 28, oy - height - 6), "C", 20)
+            rx = ox + width
+            s.line((rx, oy), (rx, oy - height), 2.0)
+            for rv in (0, 100, 200, 250):
+                y = oy - min(200, rv * 0.8)
+                s.line((rx, y), (rx + 6, y), 1.4)
+                s.text((rx + 32, y + 6), str(rv), 20)
+            s.text((rx + 32, oy - height - 6), "mm", 20)
+            y0 = oy - 40 - 10 * 6
+            s.line((ox, y0), (ox + width, y0), 1.2, dash="6 5")
+            temps = list(series.get(name) or series.get(names[0]) or [6, 16, 28, 18])
+            rain = list(rains.get(name) or rains.get(names[0]) or [80, 160, 220, 90])
+            pts = []
+            for i, (lab, tv, rv) in enumerate(zip(months, temps, rain)):
+                x = ox + 50 + i * 100
+                bar_h = min(200, rv * 0.8)
+                s.rect(x - 16, oy - bar_h, 32, bar_h, sw=1.8)
+                y = oy - 40 - (tv + 10) * 6
+                pts.append((x, y))
+                s.circle((x, y), 6, fill=INK)
+                s.text((x, oy + 32), lab, 20)
+            s.polyline(pts, 2.8)
+        s.text((550, 590), "柱：降水  折线：气温", 22)
+        return s
+    s = Svg(1100, 620)
+    ox, oy, width, height = 140, 520, 820, 380
+    s.line((ox, oy), (ox + width, oy), 2.8)
+    s.line((ox, oy), (ox, oy - height), 2.8)
+    ys = [200, 280, 420, 260]
+    pts = []
+    for i, (lab, yv) in enumerate(zip(months, ys)):
+        x = ox + 80 + i * 200
+        y = oy - (yv - 100)
+        pts.append((x, y))
+        s.circle((x, y), 7, fill=INK)
+        s.text((x, oy + 36), lab, 24)
+    s.polyline(pts, 3.0)
+    s.text((ox - 40, oy - height + 10), "气温", 22)
+    s.text((550, 80), "气温年变化", 26)
+    return s
+
+
+def fig_plate(fig=None) -> Svg:
+    """板块挤压/张裂示意。"""
+    s = Svg(1100, 620)
+    s.rect(120, 240, 320, 180)
+    s.rect(660, 240, 320, 180)
+    s.text((280, 330), "甲板块", 32)
+    s.text((820, 330), "乙板块", 32)
+    s.arrow((460, 330), (630, 330), 3.2)
+    s.arrow((640, 330), (470, 330), 3.2)
+    s.text((550, 80), "板块运动", 26)
+    s.text((280, 520), "甲", 32)
+    s.text((820, 520), "乙", 32)
     return s
 
 
@@ -841,9 +1139,25 @@ def fig_food(fig=None) -> Svg:
                 nodes.append((str(item.get("name") or ""), float(item["x"]), float(item["y"])))
             elif isinstance(item, (list, tuple)) and len(item) >= 3:
                 nodes.append((str(item[0]), float(item[1]), float(item[2])))
+    elif fig.get("names"):
+        names = [str(item) for item in fig.get("names") or [] if str(item)]
+        layout = {
+            2: [(280, 280), (800, 280)],
+            3: [(200, 280), (540, 280), (880, 280)],
+            5: [(540, 90), (280, 250), (800, 250), (280, 430), (800, 430)],
+            7: [(140, 280), (360, 420), (360, 140), (560, 440), (720, 300), (880, 220), (980, 100)],
+        }
+        pts = layout.get(len(names)) or [
+            (120 + i * min(140, 860 / max(len(names), 1)), 200 + (i % 2) * 180) for i in range(len(names))
+        ]
+        nodes = [(name, float(pt[0]), float(pt[1])) for name, pt in zip(names, pts)]
     else:
         nodes = [("草", 540, 90), ("兔", 280, 250), ("虫", 800, 250), ("狐", 280, 430), ("鸟", 800, 430)]
-    edges = fig.get("edges") or ((0, 1), (0, 2), (1, 3), (2, 4), (1, 4))
+    default_edges = {
+        7: ((0, 1), (0, 2), (1, 3), (1, 4), (3, 4), (2, 5), (2, 6), (4, 5), (5, 6)),
+        5: ((0, 1), (0, 2), (1, 3), (2, 4), (1, 4)),
+    }
+    edges = fig.get("edges") or default_edges.get(len(nodes), tuple((i, i + 1) for i in range(len(nodes) - 1)))
     s = Svg(1080, max(560, int(max(y for _name, _x, y in nodes) + 90)))
     box_h = 68
     widths = []
@@ -926,15 +1240,15 @@ def fig_bool() -> Svg:
     s = Svg(720, 280)
 
     def grid(x, y, cells, title):
-        s.text((x + 48, y - 10), title, 13)
+        s.text((x + 48, y - 10), title, 22)
         for r in range(3):
             for c in range(3):
                 s.rect(x + c * 32, y + r * 32, 32, 32, fill=INK if (r, c) in cells else BG, sw=1.3)
 
     a = {(0, 0), (0, 1), (1, 1), (2, 2)}
     b = {(0, 1), (1, 1), (1, 2), (2, 0)}
-    grid(50, 70, a, "图1")
-    grid(200, 70, b, "图2")
+    grid(50, 70, a, "四1")
+    grid(200, 70, b, "四2")
     grid(350, 70, a & b, "求同")
     grid(500, 70, a ^ b, "求异")
     return s
@@ -946,9 +1260,9 @@ def fig_stroke() -> Svg:
     s.polyline([(250, 70), (250, 190), (340, 190), (340, 70)])
     s.polygon([(430, 70), (510, 70), (510, 190), (430, 190)])
     s.text((620, 150), "?", 36)
-    s.text((120, 230), "一笔", 13)
-    s.text((295, 230), "一笔", 13)
-    s.text((470, 230), "两笔", 13)
+    s.text((120, 230), "一笔", 22)
+    s.text((295, 230), "一笔", 22)
+    s.text((470, 230), "两笔", 22)
     return s
 
 
@@ -963,9 +1277,9 @@ def fig_curve() -> Svg:
     s.add(
         f'<path d="M520 80 Q560 140 600 80" fill="none" stroke="{INK}" stroke-width="{SW}"/>'
     )
-    s.text((140, 220), "直线", 13)
-    s.text((350, 220), "曲线", 13)
-    s.text((560, 220), "曲直混合", 13)
+    s.text((140, 220), "直线", 22)
+    s.text((350, 220), "曲线", 22)
+    s.text((560, 220), "曲直混合", 22)
     return s
 
 
@@ -984,9 +1298,9 @@ def fig_dots() -> Svg:
     s.circle((605, 82), 4, fill=INK, w=1)
     s.circle((535, 148), 4, fill=INK, w=1)
     s.circle((605, 148), 4, fill=INK, w=1)
-    s.text((150, 220), "1 点", 13)
-    s.text((350, 220), "3 点", 13)
-    s.text((570, 220), "4 点", 13)
+    s.text((150, 220), "1 点", 22)
+    s.text((350, 220), "3 点", 22)
+    s.text((570, 220), "4 点", 22)
     return s
 
 
@@ -1006,7 +1320,7 @@ def fig_tetra() -> Svg:
         gx = sum(p[0] for p in poly) / 3
         gy = sum(p[1] for p in poly) / 3
         MARK[kind](s, [(gx - 16, gy - 16), (gx + 16, gy - 16), (gx + 16, gy + 16), (gx - 16, gy + 16)])
-    s.text((320, 340), "四面体展开", 13)
+    s.text((320, 340), "四面体展开", 22)
     return s
 
 
@@ -1023,8 +1337,8 @@ def fig_solid() -> Svg:
     s.polyline([(500 + 80 * math.cos(t), 240 + 24 * math.sin(t)) for t in [i * math.tau / 32 for i in range(33)]])
     s.line((500, 70), (420, 240))
     s.line((500, 70), (580, 240))
-    s.text((180, 310), "圆柱", 13)
-    s.text((500, 310), "圆锥", 13)
+    s.text((180, 310), "圆柱", 22)
+    s.text((500, 310), "圆锥", 22)
     return s
 
 
@@ -1077,7 +1391,7 @@ def fig_cube_views() -> Svg:
     ]
     for i, m in enumerate(marks):
         draw_cube(s, 140 + i * 220, 230, 72, m)
-        s.text((140 + i * 220, 340), f"取向 {i + 1}", 13)
+        s.text((140 + i * 220, 340), f"取向 {i + 1}", 22)
     return s
 
 
@@ -1085,7 +1399,7 @@ def fig_hidden() -> Svg:
     s = Svg(640, 380)
     voxels = {(0, 0, 0), (1, 0, 0), (2, 0, 0), (0, 1, 0), (0, 0, 1), (0, 0, 2), (1, 0, 1)}
     draw_voxels(s, voxels, 300, 280, 46)
-    s.text((320, 360), "计数：可见 + 被挡", 13)
+    s.text((320, 360), "计数：可见 + 被挡", 22)
     return s
 
 
@@ -1095,8 +1409,8 @@ def fig_lblock() -> Svg:
     b = {(0, 0, 0), (0, 1, 0), (0, 2, 0), (0, 2, 1)}
     draw_voxels(s, a, 180, 250, 48)
     draw_voxels(s, b, 500, 250, 48)
-    s.text((180, 340), "L 形", 13)
-    s.text((500, 340), "旋转后", 13)
+    s.text((180, 340), "L 形", 22)
+    s.text((500, 340), "旋转后", 22)
     return s
 
 
@@ -1123,7 +1437,7 @@ def fig_vessels() -> Svg:
     s.line((320, 180), (440, 180))
     s.polygon([(80, 180), (200, 180), (200, 240), (80, 240)], fill="url(#hatch)")
     s.polygon([(320, 180), (440, 180), (440, 240), (320, 240)], fill="url(#hatch)")
-    s.text((360, 280), "连通器，液面等高", 13)
+    s.text((360, 280), "连通器，液面等高", 22)
     return s
 
 
@@ -1134,22 +1448,172 @@ def fig_buoy() -> Svg:
     s.polygon([(160, 200), (480, 200), (480, 280), (160, 280)], fill="url(#hatch)")
     s.rect(270, 140, 100, 90)
     s.line((160, 200), (480, 200), 1.2)
-    s.text((320, 130), "物块", 13)
+    s.text((320, 130), "物块", 22)
     return s
 
 
-def fig_force() -> Svg:
-    s = Svg(640, 300)
-    s.rect(270, 140, 100, 70)
-    s.arrow((320, 140), (320, 60))
-    s.arrow((320, 210), (320, 270))
-    s.arrow((270, 175), (190, 175))
-    s.arrow((370, 175), (450, 175))
-    s.text((332, 52), "N", 13)
-    s.text((332, 286), "G", 13)
-    s.text((180, 168), "f", 13)
-    s.text((460, 168), "F", 13)
+def fig_compose(fig=None) -> Svg:
+    fig = fig or {}
+    width = max(1100, int(fig.get("width") or 1100))
+    height = max(560, int(fig.get("height") or 560))
+    s = Svg(width, height)
+
+    def num(value, default=0.0):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+
+    def pt(raw):
+        if isinstance(raw, (list, tuple)) and len(raw) >= 2:
+            return (num(raw[0]), num(raw[1]))
+        if isinstance(raw, dict):
+            if "x" in raw and "y" in raw:
+                return (num(raw["x"]), num(raw["y"]))
+            if "0" in raw and "1" in raw:
+                return (num(raw["0"]), num(raw["1"]))
+        if isinstance(raw, str) and "," in raw:
+            a, b = raw.split(",", 1)
+            return (num(a.strip()), num(b.strip()))
+        return None
+
+    def placed(raw):
+        point = pt(raw)
+        if point is None:
+            return None
+        if point[0] < 8 and point[1] < 8:
+            return None
+        return point
+
+    def dash_of(item):
+        dash = item.get("dash")
+        if dash is True:
+            return "10 8"
+        return str(dash) if dash else None
+
+    for item in fig.get("elements") or []:
+        if not isinstance(item, dict):
+            continue
+        kind = str(item.get("type") or item.get("kind") or "").lower()
+        dash = dash_of(item)
+        fill = str(item.get("fill") or "none")
+        if kind == "line":
+            a = placed(item.get("from") or item.get("a") or (item.get("x1"), item.get("y1")))
+            b = placed(item.get("to") or item.get("b") or (item.get("x2"), item.get("y2")))
+            if a and b:
+                s.line(a, b, w=float(item.get("w") or 2.6), dash=dash)
+        elif kind == "arrow":
+            a = placed(item.get("from") or item.get("a") or (item.get("x1"), item.get("y1")))
+            b = placed(item.get("to") or item.get("b") or (item.get("x2"), item.get("y2")))
+            if a and b:
+                s.arrow(a, b, w=float(item.get("w") or 2.8))
+        elif kind == "rect":
+            x, y = float(item.get("x") or 0), float(item.get("y") or 0)
+            if x >= 8 or y >= 8:
+                s.rect(x, y, float(item.get("w") or 40), float(item.get("h") or 40), fill=fill, sw=float(item.get("sw") or 2.6))
+        elif kind == "circle":
+            c = placed(item.get("c") or item.get("center"))
+            if c:
+                s.circle(c, float(item.get("r") or 20), fill=fill, w=float(item.get("w") or 2.6))
+        elif kind == "ellipse":
+            c = placed(item.get("c") or item.get("center"))
+            if c:
+                s.ellipse(c, float(item.get("rx") or 40), float(item.get("ry") or 18), fill=fill, w=float(item.get("w") or 2.6))
+        elif kind == "polyline":
+            pts = [p for p in (placed(x) for x in (item.get("pts") or item.get("points") or [])) if p]
+            if len(pts) >= 2:
+                s.polyline(pts, w=float(item.get("w") or 2.6))
+        elif kind == "polygon":
+            pts = [p for p in (placed(x) for x in (item.get("pts") or item.get("points") or [])) if p]
+            if len(pts) >= 3:
+                s.polygon(pts, fill=fill, w=float(item.get("w") or 2.6))
+                if dash:
+                    for a, b in zip(pts, pts[1:] + pts[:1]):
+                        s.line(a, b, w=float(item.get("w") or 2.6), dash=dash)
+        elif kind == "text":
+            pos = placed(item.get("p") or item.get("at"))
+            if pos:
+                size = max(20, int(item.get("size") or 24))
+                s.text(pos, str(item.get("text") or item.get("s") or ""), size, str(item.get("anchor") or "middle"))
     return s
+
+
+def fig_force(fig=None) -> Svg:
+    fig = fig or {}
+    names = [str(item) for item in (fig.get("names") or fig.get("labels") or []) if str(item)]
+    blob = " ".join([str(fig.get("scene") or ""), " ".join(names), str(fig.get("object") or ""), str(fig.get("stem") or "")])
+    if fig.get("conveyor") or "传送带" in blob:
+        s = Svg(1100, 560)
+        left, right, y, r = (260, 360), (840, 360), 360, 52
+        s.circle(left, r, w=2.8)
+        s.circle(right, r, w=2.8)
+        s.circle(left, 8, fill=INK, w=1)
+        s.circle(right, 8, fill=INK, w=1)
+        s.line((260, y - r), (840, y - r), 3.0)
+        s.line((260, y + r), (840, y + r), 3.0)
+        s.arrow((500, y - r - 36), (640, y - r - 36), 2.8)
+        s.text((570, y - r - 52), "v", 26)
+        s.text((550, y + 12), "传送带", 24)
+        s.rect(300, y - r - 90, 110, 70, fill=BG, sw=2.6)
+        s.text((355, y - r - 44), "物块", 24)
+        return s
+    if fig.get("cart") or "小车" in blob:
+        s = Svg(1100, 560)
+        s.line((80, 430), (1020, 430), 3.4)
+        for x in range(100, 1000, 22):
+            s.line((x, 430), (x - 14, 458), 1.6)
+        s.text((550, 500), "水平地面", 24)
+        s.circle((360, 400), 28, w=2.6)
+        s.circle((620, 400), 28, w=2.6)
+        s.circle((360, 400), 8, fill=INK, w=1)
+        s.circle((620, 400), 8, fill=INK, w=1)
+        s.rect(300, 300, 380, 80, fill=BG, sw=2.6)
+        s.text((490, 350), "小车", 26)
+        s.rect(400, 230, 140, 70, fill=BG, sw=2.6)
+        block = "物块A" if ("物块 A" in blob or "物块A" in blob) else "物块"
+        s.text((470, 276), block, 24)
+        s.arrow((680, 340), (880, 340), 3.2)
+        s.text((800, 322), "F", 26)
+        return s
+    board = bool(fig.get("board")) or "木板" in blob or ("甲" in names and "乙" in names)
+    ground = bool(fig.get("ground")) or any(token in blob for token in ("地面", "水平地面", "拉力"))
+    s = Svg(1100, 560)
+    if ground and not board:
+        s.rect(380, 190, 220, 150, fill=BG, sw=2.8)
+        s.text((490, 280), "物块", 28)
+        s.line((80, 350), (1020, 350), 3.4)
+        for x in range(100, 1000, 22):
+            s.line((x, 350), (x - 14, 378), 1.6)
+        s.text((550, 420), "水平地面", 24)
+        s.arrow((600, 265), (860, 265), 3.2)
+        s.text((730, 240), "拉力F", 26)
+        return s
+    if board:
+        s.line((80, 430), (1020, 430), 3.4)
+        s.line((160, 120), (160, 430), 4.2)
+        s.line((160, 260), (300, 260), 2.6)
+        s.rect(300, 300, 150, 80, fill=BG, sw=2.8)
+        s.rect(250, 380, 430, 36, fill=BG, sw=2.8)
+        s.arrow((690, 398), (840, 398), 3.0)
+        s.text((375, 352), names[0] if names else "甲", 28)
+        s.text((465, 470), names[1] if len(names) > 1 else "乙", 28)
+        s.text((160, 108), "墙", 24)
+        s.text((870, 408), "F", 28)
+        return s
+    cx, cy = 550, 280
+    s.rect(cx - 70, cy - 50, 140, 100, fill=BG, sw=2.8)
+    s.arrow((cx, cy - 50), (cx, cy - 140))
+    s.arrow((cx, cy + 50), (cx, cy + 140))
+    s.arrow((cx - 70, cy), (cx - 180, cy))
+    s.arrow((cx + 70, cy), (cx + 180, cy))
+    s.text((cx + 18, cy - 148), "N", 24, "start")
+    s.text((cx + 18, cy + 160), "G", 24, "start")
+    s.text((cx - 200, cy - 12), "f", 24)
+    s.text((cx + 196, cy - 12), "F", 24, "start")
+    if names:
+        s.text((cx, cy + 8), names[0], 24)
+    return s
+
 
 
 def fig_spring() -> Svg:
@@ -1183,8 +1647,8 @@ def fig_gears() -> Svg:
     gear((220, 150), 56, 12)
     gear((400, 150), 40, 8)
     s.arrow((140, 150), (160, 150))
-    s.text((220, 250), "主动", 13)
-    s.text((400, 250), "从动", 13)
+    s.text((220, 250), "主动", 22)
+    s.text((400, 250), "从动", 22)
     return s
 
 
@@ -1217,7 +1681,7 @@ def fig_stackbar() -> Svg:
         x = 140 + i * 130
         s.rect(x, 340 - lo * 2.4, 70, lo * 2.4)
         s.rect(x, 340 - (lo + hi) * 2.4, 70, hi * 2.4, fill="url(#hatch)")
-        s.text((x + 35, 362), f"{i + 1}月", 13)
+        s.text((x + 35, 362), f"{i + 1}月", 22)
     s.rect(500, 70, 18, 14)
     s.text((530, 82), "东部", 12, "start")
     s.rect(500, 96, 18, 14, fill="url(#hatch)")
@@ -1257,8 +1721,8 @@ def fig_venn() -> Svg:
     s.circle((350, 170), 90)
     s.text((210, 174), "A", 16)
     s.text((390, 174), "B", 16)
-    s.text((300, 174), "A∩B", 13)
-    s.text((320, 310), "容斥 / 韦恩图", 13)
+    s.text((300, 174), "A∩B", 22)
+    s.text((320, 310), "容斥 / 韦恩图", 22)
     return s
 
 
@@ -1268,7 +1732,7 @@ def fig_circle_tan() -> Svg:
     s.line((80, 300), (560, 80))
     s.line((260, 180), (200, 250))
     s.rect(194, 244, 14, 14)
-    s.text((260, 168), "O", 13)
+    s.text((260, 168), "O", 22)
     s.text((190, 270), "切点", 12)
     return s
 
@@ -1280,9 +1744,9 @@ def fig_meet() -> Svg:
     s.circle((560, 110), 8)
     s.arrow((160, 80), (300, 80))
     s.arrow((540, 150), (400, 150))
-    s.text((140, 150), "甲", 13)
-    s.text((560, 80), "乙", 13)
-    s.text((360, 190), "相遇 / 追及示意", 13)
+    s.text((140, 150), "甲", 22)
+    s.text((560, 80), "乙", 22)
+    s.text((360, 190), "相遇 / 追及示意", 22)
     return s
 
 
@@ -1290,10 +1754,10 @@ def fig_similar() -> Svg:
     s = Svg(640, 340)
     s.polygon([(80, 300), (560, 300), (320, 50)])
     s.line((200, 200), (440, 200))
-    s.text((70, 318), "A", 13)
-    s.text((570, 318), "B", 13)
-    s.text((320, 40), "C", 13)
-    s.text((320, 220), "DE ∥ AB", 12)
+    s.text((70, 318), "A", 22)
+    s.text((570, 318), "B", 22)
+    s.text((320, 40), "C", 22)
+    s.text((320, 220), "DE ∄17 AB", 12)
     return s
 
 
@@ -1334,6 +1798,60 @@ def fig_box() -> Svg:
     return s
 
 
+
+def fig_latlon(fig=None) -> Svg:
+    fig = fig or {}
+    s = Svg(1100, 620)
+    ox, oy, w, h = 160, 520, 780, 400
+    lats = [float(v) for v in (fig.get("lats") or [0, 20, 50, 70])]
+    lons = [float(v) for v in (fig.get("lons") or [0, 30, 90, 120])]
+    lat0, lat1 = min(lats), max(lats) or 1
+    lon0, lon1 = min(lons), max(lons) or 1
+
+    def xy(lon, lat):
+        x = ox + (lon - lon0) / (lon1 - lon0) * w
+        y = oy - (lat - lat0) / (lat1 - lat0) * h
+        return (x, y)
+
+    s.rect(ox, oy - h, w, h, sw=2.6)
+    s.text((ox + w / 2, 48), "经纬网", 26)
+    for lat in lats:
+        x1, y = xy(lon0, lat)
+        x2, _ = xy(lon1, lat)
+        dash = "10 8" if lat == 0 else None
+        s.line((x1, y), (x2, y), 2.2 if lat else 3.0, dash=dash)
+        label = "赤道" if lat == 0 else ("%s°N" % int(lat) if lat > 0 else "%s°S" % int(abs(lat)))
+        s.text((ox - 48, y + 8), label, 20)
+    for lon in lons:
+        x, y1 = xy(lon, lat0)
+        _, y2 = xy(lon, lat1)
+        s.line((x, y1), (x, y2), 2.2)
+        s.text((x, oy + 36), ("%s°E" % int(lon)) if lon >= 0 else ("%s°W" % int(abs(lon))), 20)
+    regions = [item for item in (fig.get("regions") or []) if isinstance(item, dict)]
+    for item in regions:
+        x1, y1 = xy(float(item.get("lon0") or 0), float(item.get("lat1") or 0))
+        x2, y2 = xy(float(item.get("lon1") or 0), float(item.get("lat0") or 0))
+        s.rect(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1), fill="url(#hatch)", sw=2.0)
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+        s.text((cx, cy + 8), str(item.get("name") or ""), 26)
+    points = fig.get("points") or (
+        []
+        if regions
+        else [
+            {"name": "甲", "lat": 20, "lon": 30},
+            {"name": "乙", "lat": 50, "lon": 90},
+        ]
+    )
+    for item in points:
+        if not isinstance(item, dict):
+            continue
+        pt = xy(float(item.get("lon") or 0), float(item.get("lat") or 0))
+        s.circle(pt, 8, fill=INK, w=1)
+        s.text((pt[0] + 22, pt[1] - 10), str(item.get("name") or ""), 26)
+    s.text((ox + w / 2, 600), "经线指示南北，纬线指示东西", 20)
+    return s
+
+
 CATALOG = [
     ("资料分析", "table", "统计表", fig_table),
     ("资料分析", "bars", "柱状图", fig_bars),
@@ -1350,7 +1868,7 @@ CATALOG = [
     ("图形推理", "grid", "黑白宫格", fig_grid),
     ("图形推理", "nine", "九宫格", fig_nine),
     ("图形推理", "bool", "黑白运算", fig_bool),
-    ("图形推理", "stroke", "一笔画", fig_stroke),
+    ("图形推理", "stroke", "丢沌瑪画", fig_stroke),
     ("图形推理", "curve", "曲直性", fig_curve),
     ("图形推理", "dots", "点线面", fig_dots),
     ("图形推理", "hanzi", "汉字笔画", fig_hanzi),
@@ -1374,13 +1892,19 @@ CATALOG = [
     ("科学推理", "motion", "v-t 图像", fig_motion),
     ("科学推理", "contour", "等高线", fig_contour),
     ("科学推理", "front", "锋面剖面", fig_front),
+    ("科学推理", "breeze", "海陆风", fig_breeze),
+    ("科学推理", "earth", "地球自转", fig_earth),
+    ("科学推理", "latlon", "经纬网", fig_latlon),
+    ("科学推理", "climate", "气澧銠年变化", fig_climate),
+    ("科学推理", "plate", "板块运动", fig_plate),
     ("科学推理", "food", "食物网", fig_food),
     ("科学推理", "reflex", "反射弧", fig_reflex),
     ("科学推理", "pedigree", "遗传系谱", fig_pedigree),
-    ("科学推理", "lens", "凸透镜光路", fig_lens),
+    ("科学推理", "lens", "凸棰銖镜光路", fig_lens),
     ("科学推理", "vessels", "连通器", fig_vessels),
     ("科学推理", "buoy", "浮力", fig_buoy),
     ("科学推理", "force", "受力分析", fig_force),
+    ("科学推理", "compose", "组合线稿", fig_compose),
     ("科学推理", "spring", "弹簧", fig_spring),
     ("科学推理", "gears", "齿轮传动", fig_gears),
     ("科学推理", "mirror", "平面镜反射", fig_mirror),
@@ -1394,8 +1918,29 @@ CATALOG = [
 ]
 
 
+def _keep_batch_groups(dest: Path) -> list:
+    path = dest / "catalog.json"
+    if not path.is_file():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    kept = []
+    for group in data.get("groups") or []:
+        gid = str(group.get("id") or "")
+        if gid.startswith(("batch-", "gemini-")):
+            kept.append(group)
+    return kept
+
+
 def build(dest: Path = OUT) -> dict:
+    dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
+    if dest.resolve() == OUT.resolve():
+        catalog = {"style": "black-white-line", "groups": _keep_batch_groups(dest)}
+        (dest / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return catalog
     groups: dict[str, list] = {}
     for group, key, title, fn in CATALOG:
         svg = fn()
@@ -1413,4 +1958,4 @@ def build(dest: Path = OUT) -> dict:
 if __name__ == "__main__":
     data = build()
     n = sum(len(g["items"]) for g in data["groups"])
-    print(f"wrote {n} figures → {OUT}")
+    print(f"wrote {n} figures ↄ17 {OUT}")

@@ -19,16 +19,19 @@ from PIL import Image
 
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("ZILIAO_VISUAL_REVIEW_MODEL", "gemini-3.8-flash-high")
-MOBILE_WIDTH = 320
+MODEL = os.environ.get("ZILIAO_VISUAL_REVIEW_MODEL") or os.environ.get(
+    "QUALITY_GATE_MODEL", "gemini-3.6-flash-high"
+)
+IPAD_REVIEW_MAX_W = 768
+IPAD_REVIEW_MAX_H = 480
 RETRIES = 2
 
-SYSTEM_PROMPT = """你是独立的公考资料分析图表质检员。你看到的第一张图是原图，第二张图是按320px宽缩放后的考生视图。
+SYSTEM_PROMPT = """你是独立的公考资料分析图表质检员。你只收到一张图：练习页 iPad 考生视图（最长边落入 768x480），不是原图像素，也不是手机缩略图。
 只审查图表质量，不润色题目。逐项检查：
 1. 标题、单位、图例、坐标轴、刻度、年份、行列名和数据标签是否完整；
 2. 数字是否与柱形、折线、网格线、边框或其他文字重合、遮挡或被裁切；
 3. 多系列的单位是否与系列一一对应，是否需要靠正文顺序猜测；
-4. 原图和320px图中的全部关键信息是否都能直接辨认；
+4. 这张练习页视图中的全部关键信息是否都能直接辨认；
 5. 图中可见数值是否与提供的材料和题目上下文冲突。
 任何一项不清楚都必须判 REJECT。只输出一个JSON对象，不要Markdown：
 {"verdict":"PASS或REJECT","checks":{"complete":true,"no_overlap":true,"units_mapped":true,"mobile_readable":true,"context_consistent":true},"issues":["具体问题"]}"""
@@ -54,11 +57,15 @@ def image_part(data: bytes, mime: str = "image/png") -> dict:
     return {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{encoded}"}}
 
 
-def mobile_png(path: Path) -> bytes:
+def review_png(path: Path) -> bytes:
     with Image.open(path) as image:
         image = image.convert("RGB")
-        height = max(1, round(image.height * MOBILE_WIDTH / image.width))
-        image = image.resize((MOBILE_WIDTH, height), Image.Resampling.LANCZOS)
+        src_w, src_h = image.size
+        scale = min(IPAD_REVIEW_MAX_W / src_w, IPAD_REVIEW_MAX_H / src_h, 1.0)
+        width = max(1, round(src_w * scale))
+        height = max(1, round(src_h * scale))
+        if (width, height) != (src_w, src_h):
+            image = image.resize((width, height), Image.Resampling.LANCZOS)
         output = BytesIO()
         image.save(output, "PNG")
         return output.getvalue()
@@ -151,7 +158,7 @@ def collect_images(batch_dir: Path) -> list[dict]:
 
 def review_image(item: dict, key: str) -> dict:
     path: Path = item["path"]
-    mobile = mobile_png(path)
+    review = review_png(path)
     with Image.open(path) as image:
         width, height = image.size
     context = json.dumps(item["contexts"], ensure_ascii=False, separators=(",", ":"))
@@ -160,10 +167,8 @@ def review_image(item: dict, key: str) -> dict:
             "type": "text",
             "text": f"图片文件：{path.name}\n相关材料与题目上下文：{context}",
         },
-        {"type": "text", "text": "原图："},
-        image_part(path.read_bytes(), "image/png" if path.suffix.lower() == ".png" else "image/jpeg"),
-        {"type": "text", "text": "320px宽考生视图："},
-        image_part(mobile),
+        {"type": "text", "text": "练习页 iPad 考生视图："},
+        image_part(review),
     ]
     body = json.dumps(
         {
@@ -200,7 +205,8 @@ def review_image(item: dict, key: str) -> dict:
                 "sha256": sha256(path),
                 "width": width,
                 "height": height,
-                "mobile_width": MOBILE_WIDTH,
+                "review_width": IPAD_REVIEW_MAX_W,
+                "review_height": IPAD_REVIEW_MAX_H,
                 "verdict": "PASS" if passed else "REJECT",
                 "checks": checks,
                 "issues": result.get("issues") or [],
@@ -222,7 +228,26 @@ def main() -> int:
     items = collect_images(batch_dir)
     if not items:
         raise SystemExit("批次没有需要检查的图表")
-    results = [review_image(item, api_key()) for item in items]
+    output = args.output or batch_dir / "evidence" / "ziliao-visual-quality.json"
+    prev_by_path = {}
+    if output.is_file():
+        try:
+            prev = json.loads(output.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            prev = {}
+        for row in (prev.get("images") or []) if isinstance(prev, dict) else []:
+            if isinstance(row, dict) and row.get("path") and row.get("verdict") == "PASS":
+                prev_by_path[str(row["path"])] = row
+    key = api_key()
+    results = []
+    for item in items:
+        rel = str(item["path"].relative_to(batch_dir))
+        digest = sha256(item["path"])
+        old_row = prev_by_path.get(rel)
+        if old_row and old_row.get("sha256") == digest:
+            results.append(old_row)
+            continue
+        results.append(review_image(item, key))
     verdict = "PASS" if all(item["verdict"] == "PASS" for item in results) else "REJECT"
     evidence = {
         "version": 1,
@@ -230,7 +255,8 @@ def main() -> int:
         "batch_id": json.loads((batch_dir / "manifest.json").read_text(encoding="utf-8")).get("batch_id"),
         "model": MODEL,
         "reviewed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "mobile_width": MOBILE_WIDTH,
+        "review_width": IPAD_REVIEW_MAX_W,
+        "review_height": IPAD_REVIEW_MAX_H,
         "verdict": verdict,
         "images": results,
     }

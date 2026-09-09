@@ -87,7 +87,7 @@ function serveStatic(req, res) {
       res.writeHead(200, {
         'Content-Type': mime,
         // 题库图会原地替换；按文件名缓存一天会让旧错图继续显示。
-        'Cache-Control': isHtml || isQuestionImage
+        'Cache-Control': isHtml || isQuestionImage || isFigureLab
           ? 'no-cache, no-store, must-revalidate'
           : 'public, max-age=86400',
       });

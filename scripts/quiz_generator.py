@@ -73,7 +73,7 @@ def parse_args() -> argparse.Namespace:
 
 
 FIGURE_KINDS = (
-    "cube_net, cube_iso, voxels, views, section, section_abc, tetra, "
+    "cube_net, cube_iso, voxels, views, section, section_abc, section_oblique, section_abc_quiz, tetra, "
     "lever, pulley, circuit, tank, motion, contour, front, food, pedigree, "
     "lens, vessels, buoy, force, spring, gears, mirror, st"
 )
@@ -105,6 +105,7 @@ def figure_control_prompt(run: dict, _snapshot: dict, db_path) -> str:
         "Junior-high only (杠杆/浮力/串并联/等高线/食物网). No 理想气体/动量守恒/洛伦兹力.\n"
         "EVERY question must include figure (stem). Picture options also need figure. "
         "Python renders figure. You MUST emit image_specs: image_facts list every visible "
+        "Also emit figure_contract {kind,must_show,must_not,must_derive}; Python keeps it.\n"
         "label/tick/intersection; must_derive is the answer and must not appear as a title.\n"
         "Figure must match the stem and be solvable from the drawing. "
         "Any 甲/乙/虚线/左视图/主视图/俯视图/L1/L2/钩码 mentioned in the stem MUST appear as labels in figure. "

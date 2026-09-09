@@ -8,7 +8,7 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from figure_lab import fig_motion
-from figure_qa import check_question
+from figure_qa import check_question, drawing_issues
 
 
 class FigureQaTest(unittest.TestCase):
@@ -76,7 +76,7 @@ class FigureQaTest(unittest.TestCase):
             png.parent.mkdir(parents=True)
             Image.new("RGB", (1400, 700), "white").save(png)
             png.with_suffix(".svg").write_text(
-                '<svg width="1100" height="620"><text font-size="32">冷气团</text>'
+                '<svg width="1100" height="620"><polygon points="80,480 520,520 900,240 900,520"/><text font-size="32">冷气团</text>'
                 '<text font-size="32">暖气团</text><text font-size="26">锋面剖面示意图</text></svg>',
                 encoding="utf-8",
             )
@@ -161,7 +161,7 @@ class FigureQaTest(unittest.TestCase):
             root = Path(temp)
             self._write_png_svg(
                 root,
-                '<svg width="1100" height="620"><text font-size="32">冷气团</text>'
+                '<svg width="1100" height="620"><polygon points="80,480 520,520 900,240 900,520"/><text font-size="32">冷气团</text>'
                 '<text font-size="32">暖气团</text><text font-size="26">冷锋剖面示意图</text></svg>',
             )
             (root / "image-specs.json").write_text(
@@ -243,8 +243,214 @@ class FigureQaTest(unittest.TestCase):
         self.assertEqual(classify_figure_issue("Q1: 图上多了清单/题干没有的「木块」"), "fig_extra_object")
         self.assertEqual(classify_figure_issue("Q1: 锋面题配了等高线图"), "fig_kind_mismatch")
         self.assertEqual(classify_figure_issue("Q1: 反射弧题配了食物网"), "fig_kind_mismatch")
+        self.assertEqual(classify_figure_issue("Q1: 图上几乎只有文字标签，没有装置线稿"), "fig_empty_drawing")
+        self.assertEqual(classify_figure_issue("Q1: 电路图缺少导线"), "fig_empty_drawing")
         self.assertEqual(classify_figure_issue("Q1: 图上写了 must_derive 的「冷锋」"), "fig_leak_answer")
         self.assertEqual(classify_figure_issue("Q1: 像素过低 1280x720（至少 1400x500）"), "fig_low_res")
+
+    def test_rejects_label_only_circuit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1400" height="620">'
+                '<text font-size="32">甲</text><text font-size="32">乙</text>'
+                '<text font-size="26">S</text><text font-size="26">丙</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "C1",
+                    "stem": "如图电路中甲、乙、丙为三盏灯。",
+                    "tags": ["科学推理-电学-电路故障"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("导线" in item or "文字标签" in item for item in issues), issues)
+
+    def test_rejects_pedigree_without_lines(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1400" height="620">'
+                '<rect x="80" y="80" width="40" height="40"/>'
+                '<rect x="200" y="80" width="40" height="40"/>'
+                '<text font-size="24">甲</text><text font-size="24">乙</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "G1",
+                    "stem": "如图为某家族遗传系谱。",
+                    "tags": ["科学推理-生物-遗传"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("世代连线" in item for item in issues), issues)
+
+    def test_rejects_front_without_section(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1400" height="620">'
+                '<text font-size="32">冷气团</text>'
+                '<text font-size="32">暖气团</text>'
+                '<text font-size="26">雨区</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "F1",
+                    "stem": "如图为某锋面天气系统剖面示意图。",
+                    "tags": ["科学推理-地理-锋面天气"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("气团剖面" in item or "文字标签" in item for item in issues), issues)
+
+    def test_rejects_sparse_png_ink(self):
+        from draw_tools import _layout_issues
+
+        with tempfile.TemporaryDirectory() as temp:
+            png = Path(temp) / "sparse.png"
+            im = Image.new("RGB", (1400, 700), "white")
+            im.putpixel((12, 12), (0, 0, 0))
+            im.putpixel((1388, 12), (0, 0, 0))
+            im.putpixel((12, 688), (0, 0, 0))
+            im.putpixel((1388, 688), (0, 0, 0))
+            im.save(png)
+            issues = _layout_issues(png)
+        self.assertTrue(any("空白和几个字" in item for item in issues), issues)
+
+
+
+    def test_rejects_tiny_front_arrows_as_section(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1400" height="620">'
+                '<polyline points="60,140 635,460"/>'
+                '<polygon points="365,400 335,390 342,400"/>'
+                '<text font-size="32">冷气团</text>'
+                '<text font-size="32">暖气团</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "F2",
+                    "stem": "如图为某锋面天气系统剖面示意图。",
+                    "tags": ["科学推理-地理-锋面天气"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("气团剖面" in item for item in issues), issues)
+
+    def test_rejects_earth_without_globe(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1400" height="620">'
+                '<line x1="100" y1="80" x2="400" y2="500"/>'
+                '<text font-size="24">甲</text><text font-size="24">乙</text>'
+                '<text font-size="24">夜</text><text font-size="24">昼</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "E1",
+                    "stem": "地球侧视：左侧夜半球、右侧昼半球。",
+                    "tags": ["科学推理-地理-地球自转"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("地球圆面" in item for item in issues), issues)
+
+
+
+
+    def test_rejects_cancel_x_on_block(self):
+        svg = (
+            '<svg><rect x="240" y="140" width="320" height="240"/>'
+            '<polygon points="250,150 254,150 550,370 546,370"/>'
+            '<polygon points="250,370 254,370 550,150 546,150"/>'
+            "</svg>"
+        )
+        issues = drawing_issues("Q2", "物块拉力", "科学推理-力学", svg)
+        self.assertTrue(any("叉号" in item for item in issues), issues)
+
+
+
+
+    def test_rejects_latlon_stem_on_contour_map(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1100" height="620"><text font-size="24">等高线（单位：m，等高距 50m）</text>'
+                '<text font-size="40">甲</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "L1",
+                    "stem": "如图所示为地球表面经纬网局部示意图，甲、乙两地。",
+                    "tags": ["科学推理-地理-区域地理"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("经纬网题配了等高线图" in item for item in issues), issues)
+
+    def test_rejects_cart_stem_on_conveyor(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1100" height="620"><text font-size="24">传送带</text>'
+                '<text font-size="24">物块</text></svg>',
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "C2",
+                    "stem": "如图所示，水平地面上有一辆小车，小车底板上放置着物块。",
+                    "tags": ["科学推理-力学-摩擦与惯性"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertTrue(any("小车题" in item for item in issues), issues)
+
+
+
+    def test_ignores_jia_yi_not_in_circuit_stem(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self._write_png_svg(
+                root,
+                '<svg width="1100" height="620"><line x1="40" y1="80" x2="400" y2="80"/>'
+                '<line x1="40" y1="200" x2="400" y2="200"/><line x1="40" y1="80" x2="40" y2="200"/>'
+                '<text font-size="24">R1</text><text font-size="24">R2</text>'
+                '<text font-size="24">S1</text><text font-size="24">电源</text></svg>',
+            )
+            (root / "image-specs.json").write_text(
+                '{"questions":[{"question_id":"C3","image_facts":["R1","R2","S1","甲","乙"],'
+                '"image_only_facts":["R1"],"must_derive":["功率"]}]}',
+                encoding="utf-8",
+            )
+            issues = check_question(
+                root,
+                {
+                    "external_id": "C3",
+                    "category": "科学推理",
+                    "stem": "如图所示电路中，电源电压恒定，R1=R2。当开关 S1 闭合时总功率为 P1。",
+                    "tags": ["科学推理-电学-串并联"],
+                    "stem_images": ["images/q.png"],
+                },
+            )
+        self.assertFalse(any("甲" in item or "乙" in item for item in issues), issues)
 
 
 if __name__ == "__main__":

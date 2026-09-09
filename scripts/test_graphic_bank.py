@@ -7,6 +7,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from PIL import Image
+
+from figure_qa import MIN_H, MIN_W
 from graphic_bank import (
     NET_CORRECT,
     SECTION_RECIPES,
@@ -55,6 +58,23 @@ class SectionMathTest(unittest.TestCase):
         self.assertEqual(front_view(voxels), {(0, 0), (1, 0), (0, 1)})
 
 
+    def test_abc_section_variant_has_distinct_options(self):
+        from graphic_bank import render_cube_section
+        with tempfile.TemporaryDirectory() as temp:
+            dest = Path(temp) / "images" / "sec.png"
+            dest.parent.mkdir(parents=True)
+            texts, letter, _note, rels = render_cube_section(dest, "A", variant=1)
+            self.assertEqual(letter, "A")
+            self.assertEqual(texts, ["A", "B", "C", "D"])
+            self.assertTrue(dest.is_file())
+            hashes = []
+            for rel in rels:
+                path = dest.parent / Path(rel).name
+                self.assertTrue(path.is_file(), rel)
+                hashes.append(path.read_bytes())
+            self.assertEqual(len(set(hashes)), 4)
+
+
 class CubeNetMathTest(unittest.TestCase):
     def test_keyed_triples_are_right_handed(self):
         for visible in NET_CORRECT:
@@ -80,32 +100,20 @@ class SpatialDrillTest(unittest.TestCase):
                 stem = batch_dir / question["stem_images"][0]
                 self.assertTrue(stem.is_file())
                 self.assertGreater(stem.stat().st_size, 1000)
+                with Image.open(stem) as im:
+                    self.assertGreaterEqual(im.size[0], MIN_W)
+                    self.assertGreaterEqual(im.size[1], MIN_H)
                 self.assertEqual(len(question["options"]), 4)
                 hashes = []
                 for option in question["options"]:
                     self.assertTrue(option.get("images"))
                     path = batch_dir / option["images"][0]
                     self.assertTrue(path.is_file())
+                    with Image.open(path) as im:
+                        self.assertGreaterEqual(im.size[0], MIN_W)
+                        self.assertGreaterEqual(im.size[1], MIN_H)
                     hashes.append(path.read_bytes())
                 self.assertEqual(len(set(hashes)), 4, question["external_id"])
-
-
-class BuildPaperTest(unittest.TestCase):
-    def test_five_pngs_and_keyed_letters(self):
-        letters = list("ABCD" * 5)
-        slots = [
-            slot
-            for slot in select_panduan_paper({}, {}, letters=letters, rng=random.Random("g1"))
-            if slot["section"] == "graphic"
-        ]
-        with tempfile.TemporaryDirectory() as temp:
-            batch_dir = Path(temp)
-            questions = build_graphic_paper(slots, batch_dir, "demo")
-            self.assertEqual(len(questions), 5)
-            for slot, question in zip(slots, questions):
-                self.assertEqual(question["answer"], slot["answer"])
-                self.assertTrue((batch_dir / question["stem_images"][0]).is_file())
-                self.assertGreater((batch_dir / question["stem_images"][0]).stat().st_size, 1000)
 
 
 if __name__ == "__main__":

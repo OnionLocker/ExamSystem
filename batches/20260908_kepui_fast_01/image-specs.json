@@ -1,0 +1,118 @@
+{
+  "questions": [
+    {
+      "question_id": "20260908_kepui_fast_01_01",
+      "image_facts": [
+        "A",
+        "B",
+        "F1",
+        "F2",
+        "水平地面"
+      ],
+      "image_only_facts": [
+        "A",
+        "B",
+        "F1",
+        "F2"
+      ],
+      "must_derive": [
+        "静摩擦力"
+      ],
+      "must_not": [
+        "f",
+        "摩擦力"
+      ],
+      "kind": "force"
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_02",
+      "image_facts": [
+        "甲",
+        "乙",
+        "气温",
+        "降水量"
+      ],
+      "image_only_facts": [
+        "甲",
+        "乙"
+      ],
+      "must_derive": [
+        "甲地夏季高温多雨",
+        "乙地夏季炎热干燥、冬季温和多雨"
+      ],
+      "must_not": [],
+      "kind": "climate"
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_03",
+      "image_facts": [
+        "甲",
+        "乙",
+        "物块"
+      ],
+      "image_only_facts": [
+        "甲",
+        "乙",
+        "物块"
+      ],
+      "must_derive": [
+        "浮力等于重力",
+        "液体密度大小关系",
+        "容器底部增加压强相等"
+      ],
+      "must_not": [
+        "密度关系"
+      ],
+      "kind": "tank"
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_04",
+      "image_facts": [
+        "R1",
+        "S1",
+        "S2",
+        "A"
+      ],
+      "image_only_facts": [
+        "R1",
+        "R2",
+        "S1",
+        "S2",
+        "A"
+      ],
+      "must_derive": [
+        "电源电压",
+        "R2电功率"
+      ],
+      "must_not": [
+        "3.6W",
+        "0.4A",
+        "1.0A",
+        "A1",
+        "S"
+      ],
+      "kind": "circuit"
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_05",
+      "image_facts": [
+        "①",
+        "⑤"
+      ],
+      "image_only_facts": [
+        "①",
+        "②",
+        "③",
+        "④",
+        "⑤"
+      ],
+      "must_derive": [
+        "根据神经节辨识传入神经"
+      ],
+      "must_not": [
+        "兴奋传递方向箭头"
+      ],
+      "kind": "reflex"
+    }
+  ]
+}

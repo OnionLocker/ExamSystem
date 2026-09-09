@@ -124,14 +124,60 @@ const parseOptions = (raw) => {
 const draftUrl = (sessionId, questionId) =>
   `/api/practice/sessions/${sessionId}/drafts/${questionId}/file`;
 
+const parseSessionQuestionIds = (raw) => {
+  if (!raw) return null;
+  try {
+    const ids = JSON.parse(raw);
+    if (!Array.isArray(ids)) return null;
+    return [...new Set(ids.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
+  } catch {
+    return null;
+  }
+};
+
+const sessionOwnsQuestion = (session, questionId) => {
+  const ids = parseSessionQuestionIds(session?.question_ids);
+  if (ids) return ids.includes(questionId);
+  // Legacy sessions predate the question snapshot. Keep them readable, but
+  // still bind them to their batch whenever category is a real batch id.
+  const question = db.prepare('SELECT batch_id FROM questions WHERE id = ?').get(questionId);
+  if (!question) return false;
+  const batchExists = db.prepare('SELECT 1 FROM questions WHERE batch_id = ? LIMIT 1').get(session?.category);
+  return !batchExists || question.batch_id === session.category;
+};
+
+const requireSessionQuestion = (sessionId, questionId) => {
+  const session = db
+    .prepare('SELECT id, category, question_ids, ended_at FROM practice_sessions WHERE id = ?')
+    .get(sessionId);
+  if (!session) return { error: 'session not found', status: 404 };
+  if (!sessionOwnsQuestion(session, questionId)) return { error: 'question does not belong to session', status: 403 };
+  return { session };
+};
+
 // ───────────────────────────────────────────────────────────────
 // POST /api/practice/sessions
 //   body: { category }
 //   → { id }
 // ───────────────────────────────────────────────────────────────
 router.post('/sessions', (req, res) => {
-  const { category = '刷题' } = req.body || {};
+  const { category = '刷题', question_ids: rawQuestionIds } = req.body || {};
   const cat = String(category).slice(0, 100);
+  const questionIds = Array.isArray(rawQuestionIds)
+    ? [...new Set(rawQuestionIds.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))]
+    : [];
+  const batchExists = db.prepare('SELECT 1 FROM questions WHERE batch_id = ? LIMIT 1').get(cat);
+  if (batchExists && questionIds.length === 0) {
+    return res.status(400).json({ error: 'question_ids required for batch session' });
+  }
+  if (questionIds.length) {
+    const rows = db
+      .prepare(`SELECT id FROM questions WHERE batch_id = ? AND id IN (${questionIds.map(() => '?').join(',')})`)
+      .all(cat, ...questionIds);
+    if (rows.length !== questionIds.length) {
+      return res.status(400).json({ error: 'question_ids must belong to category batch' });
+    }
+  }
 
   // 开新的一场之前，把这个题组上没交卷就跑了的残局清掉。
   // 没交卷就不算一次：既不该出现在复盘里，也不该把草稿图留在磁盘上。
@@ -148,10 +194,10 @@ router.post('/sessions', (req, res) => {
 
   const result = db
     .prepare(
-      `INSERT INTO practice_sessions (category, started_at)
-       VALUES (?, datetime('now', '+8 hours'))`,
+      `INSERT INTO practice_sessions (category, question_ids, started_at)
+       VALUES (?, ?, datetime('now', '+8 hours'))`,
     )
-    .run(cat);
+    .run(cat, questionIds.length ? JSON.stringify(questionIds) : null);
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
@@ -219,11 +265,30 @@ router.post('/sessions/:id/submit', (req, res) => {
   const sessionId = Number(req.params.id);
   const { duration_sec = 0, answers } = req.body || {};
 
-  const session = db.prepare('SELECT id, ended_at, category FROM practice_sessions WHERE id = ?').get(sessionId);
+  const session = db
+    .prepare('SELECT id, ended_at, category, question_ids FROM practice_sessions WHERE id = ?')
+    .get(sessionId);
   if (!session) return res.status(404).json({ error: 'session not found' });
   if (session.ended_at) return res.status(409).json({ error: '这份卷子已经交过了' });
   if (!Array.isArray(answers) || answers.length === 0) {
     return res.status(400).json({ error: 'answers required' });
+  }
+
+  const expectedIds = parseSessionQuestionIds(session.question_ids);
+  const submittedIds = answers.map((item) => Number(item?.question_id));
+  if (new Set(submittedIds).size !== submittedIds.length
+      || submittedIds.some((id) => !Number.isSafeInteger(id) || !sessionOwnsQuestion(session, id))) {
+    return res.status(400).json({ error: 'answers contain duplicate or foreign questions' });
+  }
+  if (expectedIds) {
+    const receivedIds = answers.map((item) => Number(item?.question_id));
+    const uniqueIds = new Set(receivedIds);
+    if (uniqueIds.size !== receivedIds.length || receivedIds.some((id) => !expectedIds.includes(id))) {
+      return res.status(400).json({ error: 'answers contain a question outside this session' });
+    }
+    if (uniqueIds.size !== expectedIds.length || expectedIds.some((id) => !uniqueIds.has(id))) {
+      return res.status(400).json({ error: 'answers must cover this session question set' });
+    }
   }
 
   const getQ = db.prepare(
@@ -257,8 +322,10 @@ router.post('/sessions/:id/submit', (req, res) => {
     let correct = 0;
 
     for (const a of list) {
-      const q = getQ.get(Number(a?.question_id));
+      const questionId = Number(a?.question_id);
+      const q = getQ.get(questionId);
       if (!q) continue;
+      if (!sessionOwnsQuestion(session, questionId)) continue;
       const userAnswer = String(a?.user_answer ?? '');
       const timeSpent = Math.max(0, Math.round(Number(a?.time_spent_sec) || 0));
       const skipped = userAnswer === '';
@@ -326,7 +393,7 @@ const getPracticeReport = (sessionId) => {
          q.external_id,
          q.correct_answer, q.explanation, q.stem_images, q.explanation_images,
          q.tags,
-         pd.question_id AS has_draft
+         pd.question_id AS has_draft, pd.filename AS draft_filename
        FROM practice_answers pa
        JOIN questions q ON q.id = pa.question_id
        LEFT JOIN practice_drafts pd
@@ -358,6 +425,7 @@ const getPracticeReport = (sessionId) => {
     skipped: r.user_answer === '',
     time_spent_sec: r.time_spent_sec,
     draft_url: r.has_draft ? draftUrl(sessionId, r.question_id) : null,
+    draft_path: r.draft_filename ? path.join(draftDir, r.draft_filename) : null,
   }));
 
   return { session, items };
@@ -427,8 +495,8 @@ router.put('/sessions/:id/drafts/:questionId', readDraftUpload, (req, res) => {
   const sessionId = Number(req.params.id);
   const questionId = Number(req.params.questionId);
 
-  const session = db.prepare('SELECT id FROM practice_sessions WHERE id = ?').get(sessionId);
-  if (!session) return res.status(404).json({ error: 'session not found' });
+  const ownership = requireSessionQuestion(sessionId, questionId);
+  if (ownership.error) return res.status(ownership.status).json({ error: ownership.error });
   const q = db.prepare('SELECT id FROM questions WHERE id = ?').get(questionId);
   if (!q) return res.status(404).json({ error: 'question not found' });
 
@@ -486,6 +554,8 @@ router.put('/sessions/:id/drafts/:questionId', readDraftUpload, (req, res) => {
 //   直接出图（<img src> 走 ?token=）
 // ───────────────────────────────────────────────────────────────
 router.get('/sessions/:id/drafts/:questionId/file', (req, res) => {
+  const ownership = requireSessionQuestion(Number(req.params.id), Number(req.params.questionId));
+  if (ownership.error) return res.status(ownership.status).json({ error: ownership.error });
   const row = db
     .prepare('SELECT * FROM practice_drafts WHERE session_id = ? AND question_id = ?')
     .get(Number(req.params.id), Number(req.params.questionId));
@@ -509,6 +579,8 @@ router.get('/sessions/:id/drafts/:questionId/file', (req, res) => {
 //   浏览器拿 <img> 再转 canvas 会多一道 CORS/污染的坑，直接让后端给 data URL
 // ───────────────────────────────────────────────────────────────
 router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
+  const ownership = requireSessionQuestion(Number(req.params.id), Number(req.params.questionId));
+  if (ownership.error) return res.status(ownership.status).json({ error: ownership.error });
   const row = db
     .prepare('SELECT * FROM practice_drafts WHERE session_id = ? AND question_id = ?')
     .get(Number(req.params.id), Number(req.params.questionId));

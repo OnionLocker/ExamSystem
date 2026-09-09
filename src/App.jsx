@@ -690,7 +690,7 @@ const AppInner = () => {
               {activeTab === 'knowledge' && '知识点 · 广东省考老师口径'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
-              {activeTab === 'figureLab' && '图样预览 · 黑白线稿'}
+              {activeTab === 'figureLab' && '图样预览 · 批次1'}
               {activeTab === 'flashcards' && '抽认卡'}
               {activeTab === 'pomodoro' && '番茄钟'}
               {activeTab === 'mockexam' && '全卷模考'}

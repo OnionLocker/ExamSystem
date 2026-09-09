@@ -23,6 +23,7 @@ class QualityLedgerTest(unittest.TestCase):
         self.assertEqual(ql.classify_figure_issue("清单要求交点，图上折线不相交"), "fig_no_intersection")
         self.assertEqual(ql.classify_figure_issue("图上多了清单/题干没有的「木块」"), "fig_extra_object")
         self.assertEqual(ql.classify_figure_issue("锋面题配了等高线图"), "fig_kind_mismatch")
+        self.assertEqual(ql.classify_figure_issue("电路图缺少导线"), "fig_empty_drawing")
         self.assertEqual(ql.classify_figure_issue("图上写了 must_derive 的「冷锋」"), "fig_leak_answer")
         self.assertEqual(ql.classify_figure_issue("像素过低 1280x720"), "fig_low_res")
         events = ql.classify_error(
@@ -32,6 +33,10 @@ class QualityLedgerTest(unittest.TestCase):
         self.assertEqual(events[0]["question_id"], "daily-20260907-kepui-f3b9b0dd1c394c0b889a_03")
         mixed = ql.classify_error("题干设定两容器为甲、乙，解析混用 ρ_A、ρ_B")
         self.assertEqual(mixed[0]["class"], "notation_stem_mismatch")
+        regen = ql.classify_error("k_03: FIGURE_REGEN: 题干无法出图，需改题")
+        self.assertEqual(regen[0]["class"], "fig_unrenderable")
+        self.assertEqual(regen[0]["question_id"], "k_03")
+        self.assertIn("改考点", ql.MUST_FIX["fig_unrenderable"])
 
     def test_record_dedup_and_summary(self):
         first = ql.record_event(

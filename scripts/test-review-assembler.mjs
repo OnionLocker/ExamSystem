@@ -17,9 +17,14 @@ import {
   buildPracticeReviewLead,
   isEmptyPraise,
   resolveSuggestedTime,
+  needsPracticeImage,
 } from '../src/hermes/reviewSpec.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+assert.equal(needsPracticeImage({ is_correct: true, time_spent_sec: 45, sub_category: '逻辑填空' }), false);
+assert.equal(needsPracticeImage({ is_correct: true, time_spent_sec: 46, sub_category: '逻辑填空' }), true);
+assert.equal(needsPracticeImage({ is_correct: false, time_spent_sec: 10 }), true);
+assert.equal(needsPracticeImage({ is_correct: true, skipped: true }), true);
 const fixture = (name) => fs.readFileSync(path.join(here, 'fixtures/practice-review', name), 'utf8');
 
 assert.equal(resolveSuggestedTime({ sub_category: '逻辑填空' }).label, '≤40–45s');

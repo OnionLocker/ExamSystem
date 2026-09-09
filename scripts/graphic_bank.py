@@ -9,6 +9,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from figure_qa import MIN_H, MIN_W
 from image_kinds import GRAPHIC_KIND_BY_MOVE
 
 INK = (20, 20, 20)
@@ -121,8 +122,8 @@ def _font(size: int):
     return ImageFont.load_default()
 
 
-def _canvas(w=1100, h=720):
-    im = Image.new("RGB", (w, h), BG)
+def _canvas(w=MIN_W, h=720):
+    im = Image.new("RGB", (max(int(w), MIN_W), max(int(h), MIN_H)), BG)
     return im, ImageDraw.Draw(im)
 
 
@@ -631,7 +632,30 @@ def _section_wrongs(correct: set[tuple[int, int]]) -> list[set[tuple[int, int]]]
     return out[:3]
 
 
+
+def render_cube_section_abc(dest: Path, letter: str, variant: int = 0):
+    from abc_section import make, place_for_letter, render_option_svg, render_stem
+    from program_figure import svg_to_png
+
+    quiz = make(6 + int(variant), 7)
+    idx = "ABCD".index(quiz["answer"])
+    wrongs = [quiz["options"][i] for i in range(4) if i != idx]
+    options, letter = place_for_letter(quiz["truth"]["flat"], wrongs, letter)
+    svg = dest.with_suffix(".svg")
+    render_stem(quiz["voxels"], quiz["abc"]).write(svg)
+    svg_to_png(svg, dest)
+    opt_rels = []
+    for key, flat in zip("ABCD", options):
+        opt = _option_path(dest, key)
+        render_option_svg(flat).write(opt.with_suffix(".svg"))
+        svg_to_png(opt.with_suffix(".svg"), opt)
+        opt_rels.append(f"images/{opt.name}")
+    return ["A", "B", "C", "D"], letter, f"过三点截面。故选 {letter}。", opt_rels
+
+
 def render_cube_section(dest: Path, letter: str, variant: int = 0) -> tuple[list[str], str, str, list[str]]:
+    if int(variant) % 2 == 1:
+        return render_cube_section_abc(dest, letter, variant)
     recipe = SECTION_RECIPES[variant % len(SECTION_RECIPES)]
     voxels = recipe["voxels"]
     cut = section_of_stack(voxels, recipe["plane"])
@@ -708,10 +732,12 @@ def build_graphic_question(slot: dict, dest: Path) -> dict:
     else:
         texts, letter, analysis = render(dest, letter)
         opt_imgs = None
+        if kind in {'faces', 'arrows', 'xor'}:
+            stem += '（A、B、C、D 四个选项位于同一张题图下方。）'
     if kind == "cube_net":
         stem = STEM_NETS[variant % len(STEM_NETS)]
     elif kind == "cube_section":
-        stem = STEM_CUTS[variant % len(STEM_CUTS)]
+        stem = "过 A、B、C 三点切开，正确的截面是：" if variant % 2 == 1 else STEM_CUTS[variant % len(STEM_CUTS)]
     elif kind == "cube_views":
         stems = STEM_FRONTS if VIEW_RECIPES[variant % len(VIEW_RECIPES)]["mode"] == "front" else STEM_TOPS
         stem = stems[variant % len(stems)]

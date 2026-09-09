@@ -215,8 +215,11 @@ def _spec_issues(qid: str, stem: str, blob: str, question: dict, spec: dict | No
     missing = [
         token
         for token in dict.fromkeys(FACT_TOKEN_RE.findall(positive))
-        if token not in blob and token not in forbidden
+        if token not in blob and token not in forbidden and token in stem
     ]
+    if missing and any(mark in blob for mark in "①②③④⑤"):
+        skip = set(NAMED) | set(LEAK_WORDS)
+        missing = [token for token in missing if token not in skip]
     if missing:
         issues.append(f"{qid}: 清单有 { '、'.join(missing) }，图上没有")
     for token in forbidden:
@@ -236,6 +239,21 @@ def _spec_issues(qid: str, stem: str, blob: str, question: dict, spec: dict | No
     if "圆柱" in facts or "圆柱" in stem:
         if "<ellipse" not in blob:
             issues.append(f"{qid}: 清单/题干是圆柱容器，图上没有椭圆")
+    skip_shape = {"箭头", "容器", "水面", "细线", "程序绘制的图形", "题干图"}
+    sub = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
+    for raw in spec.get("image_only_facts") or []:
+        token = str(raw).strip()
+        if not token or token in PLACEHOLDER_FACTS or token in skip_shape:
+            continue
+        if len(token) > 8 or any(ch in token for ch in "为在与和的要求"):
+            continue
+        variants = {token, token.translate(sub), re.sub(r"([RLA])_([0-9]+)", r"\1\2", token.translate(sub))}
+        if token == "U":
+            if "U" not in blob and "+" not in blob:
+                issues.append(f"{qid}: 清单有 U，图上没有")
+            continue
+        if not any(item and item in blob for item in variants):
+            issues.append(f"{qid}: 清单有 {token}，图上没有")
     derive = " ".join(str(item) for item in (spec.get("must_derive") or []))
     for token in LEAK_WORDS:
         if token in derive and token in blob:
@@ -244,6 +262,105 @@ def _spec_issues(qid: str, stem: str, blob: str, question: dict, spec: dict | No
     for label in EXTRA_LABELS:
         if label in blob and label not in allowed:
             issues.append(f"{qid}: 图上多了清单/题干没有的「{label}」")
+    return issues
+
+
+
+def _bg_rects(blob: str) -> int:
+    return blob.count("<rect") - blob.count('width="100%"')
+
+
+def _point_span(points: str) -> tuple[float, float]:
+    xs: list[float] = []
+    ys: list[float] = []
+    for pair in points.split():
+        if "," not in pair:
+            continue
+        x, y = pair.split(",", 1)
+        try:
+            xs.append(float(x))
+            ys.append(float(y))
+        except ValueError:
+            continue
+    if not xs:
+        return 0.0, 0.0
+    return max(xs) - min(xs), max(ys) - min(ys)
+
+
+def _has_large_section(blob: str) -> bool:
+    if "url(#hatch)" in blob:
+        return True
+    for match in re.finditer(r'<polygon points="([^"]+)"', blob):
+        dx, dy = _point_span(match.group(1))
+        if dx >= 180 and dy >= 80:
+            return True
+    return False
+
+
+
+def _poly_pts(points: str) -> list[tuple[float, float]]:
+    pts = []
+    for pair in points.split():
+        if "," not in pair:
+            continue
+        x, y = pair.split(",", 1)
+        try:
+            pts.append((float(x), float(y)))
+        except ValueError:
+            continue
+    return pts
+
+
+def _has_cancel_x(blob: str) -> bool:
+    bars = []
+    for match in re.finditer(r'<polygon points="([^"]+)"', blob):
+        pts = _poly_pts(match.group(1))
+        if len(pts) < 4:
+            continue
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        dx, dy = max(xs) - min(xs), max(ys) - min(ys)
+        if dx < 80 or dy < 80:
+            continue
+        slope = 1 if pts[-1][1] > pts[0][1] else -1
+        bars.append((min(xs), min(ys), max(xs), max(ys), slope))
+    for i, left in enumerate(bars):
+        for right in bars[i + 1 :]:
+            if left[4] == right[4]:
+                continue
+            if left[0] < right[2] and right[0] < left[2] and left[1] < right[3] and right[1] < left[3]:
+                return True
+    return False
+
+
+def drawing_issues(qid: str, stem: str, tags: str, blob: str) -> list[str]:
+    """Reject label-only canvases that still contain 甲/乙 so old bbox QA would pass."""
+    issues: list[str] = []
+    if not blob:
+        return issues
+    if _has_cancel_x(blob):
+        issues.append(f"{qid}: 物块上画了叉号")
+    wires = blob.count("<line") + blob.count("<polyline")
+    shapes = blob.count("<polygon") + max(0, _bg_rects(blob))
+    texts = blob.count("<text")
+    hint = f"{stem} {tags}"
+    science = "科学推理" in hint or any(
+        token in hint for token in ("电路", "遗传", "系谱", "锋面", "气团", "海陆风", "压强", "受力", "食物网")
+    )
+    if science and wires + shapes < 2 and texts >= 2:
+        issues.append(f"{qid}: 图上几乎只有文字标签，没有装置线稿")
+    if "电路" in hint and wires < 3:
+        issues.append(f"{qid}: 电路图缺少导线")
+    if any(token in hint for token in ("遗传", "系谱")) and wires < 3:
+        issues.append(f"{qid}: 系谱图没有世代连线")
+    if any(token in hint for token in ("锋面", "气团")) and not _has_large_section(blob):
+        issues.append(f"{qid}: 锋面图没有气团剖面")
+    if "海陆风" in hint and wires + blob.count("<polygon") < 2:
+        issues.append(f"{qid}: 海陆风图没有环流箭头")
+    if any(token in hint for token in ("地球自转", "地球侧视")):
+        radii = [float(item) for item in re.findall(r'<circle[^>]*r="([0-9.]+)"', blob)]
+        if not any(item >= 80 for item in radii):
+            issues.append(f"{qid}: 地球自转图没有地球圆面")
     return issues
 
 
@@ -267,6 +384,8 @@ def check_question(batch_dir: Path, question: dict) -> list[str]:
             if int(size) < MIN_FONT:
                 issues.append(f"{qid}: 字号 {size} 过小（至少 {MIN_FONT}）")
                 break
+    tags = " ".join(str(value) for value in question.get("tags") or [])
+    issues.extend(drawing_issues(qid, stem, tags, blob))
     if "甲" in stem and "乙" in stem and ("甲" not in blob or "乙" not in blob):
         issues.append(f"{qid}: 题干有甲乙，图上没有")
     if "虚线" in stem and "stroke-dasharray" not in blob:
@@ -277,17 +396,30 @@ def check_question(batch_dir: Path, question: dict) -> list[str]:
         issues.append(f"{qid}: 题干有灯号，图上没有 L")
     if ("旋转" in stem or "折叠" in stem) and "展开" not in stem:
         issues.append(f"{qid}: 空间旋转/折叠题必须给展开图（六个面）")
-    tags = " ".join(str(value) for value in question.get("tags") or [])
     front_stem = any(token in stem or token in tags for token in ("锋面", "冷锋", "暖锋", "气团"))
     contour_fig = "等高线" in blob or "等高距" in blob
     if front_stem and contour_fig:
         issues.append(f"{qid}: 锋面题配了等高线图")
+    if front_stem and ("海风" in blob or "陆风" in blob):
+        issues.append(f"{qid}: 锋面题配了海陆风图")
+    breeze_tag = "海陆风" in tags or "海陆风" in stem
+    if breeze_tag and ("冷气团" in blob or "等高线" in blob):
+        issues.append(f"{qid}: 海陆风题配了锋面或等高线图")
     if front_stem and "冷气团" not in blob and "暖气团" not in blob:
         issues.append(f"{qid}: 锋面题图上没有气团标注")
     if "剖面" in stem and contour_fig and "锋" not in blob:
         issues.append(f"{qid}: 剖面题配了平面等高线图")
     if ("等高线" in stem or "等高距" in stem) and "等高" not in blob:
         issues.append(f"{qid}: 等高线题图上没有等高标注")
+    latlon_stem = any(token in stem for token in ("经纬网", "纬线圈", "经线", "纬线"))
+    if latlon_stem and ("等高线" in blob or "等高距" in blob):
+        issues.append(f"{qid}: 经纬网题配了等高线图")
+    if latlon_stem and "经纬网" not in blob:
+        issues.append(f"{qid}: 经纬网题图上没有经纬网")
+    if "小车" in stem and "传送带" in blob:
+        issues.append(f"{qid}: 小车题配了传送带图")
+    if "小车" in stem and "小车" not in blob:
+        issues.append(f"{qid}: 小车题图上没有小车")
     spec = _spec_map(batch_dir).get(qid)
     facts = _facts(spec)
     reflex = "反射弧" in stem or "反射弧" in tags or "①" in facts

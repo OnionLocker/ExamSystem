@@ -35,18 +35,17 @@ def paper_from_slots(slots: list[dict], *, science: bool = False) -> list[dict]:
 
 
 class PanduanPackTest(unittest.TestCase):
-    def test_default_pack_is_graphic5_logic15(self):
+    def test_default_pack_is_20_logic_no_graphic(self):
         slots = pack.select_panduan_paper({}, {}, letters=list("ABCD" * 5), rng=random.Random("daily-p"))
         self.assertEqual(len(slots), 20)
-        self.assertEqual([slot["section"] for slot in slots[:5]], ["graphic"] * 5)
-        self.assertEqual([slot["section"] for slot in slots[5:]], ["logic"] * 15)
+        self.assertEqual([slot["section"] for slot in slots], ["logic"] * 20)
         self.assertFalse(any(slot["section"] == "science" for slot in slots))
         self.assertLessEqual(sum(1 for slot in slots if "翻译推理" in slot["tag"]), 2)
         pack.validate_panduan_paper(paper_from_slots(slots))
 
     def test_rejects_all_translation(self):
         questions = [item(i, "logic", pack.TRANSLATION_TAG) for i in range(1, 21)]
-        with self.assertRaisesRegex(ValueError, "图形 5 \\+ 逻辑 15"):
+        with self.assertRaisesRegex(ValueError, "翻译推理每年只考"):
             pack.validate_panduan_paper(questions)
 
     def test_rejects_science_inside_panduan20(self):
@@ -72,10 +71,13 @@ class PanduanPackTest(unittest.TestCase):
         )
         self.assertEqual(len(compact["slots"]), 20)
         self.assertEqual(compact["layout"], pack.LAYOUT_NAME)
-        self.assertEqual(compact["layout"], "5_graphic_plus_15_logic")
+        self.assertEqual(compact["layout"], "20_logic_no_graphic")
         self.assertTrue(all(slot.get("exam_move") for slot in compact["slots"]))
-        logic_moves = [slot["exam_move"] for slot in compact["slots"] if slot["section"] == "logic"]
-        self.assertEqual(len(logic_moves), len(set(logic_moves)))
+        # 同标签允许不同 exam_move；不同标签的 exam_move 不必全唯一（选项池 < 槽数）
+        same_tag_moves = {slot["tag"]: set() for slot in compact["slots"]}
+        for slot in compact["slots"]:
+            same_tag_moves[slot["tag"]].add(slot["exam_move"])
+        self.assertTrue(all(len(moves) <= 3 for moves in same_tag_moves.values()))
 
     def test_kaodian_rejects_structure_slot_without_ask(self):
         questions = paper_from_slots(pack.select_panduan_paper({}, {}))
@@ -150,7 +152,37 @@ class KepuiPackTest(unittest.TestCase):
                     [3],
                 )
         self.assertIn(contour, seen)
-        self.assertGreater(len(seen), 2)
+        self.assertGreater(len(seen), 3)
+        front = "科学推理-地理-锋面天气"
+        many = [
+            pack.select_kepui_paper({}, {}, rng=random.Random(seed), recent={front})
+            for seed in range(40)
+        ]
+        geo = [slot["tag"] for slots in many for slot in slots if "地理" in slot["tag"]]
+        self.assertNotEqual(set(geo), {front})
+        self.assertLess(geo.count(front) / len(geo), 0.35)
+
+    def test_shuliang_and_yanyu_rotate_off_recent(self):
+        date = "数量关系-有规律的周期循环与要算准的日期星期-日期推算与余数"
+        detail = "言语理解与表达-片段阅读-细节判断"
+        math = [
+            slot["tag"]
+            for slot in pack.select_shuliang_paper(rng=random.Random(3), recent={date})
+            if slot["section"] == "math"
+        ]
+        self.assertNotIn(date, math)
+        papers = [pack.select_yanyu_paper(rng=random.Random(seed)) for seed in range(12)]
+        self.assertTrue(any("语句" in slot["tag"] for slots in papers for slot in slots))
+        self.assertGreater(
+            len({slot["tag"] for slots in papers for slot in slots if slot["section"] == "read"}),
+            2,
+        )
+        filled = [
+            slot["tag"]
+            for slot in pack.select_yanyu_paper(rng=random.Random(3), recent={detail})
+            if slot["section"] == "read"
+        ]
+        self.assertLessEqual(filled.count(detail), 2)
 
     def test_weak_contour_still_wins(self):
         contour = "科学推理-地理-等高线"

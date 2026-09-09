@@ -22,16 +22,11 @@ from kaodian_taxonomy import (
 LETTERS = ("A", "B", "C", "D")
 CAT_ZILIAO = "\u8d44\u6599\u5206\u6790"
 CAT_PANDUAN = "\u5224\u65ad\u63a8\u7406"
-CAT_KEPUI = "\u79d1\u5b66\u63a8\u7406"
 CAT_SHULIANG = "\u6570\u91cf\u5173\u7cfb"
 CAT_YANYU = "\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe"
 ALLOWED_SUBS = {
     "\u6570\u91cf\u5173\u7cfb": ("\u6570\u5b57\u63a8\u7406", "\u6570\u5b66\u8fd0\u7b97"),
-    "\u5224\u65ad\u63a8\u7406": (
-        "\u56fe\u5f62\u63a8\u7406",
-        "\u903b\u8f91\u5224\u65ad",
-    ),
-    "\u79d1\u5b66\u63a8\u7406": ("\u79d1\u5b66\u63a8\u7406",),
+    "\u5224\u65ad\u63a8\u7406": ("\u903b\u8f91\u5224\u65ad",),
 }
 
 _MENTION = re.compile(
@@ -68,10 +63,6 @@ def paper_rank(question: dict) -> tuple:
     if cat == CAT_SHULIANG:
         return (0 if "\u6570\u5b57\u63a8\u7406" in blob else 1, "")
     if cat == CAT_PANDUAN:
-        if "\u56fe\u5f62\u63a8\u7406" in blob:
-            return (0, "")
-        return (1, "")
-    if cat == CAT_KEPUI:
         return (0, "")
     if cat == CAT_YANYU:
         return (0 if "\u903b\u8f91\u586b\u7a7a" in blob else 1, "")
@@ -190,8 +181,44 @@ def generation_payload_extras(
         return extras
     if module == CAT_SHULIANG and n == 15:
         extras["batch_constraints"]["shuliang_layout"] = "5_sequence_plus_10_math"
+        from panduan_pack import compact_shuliang_pack, select_shuliang_paper
+
+        packed = None
+        if db_path is not None:
+            try:
+                from learner_snapshot import build_shuliang_pack
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    packed = build_shuliang_pack(conn, letters, seed)
+                finally:
+                    conn.close()
+            except (sqlite3.Error, OSError, ImportError):
+                packed = None
+        if packed is None:
+            packed = {"paper_style": "gd", "slots": select_shuliang_paper(letters, random.Random(seed))}
+        extras["shuliang_pack"] = compact_shuliang_pack(packed)
+    if module == CAT_YANYU and n == 15:
+        extras["batch_constraints"]["yanyu_layout"] = "5_fill_plus_10_read"
+        from panduan_pack import compact_yanyu_pack, select_yanyu_paper
+
+        packed = None
+        if db_path is not None:
+            try:
+                from learner_snapshot import build_yanyu_pack
+
+                conn = sqlite3.connect(db_path)
+                try:
+                    packed = build_yanyu_pack(conn, letters, seed)
+                finally:
+                    conn.close()
+            except (sqlite3.Error, OSError, ImportError):
+                packed = None
+        if packed is None:
+            packed = {"paper_style": "gd", "slots": select_yanyu_paper(letters, random.Random(seed))}
+        extras["yanyu_pack"] = compact_yanyu_pack(packed)
     if module == CAT_PANDUAN and n == 20:
-        extras["batch_constraints"]["panduan_layout"] = "5_graphic_plus_15_logic"
+        extras["batch_constraints"]["panduan_layout"] = "20_logic_no_graphic"
         from panduan_pack import compact_panduan_pack, select_panduan_paper
 
         packed = None
@@ -212,36 +239,6 @@ def generation_payload_extras(
                 "slots": select_panduan_paper({}, {}, letters=letters, rng=random.Random(seed)),
             }
         extras["panduan_pack"] = compact_panduan_pack(packed)
-    if module == CAT_KEPUI and n == 5:
-        extras["batch_constraints"]["kepui_layout"] = "5_kepui_distinct_subjects"
-        extras["batch_constraints"]["kepui_subjects"] = [
-            "\u529b\u5b66",
-            "\u538b\u5f3a\u6d6e\u529b",
-            "\u7535\u5b66",
-            "\u751f\u7269",
-            "\u5730\u7406",
-        ]
-        extras["batch_constraints"]["image_dependent_count"] = {"min": 5, "max": 5}
-        from panduan_pack import compact_kepui_pack, select_kepui_paper
-
-        packed = None
-        if db_path is not None:
-            try:
-                from learner_snapshot import build_kepui_pack
-
-                conn = sqlite3.connect(db_path)
-                try:
-                    packed = build_kepui_pack(conn, letters, seed)
-                finally:
-                    conn.close()
-            except (sqlite3.Error, OSError, ImportError):
-                packed = None
-        if packed is None:
-            packed = {
-                "paper_style": "gd",
-                "slots": select_kepui_paper({}, {}, letters=letters, rng=random.Random(seed)),
-            }
-        extras["kepui_pack"] = compact_kepui_pack(packed)
     if module == CAT_ZILIAO and n == 20:
         extras["ziliao_answer_groups"] = [letters[index : index + 5] for index in range(0, 20, 5)]
         if db_path is not None:
@@ -257,34 +254,6 @@ def generation_payload_extras(
                 pass
     return extras
 
-
-
-def is_kepui_batch(manifest: dict, questions: list[dict]) -> bool:
-    batch_id = str(manifest.get("batch_id") or "")
-    module = str(manifest.get("module") or manifest.get("category") or "")
-    if "-kepui-" in batch_id or module == CAT_KEPUI:
-        return True
-    generated = generated_questions(questions)
-    if len(generated) != 5:
-        return False
-    from panduan_pack import is_science_question
-
-    return all(is_science_question(item) for item in generated)
-
-
-def rewrite_kepui_category(manifest: dict, questions: list[dict]) -> int:
-    """Force independent 科学推理 papers onto CAT_KEPUI; do not trust the LLM."""
-    if not is_kepui_batch(manifest, questions):
-        return 0
-    changed = 0
-    for question in generated_questions(questions):
-        if str(question.get("category") or "") != CAT_KEPUI:
-            question["category"] = CAT_KEPUI
-            changed += 1
-        if str(question.get("sub_category") or "").strip() != CAT_KEPUI:
-            question["sub_category"] = CAT_KEPUI
-            changed += 1
-    return changed
 
 
 def current_answer(question: dict) -> str:
@@ -337,6 +306,26 @@ def has_question_images(question: dict) -> bool:
     return any(option.get("images") for option in question.get("options") or [])
 
 
+
+def bind_ziliao_materials(questions: list[dict], materials: list | None) -> int:
+    """20 题 + 4 篇材料时按 5 题一篇补 material_id。"""
+    if not isinstance(materials, list) or len(materials) != 4:
+        return 0
+    mids = [str(item.get("external_id") or "") for item in materials if isinstance(item, dict)]
+    mids = [mid for mid in mids if mid]
+    if len(mids) != 4:
+        return 0
+    ziliao = [q for q in questions if isinstance(q, dict) and str(q.get("category") or "") == CAT_ZILIAO]
+    if len(ziliao) != 20:
+        return 0
+    changed = 0
+    for index, question in enumerate(ziliao):
+        mid = mids[index // 5]
+        if str(question.get("material_id") or "") != mid:
+            question["material_id"] = mid
+            changed += 1
+    return changed
+
 def fill_bookkeeping(question: dict) -> list[str]:
     changed = []
     if not str(question.get("answer") or "").strip() and question.get("correct_answer"):
@@ -355,16 +344,15 @@ def fill_bookkeeping(question: dict) -> list[str]:
                 changed.append("tags")
     category = str(question.get("category") or "")
     allowed = ALLOWED_SUBS.get(category) or ()
+    if not allowed and question.get("sub_category") not in (None, ""):
+        question.pop("sub_category", None)
+        changed.append("sub_category")
     if allowed and not str(question.get("sub_category") or "").strip():
         tag = question_primary_tag(question)
-        if "\u79d1\u5b66\u63a8\u7406" in tag:
-            question["sub_category"] = "\u79d1\u5b66\u63a8\u7406"
+        parts = [part for part in tag.split("-") if part]
+        if len(parts) >= 2 and parts[1] in allowed:
+            question["sub_category"] = parts[1]
             changed.append("sub_category")
-        else:
-            parts = [part for part in tag.split("-") if part]
-            if len(parts) >= 2 and parts[1] in allowed:
-                question["sub_category"] = parts[1]
-                changed.append("sub_category")
     if not str(question.get("analysis") or "").strip():
         explanation = str(question.get("explanation") or "").strip()
         if explanation:
@@ -569,6 +557,12 @@ def _item_matches(item: dict, questions_by_id: dict[str, dict], role: str, conn:
         return False
     if refs != list(item.get("reference_ids") or []):
         return False
+    for rid in refs:
+        if conn.execute(
+            "SELECT 1 FROM reference_questions WHERE external_id = ?",
+            (str(rid),),
+        ).fetchone() is None:
+            return False
     for qid in item.get("question_ids") or []:
         question = questions_by_id.get(str(qid))
         if question is None:
@@ -647,7 +641,6 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
         for item in eval_items:
             if _item_matches(item, questions_by_id, "evaluate", conn):
                 rebuilt.append(item)
-                exclude.update(str(ref) for ref in (item.get("reference_ids") or []))
         covered = {str(qid) for item in rebuilt for qid in (item.get("question_ids") or [])}
         for (category, sub, tag, image_mode), qids in _group_questions(generated):
             if all(qid in covered for qid in qids):
@@ -665,14 +658,22 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
                 )
             except (RuntimeError, sqlite3.Error, TypeError, ValueError):
                 continue
+            refs = [str(ref) for ref in result.get("reference_ids") or []]
+            if not refs or any(
+                conn.execute(
+                    "SELECT 1 FROM reference_questions WHERE external_id = ?",
+                    (ref,),
+                ).fetchone() is None
+                for ref in refs
+            ):
+                continue
             rebuilt.append(
                 {
                     "context_id": result["context_id"],
-                    "reference_ids": list(result.get("reference_ids") or []),
+                    "reference_ids": refs,
                     "question_ids": qids,
                 }
             )
-            exclude.update(str(ref) for ref in result.get("reference_ids") or [])
             covered.update(qids)
         if rebuilt != list(eval_items):
             generation["evaluation_contexts"] = rebuilt
@@ -759,7 +760,9 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
         loaded = json.loads(materials_path.read_text(encoding="utf-8"))
         if isinstance(loaded, list):
             materials = loaded
-    kepui_rewritten = rewrite_kepui_category(manifest, questions)
+    bound = bind_ziliao_materials(questions, materials)
+    from generation_gate import ensure_ziliao_q5_judge_stems
+    judged = ensure_ziliao_q5_judge_stems(questions)
     filled = 0
     for question in generated_questions(questions):
         filled += len(fill_bookkeeping(question))
@@ -776,8 +779,8 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
     contexts = repair_reference_contexts(manifest, questions)
     sourced = stamp_daily_source(manifest, questions, materials)
     compacted = normalize_materials(materials)
-    changed = bool(filled or rewritten or contexts or sourced or ordered or kepui_rewritten or compacted)
-    if filled or rewritten or sourced or ordered or kepui_rewritten:
+    changed = bool(filled or rewritten or contexts or sourced or ordered or compacted or bound or judged)
+    if filled or rewritten or sourced or ordered or bound or judged:
         write_json(questions_path, questions)
         if raw_calc is not None and rewritten:
             write_json(calc_path, raw_calc)

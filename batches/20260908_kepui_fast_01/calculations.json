@@ -1,0 +1,59 @@
+{
+  "questions": [
+    {
+      "question_id": "20260908_kepui_fast_01_01",
+      "correct": 12,
+      "options": {
+        "A": 12,
+        "B": 8,
+        "C": 8,
+        "D": 16
+      },
+      "tolerance": 0.01
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_02",
+      "correct": 0,
+      "options": {
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "D": 0
+      },
+      "tolerance": 0.01
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_03",
+      "correct": 0,
+      "options": {
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "D": 0
+      },
+      "tolerance": 0.01
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_04",
+      "correct": 3.6,
+      "options": {
+        "A": 9,
+        "B": 15,
+        "C": 3.6,
+        "D": 7.5
+      },
+      "tolerance": 0.01
+    },
+    {
+      "question_id": "20260908_kepui_fast_01_05",
+      "correct": 0,
+      "options": {
+        "A": 0,
+        "B": 0,
+        "C": 0,
+        "D": 0
+      },
+      "tolerance": 0.01
+    }
+  ]
+}

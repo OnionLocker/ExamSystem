@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="560" viewBox="0 0 1080 560" overflow="hidden">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 6 L6 0" stroke="#111111" stroke-width="1"/></pattern><pattern id="hatch2" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 0 H6 M0 3 H6" stroke="#111111" stroke-width="1"/></pattern><pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="0.9" fill="#111111"/></pattern></defs>
+<rect x="475" y="56" width="130" height="68" fill="none" stroke="#111111" stroke-width="2.8"/>
+<text x="540" y="100" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">农作物</text>
+<rect x="220" y="216" width="120" height="68" fill="none" stroke="#111111" stroke-width="2.8"/>
+<text x="280" y="260" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">害虫</text>
+<rect x="740" y="216" width="120" height="68" fill="none" stroke="#111111" stroke-width="2.8"/>
+<text x="800" y="260" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">鼠</text>
+<rect x="220" y="396" width="120" height="68" fill="none" stroke="#111111" stroke-width="2.8"/>
+<text x="280" y="440" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">青蛙</text>
+<rect x="740" y="396" width="120" height="68" fill="none" stroke="#111111" stroke-width="2.8"/>
+<text x="800" y="440" fill="#111111" font-size="28" text-anchor="middle" font-family="Noto Sans CJK SC, Source Han Sans SC, sans-serif">蛇</text>
+<line x1="540" y1="124" x2="280" y2="216" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<polygon points="280,216 288.37,206.67 292.37,217.99" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="540" y1="124" x2="800" y2="216" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<polygon points="800,216 787.63,217.99 791.63,206.67" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="280" y1="284" x2="280" y2="396" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<polygon points="280,396 274,385 286,385" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="800" y1="284" x2="800" y2="396" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<polygon points="800,396 794,385 806,385" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+<line x1="280" y1="284" x2="800" y2="396" stroke="#111111" stroke-width="2.8" stroke-linecap="round"/>
+<polygon points="800,396 787.98,399.55 790.51,387.82" fill="#111111" stroke="#111111" stroke-width="1" stroke-linejoin="round"/>
+</svg>

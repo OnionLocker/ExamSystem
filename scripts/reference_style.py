@@ -1152,6 +1152,11 @@ def collect_context_candidates(
                 continue
             if row["external_id"] in exclude_ids:
                 continue
+            if conn.execute(
+                "SELECT 1 FROM reference_questions WHERE external_id = ?",
+                (str(row["external_id"]),),
+            ).fetchone() is None:
+                continue
             if blocked_gd_reference(row):
                 continue
             level = match_level(row, category, sub_category, target_tag)

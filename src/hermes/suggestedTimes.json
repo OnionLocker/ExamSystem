@@ -1,0 +1,14 @@
+[
+  { "pattern": "逻辑填空|选词填空", "min": 40, "max": 45, "label": "≤40–45s" },
+  { "pattern": "翻译推理", "min": 50, "max": 60, "label": "≤50–60s" },
+  { "pattern": "加强|削弱|前提|假设|论证", "min": 50, "max": 70, "label": "≤50–70s" },
+  { "pattern": "图形", "min": 40, "max": 50, "label": "≤40–50s" },
+  { "pattern": "分析推理", "min": 70, "max": 90, "label": "≤70–90s" },
+  { "pattern": "数字推理", "min": 40, "max": 50, "label": "≤40–50s" },
+  { "pattern": "数量|数学运算", "min": 45, "max": 60, "label": "≤45–60s" },
+  { "pattern": "资料", "min": 50, "max": 60, "label": "≤50–60s" },
+  { "pattern": "科学推理", "min": 50, "max": 70, "label": "≤50–70s" },
+  { "pattern": "片段|主旨|中心理解|意图|标题|细节|语句", "min": 50, "max": 60, "label": "≤50–60s" },
+  { "pattern": "政治", "min": 25, "max": 40, "label": "≤25–40s" },
+  { "pattern": "常识", "min": 20, "max": 30, "label": "≤20–30s" }
+]

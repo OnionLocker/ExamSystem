@@ -28,7 +28,7 @@ import {
   isSystemInjectedNotice,
   normalizeHermesHistory,
 } from './hermesProtocol.js';
-import { buildExamReviewLead, buildPracticeReviewLead } from './reviewSpec.js';
+import { buildExamReviewLead, buildPracticeReviewLead, needsPracticeImage } from './reviewSpec.js';
 
 let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
@@ -997,7 +997,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '判定（每题只记一条，--item 必须用报告里的题目id/数据库id，禁止用卷面 01/02）：',
           '- 空题/未作答：不 record。没做完不等于不会。',
           '- 选项对，且草稿/过程能看出对应考点的关键步骤：1 --weight 1',
-          '- 选项对，但无草稿、乱画、过程对不上，或明显蒙对：0 --weight 1。对选项不等于掌握。',
+          '- 选项对，但实际看过的草稿显示过程对不上或明显蒙对：0 --weight 1。未加载或没有草稿属于证据不足，跳过，不判为不会。',
           '- 选项错：0 --weight 1。若过程整体对、只是最后算错或填错选项：1 --weight 0.5（会做但不稳）。',
           '- 选项对，但用时达到或超过本场慢题参考线，或方法明显绕远：1 --weight 0.7',
           '- 证据不足、无法判断会不会：跳过，不要猜掌握度。',
@@ -1243,9 +1243,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ]);
       const items = rep?.items || [];
       const noOf = (it) => items.indexOf(it) + 1;
-      // Keep every saved draft in question order. The review needs the full session,
-      // not a hand-picked subset that can hide a correct-but-slow approach.
-      const drafted = items.filter((it) => it.draft_url);
+      const focusItems = items.filter(needsPracticeImage);
+      const drafted = focusItems.filter((it) => it.draft_url);
 
       const asDataUrl = async (src) => {
         const res = await fetch(src);
@@ -1259,42 +1258,27 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         });
       };
 
-      const images = [];
-      for (const it of items) {
+      const jobs = [];
+      for (const it of focusItems) {
         const stems = [...(it.stem_images || [])];
         for (const opt of it.options || []) stems.push(...(opt.images || []));
         for (const [index, src] of stems.entries()) {
-          try {
-            const dataUrl = await asDataUrl(src);
-            if (dataUrl) {
-              images.push({
-                id: uid(),
-                name: `q${noOf(it)}-stem${index ? `-${index}` : ''}.png`,
-                dataUrl,
-                contextKind: 'practice',
-                contextId: Number(sessionId),
-                hidden: true,
-              });
-            }
-          } catch { /* 单张题图失败不阻塞 */ }
+          jobs.push({ name: `q${noOf(it)}-stem${index ? `-${index}` : ''}.png`, load: () => asDataUrl(src) });
         }
       }
-      const stemCount = images.length;
       for (const it of drafted) {
-        try {
-          const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
-          if (r?.data_url) {
-            images.push({
-              id: uid(),
-              name: `q${noOf(it)}-draft.png`,
-              dataUrl: r.data_url,
-              contextKind: 'practice',
-              contextId: Number(sessionId),
-              hidden: true,
-            });
-          }
-        } catch { /* 单张草稿加载失败不阻塞整份复盘 */ }
+        jobs.push({ name: `q${noOf(it)}-draft.png`, load: async () =>
+          (await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`))?.data_url });
       }
+      const images = [];
+      for (let offset = 0; offset < jobs.length; offset += 3) {
+        const loaded = await Promise.allSettled(jobs.slice(offset, offset + 3).map(async (job) => ({
+          id: uid(), name: job.name, dataUrl: await job.load(),
+          contextKind: 'practice', contextId: Number(sessionId), hidden: true,
+        })));
+        images.push(...loaded.filter((r) => r.status === 'fulfilled' && r.value.dataUrl).map((r) => r.value));
+      }
+      const stemCount = images.filter((img) => img.name.includes('-stem')).length;
 
       const s = rep.session || {};
       setPendingImages((prev) => [

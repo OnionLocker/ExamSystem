@@ -139,6 +139,27 @@ const putJson = await fetch(
 const putJsonBody = await putJson.json();
 assert.ok(putJson.ok, JSON.stringify(putJsonBody));
 
+db.prepare('UPDATE questions SET batch_id=? WHERE id=?').run('ownership-a', question.id);
+const foreign = db.prepare('SELECT id FROM questions WHERE id != ? LIMIT 1').get(question.id);
+db.prepare('UPDATE questions SET batch_id=? WHERE id=?').run('ownership-b', foreign.id);
+const owned = await call('/api/practice/sessions', { category: 'ownership-a', question_ids: [question.id] });
+for (const answers of [
+  [{ question_id: foreign.id, user_answer: 'A' }],
+  [{ question_id: question.id }, { question_id: question.id }],
+]) {
+  const response = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${owned.id}/submit`, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ answers }),
+  });
+  assert.equal(response.status, 400);
+}
+const denied = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${owned.id}/drafts/${foreign.id}`, {
+  method: 'PUT', headers: { 'content-type': 'image/png' }, body: png,
+});
+assert.equal(denied.status, 403);
+await call(`/api/practice/sessions/${owned.id}/submit`, {
+  answers: [{ question_id: question.id, user_answer: 'A', time_spent_sec: 10 }],
+});
+
 await new Promise((resolve) => server.close(resolve));
 db.close();
 fs.rmSync(temp, { recursive: true, force: true });

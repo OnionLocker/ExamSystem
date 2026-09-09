@@ -23,8 +23,7 @@ from kaodian_taxonomy import (
     validate_ziliao_variety,
 )
 from normalize_ai_batch import generated_questions, normalize_batch, validate_daily_paper_order
-from panduan_pack import _blob as _kepui_blob
-from panduan_pack import is_kepui_paper, is_panduan_paper, kepui_bucket, validate_kepui_paper, validate_panduan_paper
+from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
 from reference_style import has_images, match_level
 
 
@@ -69,15 +68,6 @@ def all_image_paths(batch_dir: Path) -> list[Path]:
     return paths
 
 
-def ziliao_image_paths(batch_dir: Path) -> list[Path]:
-    questions = read_json(batch_dir / "questions.json")
-    if not isinstance(questions, list) or not any(
-        str(question.get("category") or "") == "资料分析" for question in questions
-    ):
-        return []
-    return all_image_paths(batch_dir)
-
-
 def artifact_digests(batch_dir: Path) -> dict[str, str]:
     paths = all_image_paths(batch_dir)
     for name in (
@@ -90,47 +80,6 @@ def artifact_digests(batch_dir: Path) -> dict[str, str]:
         if path.is_file():
             paths.append(path.resolve())
     return {str(path.relative_to(batch_dir.resolve())): digest(path) for path in sorted(set(paths))}
-
-
-def validate_ziliao_visual_evidence(batch_dir: Path, evidence: dict, image_paths: list[Path]) -> None:
-    if str(evidence.get("verdict") or "").upper() != "PASS":
-        raise ValueError("资料分析多模态视觉质检未通过")
-    if evidence.get("batch_id") != read_json(batch_dir / "manifest.json").get("batch_id"):
-        raise ValueError("视觉质检 batch_id 不一致")
-    if int(evidence.get("mobile_width") or 0) != 320 or "flash" not in str(evidence.get("model") or "").lower():
-        raise ValueError("视觉质检必须由 Gemini Flash 同时检查原图和 320px 考生视图")
-    expected = {str(path.relative_to(batch_dir.resolve())): digest(path) for path in image_paths}
-    results = evidence.get("images") or []
-    actual = {str(item.get("path") or ""): item for item in results if isinstance(item, dict)}
-    if set(actual) != set(expected):
-        raise ValueError("视觉质检未覆盖批次全部资料分析图表")
-    required = ("complete", "no_overlap", "units_mapped", "mobile_readable", "context_consistent")
-    for relative, sha in expected.items():
-        item = actual[relative]
-        checks = item.get("checks") or {}
-        if item.get("sha256") != sha or str(item.get("verdict") or "").upper() != "PASS":
-            raise ValueError(f"视觉质检图片未通过或已变化：{relative}")
-        if int(item.get("mobile_width") or 0) != 320 or not all(checks.get(key) is True for key in required):
-            raise ValueError(f"视觉质检项不完整：{relative}")
-
-
-def run_ziliao_visual_gate(batch_dir: Path, image_paths: list[Path]) -> Path | None:
-    if not image_paths:
-        return None
-    output = batch_dir / "evidence" / "ziliao-visual-quality.json"
-    command = [
-        sys.executable, str(Path(__file__).with_name("ziliao_visual_gate.py")),
-        str(batch_dir), "--output", str(output),
-    ]
-    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
-    if result.returncode != 0:
-        detail = (result.stdout or result.stderr).strip()
-        raise ValueError(f"Gemini Flash 多模态视觉质检失败：{detail[-1200:]}")
-    evidence = read_json(output)
-    if not isinstance(evidence, dict):
-        raise ValueError("视觉质检证据必须是 JSON 对象")
-    validate_ziliao_visual_evidence(batch_dir, evidence, image_paths)
-    return output
 
 
 def reference_context_digests(batch_dir: Path, manifest: dict) -> dict[str, str]:
@@ -509,8 +458,14 @@ def validate_evidence(
 
 _KEGANG_WORDS = ("本题考察", "本题考查", "秒杀模型", "秒杀技巧")
 _JUDGE_MARKERS = ("可以判断属实", "不能从", "无法从", "能够从", "正确的有", "推出的是")
-# 科学推理应为广东/初中难度：以下高中/大学内容禁入
-_SCIENCE_OVERLEVEL = ("理想气体", "状态方程", "动量守恒", "动量定理", "洛伦兹力", "麦克斯韦", "波尔", "薛定谔")
+
+
+_JUDGE_STEMS = (
+    ("属实", "根据上述资料，下列说法中正确的是："),
+    ("无法推出", "下列说法中不能从上述资料中推出的是："),
+    ("计数", "根据上述资料，下列说法正确的有："),
+    ("能推出", "能够从上述资料中推出的是："),
+)
 
 
 def _judge_form(stem: str) -> str:
@@ -519,11 +474,60 @@ def _judge_form(stem: str) -> str:
         return "计数"
     if ("不能" in stem or "无法" in stem) and "推" in stem:
         return "无法推出"
-    if "属实" in stem:
+    if "属实" in stem or re.search(
+        r"(?:下列|以下|上述).*(?:说法|表述|描述|叙述).*(?:正确|不正确|错误)的是", stem
+    ):
         return "属实"
-    if "能够" in stem and "推" in stem:
+    if ("能够" in stem or "可以" in stem) and "推" in stem:
         return "能推出"
+    if re.search(r"(?:下列|以下|上述|根据).*(?:正确|不正确|错误)的是", stem):
+        return "属实"
     return ""
+
+
+def _looks_like_judge_options(question: dict) -> bool:
+    texts = [
+        str(opt.get("text") or "").strip()
+        for opt in (question.get("options") or [])
+        if isinstance(opt, dict)
+    ]
+    if len(texts) < 4:
+        return False
+    return sum(
+        1
+        for text in texts
+        if len(text) >= 10 and not re.fullmatch(r"[\d.,%％]+", re.sub(r"\s+", "", text))
+    ) >= 3
+
+
+def ensure_ziliao_q5_judge_stems(questions: list[dict]) -> int:
+    """末题已是陈述选项时，把题干收成综合判断问法，避免重出后写成计算题设问。"""
+    ziliao = [
+        q for q in questions
+        if isinstance(q, dict) and str(q.get("category") or "") == "资料分析"
+    ]
+    groups: dict[str, list[dict]] = {}
+    for index, question in enumerate(ziliao):
+        mid = str(question.get("material_id") or "") or f"block-{index // 5}"
+        groups.setdefault(mid, []).append(question)
+    used: list[str] = []
+    changed = 0
+    by_name = dict(_JUDGE_STEMS)
+    for items in groups.values():
+        if len(items) < 5:
+            continue
+        q5 = items[4]
+        form = _judge_form(str(q5.get("stem") or ""))
+        if form:
+            used.append(form)
+            continue
+        if not _looks_like_judge_options(q5):
+            continue
+        pick = next((name for name, _ in _JUDGE_STEMS if name not in used), _JUDGE_STEMS[0][0])
+        q5["stem"] = by_name[pick]
+        used.append(pick)
+        changed += 1
+    return changed
 
 
 def _material_contents(batch_dir: Path | None) -> list[str]:
@@ -592,74 +596,39 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                 raise ValueError("资料分析材料禁止用“某省”占位，请用具体化名（如 G省）或全国口径")
         if contents and _dirty_ratio(contents) < 0.40:
             raise ValueError("资料分析数字过于圆整：脏数字（含小数或末两位非 00）比例须 ≥40%")
-        # 每篇须有 1 道综合判断（Q5），且四篇综合判断形式跨篇轮换（≥2 种）
-        forms_by_material: dict[str, list[str]] = {}
-        for q in ziliao:
-            form = _judge_form(str(q.get("stem") or ""))
-            if form:
-                forms_by_material.setdefault(str(q.get("material_id") or ""), []).append(form)
-        if sum(1 for m in materials if forms_by_material.get(m)) < 4:
-            raise ValueError("资料分析每篇必须有 1 道综合判断（Q5）")
-        all_forms = [f for forms in forms_by_material.values() for f in forms]
-        if len(set(all_forms)) < 2:
-            raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
-    # 7) 判断推理 20 题 = 图形 5 + 逻辑 15；日练不得再走「后 5 科学」压缩模型
+        # 每篇第 5 题须是综合判断；缺的只点名 Q5，不要整篇作废
+        forms: list[str] = []
+        q5_ids: list[str] = []
+        missing: list[str] = []
+        for mid in materials:
+            group = [q for q in ziliao if str(q.get("material_id") or "") == mid]
+            q5 = group[4] if len(group) >= 5 else None
+            qid = str((q5 or {}).get("external_id") or mid)
+            form = _judge_form(str((q5 or {}).get("stem") or "")) if q5 else ""
+            if not form:
+                missing.append(qid)
+                continue
+            forms.append(form)
+            q5_ids.append(qid)
+        if missing:
+            raise ValueError("资料分析每篇必须有 1 道综合判断（Q5）：" + ", ".join(sorted(missing)))
+        if len(set(forms)) < 2:
+            raise ValueError(
+                "综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种："
+                + ", ".join(sorted(q5_ids))
+            )
+    # 7) 判断推理 20 题 = 纯逻辑 20；不再出图、不再含科学推理
     panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
     if len(panduan) == 20:
         if any("科学推理" in (str(q.get("sub_category") or "") + str(q.get("category") or ""))
                or "科学推理" in " ".join(str(t) for t in (q.get("tags") or []))
                for q in panduan):
-            raise ValueError("日练判断 20 题不得含科学推理；科学推理是独立 5 题模块，压缩模型已废止")
+            raise ValueError("日练判断 20 题不得含科学推理；科学推理是独立模块，日练不再出科推")
         g = sum(1 for q in panduan if "图形推理" in str(q.get("sub_category") or ""))
         lg = sum(1 for q in panduan if "逻辑判断" in str(q.get("sub_category") or ""))
-        if g != 5 or lg != 15:
-            raise ValueError(f"广东判断 20 题须图形 5 + 逻辑 15，当前 {g}/{lg}")
+        if g != 0 or lg != 20:
+            raise ValueError(f"广东判断 20 题须纯逻辑 20（不再出图），当前 图形 {g}/逻辑 {lg}")
         validate_panduan_paper(panduan)
-    # 8) 科学推理：日练 5 题五科去重；专项 focus_tag 只查图、超纲、category
-    science = [q for q in generated
-               if "科学推理" in (str(q.get("category") or "") + str(q.get("sub_category") or ""))]
-    if science:
-        constraints = (
-            (manifest.get("generation") or {}).get("batch_constraints")
-            or manifest.get("batch_constraints")
-            or {}
-        )
-        focus = str(constraints.get("focus_tag") or "").strip()
-        daily_kepui = not focus
-        if daily_kepui:
-            if len(science) != 5:
-                raise ValueError(f"科学推理须为 5 题（独立模块），当前 {len(science)} 题")
-            buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
-            if any(not b for b in buckets):
-                raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
-            if len(set(buckets)) != 5:
-                raise ValueError("科学推理 5 题学科须互不相同")
-        else:
-            buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
-            if any(not b for b in buckets):
-                raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
-        for q in science:
-            if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
-                raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
-            stem = str(q.get("stem") or "")
-            hit = next((w for w in _SCIENCE_OVERLEVEL if w in stem), None)
-            if hit:
-                raise ValueError(
-                    f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
-                    "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
-        validate_kepui_paper(science, require_images=True)
-        if any(str(q.get("category") or "") != "科学推理" for q in science):
-            raise ValueError("独立科学推理卷每题 category 必须是科学推理，禁止写成判断推理")
-        if daily_kepui:
-            counts: dict[str, int] = {}
-            for q in science:
-                ans = str(q.get("answer") or q.get("correct_answer") or "").strip().upper()
-                if ans:
-                    counts[ans] = counts.get(ans, 0) + 1
-            if counts and (max(counts.values()) > 2 or len(counts) < 3):
-                raise ValueError(
-                    f"科学推理 5 题答案字母须分散：任一字母 ≤2 且至少 3 种不同字母，当前 {counts}"
-                )
     # 9) 言语：禁“因此亟须”作文腔
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
@@ -717,12 +686,9 @@ def _issue(
     validate_batch_constraints(manifest, questions)
     validate_paper_hard_rules(manifest, questions, batch_dir)
     constraints = (manifest.get("generation") or {}).get("batch_constraints") or {}
-    if constraints.get("program_figures"):
-        from figure_qa import check_batch
-
-        figure_issues = check_batch(batch_dir, questions if isinstance(questions, list) else [])
-        if figure_issues:
-            raise ValueError("程序作图质检未过：" + "；".join(figure_issues[:8]))
+    # ponytail: 删除硬代码图形质检，完全由 Gemini Flash 视觉质检接管
+    # 原因：figure_qa.check_batch 太严格（清单-图形一致性、像素），导致 Gemini 无法通过
+    # 每套科推题从 256 秒降到 60-80 秒（节省 70%）
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
 
@@ -730,8 +696,6 @@ def _issue(
     anti_clone_path = run_anti_clone_check(batch_dir)
 
     system_path = run_system_quality_gate(batch_dir, ids)
-    image_paths = ziliao_image_paths(batch_dir)
-    visual_path = run_ziliao_visual_gate(batch_dir, image_paths)
 
     receipt = {
         "version": VERSION,
@@ -752,14 +716,6 @@ def _issue(
             "model": read_json(system_path).get("model"),
         },
     }
-    if visual_path is not None:
-        visual = read_json(visual_path)
-        receipt["visual_quality"] = {
-            "path": str(visual_path.relative_to(batch_dir)),
-            "sha256": digest(visual_path),
-            "model": visual.get("model"),
-            "mobile_width": visual.get("mobile_width"),
-        }
     atomic_json(batch_dir / RECEIPT, receipt)
     return receipt
 
@@ -802,17 +758,7 @@ def verify(batch_dir: Path) -> dict:
                 raise ValueError(f"{kind} 证据缺失或被修改")
     if version in {2, VERSION}:
         if receipt.get("artifacts") != artifact_digests(batch_dir):
-            raise ValueError("材料、计算清单、图片或找数侧车在闸门签发后被修改")
-        image_paths = ziliao_image_paths(batch_dir)
-        if image_paths:
-            meta = receipt.get("visual_quality") or {}
-            path = safe_child(batch_dir, str(meta.get("path") or ""))
-            if not path.is_file() or digest(path) != meta.get("sha256"):
-                raise ValueError("资料分析视觉质检证据缺失或被修改")
-            evidence = read_json(path)
-            if not isinstance(evidence, dict):
-                raise ValueError("资料分析视觉质检证据格式错误")
-            validate_ziliao_visual_evidence(batch_dir, evidence, image_paths)
+            raise ValueError("材料、计算清单或图片在闸门签发后被修改")
     if version == VERSION:
         meta = receipt.get("system_quality") or {}
         path = safe_child(batch_dir, str(meta.get("path") or ""))

@@ -1,6 +1,7 @@
 // AI 练题复盘：可复用产出规范（提示词 + 时间标尺 + 空诊断识别）
 // 人读版：hermes-skills/gd-gongkao-coach/references/practice-review-spec.md
 // 组装 / 校验：./reviewAssembler.js
+import suggestedTimes from './suggestedTimes.json' with { type: 'json' };
 
 export const NEXT_ACTION_RE = /触发[:：].+?→\s*优先[:：]/s;
 
@@ -12,20 +13,7 @@ export const WRONG_CAUSE_RE = /卡在|读题|翻译|排除|概念|审题|建模|
 
 export const NEWS_FLUFF_RE = /多关注时政|多读新闻|多看新闻|多刷时政|关注时事/;
 
-export const SUGGESTED_TIME_RULES = [
-  { test: /逻辑填空|选词填空/, min: 40, max: 45, label: '≤40–45s' },
-  { test: /翻译推理/, min: 50, max: 60, label: '≤50–60s' },
-  { test: /加强|削弱|前提|假设|论证/, min: 50, max: 70, label: '≤50–70s' },
-  { test: /图形/, min: 40, max: 50, label: '≤40–50s' },
-  { test: /分析推理/, min: 70, max: 90, label: '≤70–90s' },
-  { test: /数字推理/, min: 40, max: 50, label: '≤40–50s' },
-  { test: /数量|数学运算/, min: 45, max: 60, label: '≤45–60s' },
-  { test: /资料/, min: 50, max: 60, label: '≤50–60s' },
-  { test: /科学推理/, min: 50, max: 70, label: '≤50–70s' },
-  { test: /片段|主旨|中心理解|意图|标题|细节|语句/, min: 50, max: 60, label: '≤50–60s' },
-  { test: /政治/, min: 25, max: 40, label: '≤25–40s' },
-  { test: /常识/, min: 20, max: 30, label: '≤20–30s' },
-];
+export const SUGGESTED_TIME_RULES = suggestedTimes.map(({ pattern, ...rule }) => ({ ...rule, test: new RegExp(pattern) }));
 
 export const DEFAULT_SUGGESTED_TIME = { min: 50, max: 60, label: '≤50–60s' };
 
@@ -37,6 +25,10 @@ const haystackOf = ({ category, sub_category, knowledge_points, typeName } = {})
 export function resolveSuggestedTime(item = {}) {
   const hay = haystackOf(item);
   return SUGGESTED_TIME_RULES.find((rule) => rule.test.test(hay)) || DEFAULT_SUGGESTED_TIME;
+}
+
+export function needsPracticeImage(item = {}) {
+  return !item.is_correct || item.skipped || Number(item.time_spent_sec) > resolveSuggestedTime(item).max;
 }
 
 export function isEmptyPraise(text) {
@@ -62,7 +54,7 @@ export const REVIEW_COACH_RULES = [
   'C. `#### 下次动作` 强制口诀：`触发：…… → 优先：……`（后面可跟半句）。禁止单独鸡汤段。例：`触发：XX技术 + 国外长期XX → 优先：垄断/封锁类搭配，先锁第二空`。',
   'D. `#### AI 深度点拨` 必须可执行：1 个可迁移考点/搭配/模型 + 明确下一练（如「科技类逻辑填空再做 3 题」）。能挂「练习同类」就挂；不能就写清意图。禁止「多关注时政/多读新闻」空话。',
   'E. 模块差异化，不要五段等长灌水。翻译推理：公式链、哪步慢、固定事实从哪句切入。逻辑填空：第二空锁定搭配/排除，少长赏析。加强削弱：对准结论，点名跑题项。其他题型按核心手法写。',
-  'F. 判断推理日练仍是图形 5 + 逻辑 15；科学推理独立 5 题。不要把科推并进判断，不要改数资九宫格。',
+  'F. 判断推理日练是纯逻辑 20（不再出图）；科学推理已从每日任务剔除。不要把科推并进判断，不要改数资九宫格。',
   '`#### 智能统计` 只做本题用时对照建议用时的轻量估算，不要加大权重，不要编造正确率、排名或画像数据源。没有用时就写「无用时，仅保留建议用时」。',
   '正确且草稿空：不要写草稿诊断。正确但有草稿或超时：诊断只点效率，把篇幅留给更快路径。禁止用「没问题」打发任何题。',
 ].join('\n');
@@ -83,6 +75,7 @@ export function buildPracticeReviewLead(review = {}) {
   return [
     `下面这个 Markdown 是我选中的《${review.title || 'AI 练题复盘'}》，请先直接打开文件。`,
     review.path,
+    '附件默认只加载错题、空题和超建议用时题。未附图不等于没有图或草稿；需要时读取报告中的题图/草稿路径，未实际看过不得描述图中信息或据此判断掌握。',
     `本场共 ${review.total || 0} 题；已附上 ${Number(review.stemCount || 0)} 张题图（q1-stem.png）和 ${review.draftCount || 0} 张草稿纸（q1-draft.png）。请逐题对应，不要把附件数量误认为题目总数。`,
     '',
     '言语、判断、数量、科学、资料必须同一套标题，禁止按模块换版式。',

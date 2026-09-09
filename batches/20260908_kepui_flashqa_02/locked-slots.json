@@ -1,0 +1,27 @@
+[
+  {
+    "index": 1,
+    "tag": "科学推理-地理-等高线",
+    "kind": "contour"
+  },
+  {
+    "index": 2,
+    "tag": "科学推理-生物-生态系统与能量",
+    "kind": "food"
+  },
+  {
+    "index": 3,
+    "tag": "科学推理-力学-平抛运动",
+    "kind": "motion"
+  },
+  {
+    "index": 4,
+    "tag": "科学推理-压强与浮力-液体压强",
+    "kind": "tank"
+  },
+  {
+    "index": 5,
+    "tag": "科学推理-电学-电路故障",
+    "kind": "circuit"
+  }
+]

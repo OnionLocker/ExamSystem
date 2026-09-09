@@ -472,7 +472,10 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
         if (aborted) return;
         const items = keepMaterialGroups(qres?.items || [], batchId);
         if (items.length === 0) { setPhase('empty'); return; }
-        const s = await api('/api/practice/sessions', { method: 'POST', body: { category: batchId } });
+        const s = await api('/api/practice/sessions', {
+          method: 'POST',
+          body: { category: batchId, question_ids: items.map((item) => item.id) },
+        });
         if (aborted) return;
 
         setQuestions(items);
