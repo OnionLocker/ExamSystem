@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
   ChevronRight, Loader2, RefreshCw, ScanSearch, Target, Upload, X,
 } from 'lucide-react';
+import { MODULES, dailyDateOf, moduleOf } from '../aiPractice/practiceModules.js';
 
 const fmtSec = (sec) => {
   const total = Math.max(0, Math.floor(sec || 0));
@@ -18,24 +19,7 @@ const fmtDateTime = (raw) => {
   });
 };
 
-const MODULES = ['言语理解与表达', '判断推理', '科学推理', '数量关系', '资料分析'];
 const TIME_TAB = '时间';
-
-const moduleOf = (run) => {
-  if (MODULES.includes(run.module)) return run.module;
-  const text = `${run.module || ''} ${run.display_title || ''} ${run.category || ''}`.toLowerCase();
-  if (text.includes('言语理解与表达') || text.includes('yanyu') || text.includes('verbal')) return MODULES[0];
-  if (text.includes('科学推理') || text.includes('kepui') || text.includes('kexue')) return MODULES[2];
-  if (text.includes('判断推理') || text.includes('panduan') || text.includes('judg')) return MODULES[1];
-  if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[3];
-  if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[4];
-  return '';
-};
-
-const dailyDateOf = (run) => {
-  const planned = String(run.daily_plan_date || '').slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(planned) ? planned : '';
-};
 
 const formatDotDate = (date) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date || '';
@@ -405,7 +389,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              和时间、言语、判断、数量、资料同一套索引：定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
+              和时间、言语、判断、科学、图形题目、数量、资料同一套索引：定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
             </p>
           </div>
         </ModalShell>,

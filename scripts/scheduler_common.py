@@ -31,8 +31,27 @@ MODULE_QUOTAS = (
     ("资料分析", "ziliao", 20),
 )
 
+# 日练 batch_id slug → 展示模块名。tuxing/图形题目仅用于外采包命名与导入，
+# 不得加入 MODULE_QUOTAS（不再走 Gemini 画图生成）。
+DAILY_SLUG = {
+    "yanyu": "言语理解与表达",
+    "panduan": "判断推理",
+    "kepui": "科学推理",
+    "shuliang": "数量关系",
+    "ziliao": "资料分析",
+    "tuxing": "图形题目",
+}
+
 DAILY_SOURCE_PREFIX = "广东省考行测"
 _DAILY_BATCH_ID = re.compile(r"^daily-(\d{8})-")
+_DAILY_SLUG_ID = re.compile(r"^daily-\d{8}-([a-z]+)-")
+
+
+def module_from_batch_id(batch_id: str) -> str | None:
+    match = _DAILY_SLUG_ID.match(str(batch_id or ""))
+    if not match:
+        return None
+    return DAILY_SLUG.get(match.group(1))
 
 
 def daily_source_name(module: str, plan_date: dt.date | str) -> str:
@@ -43,11 +62,14 @@ def daily_source_name(module: str, plan_date: dt.date | str) -> str:
     return f"{DAILY_SOURCE_PREFIX}-{module}-{compact}"
 
 
-def daily_source_for_batch(batch_id: str, module: str) -> str | None:
+def daily_source_for_batch(batch_id: str, module: str = "") -> str | None:
     match = _DAILY_BATCH_ID.match(str(batch_id or ""))
-    if not match or not module:
+    if not match:
         return None
-    return daily_source_name(module, match.group(1))
+    resolved = module_from_batch_id(batch_id) or module
+    if not resolved:
+        return None
+    return daily_source_name(resolved, match.group(1))
 
 
 class AlreadyLocked(RuntimeError):

@@ -226,6 +226,21 @@ class NormalizeBatchTest(unittest.TestCase):
             self.assertEqual(saved["source"], expected)
             self.assertEqual(saved_q[0]["source"], expected)
 
+    def test_tuxing_slug_wins_over_question_category(self):
+        questions = [item("Q01", CAT_PANDUAN, TAG_LOGIC, "A", sub_category="图形推理")]
+        questions[0]["source"] = "random title"
+        manifest = {
+            "batch_id": "daily-20260910-tuxing-abc",
+            "source": "random title",
+            "module": "图形题目",
+            "kind": "collected",
+        }
+        changed = nab.stamp_daily_source(manifest, questions)
+        self.assertGreater(changed, 0)
+        expected = "广东省考行测-图形题目-20260910"
+        self.assertEqual(manifest["source"], expected)
+        self.assertEqual(questions[0]["source"], expected)
+
     def test_payload_contains_plan(self):
         extras = nab.generation_payload_extras(CAT_SHULIANG, 15, "daily-x")
         self.assertEqual(len(extras["answer_plan"]), 15)

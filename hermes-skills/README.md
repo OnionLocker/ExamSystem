@@ -16,3 +16,5 @@
 
 本机 Hermes 仍可用 `skill_view('quiz-pipeline')`；没有 Hermes 时直接读这些文件。
 脚本（`reference_style.py`、`quality_orchestrator.py` 等）优先读本目录。
+
+「图形题目」是外采带图日练包（slug `tuxing`），不是 AI 绘图模块；不要往 Gemini 日更配额里加。详见 `quiz-pipeline/references/module-hard-rules.md`。

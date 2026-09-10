@@ -19,7 +19,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import daily_batch_scheduler
 import daily_plan_scheduler
 from china_workday import is_workday, workday_reason
-from scheduler_common import reserve_runs
+from scheduler_common import (
+    DAILY_SLUG,
+    MODULE_QUOTAS,
+    daily_source_for_batch,
+    module_from_batch_id,
+    reserve_runs,
+)
 
 
 SNAPSHOT = {
@@ -75,7 +81,22 @@ class SchedulerTest(unittest.TestCase):
             conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
             5,
         )
+        self.assertNotIn("图形题目", {row["module"] for row in first})
+        self.assertNotIn("图形题目", {module for module, _slug, _count in MODULE_QUOTAS})
+        self.assertEqual(DAILY_SLUG["tuxing"], "图形题目")
         conn.close()
+
+    def test_tuxing_slug_names_without_generation_quota(self):
+        batch_id = "daily-20260910-tuxing-abc123"
+        self.assertEqual(module_from_batch_id(batch_id), "图形题目")
+        self.assertEqual(
+            daily_source_for_batch(batch_id, "判断推理"),
+            "广东省考行测-图形题目-20260910",
+        )
+        self.assertEqual(
+            daily_source_for_batch("daily-20260909-yanyu-zzzz", ""),
+            "广东省考行测-言语理解与表达-20260909",
+        )
 
     def test_batch_dry_run_never_calls_subprocess(self):
         with tempfile.TemporaryDirectory() as temp:
