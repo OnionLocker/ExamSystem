@@ -76,5 +76,7 @@ assert.equal(questions[0].source, '广东省考行测-图形题目-20260910');
 const importSrc = fs.readFileSync(fileURLToPath(new URL('./import-batch.mjs', import.meta.url)), 'utf8');
 assert.match(importSrc, /if \(manifest\.kind !== 'ai-generated'\) return \[\];/);
 assert.match(importSrc, /if \(manifest\.kind === 'ai-generated'\) \{/);
+assert.match(importSrc, /function upsertDailyRun/);
+assert.match(importSrc, /collected-import/);
 
 console.log('ok: practice modules / DAILY_SLUG tuxing');

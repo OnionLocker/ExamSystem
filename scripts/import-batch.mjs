@@ -12,6 +12,7 @@ import db from '../server/db.js'; // 自动跑 schema / migration
 import { validateBatch } from './validate-batch.mjs';
 import {
   DAILY_SLUG,
+  moduleFromBatchId,
   stampDailySource,
 } from '../src/aiPractice/practiceModules.js';
 
@@ -259,7 +260,30 @@ function importToDB(manifest, questions, materials) {
   });
 
   run();
+  upsertDailyRun(manifest, stats.questions);
   return stats;
+}
+
+function upsertDailyRun(manifest, questionCount) {
+  const batchId = String(manifest?.batch_id || '');
+  const match = batchId.match(/^daily-(\d{4})(\d{2})(\d{2})-/);
+  const module = moduleFromBatchId(batchId) || manifest?.module || '';
+  if (!match || !module) return;
+  const planDate = `${match[1]}-${match[2]}-${match[3]}`;
+  db.prepare(`
+    INSERT INTO ai_daily_batch_runs(
+      plan_date, module, batch_id, status, planned_count, source, imported_at
+    ) VALUES (?, ?, ?, 'imported', ?, 'collected-import', datetime('now'))
+    ON CONFLICT(plan_date, module) DO UPDATE SET
+      status = 'imported',
+      imported_at = COALESCE(ai_daily_batch_runs.imported_at, excluded.imported_at),
+      batch_id = CASE
+        WHEN ai_daily_batch_runs.batch_id = excluded.batch_id THEN ai_daily_batch_runs.batch_id
+        WHEN ai_daily_batch_runs.status IN ('scheduled', 'failed', 'deleted') THEN excluded.batch_id
+        ELSE ai_daily_batch_runs.batch_id
+      END,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(planDate, module, batchId, Number(questionCount) || 0);
 }
 
 function main() {
