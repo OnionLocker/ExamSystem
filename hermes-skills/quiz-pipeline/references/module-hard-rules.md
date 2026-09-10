@@ -64,3 +64,14 @@
 - 整卷正确项按 `answer_plan` 均匀放置，**单卷任一字母不宜超过约 40%**（15 题 ≤6、20 题 ≤8、25 题 ≤10）；
   资料分析仍按「4 篇中 3 篇 ABCD各一+1、1 篇打散」。【GATE：非资料卷任一字母 >40% 回炉】
 - 先算定正确值、再按 `answer_plan` 排到指定字母；不要一边固定答案一边盲目洗牌，也不要为凑字母改动算出的正确值。
+
+## 图形题目（外采带图包，非 AI 绘图）
+
+「图形题目」是 AI 练题里的独立模块 / 日练包名，专门收**外部采集**的带图题
+（图形推理、空间、六面体，以及科学推理带图）。系统已放弃 AI 画图出题。
+
+- 展示名：`广东省考行测-图形题目-YYYYMMDD`
+- `batch_id` slug：`tuxing`（如 `daily-20260910-tuxing-<id>`）
+- `manifest.kind` 用 `collected` 或 `manual`，不要用 `ai-generated`（导入时跳过参考包反查与 generation_gate）
+- **不要**把「图形题目」加入 Gemini / `scheduler_common.MODULE_QUOTAS`；日更调度仍只生成言语 / 判断 / 科学 / 数量 / 资料
+- 题内 `category` 仍用经典科目（判断推理 / 科学推理等）；包级靠 `module` / `source` / `batch_id` 识别为「图形题目」

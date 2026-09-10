@@ -6,10 +6,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import db from '../server/db.js'; // 自动跑 schema / migration
 import { validateBatch } from './validate-batch.mjs';
+import {
+  DAILY_SLUG,
+  moduleFromBatchId,
+  stampDailySource,
+} from '../src/aiPractice/practiceModules.js';
+
+export { DAILY_SLUG, stampDailySource };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -59,6 +66,7 @@ function resolvedTags(q) {
 }
 
 function verifyGenerationContexts(manifest, questions) {
+  // collected / manual / 真题包跳过参考包反查；只有 ai-generated 才核验 generation context
   if (manifest.kind !== 'ai-generated') return [];
   const generation = manifest.generation || {};
   const groups = [
@@ -252,47 +260,79 @@ function importToDB(manifest, questions, materials) {
   });
 
   run();
+  upsertDailyRun(manifest, stats.questions);
   return stats;
 }
 
-// ---------- main ----------
-const dir = process.argv[2];
-if (!dir) {
-  console.error('用法: node scripts/import-batch.mjs <batch-dir>');
-  process.exit(2);
+function upsertDailyRun(manifest, questionCount) {
+  const batchId = String(manifest?.batch_id || '');
+  const match = batchId.match(/^daily-(\d{4})(\d{2})(\d{2})-/);
+  const module = moduleFromBatchId(batchId) || manifest?.module || '';
+  if (!match || !module) return;
+  const planDate = `${match[1]}-${match[2]}-${match[3]}`;
+  db.prepare(`
+    INSERT INTO ai_daily_batch_runs(
+      plan_date, module, batch_id, status, planned_count, source, imported_at
+    ) VALUES (?, ?, ?, 'imported', ?, 'collected-import', datetime('now'))
+    ON CONFLICT(plan_date, module) DO UPDATE SET
+      status = 'imported',
+      imported_at = COALESCE(ai_daily_batch_runs.imported_at, excluded.imported_at),
+      batch_id = CASE
+        WHEN ai_daily_batch_runs.batch_id = excluded.batch_id THEN ai_daily_batch_runs.batch_id
+        WHEN ai_daily_batch_runs.status IN ('scheduled', 'failed', 'deleted') THEN excluded.batch_id
+        ELSE ai_daily_batch_runs.batch_id
+      END,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(planDate, module, batchId, Number(questionCount) || 0);
 }
-const abs = path.resolve(dir);
 
-console.log(`→ 导入批次: ${abs}`);
-const { rep, manifest, materialMap, questions } = validateBatch(abs);
-rep.print();
-if (!rep.ok) {
-  console.log('\n✗ 校验失败，已中止导入');
-  process.exit(1);
-}
+function main() {
+  const dir = process.argv[2];
+  if (!dir) {
+    console.error('用法: node scripts/import-batch.mjs <batch-dir>');
+    process.exit(2);
+  }
+  const abs = path.resolve(dir);
 
-if (manifest.kind === 'ai-generated') {
-  const gate = spawnSync(
-    'python3',
-    [path.join(ROOT, 'scripts', 'generation_gate.py'), 'verify', abs],
-    { encoding: 'utf8' },
-  );
-  if (gate.status !== 0) {
-    console.error(gate.stdout?.trim() || gate.stderr?.trim() || 'AI 生成双闸门校验失败');
+  console.log(`→ 导入批次: ${abs}`);
+  const { rep, manifest, materialMap, questions } = validateBatch(abs);
+  rep.print();
+  if (!rep.ok) {
+    console.log('\n✗ 校验失败，已中止导入');
     process.exit(1);
   }
-  console.log('  ✓ 正确性与质量闸门回执有效');
+
+  if (manifest.kind === 'ai-generated') {
+    const gate = spawnSync(
+      'python3',
+      [path.join(ROOT, 'scripts', 'generation_gate.py'), 'verify', abs],
+      { encoding: 'utf8' },
+    );
+    if (gate.status !== 0) {
+      console.error(gate.stdout?.trim() || gate.stderr?.trim() || 'AI 生成双闸门校验失败');
+      process.exit(1);
+    }
+    console.log('  ✓ 正确性与质量闸门回执有效');
+  }
+
+  const materials = Array.from(materialMap.values());
+  const stamped = stampDailySource(manifest, questions, materials);
+  if (stamped) console.log(`  ✓ 日练来源: ${stamped}`);
+
+  console.log('\n→ 复制图片到 public/q-images/ ...');
+  const imgCount = copyImages(abs, manifest.batch_id, questions, materials);
+  console.log(`  已复制 ${imgCount} 张图片`);
+
+  console.log('→ 写入数据库 ...');
+  const stats = importToDB(manifest, questions, materials);
+  console.log(`  materials: ${stats.materials}`);
+  console.log(`  questions: ${stats.questions}`);
+
+  console.log(`\n✓ 导入完成 | batch_id=${manifest.batch_id}`);
 }
 
-const materials = Array.from(materialMap.values());
+export { verifyGenerationContexts };
 
-console.log('\n→ 复制图片到 public/q-images/ ...');
-const imgCount = copyImages(abs, manifest.batch_id, questions, materials);
-console.log(`  已复制 ${imgCount} 张图片`);
-
-console.log('→ 写入数据库 ...');
-const stats = importToDB(manifest, questions, materials);
-console.log(`  materials: ${stats.materials}`);
-console.log(`  questions: ${stats.questions}`);
-
-console.log(`\n✓ 导入完成 | batch_id=${manifest.batch_id}`);
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

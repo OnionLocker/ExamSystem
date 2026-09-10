@@ -12,8 +12,8 @@ import {
 } from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
+import { MODULES, dailyDateOf, moduleOf, nameOf } from './practiceModules.js';
 
-const MODULES = ['言语理解与表达', '判断推理', '科学推理', '数量关系', '资料分析'];
 const TIME_TAB = '时间';
 
 const STATUS_META = {
@@ -25,29 +25,6 @@ const STATUS_META = {
 };
 
 const statusOf = (batch) => batch.status || (Number(batch.count) > 0 ? 'imported' : 'scheduled');
-const moduleOf = (batch) => {
-  if (MODULES.includes(batch.module)) return batch.module;
-  if (MODULES.includes(batch.category)) return batch.category;
-  const text = `${batch.module || ''} ${batch.category || ''} ${batch.source || ''} ${batch.batch_id || ''}`.toLowerCase();
-  if (text.includes('言语理解与表达') || text.includes('yanyu') || text.includes('verbal')) return MODULES[0];
-  if (text.includes('科学推理') || text.includes('kepui') || text.includes('kexue')) return MODULES[2];
-  if (text.includes('判断推理') || text.includes('panduan') || text.includes('judg')) return MODULES[1];
-  if (text.includes('数量关系') || text.includes('shuliang') || text.includes('quantity')) return MODULES[3];
-  if (text.includes('资料分析') || text.includes('ziliao') || text.includes('data-analysis')) return MODULES[4];
-  return '';
-};
-
-const dailyDateOf = (batch) => {
-  const planned = String(batch.daily_plan_date || '').slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(planned) ? planned : '';
-};
-
-const nameOf = (batch) => {
-  const date = dailyDateOf(batch);
-  const module = moduleOf(batch);
-  if (date && module) return `广东省考行测-${module}-${date.replaceAll('-', '')}`;
-  return batch.source || batch.batch_id || '未命名题组';
-};
 
 const createdOf = (batch) => batch.created_at || '';
 

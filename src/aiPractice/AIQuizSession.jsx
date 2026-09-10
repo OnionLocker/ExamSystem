@@ -45,10 +45,16 @@ const typeLabelOf = (t) => (t === 'multi' ? '多选题' : t === 'judge' ? '判�
 
 const keepMaterialGroups = (items, batchId = '') => {
   const daily = String(batchId).startsWith('daily-');
+  const figurePack = /(?:^|-)tuxing(?:-|$)|图形题目/.test(String(batchId));
   const blob = (q) => `${q.sub_category || ''}${JSON.stringify(q.tags || [])}`;
   const rank = (q) => {
     const cat = String(q.category || '');
     const text = blob(q);
+    if (figurePack || cat === '图形题目') {
+      if (text.includes('图形推理') || text.includes('六面体') || text.includes('空间')) return 1;
+      if (cat === '科学推理' || text.includes('科学推理')) return 2;
+      return 3;
+    }
     if (cat === '数量关系') return text.includes('数字推理') ? 1 : 2;
     if (cat === '科学推理') return 0;
     if (cat === '判断推理') {

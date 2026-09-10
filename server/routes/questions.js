@@ -49,21 +49,27 @@ const attachMaterials = (rows) => {
 // ─────────────────────────────────────────────
 
 const isDailyBatch = (batchId) => String(batchId || '').startsWith('daily-');
+const isFigurePack = (batchId) => /(?:^|-)tuxing(?:-|$)|图形题目/.test(String(batchId || ''));
 const paperBlob = (q) => `${q.sub_category || ''}${JSON.stringify(q.tags || [])}`;
-const paperRank = (q) => {
+const paperRank = (q, batchId = '') => {
   const cat = String(q.category || '');
   const blob = paperBlob(q);
-  if (cat === '\u6570\u91cf\u5173\u7cfb') return blob.includes('\u6570\u5b57\u63a8\u7406') ? 1 : 2;
-  if (cat === '\u5224\u65ad\u63a8\u7406') {
-    if (blob.includes('\u79d1\u5b66\u63a8\u7406')) return 3;
-    if (blob.includes('\u56fe\u5f62\u63a8\u7406')) return 1;
+  if (isFigurePack(batchId) || cat === '图形题目') {
+    if (blob.includes('图形推理') || blob.includes('六面体') || blob.includes('空间')) return 1;
+    if (cat === '科学推理' || blob.includes('科学推理')) return 2;
+    return 3;
+  }
+  if (cat === '数量关系') return blob.includes('数字推理') ? 1 : 2;
+  if (cat === '判断推理') {
+    if (blob.includes('科学推理')) return 3;
+    if (blob.includes('图形推理')) return 1;
     return 2;
   }
-  if (cat === '\u8a00\u8bed\u7406\u89e3\u4e0e\u8868\u8fbe') return blob.includes('\u903b\u8f91\u586b\u7a7a') ? 1 : 2;
+  if (cat === '言语理解与表达') return blob.includes('逻辑填空') ? 1 : 2;
   return 0;
 };
-const sortDailyPaper = (items) => [...items].sort((a, b) =>
-  paperRank(a) - paperRank(b)
+const sortDailyPaper = (items, batchId = '') => [...items].sort((a, b) =>
+  paperRank(a, batchId || a.batch_id) - paperRank(b, batchId || b.batch_id)
   || (a.material_id || 0) - (b.material_id || 0)
   || a.id - b.id
 );
@@ -100,7 +106,7 @@ router.get('/', (req, res) => {
     .all(...params, lim);
 
   let items = attachMaterials(rows);
-  if (daily) items = sortDailyPaper(items);
+  if (daily) items = sortDailyPaper(items, batch_id);
   res.json({ items, total: items.length });
 });
 
