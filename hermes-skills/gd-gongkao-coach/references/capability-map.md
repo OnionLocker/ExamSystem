@@ -17,6 +17,7 @@ last_updated: 2026-08-22
 | 用户长短板 | `exam.db` 的 `kaodian_profile` / `kaodian_events` |
 | 出题必须过什么关 | `kaogong/quiz-pipeline/SKILL.md` |
 | 解析怎么排版 | `gd-gongkao-coach/references/answer-parse-template.md` |
+| 日练复盘对错分流 / 建议用时 / 下次动作口诀 | `gd-gongkao-coach/references/practice-review-spec.md`（代码：`src/hermes/reviewSpec.js`） |
 | 解析里本题考察知识点怎么命名 | `solver-canon/01-zhengzhi.md` / `02-changshi.md` 的固定词表；输出与题库 `tags`、画像 `kaodian` 逐字一致 |
 | 固定词表没有的新考点怎么补 | `references/knowledge-point-extension.md` + `scripts/kaodian_profile.py register_knowledge_point()`；先登记再复用 |
 | 用户偏好、禁忌叫法 | `~/.hermes/memories/USER.md` |
@@ -38,7 +39,7 @@ last_updated: 2026-08-22
 - AI 练题 → `/home/ubuntu/ExamSystem/data/exam.db` 的 `practice_sessions`（最近一场）
 - 资料上传 → `/home/ubuntu/ExamSystem/data/uploads/YYYY.MM.DD/pdf/` 最新 PDF，fitz 抽文字
 流程：按来源直接打开 → 联动正确性、用时与草稿筛选复盘重点 → 错题三段式解析 / 正确异常题简析 → **写画像**。
-硬约束：非带图题必附完整原题；错题用【为什么会错】【解题流程】【下次怎么做】；正确但慢、有草稿或方法绕远的题也要看，正确快速且草稿干净的题略过；草稿图只在用户明确要求时读，一次≤10张（一张约3.7万token且每轮重发）。
+硬约束：非带图题必附完整原题；日练复盘按 `practice-review-spec.md` 对错分流，下次动作必须 `触发：… → 优先：…`，禁止「没问题，继续保持」；正确但慢、有草稿或方法绕远的题写更快路径，答对且草稿空则省略草稿诊断；草稿图只在用户明确要求时读，一次≤10张（一张约3.7万token且每轮重发）。
 
 ### C. 计划与督促 —— `gd-gongkao-coach`
 触发：每日 12:30 cron、用户问"今天练什么"。

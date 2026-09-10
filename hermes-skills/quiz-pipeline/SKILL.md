@@ -446,7 +446,7 @@ drafts = conn.execute("""
 
 #### 6c 解析格式
 
-挄1�7 `gd-gongkao-coach/references/answer-parse-template.md`＄1�7
+日练复盘按 `gd-gongkao-coach/references/practice-review-spec.md` 对错分流（答对且草稿空省略空夸奖诊断；下次动作必须 `触发：… → 优先：…`）。排版骨架见 `gd-gongkao-coach/references/answer-parse-template.md`。
 每一道展弢�复盘的题都必须先完整展示原题：`### 笄1�7 N 题` 后用 `> **原题**` 引用块照录完整题干，四个选项写成 `> **A.**` 各占丢�行；题干里的 A、B、C 地点或序号必须留在原句，不得拆行、概述��省略或提前标出正确项��带图题同时明确对应题图。原题后再输凄1�7 `本题考察知识点：模块-丢�级知识点-二级知识点`，并写��为仢�么会错��→【解题流程��→【下次��么做����公式用 `$...$`，与知识点页 Markdown 丢�致��1�7
 草稿图看出来的东西要落到具体：是推导错，还是手眼不一致（草稿对但点错选项）��1�7
 
