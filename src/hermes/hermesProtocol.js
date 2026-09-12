@@ -201,3 +201,98 @@ export const finishAssistantMessage = (messages, finalText, nextId) => {
 };
 
 export const eventText = (event) => event?.payload?.text || event?.payload?.rendered || '';
+
+export const coerceResumePayload = (result) => {
+  if (Array.isArray(result)) return { messages: result, running: false };
+  if (!result || typeof result !== 'object') return { messages: [], running: false };
+  const messages = Array.isArray(result.messages) ? result.messages : [];
+  return { ...result, messages };
+};
+
+const userKey = (message) => `${String(message?.content || '')}\0${message?.review?.id || ''}`;
+
+// 把 session.resume / session.history 的 transcript 合并进当前气泡。
+// 另一台设备后发的用户消息会出现在 resume.messages 或 inflight.user 里。
+export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAudioLabel }) => {
+  const hydrated = normalizeHermesHistory(resume?.messages, {
+    nextId,
+    parseAudioLen,
+    isAudioLabel,
+  });
+  const lastHydratedUser = [...hydrated].reverse().find((message) => message.role === 'user');
+  const inflightCandidate = String(resume?.inflight?.user || '').trim();
+  const inflightRaw = isSystemInjectedNotice(inflightCandidate) ? '' : inflightCandidate;
+  const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
+
+  const lastLocalUser = [...prev].reverse().find((message) => message.role === 'user');
+  const hydratedUserKeys = new Set(
+    hydrated.filter((message) => message.role === 'user').map(userKey),
+  );
+  const localStillPending = Boolean(
+    lastLocalUser
+    && !hydratedUserKeys.has(userKey(lastLocalUser))
+    && (!inflightUser || userKey({
+      content: inflightUser.content,
+      review: inflightUser.review,
+    }) === userKey(lastLocalUser)),
+  );
+  const pendingContent = inflightUser?.content ?? (localStillPending ? lastLocalUser.content : '');
+  const pendingReview = inflightUser?.review ?? (localStillPending ? lastLocalUser.review : null);
+  const alreadyHydrated = pendingContent === lastHydratedUser?.content
+    && pendingReview?.id === lastHydratedUser?.review?.id;
+
+  const next = hydrated.map((message, index) => {
+    const old = prev[index];
+    if (!old || old.role !== message.role) return message;
+    return {
+      ...message,
+      id: old.id,
+      images: message.images?.length ? message.images : old.images,
+      audio: message.audio || old.audio,
+      audioSec: message.audioSec ?? old.audioSec,
+      hadAudio: message.hadAudio || old.hadAudio,
+    };
+  });
+  if ((pendingContent || pendingReview) && !alreadyHydrated) {
+    next.push({
+      id: lastLocalUser?.id || nextId(),
+      role: 'user',
+      content: pendingContent,
+      streaming: false,
+      tools: [],
+      thinking: '',
+      images: lastLocalUser?.images || [],
+      audio: lastLocalUser?.audio || null,
+      audioSec: lastLocalUser?.audioSec ?? parseAudioLen(pendingContent),
+      hadAudio: lastLocalUser?.hadAudio || isAudioLabel(pendingContent),
+      review: pendingReview,
+    });
+  }
+  if (resume?.running) {
+    const last = next[next.length - 1];
+    if (!(last && last.role === 'assistant' && last.streaming)) {
+      next.push({
+        id: nextId(),
+        role: 'assistant',
+        content: resume.inflight?.assistant || '',
+        streaming: true,
+        tools: [],
+        thinking: '',
+      });
+    }
+  }
+  return next;
+};
+
+export const shouldAcceptRemoteResume = (prev, next, resume, force = false) => {
+  if (force) return true;
+  if (resume?.running) return true;
+  const prevUsers = prev.filter((message) => message.role === 'user').map((message) => message.content);
+  if (next.some((message) => message.role === 'user' && !prevUsers.includes(message.content))) {
+    return true;
+  }
+  const prevAsst = prev.filter((message) => message.role === 'assistant').map((message) => message.content).join('\n');
+  const nextAsst = next.filter((message) => message.role === 'assistant').map((message) => message.content).join('\n');
+  return nextAsst.length > prevAsst.length;
+};
+

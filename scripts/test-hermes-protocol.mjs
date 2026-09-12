@@ -1,12 +1,16 @@
 import assert from 'node:assert/strict';
 
 import {
+  coerceResumePayload,
   ensureStreamingAssistant,
   extractReview,
   finishAssistantMessage,
   isSystemInjectedNotice,
+  mergeResumedMessages,
   normalizeHermesHistory,
+  shouldAcceptRemoteResume,
 } from '../src/hermes/hermesProtocol.js';
+import { HIDDEN_SOURCES, sessionListReachable, sessionPickerMode } from '../src/hermes/hermesLayout.js';
 
 let id = 0;
 const nextId = () => `m${++id}`;
@@ -90,3 +94,60 @@ assert.match(compactPlaces, /地点A\.B\.C\.D同时出发/);
 assert.match(compactPlaces, /> \*\*A\.\*\* 甲/);
 
 console.log('review option normalize: ok');
+
+assert.equal(sessionPickerMode(767), 'sheet');
+assert.equal(sessionPickerMode(768), 'sheet');
+assert.equal(sessionPickerMode(1024), 'sheet');
+assert.equal(sessionPickerMode(1366), 'sheet');
+assert.equal(sessionPickerMode(1439), 'sheet');
+assert.equal(sessionPickerMode(1440), 'docked');
+assert.equal(sessionListReachable(820), true);
+assert.equal(sessionListReachable(1024), true);
+assert.equal(sessionListReachable(1366), true);
+assert.ok(HIDDEN_SOURCES.has('weixin'));
+assert.ok(HIDDEN_SOURCES.has('cron'));
+console.log('hermes session picker layout: ok');
+
+id = 0;
+const syncDeps = {
+  nextId,
+  parseAudioLen: (text) => (String(text).includes('秒') ? 3 : 0),
+  isAudioLabel: (text) => String(text).includes('语音'),
+};
+const localOnly = [
+  {
+    id: 'keep-1', role: 'user', content: 'hello', streaming: false,
+    tools: [], thinking: '', images: [], audio: null, audioSec: 0, hadAudio: false, review: null,
+  },
+  {
+    id: 'keep-2', role: 'assistant', content: 'hi there from hermes', streaming: false,
+    tools: [], thinking: '',
+  },
+];
+const remoteResume = coerceResumePayload({
+  messages: [
+    { role: 'user', text: 'hello' },
+    { role: 'assistant', text: 'hi there from hermes' },
+    { role: 'user', text: 'from phone' },
+    { role: 'assistant', text: 'got your phone message' },
+  ],
+  running: false,
+});
+const synced = mergeResumedMessages(localOnly, remoteResume, syncDeps);
+assert.equal(synced.some((message) => message.role === 'user' && message.content === 'from phone'), true);
+assert.equal(synced.some((message) => message.role === 'assistant' && message.content === 'got your phone message'), true);
+assert.equal(synced.filter((message) => message.role === 'user' && message.content === 'hello').length, 1);
+assert.equal(shouldAcceptRemoteResume(localOnly, synced, remoteResume, false), true);
+
+const inflightSynced = mergeResumedMessages(localOnly, {
+  messages: [
+    { role: 'user', text: 'hello' },
+    { role: 'assistant', text: 'hi there from hermes' },
+  ],
+  inflight: { user: '[USER_MESSAGE]\nfrom phone\n[/USER_MESSAGE]', assistant: 'partial' },
+  running: true,
+}, syncDeps);
+assert.equal(inflightSynced.some((message) => message.role === 'user' && message.content === 'from phone'), true);
+assert.equal(inflightSynced[inflightSynced.length - 1].role, 'assistant');
+assert.equal(inflightSynced[inflightSynced.length - 1].streaming, true);
+console.log('hermes multi-client resume sync: ok');
