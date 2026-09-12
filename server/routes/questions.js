@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
 import { unlinkDraftsOfSessions } from './practice.js';
+import { sqliteTimeIso } from '../../src/sqliteTime.js';
 
 const router = Router();
 
@@ -169,13 +170,22 @@ router.get('/meta/batches', (req, res) => {
             COALESCE(b.category, r.module) AS category, COALESCE(r.module, b.category) AS module,
             ${planDate} AS plan_date, r.plan_date AS daily_plan_date,
             COALESCE(b.created_at, r.imported_at, r.created_at) AS created_at,
-            COALESCE(r.status, 'imported') AS status
+            COALESCE(r.status, 'imported') AS status,
+            r.error AS error_message
        FROM batches b LEFT JOIN ai_daily_batch_runs r ON r.id = (
          SELECT ar.id FROM ai_daily_batch_runs ar WHERE ar.batch_id = b.batch_id ORDER BY ar.plan_date DESC, ar.id DESC LIMIT 1
        ) WHERE ${where.join(' AND ')}
        ORDER BY COALESCE(b.last_answered_at, r.imported_at, b.created_at, r.created_at) DESC`,
   ).all(...params);
-  res.json(rows);
+  res.json(rows.map((row) => {
+    const createdAt = sqliteTimeIso(row.created_at);
+    const lastAnswered = sqliteTimeIso(row.last_answered_at);
+    return {
+      ...row,
+      ...(createdAt ? { created_at: createdAt } : {}),
+      ...(lastAnswered ? { last_answered_at: lastAnswered } : {}),
+    };
+  }));
 });
 
 // ─────────────────────────────────────────────
@@ -186,34 +196,69 @@ router.get('/meta/batches', (req, res) => {
 //   否则批次列表没了但会话记录还挂着。
 //   → { ok, deleted_questions, deleted_sessions }
 // ─────────────────────────────────────────────
-router.delete('/batch/:batchId', (req, res) => {
-  const batchId = String(req.params.batchId || '');
-  if (!batchId) return res.status(400).json({ error: 'batch_id required' });
-
+const deleteBatchById = (batchId) => {
   const { c: qCount } = db
     .prepare('SELECT COUNT(*) AS c FROM questions WHERE batch_id = ?')
     .get(batchId);
-  if (!qCount) return res.status(404).json({ error: 'batch not found' });
+  const { c: runCount } = db
+    .prepare('SELECT COUNT(*) AS c FROM ai_daily_batch_runs WHERE batch_id = ?')
+    .get(batchId);
+  if (!qCount && !runCount) return null;
 
-  // 草稿图的 DB 行会跟着 session 级联删掉，但磁盘文件不会，先按 session 收集再删
   const sessionIds = db
     .prepare('SELECT id FROM practice_sessions WHERE category = ?')
     .all(batchId)
     .map((r) => r.id);
   unlinkDraftsOfSessions(sessionIds);
 
-  const run = db.transaction(() => {
-    // 先删 session：answers 有两条 FK（session_id / question_id），
-    // 两边都是 CASCADE，先删哪个都不会留孤儿行
+  return db.transaction(() => {
     const s = db.prepare('DELETE FROM practice_sessions WHERE category = ?').run(batchId);
     const q = db.prepare('DELETE FROM questions WHERE batch_id = ?').run(batchId);
     db.prepare('DELETE FROM materials WHERE batch_id = ?').run(batchId);
     db.prepare("UPDATE ai_daily_batch_runs SET status='deleted', error=NULL, updated_at=datetime('now') WHERE batch_id=?").run(batchId);
     return { sessions: s.changes, questions: q.changes };
-  });
+  })();
+};
 
-  const out = run();
+router.delete('/batch/:batchId', (req, res) => {
+  const batchId = String(req.params.batchId || '');
+  if (!batchId) return res.status(400).json({ error: 'batch_id required' });
+  const out = deleteBatchById(batchId);
+  if (!out) return res.status(404).json({ error: 'batch not found' });
   res.json({ ok: true, deleted_questions: out.questions, deleted_sessions: out.sessions });
+});
+
+router.post('/batches/delete', (req, res) => {
+  const ids = [...new Set(
+    (Array.isArray(req.body?.batch_ids) ? req.body.batch_ids : [])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean),
+  )];
+  if (!ids.length) return res.status(400).json({ error: 'batch_ids required' });
+  if (ids.length > 200) return res.status(400).json({ error: '一次最多删除 200 组' });
+
+  let questions = 0;
+  let sessions = 0;
+  const deleted = [];
+  const missing = [];
+  for (const batchId of ids) {
+    const out = deleteBatchById(batchId);
+    if (!out) {
+      missing.push(batchId);
+      continue;
+    }
+    deleted.push(batchId);
+    questions += out.questions;
+    sessions += out.sessions;
+  }
+  if (!deleted.length) return res.status(404).json({ error: 'batch not found' });
+  res.json({
+    ok: true,
+    deleted_batches: deleted.length,
+    deleted_questions: questions,
+    deleted_sessions: sessions,
+    missing,
+  });
 });
 
 // ─────────────────────────────────────────────

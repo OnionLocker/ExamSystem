@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import { ChevronDown, Pencil, Plus, Target, Trash2, GitBranch, Lightbulb, ShieldAlert, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -9,7 +9,7 @@ import { consumeKnowledgeFocus, KNOWLEDGE_OPEN_EVENT } from './nav.js';
 import { api } from '../api.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 import { cardRow as matchCardRow, relatedRows } from './match.js';
-import { cardToMarkdown } from './cardMarkdown.js';
+import { cardToMarkdown, decorateMath } from './cardMarkdown.js';
 import 'katex/dist/katex.min.css';
 import '../hermes/katex-fix.css';
 
@@ -136,6 +136,181 @@ function splitLines(text) {
     .split('\n')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function InlineMarkdown({ text }) {
+  if (!text) return null;
+  return (
+    <span className="katex-inline-host inline">
+      <ReactMarkdown
+        remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
+        rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
+        components={{
+          p: ({ children }) => <span>{children}</span>,
+          strong: ({ children }) => <strong className="font-black text-[#1a1a1a]">{children}</strong>,
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </span>
+  );
+}
+
+function parseStep(raw, idx) {
+  const line = decorateMath(raw);
+  const colonIdx = line.search(/[：:]/);
+  if (colonIdx > 0 && colonIdx <= 45) {
+    return {
+      title: line.slice(0, colonIdx).trim(),
+      desc: line.slice(colonIdx + 1).trim(),
+      isBranch: true,
+      idx,
+    };
+  }
+  return {
+    title: `步骤 ${idx + 1}`,
+    desc: line,
+    isBranch: false,
+    idx,
+  };
+}
+
+function StructuredKnowledgeView({ view }) {
+  const steps = Array.isArray(view?.steps) ? view.steps.filter(Boolean) : [];
+  const parsedSteps = steps.map((s, i) => parseStep(s, i));
+  const isBranchMode = parsedSteps.filter((s) => s.isBranch).length >= 2;
+  const knowItems = Array.isArray(view?.know) ? view.know.filter(Boolean) : [];
+  const banItems = Array.isArray(view?.ban) ? view.ban.filter(Boolean) : [];
+  const anchorItems = Array.isArray(view?.anchors) ? view.anchors.filter(Boolean) : [];
+
+  return (
+    <div className="space-y-5 pt-3">
+      {/* 题型分支决策树 / 解题步骤 */}
+      {parsedSteps.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            {isBranchMode ? (
+              <>
+                <GitBranch size={15} className="text-[#8a6d3b] flex-shrink-0" />
+                <h5 className="text-[13px] font-black tracking-widest text-[#8a6d3b] uppercase">
+                  核心题型考法与应对策略（{parsedSteps.length} 类模型分支）
+                </h5>
+              </>
+            ) : (
+              <h5 className="text-[13px] font-black tracking-widest text-slate-500 uppercase">
+                解题步骤与固定动作
+              </h5>
+            )}
+          </div>
+
+          {isBranchMode ? (
+            <div className="grid grid-cols-1 gap-3">
+              {parsedSteps.map((step, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-[#e8d5b0] bg-[#fdfbf7] p-4 transition-all hover:border-[#cbb387] shadow-sm"
+                >
+                  <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#1a1a1a] text-[#fdfbf7] tracking-wide">
+                      考法 {i + 1}
+                    </span>
+                    <h6 className="text-[16px] font-black text-[#1a1a1a]">
+                      {step.title.replace(/^(?:考法[一二三四五六七八九十\d\s·•]+|题型[一二三四五六七八九十\d\s·•]+)/, '') || step.title}
+                    </h6>
+                  </div>
+                  <div className="text-[15px] leading-7 text-slate-700 pl-1">
+                    <InlineMarkdown text={step.desc} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ol className="list-decimal pl-6 space-y-2.5 text-[16px] leading-7 marker:font-black marker:text-slate-400">
+              {parsedSteps.map((step, i) => (
+                <li key={i} className="pl-1">
+                  <InlineMarkdown text={step.desc} />
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      )}
+
+      {/* 必记要点与公式 */}
+      {knowItems.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-2.5">
+            <Lightbulb size={15} className="text-[#c4ae7a] flex-shrink-0" />
+            <h5 className="text-[13px] font-black tracking-widest text-[#8a6d3b] uppercase">
+              核心要点与速算公式
+            </h5>
+          </div>
+          <div className="rounded-2xl border border-[#ebdcb9] bg-[#fdfbf6] p-4 space-y-2.5 shadow-sm">
+            {knowItems.map((k, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-[15px] leading-7 text-slate-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c4ae7a] mt-2.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <InlineMarkdown text={decorateMath(k)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 考场红线禁区 */}
+      {banItems.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-2.5">
+            <ShieldAlert size={15} className="text-[#a15c3a] flex-shrink-0" />
+            <h5 className="text-[13px] font-black tracking-widest text-[#a15c3a] uppercase">
+              考场红线禁区（避坑避雷）
+            </h5>
+          </div>
+          <div className="rounded-2xl border border-[#f3d9d2] bg-[#fdf5f2] p-4 space-y-2 shadow-sm">
+            {banItems.map((b, i) => (
+              <div key={i} className="flex items-start gap-2.5 text-[15px] leading-7 text-[#913b28]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#a15c3a] mt-2.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1 font-medium">
+                  <InlineMarkdown text={decorateMath(b)} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 下次就做这一下 */}
+      {view.next && (
+        <div className="flex items-start gap-2.5 rounded-2xl bg-[#1a1a1a] text-white px-4 py-3.5 text-[16px] font-bold leading-7 shadow-sm">
+          <Target size={17} className="flex-shrink-0 mt-1 text-[#f7e6a7]" />
+          <span>下次动作：{view.next}</span>
+        </div>
+      )}
+
+      {/* 真题锚点 */}
+      {anchorItems.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-slate-400">
+            <BookOpen size={13} /> 真题锚点：
+          </span>
+          {anchorItems.map((a, i) => (
+            <span key={i} className="text-xs font-medium text-slate-600 bg-[#f4ece0] px-2.5 py-1 rounded-full border border-[#e8d5b0]">
+              {a}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* 个人笔记 */}
+      {view.mine && (
+        <div className="rounded-2xl bg-[#f6ecd4] border border-[#ebdcb9] px-4 py-3 text-[15px] leading-7 text-slate-800 shadow-sm">
+          <span className="font-bold text-[#8a6d3b] mr-1">我的笔记：</span>
+          {view.mine}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
@@ -291,28 +466,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
               </div>
             </div>
           ) : (
-            <>
-              {cardToMarkdown(view) && (
-                <div className="katex-inline-host text-[17px]">
-                  <ReactMarkdown
-                    remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
-                    rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
-                    components={CARD_MD}
-                  >
-                    {cardToMarkdown(view)}
-                  </ReactMarkdown>
-                </div>
-              )}
-              {view.next && (
-                <p className="flex items-start gap-2 rounded-2xl bg-[#1a1a1a] text-white px-4 py-3 text-[17px] font-bold leading-7">
-                  <Target size={14} className="flex-shrink-0 mt-0.5 opacity-70" />
-                  <span>下次：{view.next}</span>
-                </p>
-              )}
-              {view.mine && (
-                <p className="rounded-2xl bg-[#f6ecd4] px-4 py-3 text-[17px] leading-8">{view.mine}</p>
-              )}
-            </>
+            <StructuredKnowledgeView view={view} />
           )}
 
           {hits.length > 0 && (

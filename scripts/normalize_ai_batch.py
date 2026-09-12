@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from scheduler_common import daily_source_for_batch, module_from_batch_id
+from yanyu_variety import recent_yanyu_avoid
 from kaodian_taxonomy import (
     question_primary_tag,
     validate_ziliao_paper_answers,
@@ -245,6 +246,9 @@ def generation_payload_extras(module: str, n: int, seed: str, db_path: Path | No
                     conn.close()
             except (sqlite3.Error, OSError, ImportError):
                 pass
+    if module == CAT_YANYU and n == 15:
+        extras["batch_constraints"]["yanyu_layout"] = "5_fill_plus_10_reading"
+        extras["yanyu_avoid"] = recent_yanyu_avoid(db_path)
     return extras
 
 
@@ -586,6 +590,16 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
             changed = True
             gen_items = valid_gen
         eval_items = generation.get("evaluation_contexts") or []
+        targeted = (
+            (generation.get("batch_constraints") or {}).get("targeted_drill") is True
+            or "专项" in str(manifest.get("source") or "")
+            or "_hermes_" in str(manifest.get("batch_id") or "")
+        )
+        if targeted:
+            if eval_items:
+                generation["evaluation_contexts"] = []
+                changed = True
+            return changed
         exclude = {
             str(ref)
             for item in gen_items

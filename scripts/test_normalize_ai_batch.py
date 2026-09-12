@@ -259,6 +259,10 @@ class NormalizeBatchTest(unittest.TestCase):
         self.assertEqual(extras_k["batch_constraints"]["kepui_layout"], "5_kepui_distinct_subjects")
         self.assertEqual([slot["section"] for slot in extras_k["kepui_pack"]["slots"]], ["science"] * 5)
         self.assertEqual(extras["batch_constraints"]["shuliang_layout"], "5_sequence_plus_10_math")
+        extras_y = nab.generation_payload_extras(CAT_YANYU, 15, "daily-y")
+        self.assertEqual(extras_y["batch_constraints"]["yanyu_layout"], "5_fill_plus_10_reading")
+        self.assertIn("do_not_reuse_molds", extras_y["yanyu_avoid"])
+        self.assertIn("recent_openings", extras_y["yanyu_avoid"])
 
     def test_daily_paper_order_is_restored(self):
         seq = item("Q-seq", CAT_SHULIANG, "数量关系-数字推理-递推数列", "A", sub_category="数字推理")

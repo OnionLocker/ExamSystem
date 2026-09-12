@@ -3,16 +3,19 @@ import { createPortal } from 'react-dom';
 import {
   AlertTriangle,
   BookOpen,
+  CheckSquare,
   Clock,
   Loader2,
   RefreshCw,
   Sparkles,
+  Square,
   Target,
   Trash2,
 } from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
 import { MODULES, dailyDateOf, moduleOf, nameOf } from './practiceModules.js';
+import { parseSqliteTime } from '../sqliteTime.js';
 
 const TIME_TAB = '时间';
 
@@ -26,6 +29,16 @@ const STATUS_META = {
 
 const statusOf = (batch) => batch.status || (Number(batch.count) > 0 ? 'imported' : 'scheduled');
 
+const canOpenBatch = (batch) => {
+  const status = statusOf(batch);
+  return status === 'imported' || status === 'completed';
+};
+
+const canDeleteBatch = (batch) => {
+  const status = statusOf(batch);
+  return status !== 'running';
+};
+
 const createdOf = (batch) => batch.created_at || '';
 
 const formatDotDate = (date) => {
@@ -36,7 +49,7 @@ const formatDotDate = (date) => {
 
 const relativeTime = (iso) => {
   if (!iso) return null;
-  const timestamp = new Date(iso).getTime();
+  const timestamp = parseSqliteTime(iso);
   if (!Number.isFinite(timestamp)) return null;
   const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
   if (minutes < 1) return '刚刚';
@@ -68,6 +81,8 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const [active, setActive] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
   const [errMsg, setErrMsg] = useState('');
   const handledInitial = useRef(null);
 
@@ -111,7 +126,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
       if (cancelled) return;
       const module = moduleOf(batch);
       if (module) setActiveModule(module);
-      if (statusOf(batch) === 'imported') {
+      if (canOpenBatch(batch)) {
         setActive({ batchId: batch.batch_id, reviewSessionId: batch.last_session_id || null });
       }
       onInitialBatchHandled?.();
@@ -147,6 +162,10 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
     setTimeDate(dailyDates[0] || '');
   }, [activeModule, dailyDates, timeDate]);
 
+  useEffect(() => {
+    setSelected(new Set());
+  }, [activeModule, timeDate]);
+
   const visibleBatches = useMemo(() => {
     if (activeModule === TIME_TAB) {
       return dailyBatches
@@ -164,8 +183,41 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
       .sort((a, b) => createdOf(b).localeCompare(createdOf(a)));
   }, [activeModule, batches, dailyBatches, timeDate]);
 
+  const selectedBatches = useMemo(
+    () => visibleBatches.filter((batch) => selected.has(batch.batch_id)),
+    [selected, visibleBatches],
+  );
+
+  const allVisibleSelected = visibleBatches.length > 0
+    && visibleBatches.every((batch) => selected.has(batch.batch_id));
+
+  const toggleSelect = (batchId) => {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(batchId)) next.delete(batchId);
+      else next.add(batchId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((current) => {
+      if (allVisibleSelected) return new Set();
+      return new Set(visibleBatches.map((batch) => batch.batch_id));
+    });
+  };
+
+  const exitSelect = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+
   const openBatch = (batch) => {
-    if (statusOf(batch) !== 'imported') return;
+    if (selecting) {
+      toggleSelect(batch.batch_id);
+      return;
+    }
+    if (!canOpenBatch(batch)) return;
     setActive({
       batchId: batch.batch_id,
       reviewSessionId: batch.last_session_id || null,
@@ -175,18 +227,30 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const requestDelete = (batch, event) => {
     event.stopPropagation();
     event.preventDefault();
-    if (!deleting) setDeleteTarget(batch);
+    if (!deleting) setDeleteTarget([batch]);
+  };
+
+  const requestDeleteSelected = () => {
+    if (!selectedBatches.length || deleting) return;
+    setDeleteTarget(selectedBatches);
   };
 
   const confirmDelete = async () => {
-    const batch = deleteTarget;
-    if (!batch || deleting) return;
-    setDeleting(batch.batch_id);
+    const targets = deleteTarget;
+    if (!targets?.length || deleting) return;
+    const ids = targets.map((batch) => batch.batch_id);
+    setDeleting(true);
     setErrMsg('');
     try {
-      await api(`/api/questions/batch/${encodeURIComponent(batch.batch_id)}`, { method: 'DELETE' });
-      setBatches((current) => current.filter((item) => item.batch_id !== batch.batch_id));
+      if (ids.length === 1) {
+        await api(`/api/questions/batch/${encodeURIComponent(ids[0])}`, { method: 'DELETE' });
+      } else {
+        await api('/api/questions/batches/delete', { method: 'POST', body: { batch_ids: ids } });
+      }
+      const removed = new Set(ids);
+      setBatches((current) => current.filter((item) => !removed.has(item.batch_id)));
       setDeleteTarget(null);
+      exitSelect();
     } catch (error) {
       setDeleteTarget(null);
       setErrMsg(error?.message || '删除失败');
@@ -239,17 +303,59 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
             <p className="text-[11px] font-medium text-slate-400">按模块找题组，定时任务也可按日期找</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={loadBatches}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
-        >
-          {loading
-            ? <Loader2 size={13} className="animate-spin" />
-            : <RefreshCw size={13} />}
-          刷新
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          {selecting ? (
+            <>
+              <button
+                type="button"
+                onClick={toggleSelectAll}
+                disabled={!visibleBatches.length || Boolean(deleting)}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
+              >
+                {allVisibleSelected ? <CheckSquare size={13} /> : <Square size={13} />}
+                {allVisibleSelected ? '取消全选' : '本页全选'}
+              </button>
+              <button
+                type="button"
+                onClick={requestDeleteSelected}
+                disabled={!selectedBatches.length || Boolean(deleting)}
+                className="flex items-center gap-1.5 rounded-xl bg-red-500 px-3 py-2 text-xs font-black text-white transition-colors hover:bg-red-600 disabled:opacity-40"
+              >
+                <Trash2 size={13} />
+                {selectedBatches.length ? `删除 ${selectedBatches.length}` : '删除'}
+              </button>
+              <button
+                type="button"
+                onClick={exitSelect}
+                disabled={Boolean(deleting)}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
+              >
+                取消
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSelecting(true)}
+              disabled={!visibleBatches.length}
+              className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
+            >
+              <CheckSquare size={13} />
+              选择
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={loadBatches}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-black text-[#777] transition-colors hover:bg-black/5 hover:text-[#1a1a1a] disabled:opacity-40"
+          >
+            {loading
+              ? <Loader2 size={13} className="animate-spin" />
+              : <RefreshCw size={13} />}
+            刷新
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto pb-1">
@@ -354,7 +460,8 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
               label: status,
               className: 'border-slate-200 bg-slate-50 text-slate-500',
             };
-            const canOpen = status === 'imported' || status === 'completed';
+            const canOpen = canOpenBatch(batch);
+            const canDelete = canDeleteBatch(batch);
             const progress = Number(batch.count) > 0
               ? Number(batch.done_count || 0) / Number(batch.count)
               : 0;
@@ -362,7 +469,9 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
               ? Number(batch.correct_count || 0) / Number(batch.attempt_count)
               : null;
             const createdAt = relativeTime(createdOf(batch));
-            const isDeleting = deleting === batch.batch_id;
+            const isDeleting = Boolean(deleting);
+            const checked = selected.has(batch.batch_id);
+            const interactive = selecting || canOpen;
             const action = batch.last_session_id
               ? '复盘'
               : Number(batch.done_count) > 0 ? '继续练习' : '开始练习';
@@ -371,22 +480,36 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
             return (
               <div
                 key={batch.batch_id}
-                role={canOpen ? 'button' : undefined}
-                tabIndex={canOpen ? 0 : undefined}
+                role={interactive ? 'button' : undefined}
+                tabIndex={interactive ? 0 : undefined}
                 onClick={() => openBatch(batch)}
                 onKeyDown={(event) => {
-                  if (canOpen && (event.key === 'Enter' || event.key === ' ')) {
+                  if (interactive && (event.key === 'Enter' || event.key === ' ')) {
                     event.preventDefault();
                     openBatch(batch);
                   }
                 }}
                 className={`rounded-[1.75rem] border bg-white p-5 shadow-sm transition-all ${
-                  canOpen
-                    ? 'cursor-pointer border-[#e8d5b0] hover:border-[#6b5428] hover:shadow-md'
-                    : 'cursor-not-allowed border-black/5 opacity-75'
+                  checked
+                    ? 'cursor-pointer border-[#6b5428] shadow-md'
+                    : interactive
+                      ? 'cursor-pointer border-[#e8d5b0] hover:border-[#6b5428] hover:shadow-md'
+                      : canDelete
+                        ? 'border-[#e8d5b0]'
+                        : 'cursor-not-allowed border-black/5 opacity-75'
                 } ${isDeleting ? 'pointer-events-none opacity-40' : ''}`}
               >
                 <div className="flex items-start gap-3">
+                  {selecting && (
+                    <span
+                      className={`mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${
+                        checked ? 'text-[#1a1a1a]' : 'text-slate-300'
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {checked ? <CheckSquare size={18} /> : <Square size={18} />}
+                    </span>
+                  )}
                   <div
                     className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
                       canOpen
@@ -438,18 +561,18 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
                         </div>
                       </>
                     ) : (
-                      <p className="mt-2 text-xs text-slate-500">
+                      <p className="mt-2 line-clamp-2 text-xs text-slate-500">
                         {status === 'failed'
                           ? batch.error_message
                             || batch.message
-                            || '生成未完成，请稍后重试。'
+                            || '生成未完成，可直接删除以免占着列表。'
                           : status === 'running'
                             ? '题组正在生成，完成后即可开始练习。'
                             : '题组已列入计划，尚未开始生成。'}
                       </p>
                     )}
                   </div>
-                  {canOpen && (
+                  {!selecting && canDelete && (
                     <button
                       type="button"
                       onClick={(event) => requestDelete(batch, event)}
@@ -470,7 +593,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
         </div>
       )}
 
-      {deleteTarget && createPortal(
+      {deleteTarget?.length > 0 && createPortal(
         <div
           className="fixed inset-0 z-[9998] flex items-center justify-center p-5"
           role="dialog"
@@ -491,20 +614,29 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
                 <AlertTriangle size={20} />
               </div>
               <h3 id="delete-batch-title" className="text-lg font-black tracking-tight">
-                删除这个题组？
+                {deleteTarget.length === 1 ? '删除这个题组？' : `删除这 ${deleteTarget.length} 个题组？`}
               </h3>
               <p className="mt-1.5 truncate text-sm font-bold text-[#6b5428]">
-                {nameOf(deleteTarget)}
+                {deleteTarget.length === 1
+                  ? nameOf(deleteTarget[0])
+                  : deleteTarget.slice(0, 2).map((batch) => nameOf(batch)).join('、')
+                    + (deleteTarget.length > 2 ? ` 等 ${deleteTarget.length} 组` : '')}
               </p>
               <p className="mt-4 rounded-2xl bg-[#f7f3ea] px-4 py-3 text-sm leading-relaxed text-slate-600">
-                将删除 <strong className="text-[#1a1a1a]">
-                  {deleteTarget.count || 0} 道题
-                </strong>
-                {Number(deleteTarget.attempt_count) > 0 && (
-                  <>和 <strong className="text-[#1a1a1a]">
-                    {deleteTarget.attempt_count} 条作答记录
-                  </strong></>
-                )}，删除后无法恢复。
+                {deleteTarget.reduce((sum, batch) => sum + Number(batch.count || 0), 0) === 0
+                  ? '这些题组没有题目入库，删除后会从列表里去掉。'
+                  : (
+                    <>
+                      将删除 <strong className="text-[#1a1a1a]">
+                        {deleteTarget.reduce((sum, batch) => sum + Number(batch.count || 0), 0)} 道题
+                      </strong>
+                      {deleteTarget.reduce((sum, batch) => sum + Number(batch.attempt_count || 0), 0) > 0 && (
+                        <>和 <strong className="text-[#1a1a1a]">
+                          {deleteTarget.reduce((sum, batch) => sum + Number(batch.attempt_count || 0), 0)} 条作答记录
+                        </strong></>
+                      )}，删除后无法恢复。
+                    </>
+                  )}
               </p>
             </div>
             <div className="flex gap-3 border-t border-black/5 bg-[#fcfaf6] p-4">

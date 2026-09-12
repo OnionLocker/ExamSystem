@@ -23,13 +23,15 @@ EXIT_ERROR = 1
 EXIT_USAGE = 2
 EXIT_LOCKED = 75
 
+# 言语已停（主题换皮/句法同构）。科学推理暂不日更，只留判断/数量/资料。
+# 恢复某模块：把它从 PAUSED 拿掉，加回 MODULE_QUOTAS。
 MODULE_QUOTAS = (
-    ("言语理解与表达", "yanyu", 15),
     ("判断推理", "panduan", 20),
-    ("科学推理", "kepui", 5),
     ("数量关系", "shuliang", 15),
     ("资料分析", "ziliao", 20),
 )
+PAUSED_DAILY_MODULES = frozenset({"言语理解与表达", "科学推理"})
+ACTIVE_DAILY_MODULES = frozenset(module for module, _slug, _count in MODULE_QUOTAS)
 
 # 日练 batch_id slug → 展示模块名。tuxing/图形题目仅用于外采包命名与导入，
 # 不得加入 MODULE_QUOTAS（不再走 Gemini 画图生成）。
@@ -170,8 +172,40 @@ def new_batch_id(day: dt.date, slug: str) -> str:
     return f"daily-{day:%Y%m%d}-{slug}-{uuid.uuid4().hex[:20]}"
 
 
+def active_daily_runs(runs: list[dict]) -> list[dict]:
+    return [row for row in runs if row.get("module") in ACTIVE_DAILY_MODULES]
+
+
+def pause_retired_modules(conn: sqlite3.Connection, day: dt.date | None = None) -> int:
+    if not PAUSED_DAILY_MODULES:
+        return 0
+    ensure_run_schema(conn)
+    placeholders = ",".join("?" * len(PAUSED_DAILY_MODULES))
+    params: list[str] = [
+        "日练模块已停，不再生成",
+        *PAUSED_DAILY_MODULES,
+    ]
+    day_sql = ""
+    if day is not None:
+        day_sql = " AND plan_date=?"
+        params.append(str(day))
+    cur = conn.execute(
+        f"""
+        UPDATE ai_daily_batch_runs
+           SET status='paused', error=?, updated_at=CURRENT_TIMESTAMP
+         WHERE module IN ({placeholders})
+           AND status NOT IN ('imported','completed','deleted','paused')
+           {day_sql}
+        """,
+        params,
+    )
+    conn.commit()
+    return int(cur.rowcount or 0)
+
+
 def reserve_runs(conn: sqlite3.Connection, day: dt.date) -> list[dict]:
     ensure_run_schema(conn)
+    pause_retired_modules(conn, day)
     for module, slug, count in MODULE_QUOTAS:
         batch_id = new_batch_id(day, slug)
         while conn.execute(

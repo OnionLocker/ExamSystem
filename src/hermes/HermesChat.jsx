@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { api } from '../api.js';
+import { parseSqliteTime } from '../sqliteTime.js';
 import HermesGateway from './gateway.js';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
@@ -266,7 +267,7 @@ const VoiceBubble = ({ src, sec = 0, onDuration }) => {
 
 const fmtDateTime = (raw) => {
   if (!raw) return '';
-  const date = new Date(String(raw).includes('T') ? raw : `${String(raw).replace(' ', 'T')}Z`);
+  const date = new Date(parseSqliteTime(raw));
   if (Number.isNaN(date.getTime())) return String(raw);
   return date.toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
@@ -1010,15 +1011,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ].join('\n')
       : '';
     const reviewLead = review?.kind === 'practice' ? practiceReviewLead : examReviewLead;
-    const voiceLead = audio
-      ? '下面附了我的口述录音，请直接听，不要让我改成文字。'
-      : '';
     const audioLabel = audio
       ? (audio.sec > 0 ? fmtAudioLen(audio.sec) : '语音')
-      : '';
-    const persistText = text || audioLabel;
-    const submittedText = review || persistText
-      ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
       : '';
 
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
@@ -1061,50 +1055,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
         ].join('\n');
-    const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(text);
-    const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(text);
-    const quizNudge = wantsQuiz && !wantsInlineQuiz
-      ? [
-          'This is a question-generation request. The default delivery target is ExamSystem AI Practice, never inline chat.',
-          "Before drafting questions, load skill_view('quiz-pipeline') and skill_view('gd-gongkao-coach'), then follow the full pipeline.",
-          `Default non-data-analysis batch is 10: first run python3 ${projectRoot}/scripts/reference_style.py practice --tag '<规范主标签>' --count 2 and put those origin=zhenti items into questions.json unchanged. Then generate 8 new questions. If the user explicitly requests 全原创/all-original, generate all 10 and do not insert real questions. Data analysis remains 4 Guangdong materials × 5 questions = 20 original questions.`,
-          `Before writing, read quiz-pipeline/references/reference-style-principles.md and reference-style-profile.md (GONGKAO-STYLE-v1). Do not call reference_style.py context --role generate for each stem. After the draft is complete, run python3 ${projectRoot}/scripts/reference_style.py context --role evaluate --count 1 once per tag family as a holdout check. If that command fails or the JSON has skipped=no_holdout_syllabus_mock, omit evaluation_contexts for those items and continue; do not rewrite the slot. Correctness and D-route visual gates still apply. The item is a syllabus mock. Copy 省考 length and ask-style from the internalized profile; do not write easier than the shallowest 国考 cognitive steps recorded there.`,
-          `For data analysis, feed Gemini Flash the complete common+gd sections of quiz-pipeline/references/ziliao-paper-styles.md and the active R001/R005/R006/R007/R009/R016/R017/R018 rules. Default each material to 4 paragraphs and 420-650 Chinese characters; omit simulation disclaimers and slogan filler. Use data from at least 3 paragraphs, give every wrong option a distinct reproducible error path, reject cross-material formula/stem/error-path clones, and use images=yes holdout references for chart questions.`,
-          'For 翻译推理: the keyed option must not restate 已知/现已知 instance facts, including synonyms. Need at least one contrapositive, a disjunctive syllogism, or a two-step chain. Keep the subject neutral (某企业/某团队) and do not leak the conclusion into the subject. Formalize 已知 facts as standalone literals. verify-logic.py rejects echo_given_fact; R029 is a hard fail.',
-          'When generating a 20-question 判断推理 paper (daily or 成套): exactly 图形推理 5 + 逻辑判断 15 covering 加强/削弱/分析/解释/结构相似 (翻译推理 at most 2; never 定义判断 or 类比推理). Do NOT put 科学推理 in this paper. 科学推理 is a separate 5-question module: one each from 力学、压强与浮力、电学、生物、地理 (physics 2-3 + biology 1 + geography 1), every item with a figure, junior-high Guangdong level. Follow panduan_pack / kepui_pack if present: write the slot.tag. 科学推理-地理-等高线 is a contour-map item with a figure (route D), difficulty 3: 疏密判坡 / 河谷凸向高处 / 河流由高到低 / 简单选址, one of these, not 地球自转 and not stacked olympiad constraints. Missing holdout in the bank does not skip the slot. Targeted 10-question drills are exempt.',
-          'The AI-generated batch manifest must record style_marker. Map evaluation_contexts only where a holdout exists; omit them for syllabus mocks when the bank has no matching holdout. generation_contexts is optional. zhenti- items are not gated and must not appear in context question_ids.',
-          `Use the exact requested knowledge point. For B-route items write calculations.json; for image-dependent D-route items write image-specs.json with IMAGE_FACTS and MUST_DERIVE. Assign each generated item an answer letter from a balanced ABCD plan before writing options; put the computed/correct value on that letter and do not rewrite numbers to chase a letter. generation_gate will reshuffle if needed. Run python3 ${projectRoot}/scripts/generation_gate.py issue <batch>; ExamSystem itself performs A/B/C/D correctness checks and the independent real-exam quality review. Never handwrite PASS evidence.`,
-          'If the system gate rejects, read evidence/system-quality.json, revise only the rejected items, refresh evaluation-context mappings when IDs change, and rerun the complete gate. Replace an item after its second failed revision.',
-          'questions.json tags[0] must be the canonical 模块-一级-二级 card tag. For permutation questions use 基础原理/特殊模型/反面容斥, never 数量关系-数学运算-排列组合. knowledge_point is only a fallback; the stored field is tags.',
-          'Create and import a batch into ExamSystem AI Practice. Do not print stems or options in chat. The final reply should only report the batch name and question count.',
-        ].join('\n')
-      : '';
-    const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
-      || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(text));
-    let learnerNudge = '';
-    if (needsLearnerSnapshot) {
-      try {
-        const snapshot = await api('/api/learner/snapshot?compact=1');
-        if (snapshot?.compact) {
-          learnerNudge = [
-            '[LEARNER_SNAPSHOT — SYSTEM FACTS]',
-            snapshot.compact,
-            'Use this database snapshot as the source of truth for performance and recency. Do not infer mastery from conversational memory.',
-            'If a target is listed under 刚练过不宜主攻, or its family was seen within 1 day, and the user did not name it, do not make it the main batch; at most mix 2 structural variants. Permutation subskills share one family; date and cycle share one family. Never regenerate the same scenario with swapped numbers.',
-            'If the user names a module such as 数量, only recommend from that module in 下一步候选, still skip 刚练过不宜主攻 unless they named that family. Recency, 到期回捞 and mastery already encode the 21-day forgetting curve; do not invent a separate memory of what is due.',
-            '[/LEARNER_SNAPSHOT]',
-          ].join('\n');
-        }
-      } catch { /* 快照失败不应阻断用户消息，Hermes skill 仍可直接查库 */ }
-    }
-    const outbound = [
-      reviewLead,
-      voiceLead,
-      submittedText,
-      learnerNudge,
-      masteryNudge,
-      quizNudge,
-    ].filter(Boolean).join('\n');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -1114,7 +1064,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ...prev,
       {
         id: msgId, role: 'user',
-        content: text || (review ? '' : audioLabel),
+        content: text || '',
         streaming: false,
         tools: [], thinking: '', images: images.filter((i) => !i.hidden).map((i) => i.dataUrl),
         audio: audio?.dataUrl || null,
@@ -1151,7 +1101,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
     // 一次完整的投递：挂图片 + 提交文本。会话失效时整段重放，
     // 所以图片不会只挂上一半
-    const deliver = async (target) => {
+    const deliver = async (target, outbound) => {
       for (const img of images) {
         await gw.request('image.attach_bytes', {
           session_id: target,
@@ -1173,6 +1123,65 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     };
 
     try {
+      const spokenText = text.trim();
+      const voiceLead = audio
+        ? [
+            '下面附了口述录音，请直接听，不要转写成文字，不要让用户改成打字。',
+            '录音才是本轮指令。不要把时长标签当作用户正文。',
+            '若录音要你根据快照选定考点并出题：听完后立刻后台调用出题脚本，题量和考点以录音为准（说10道就10道；说按你刚定的考点出，就出那个考点）。不要先只回复建议再等下一轮。',
+            '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
+          ].join('\n')
+        : '';
+      const persistText = spokenText || (audio ? '请直接听录音' : '');
+      const submittedText = review || persistText
+        ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
+        : '';
+      const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(spokenText);
+      const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(spokenText);
+      const quizScript = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>' --interactive`;
+      const quizNudge = wantsQuiz && !wantsInlineQuiz
+        ? [
+            'This is a question-generation request. Deliver only to ExamSystem AI Practice.',
+            'Do not write questions.json, do not skill_view long references, do not run generation_gate or import-batch yourself.',
+            'First tool call must be the script below. Do not ls, search_files, read_file, or sqlite first.',
+            `Call exactly once, in the background with notify_on_complete (foreground terminal dies at 180s): ${quizScript}`,
+            'workdir=/home/ubuntu/ExamSystem. If the user names a knowledge point, --tag must be that canonical 模块-一级-二级. Count is what they asked; default 5 if unnamed. Do not emit a 20-question daily paper.',
+            'Wait for the JSON. Success: report only batch_id and imported count. Failure: report the script message. Never draft questions yourself.',
+          ].join('\n')
+        : audio && !review
+          ? [
+              `If the recording asks to generate questions, call once in the background with notify_on_complete: ${quizScript}`,
+              'Use the knowledge point and count from the recording (including a point you just recommended from the snapshot). Do not explore the repo first.',
+            ].join('\n')
+          : '';
+      const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
+        || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
+      let learnerNudge = '';
+      if (needsLearnerSnapshot) {
+        try {
+          const snapshot = await api('/api/learner/snapshot?compact=1');
+          if (snapshot?.compact) {
+            learnerNudge = [
+              '[LEARNER_SNAPSHOT — SYSTEM FACTS]',
+              snapshot.compact,
+              'Use this database snapshot as the source of truth for performance and recency. Do not infer mastery from conversational memory.',
+              'If the recording asks you to pick a point from this snapshot and then generate, that choice is the named knowledge point.',
+              'If a target is listed under 刚练过不宜主攻, or its family was seen within 1 day, and the user did not name it (in text or in the recording), do not make it the main batch; at most mix 2 structural variants. Permutation subskills share one family; date and cycle share one family. Never regenerate the same scenario with swapped numbers.',
+              'If the user names a module such as 数量, only recommend from that module in 下一步候选, still skip 刚练过不宜主攻 unless they named that family. Recency, 到期回捞 and mastery already encode the 21-day forgetting curve; do not invent a separate memory of what is due.',
+              '[/LEARNER_SNAPSHOT]',
+            ].join('\n');
+          }
+        } catch { /* 快照失败不应阻断用户消息，Hermes skill 仍可直接查库 */ }
+      }
+      const outbound = [
+        reviewLead,
+        voiceLead,
+        submittedText,
+        learnerNudge,
+        masteryNudge,
+        quizNudge,
+      ].filter(Boolean).join('\n');
+
       let target = sidRef.current;
       if (!target) {
         target = await acquireSession();
@@ -1180,8 +1189,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         setSid(target);
       }
 
+      setStatus(audio ? '上传录音' : (images.length > 0 ? '上传图片' : '已发送'));
       try {
-        await deliver(target);
+        await deliver(target, outbound);
       } catch (err) {
         if (!isSessionGone(err)) throw err;
         // 会话被回收了，换一个新的重发一次。只重试一次：
@@ -1190,7 +1200,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         const fresh = await acquireSession();
         sidRef.current = fresh;
         setSid(fresh);
-        await deliver(fresh);
+        await deliver(fresh, outbound);
       }
       setStatus('已发送');
     } catch (err) {

@@ -20,7 +20,9 @@ from scheduler_common import (
     EXIT_LOCKED,
     EXIT_OK,
     FileLock,
+    MODULE_QUOTAS,
     ROOT,
+    active_daily_runs,
     load_runs,
     load_snapshot,
     local_today,
@@ -239,9 +241,10 @@ def main(argv: list[str] | None = None) -> int:
                 snapshot = load_snapshot(conn)
                 if args.dry_run:
                     existing = load_runs(conn, args.date, ensure_schema=False)
-                    runs = existing if len(existing) == 4 else preview_runs(args.date)
+                    runs = existing if len(active_daily_runs(existing)) == len(MODULE_QUOTAS) else preview_runs(args.date)
                 else:
                     runs = reserve_runs(conn, args.date)
+                runs = active_daily_runs(runs)
             finally:
                 conn.close()
             payload = {

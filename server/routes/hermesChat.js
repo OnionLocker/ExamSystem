@@ -11,9 +11,15 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import { promisify } from 'node:util';
 import { Router } from 'express';
 
 import { isValidToken } from '../auth.js';
+
+const runFile = promisify(execFile);
 
 const HERMES_HOST = process.env.HERMES_HOST || '127.0.0.1';
 const HERMES_PORT = process.env.HERMES_PORT || '9119';
@@ -31,6 +37,39 @@ hermesRouter.get('/context', (_req, res) => {
     project_root: PROJECT_ROOT,
     upload_root: path.join(PROJECT_ROOT, 'data', 'uploads'),
   });
+});
+
+const TRANSCRIBE_MAX = 8 * 1024 * 1024;
+
+hermesRouter.post('/transcribe', async (req, res) => {
+  const dataUrl = String(req.body?.data_url || '');
+  if (!dataUrl.startsWith('data:audio/') || !dataUrl.includes(',')) {
+    return res.status(400).json({ error: '需要录音' });
+  }
+  const payload = dataUrl.slice(dataUrl.indexOf(',') + 1);
+  const bytes = Buffer.byteLength(payload, 'base64');
+  if (bytes < 200) return res.status(400).json({ error: '录音太短' });
+  if (bytes > TRANSCRIBE_MAX) return res.status(400).json({ error: '录音过长，请分段说' });
+
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'hermes-voice-'));
+  const dataFile = path.join(tmp, 'audio.url');
+  try {
+    await fs.writeFile(dataFile, dataUrl);
+    const { stdout } = await runFile(
+      'python3',
+      [path.join(PROJECT_ROOT, 'scripts', 'transcribe_voice.py'), '--data-url-file', dataFile],
+      { cwd: PROJECT_ROOT, timeout: 90_000, maxBuffer: 2 * 1024 * 1024 },
+    );
+    const result = JSON.parse(String(stdout || '').trim() || '{}');
+    if (result.status === 'error') {
+      return res.status(502).json({ error: result.message || '转写失败', ...result });
+    }
+    return res.json(result);
+  } catch (err) {
+    return res.status(502).json({ error: err?.message || '转写失败' });
+  } finally {
+    await fs.rm(tmp, { recursive: true, force: true }).catch(() => {});
+  }
 });
 
 // 上游地址。Hermes 只绑 loopback，故固定 ws:// 明文（不出本机）

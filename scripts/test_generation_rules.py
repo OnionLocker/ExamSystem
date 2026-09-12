@@ -10,6 +10,7 @@ from pathlib import Path
 
 from kaodian_taxonomy import is_shuliang_paper, validate_shuliang_paper, validate_ziliao_variety
 from generation_gate import validate_paper_hard_rules
+from yanyu_variety import polarity_dump, validate_yanyu_fills
 
 
 def opts(n=4):
@@ -108,6 +109,27 @@ class ShuliangTest(unittest.TestCase):
         validate_shuliang_paper([q("X", "言语理解与表达", "片段阅读", "言语理解与表达-片段阅读-主旨概括")])
         self.assertFalse(is_shuliang_paper([q("X", "判断推理", "图形推理", "判断推理-图形推理-位置规律")]))
 
+    def test_targeted_quantity_skips_sequence_rule(self):
+        items = _balance(
+            [
+                q(
+                    f"M{i}",
+                    "数量关系",
+                    "数学运算",
+                    "数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）",
+                )
+                for i in range(10)
+            ]
+        )
+        validate_paper_hard_rules(
+            {
+                "source": "广东省考行测-数量关系-专项-20260910",
+                "batch_id": "20260910_hermes_排列组合特殊模型_01",
+                "generation": {"batch_constraints": {"targeted_drill": True}},
+            },
+            items,
+        )
+
 
 class ZiliaoVarietyTest(unittest.TestCase):
     def test_clone_rejected(self):
@@ -148,6 +170,72 @@ class HardRulesTest(unittest.TestCase):
             validate_paper_hard_rules({}, [q("X", "言语理解与表达", "片段阅读",
                                              "言语理解与表达-片段阅读-主旨概括",
                                              stem="……因此亟须加强治理。")])
+
+    def test_yanyu_polarity_dump_rejected(self):
+        stem = "城市更新不仅是一场空间的重构，更是一次文脉的________。唯有修旧如旧，才能让历史记忆与现代生活________。"
+        bad = q(
+            "Y1", "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
+            stem=stem,
+            options=[
+                {"key": "A", "text": "割裂 相辅相成"},
+                {"key": "B", "text": "重塑 格格不入"},
+                {"key": "C", "text": "追溯 水火不容"},
+                {"key": "D", "text": "延续 相得益彰"},
+            ],
+            answer="D",
+        )
+        with self.assertRaisesRegex(ValueError, "极性送分"):
+            validate_paper_hard_rules({}, [bad])
+
+    def test_yanyu_combo_stamp_rejected(self):
+        stem = "守正与创新从来不是________的。一方面必须守正；另一方面必须创新。只有找到平衡，才能使古老艺术________。"
+        bad = q(
+            "Y2", "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
+            stem=stem,
+            options=[
+                {"key": "A", "text": "孤立割裂 焕然一新"},
+                {"key": "B", "text": "泾渭分明 薪火相传"},
+                {"key": "C", "text": "截然对立 历久弥新"},
+                {"key": "D", "text": "非此即彼 生生不息"},
+            ],
+            answer="D",
+        )
+        with self.assertRaisesRegex(ValueError, "三件套"):
+            validate_paper_hard_rules({}, [bad])
+
+    def test_yanyu_half_right_passes(self):
+        stem = "深海冷泉喷口附近的微生物靠氧化甲烷获得能量，这种代谢方式把碳重新送回食物网，使深海碳循环得以________。"
+        ok = q(
+            "Y3", "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
+            stem=stem,
+            options=[
+                {"key": "A", "text": "闭环"},
+                {"key": "B", "text": "空转"},
+                {"key": "C", "text": "外溢"},
+                {"key": "D", "text": "搁浅"},
+            ],
+            answer="A",
+        )
+        validate_paper_hard_rules({}, [ok])
+        self.assertIsNone(polarity_dump(ok))
+
+    def test_yanyu_same_mold_twice_rejected(self):
+        def fill(qid, stem):
+            return q(
+                qid, "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
+                stem=stem,
+                options=[
+                    {"key": "A", "text": "延续 相得益彰"},
+                    {"key": "B", "text": "延续 相互映衬"},
+                    {"key": "C", "text": "赓续 彼此成就"},
+                    {"key": "D", "text": "承接 并行不悖"},
+                ],
+                answer="A",
+            )
+        a = fill("A", "这项工作不仅是一次技术升级，更是一次流程的________。")
+        b = fill("B", "这场改革不仅是制度修补，更是一次观念的________。")
+        with self.assertRaisesRegex(ValueError, "句法模具重复"):
+            validate_yanyu_fills([a, b])
 
     def test_ziliao_moushengSi_and_dirty(self):
         items = ziliao_paper(distinct=True)

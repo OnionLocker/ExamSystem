@@ -4,6 +4,7 @@ import {
   ChevronRight, Loader2, RefreshCw, ScanSearch, Target, Upload, X,
 } from 'lucide-react';
 import { MODULES, dailyDateOf, moduleOf } from '../aiPractice/practiceModules.js';
+import { parseSqliteTime } from '../sqliteTime.js';
 
 const fmtSec = (sec) => {
   const total = Math.max(0, Math.floor(sec || 0));
@@ -12,7 +13,7 @@ const fmtSec = (sec) => {
 
 const fmtDateTime = (raw) => {
   if (!raw) return '';
-  const date = new Date(String(raw).includes('T') ? raw : `${String(raw).replace(' ', 'T')}Z`);
+  const date = new Date(parseSqliteTime(raw));
   if (Number.isNaN(date.getTime())) return String(raw);
   return date.toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,

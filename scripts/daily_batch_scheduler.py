@@ -23,6 +23,7 @@ from scheduler_common import (
     EXIT_OK,
     FileLock,
     ROOT,
+    active_daily_runs,
     daily_source_name,
     difficulty_tier,
     load_runs,
@@ -128,7 +129,19 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         ziliao_rule = (
             "This is a 15-question Guangdong 言语理解与表达 paper. "
             "Questions 1-5: 逻辑填空. Questions 6-15: 片段阅读 and 语句表达. "
-            "Write questions.json in this paper order; do not shuffle."
+            "Write questions.json in this paper order; do not shuffle. "
+            "CONSTRAINT (machine-checked, do not invent around it): "
+            "generation_gate rejects 逻辑填空 polarity dumps "
+            "(2+ 贬义第二空塞进「才能让/从而/得以」) and the "
+            "「从来不是+一方面另一方面+只有才能」 stamp; "
+            "each of 不仅更是 / 从来不是 / 在传统开篇 / 若只就会唯有 "
+            "at most once per batch. Honor yanyu_avoid.do_not_reuse_molds "
+            "and do not rewrite recent_openings. "
+            "Two-blank options must be half-right (one blank fits, the other fails "
+            "on 搭配/色彩/方向); not three extreme fakes + one obvious key. "
+            "FREEDOM (Gemini, required): topic, field, entities, 说明/叙事/对话/实验记录, "
+            "1 or 2 blanks, which words to test, sentence order. "
+            "Do not default to 政策议论文+然而. Mix registers."
         )
     else:
         ziliao_rule = (
@@ -285,6 +298,7 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 snapshot = load_snapshot(conn)
                 runs = preview_runs(args.date) if args.dry_run else reserve_runs(conn, args.date)
+                runs = active_daily_runs(runs)
             finally:
                 conn.close()
             if args.dry_run:

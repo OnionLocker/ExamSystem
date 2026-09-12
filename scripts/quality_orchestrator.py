@@ -777,7 +777,8 @@ def run_quality(
             if set(distractors) != wrong_keys or any(not str(value).strip() for value in distractors.values()):
                 issues.append("three diagnostic distractor paths are missing")
             mapped_ids = {str(item.get("external_id")) for item in references.get(qid, [])}
-            if set(str(value) for value in review.get("reference_ids") or []) != mapped_ids:
+            reviewed_ids = {str(value) for value in review.get("reference_ids") or []}
+            if mapped_ids and reviewed_ids != mapped_ids:
                 issues.append("quality reviewer did not use the mapped evaluation references")
         output[qid] = {
             "verdict": "PASS" if not issues else "REJECT",

@@ -26,6 +26,7 @@ from normalize_ai_batch import generated_questions, normalize_batch, validate_da
 from panduan_pack import _blob as _kepui_blob
 from panduan_pack import is_kepui_paper, is_panduan_paper, kepui_bucket, validate_kepui_paper, validate_panduan_paper
 from reference_style import has_images, match_level
+from yanyu_variety import validate_yanyu_fills
 
 
 def is_zhenti_question(question: dict) -> bool:
@@ -300,7 +301,7 @@ def validate_context_coverage(manifest: dict, ids: list[str], questions: list[di
         question = by_id.get(qid)
         if question is None or question_needs_evaluate_holdout(question):
             must.append(qid)
-    if must:
+    if must and not _is_targeted_drill(manifest):
         raise ValueError("evaluation_contexts 必须覆盖有 holdout 的生成题")
     gen_contexts = generation.get("generation_contexts") or []
     gen_covered = [str(qid) for item in gen_contexts for qid in item.get("question_ids") or []]
@@ -498,6 +499,17 @@ def _dirty_ratio(texts: list[str]) -> float:
     return (dirty / total) if total else 1.0
 
 
+def _is_targeted_drill(manifest: dict) -> bool:
+    source = str((manifest or {}).get("source") or "")
+    batch_id = str((manifest or {}).get("batch_id") or "")
+    constraints = ((manifest or {}).get("generation") or {}).get("batch_constraints") or {}
+    return (
+        "专项" in source
+        or "_hermes_" in batch_id
+        or constraints.get("targeted_drill") is True
+    )
+
+
 def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: Path | None = None) -> None:
     """广东通用卷机械硬规则（出题闸门，不依赖大模型）。已用样卷验收，命中即拦下本次生成。"""
     generated = generated_questions(questions)
@@ -526,8 +538,9 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         stem = str(question.get("stem") or question.get("content") or "")
         if any(word in stem for word in _KEGANG_WORDS):
             raise ValueError(f"题面禁止课纲词（本题考察 / 秒杀模型等）：{question.get('external_id')}")
-    # 4) 数量卷：不得 0 数字推理；15 题须数推 5 + 运算 10
-    validate_shuliang_paper(generated)
+    # 4) 数量成套卷：不得 0 数字推理；15 题须数推 5 + 运算 10。专项小卷豁免。
+    if not _is_targeted_drill(manifest):
+        validate_shuliang_paper(generated)
     # 5) 资料卷：四篇考点骨架不得同构
     validate_ziliao_variety(generated)
     # 6) 资料卷专项：禁“某省”、脏数字≥40%、综合判断形式跨篇轮换
@@ -584,12 +597,13 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                     f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
                     "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
         validate_kepui_paper(science, require_images=True)
-    # 9) 言语：禁“因此亟须”作文腔
+    # 9) 言语：禁“因此亟须”作文腔；逻辑填空禁极性送分与同批申论套句
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
             tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
             if "因此亟须" in tail:
                 raise ValueError(f"言语题禁止“因此亟须…”作文腔表述：{question.get('external_id')}")
+    validate_yanyu_fills(generated)
     # 10) 答案字母均衡（非资料卷；资料另用 3篇ABCD各一+1、1篇打散）：单卷任一字母 ≤ 约 40%
     nonziliao = [q for q in generated
                  if str(q.get("category") or "") != "资料分析"

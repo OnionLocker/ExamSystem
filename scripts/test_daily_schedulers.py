@@ -24,6 +24,7 @@ from scheduler_common import (
     MODULE_QUOTAS,
     daily_source_for_batch,
     module_from_batch_id,
+    pause_retired_modules,
     reserve_runs,
 )
 
@@ -62,7 +63,7 @@ class SchedulerTest(unittest.TestCase):
         conn = sqlite3.connect(":memory:")
         first = reserve_runs(conn, dt.date(2026, 9, 20))
         second = reserve_runs(conn, dt.date(2026, 9, 20))
-        self.assertEqual(len(first), 5)
+        self.assertEqual(len(first), 3)
         self.assertEqual(
             {row["module"]: row["batch_id"] for row in first},
             {row["module"]: row["batch_id"] for row in second},
@@ -70,20 +71,70 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(
             {row["module"]: row["planned_count"] for row in first},
             {
-                "言语理解与表达": 15,
                 "判断推理": 20,
-                "科学推理": 5,
                 "数量关系": 15,
                 "资料分析": 20,
             },
         )
         self.assertEqual(
             conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
-            5,
+            3,
         )
+        self.assertNotIn("言语理解与表达", {row["module"] for row in first})
+        self.assertNotIn("科学推理", {row["module"] for row in first})
         self.assertNotIn("图形题目", {row["module"] for row in first})
         self.assertNotIn("图形题目", {module for module, _slug, _count in MODULE_QUOTAS})
         self.assertEqual(DAILY_SLUG["tuxing"], "图形题目")
+        conn.close()
+
+    def test_scheduled_yanyu_is_paused_not_regenerated(self):
+        conn = sqlite3.connect(":memory:")
+        reserve_runs(conn, dt.date(2026, 9, 21))
+        conn.execute(
+            """
+            INSERT INTO ai_daily_batch_runs(
+              plan_date,module,batch_id,status,planned_count,source
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (
+                "2026-09-21",
+                "言语理解与表达",
+                "daily-20260921-yanyu-old",
+                "scheduled",
+                15,
+                "daily-scheduler",
+            ),
+        )
+        conn.commit()
+        self.assertEqual(pause_retired_modules(conn, dt.date(2026, 9, 21)), 1)
+        row = conn.execute(
+            "SELECT status, error FROM ai_daily_batch_runs WHERE module=?",
+            ("言语理解与表达",),
+        ).fetchone()
+        self.assertEqual(row[0], "paused")
+        self.assertIn("已停", row[1])
+        conn.execute(
+            """
+            INSERT INTO ai_daily_batch_runs(
+              plan_date,module,batch_id,status,planned_count,source
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (
+                "2026-09-21",
+                "科学推理",
+                "daily-20260921-kepui-old",
+                "scheduled",
+                5,
+                "daily-scheduler",
+            ),
+        )
+        conn.commit()
+        self.assertEqual(pause_retired_modules(conn, dt.date(2026, 9, 21)), 1)
+        kepui = conn.execute(
+            "SELECT status FROM ai_daily_batch_runs WHERE module=?",
+            ("科学推理",),
+        ).fetchone()
+        self.assertEqual(kepui[0], "paused")
         conn.close()
 
     def test_tuxing_slug_names_without_generation_quota(self):
