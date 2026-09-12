@@ -20,14 +20,15 @@ import QuotaBar from './QuotaBar.jsx';
 import HermesSidebar from './HermesSidebar.jsx';
 import HermesContextPickers from './HermesContextPickers.jsx';
 import ReviewFloater from './ReviewFloater.jsx';
+import { HIDDEN_SOURCES, sessionPickerMode } from './hermesLayout.js';
 import {
   appendAssistantDelta as appendAssistantDeltaState,
+  coerceResumePayload,
   ensureStreamingAssistant,
   eventText,
-  extractReview,
   finishAssistantMessage,
-  isSystemInjectedNotice,
-  normalizeHermesHistory,
+  mergeResumedMessages,
+  shouldAcceptRemoteResume,
 } from './hermesProtocol.js';
 
 let msgSeq = 0;
@@ -62,6 +63,7 @@ const normalizeAudioDataUrl = (dataUrl) =>
 // cron / 微信会话虽然不展示，仍会占 session.list 的返回名额；多取一些，
 // 避免自动会话把较早的本地对话挤出侧栏。
 const SESSION_LIST_LIMIT = 200;
+const SESSION_SYNC_MS = 10000;
 
 // 上次的会话列表缓存。进页面时先用它把左栏渲染出来，等 WS 连上再静默替换成新数据，
 // 这样首屏不用干等「握手 + DB 查询」。sessionStorage 而不是 localStorage：
@@ -328,7 +330,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [recording, setRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
   const [recStream, setRecStream] = useState(null);
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1440);
+  const pickerMode = sessionPickerMode(viewportWidth);
+  const overlayPicker = pickerMode === 'sheet' || fullscreen;
   const [dragOver, setDragOver] = useState(false);
   const [osFs, setOsFs] = useState(() => !!osFullscreenEl());
   const [fontScale, setFontScale] = useState(readFontScale);
@@ -440,7 +445,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, []);
 
   const rememberSession = useCallback((res, storedId = res?.stored_session_id || null) => {
-    const liveId = res?.session_id || null;
+    const liveId = res?.session_id || sidRef.current || null;
     sidRef.current = liveId;
     setSid(liveId);
     activeStoredIdRef.current = storedId;
@@ -528,6 +533,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         setBusy(true);
         setStatus('(｡•̀ᴗ-)✧ 整理一下');
         setMessages((prev) => ensureStreamingAssistant(prev, uid));
+        // 另一台设备提交的回合：事件可能先到，用 history/resume 补上对方的用户气泡
+        if (!sendingRef.current) {
+          void pullRemoteSessionRef.current?.({ force: false });
+        }
       }),
       gw.on('message.complete', (ev) => finishStreaming(eventText(ev))),
 
@@ -658,68 +667,73 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
   }, []);
 
-  const applyResume = useCallback((res, storedId) => {
-    rememberSession(res, storedId || res.stored_session_id || null);
-    const hydrated = normalizeHermesHistory(res.messages, {
-      nextId: uid,
-      parseAudioLen,
-      isAudioLabel,
-    });
-    const lastHydratedUser = [...hydrated].reverse().find((m) => m.role === 'user');
-    const inflightCandidate = String(res.inflight?.user || '').trim();
-    const inflightRaw = isSystemInjectedNotice(inflightCandidate) ? '' : inflightCandidate;
-    const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
-
-    // A running turn lives in inflight until completion. Restore both its visible
-    // text and attachment metadata; review-only messages legitimately have no text.
+  const applyResume = useCallback((res, storedId, { force = true } = {}) => {
+    const payload = coerceResumePayload(res);
+    rememberSession({
+      ...payload,
+      session_id: payload.session_id || sidRef.current,
+      stored_session_id: storedId || payload.stored_session_id || null,
+    }, storedId || payload.stored_session_id || null);
     setMessages((prev) => {
-      const lastLocalUser = [...prev].reverse().find((m) => m.role === 'user');
-      const localPending = lastLocalUser
-        && (lastLocalUser.content !== lastHydratedUser?.content
-          || lastLocalUser.review?.id !== lastHydratedUser?.review?.id);
-      const pendingContent = inflightUser?.content ?? (localPending ? lastLocalUser.content : '');
-      const pendingReview = inflightUser?.review ?? (localPending ? lastLocalUser.review : null);
-      const alreadyHydrated = pendingContent === lastHydratedUser?.content
-        && pendingReview?.id === lastHydratedUser?.review?.id;
-      const next = hydrated.map((m, i) => {
-        const old = prev[i];
-        return old && old.role === m.role ? { ...m, id: old.id } : m;
+      const next = mergeResumedMessages(prev, payload, {
+        nextId: uid,
+        parseAudioLen,
+        isAudioLabel,
       });
-      if ((pendingContent || pendingReview) && !alreadyHydrated) {
-        next.push({
-          id: lastLocalUser?.id || uid(),
-          role: 'user',
-          content: pendingContent,
-          streaming: false, tools: [], thinking: '',
-          images: lastLocalUser?.images || [],
-          audio: lastLocalUser?.audio || null,
-          audioSec: lastLocalUser?.audioSec ?? parseAudioLen(pendingContent),
-          hadAudio: lastLocalUser?.hadAudio || isAudioLabel(pendingContent),
-          review: pendingReview,
-        });
-      }
-      if (res.running) {
-        const last = next[next.length - 1];
-        if (!(last && last.role === 'assistant' && last.streaming)) {
-          next.push({
-            id: uid(), role: 'assistant',
-            content: res.inflight?.assistant || '',
-            streaming: true, tools: [], thinking: '',
-          });
-        }
-      }
-      return next;
+      return shouldAcceptRemoteResume(prev, next, payload, force) ? next : prev;
     });
-    if (res.running) {
+    if (payload.running) {
       setWaitSec(0);
       setBusy(true);
       setStatus('生成中');
-    } else {
+    } else if (force || Object.prototype.hasOwnProperty.call(payload, 'running')) {
       setBusy(false);
       setStatus('');
     }
     stickToBottom.current = true;
   }, [rememberSession]);
+
+  const historySupportedRef = useRef(null);
+  const syncingRef = useRef(false);
+  const pullRemoteSessionRef = useRef(null);
+
+  const pullRemoteSession = useCallback(async ({ force = false } = {}) => {
+    const gw = gwRef.current;
+    const stored = activeStoredIdRef.current;
+    if (!gw || gw.connectionState !== 'open' || !stored) return;
+    if (sendingRef.current || syncingRef.current) return;
+    syncingRef.current = true;
+    try {
+      let res = null;
+      if (historySupportedRef.current !== false) {
+        try {
+          res = coerceResumePayload(await gw.request('session.history', {
+            session_id: sidRef.current || stored,
+          }));
+          historySupportedRef.current = true;
+        } catch (err) {
+          const msg = err?.message || '';
+          if (/unknown method|method not found|invalid request/i.test(msg)) {
+            historySupportedRef.current = false;
+          } else if (historySupportedRef.current === true) {
+            throw err;
+          }
+        }
+      }
+      if (!res || (!res.messages?.length && !res.inflight && !res.running)) {
+        res = await gw.request('session.resume', { session_id: stored, cols: 100 });
+      }
+      applyResume(res, stored, { force });
+    } catch {
+      /* 后台同步失败不应打断正在看的对话 */
+    } finally {
+      syncingRef.current = false;
+    }
+  }, [applyResume]);
+
+  useEffect(() => {
+    pullRemoteSessionRef.current = pullRemoteSession;
+  }, [pullRemoteSession]);
 
   // WS 断过再连上：必须把当前存档 resume 回去，事件才会重新绑到这条连接。
   // 第一次 open 由上面的 connect() 处理，这里只接重连。
@@ -745,6 +759,51 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       .then((res) => applyResume(res, stored))
       .catch((err) => setBanner(`重连会话失败：${err.message}`));
   }, [connState, applyResume]);
+
+  useEffect(() => {
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const autoOpenedSheetRef = useRef(false);
+  useEffect(() => {
+    if (autoOpenedSheetRef.current) return;
+    if (pickerMode !== 'sheet') return;
+    if (activeStoredId || messages.length > 0) return;
+    if (sessionsLoading) return;
+    const visible = sessions.filter((session) => !HIDDEN_SOURCES.has(session.source));
+    if (visible.length === 0) return;
+    autoOpenedSheetRef.current = true;
+    setSidebarOpen(true);
+  }, [pickerMode, activeStoredId, messages.length, sessions, sessionsLoading]);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    void pullRemoteSession({ force: true });
+    const onSync = () => {
+      if (document.visibilityState === 'hidden') return;
+      void pullRemoteSession({ force: true });
+    };
+    document.addEventListener('visibilitychange', onSync);
+    window.addEventListener('focus', onSync);
+    window.addEventListener('pageshow', onSync);
+    return () => {
+      document.removeEventListener('visibilitychange', onSync);
+      window.removeEventListener('focus', onSync);
+      window.removeEventListener('pageshow', onSync);
+    };
+  }, [active, pullRemoteSession]);
+
+  useEffect(() => {
+    if (!active || connState !== 'open' || !activeStoredId) return undefined;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
+      if (sendingRef.current) return;
+      void pullRemoteSession({ force: false });
+    }, SESSION_SYNC_MS);
+    return () => window.clearInterval(timer);
+  }, [active, connState, activeStoredId, pullRemoteSession]);
 
   const openSession = useCallback(async (stored) => {
     const gw = gwRef.current;
@@ -1597,9 +1656,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }[connState] || 'bg-[#bbb]';
 
   return (
-    <div className={`flex h-full overflow-hidden ${fullscreen ? 'relative gap-0' : 'gap-4 animate-fadeIn'}`}>
+    <div className={`flex h-full overflow-hidden relative ${
+      fullscreen || pickerMode === 'sheet' ? 'gap-0' : 'gap-4 animate-fadeIn'
+    }`}>
       <HermesSidebar
-        fullscreen={fullscreen}
+        overlay={overlayPicker}
+        touch={pickerMode === 'sheet'}
         open={sidebarOpen}
         sessions={sessions}
         sessionsLoading={sessionsLoading}
@@ -1622,15 +1684,20 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           fullscreen ? 'rounded-none border-0 bg-white' : 'rounded-3xl bg-white/70 border border-black/5'
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-black/5">
-          <div className="flex items-center space-x-2 min-w-0">
-            {!sidebarOpen && (
+        <div className="flex items-center gap-2 px-3 sm:px-5 py-3 border-b border-black/5 min-w-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {(pickerMode === 'sheet' || !sidebarOpen) && (
               <button
+                type="button"
                 onClick={() => setSidebarOpen(true)}
-                className="p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5"
+                className={pickerMode === 'sheet'
+                  ? 'flex items-center gap-1.5 min-h-11 px-3 rounded-xl bg-[#f4f0e6] border border-[#e8d5b0] text-[#1a1a1a] font-bold text-[13px]'
+                  : 'p-1.5 rounded-lg text-[#999] hover:text-[#1a1a1a] hover:bg-black/5'}
                 title="会话列表"
+                aria-label="打开会话列表"
               >
                 <MessageSquare size={18} />
+                {pickerMode === 'sheet' ? <span>会话</span> : null}
               </button>
             )}
             {onToggleFullscreen && (
@@ -1662,14 +1729,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               {connLabel}
             </span>
             {status && (
-              <span className="flex items-center space-x-1.5 text-[15px] font-bold text-[#6b5428] truncate">
+              <span className="flex items-center space-x-1.5 text-[15px] font-bold text-[#6b5428] truncate max-w-[28vw]">
                 <Loader2 size={15} className="animate-spin shrink-0" />
                 <span className="truncate">{status}</span>
               </span>
             )}
           </div>
 
-          <div className="flex items-center space-x-1.5 shrink-0 overflow-x-auto [scrollbar-width:none]">
+          <div className="flex items-center space-x-1.5 min-w-0 overflow-x-auto [scrollbar-width:none]">
             {headerExtra}
             <QuotaBar />
             <button
@@ -1750,8 +1817,19 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               </div>
               <p className="text-sm font-black tracking-tight text-[#1a1a1a]">跟 Hermes 聊</p>
               <p className="mt-1.5 text-[11px] text-[#999] leading-relaxed max-w-xs">
-                Markdown、代码、LaTeX 公式都能正常显示。左侧可以续接微信上的对话。
+                {pickerMode === 'sheet'
+                  ? '点左上角「会话」查看以前的对话，或直接在下方开始新的一聊。'
+                  : 'Markdown、代码、LaTeX 公式都能正常显示。左侧可以续接之前的对话。'}
               </p>
+              {pickerMode === 'sheet' && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="mt-4 min-h-11 px-5 rounded-2xl bg-[#1a1a1a] text-white text-sm font-bold"
+                >
+                  查看会话
+                </button>
+              )}
             </div>
           )}
 
