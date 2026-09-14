@@ -5,6 +5,9 @@ const EMBEDDED_IMAGE_RE = /data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
 const SYSTEM_NOTICE_RE = /^\s*(?:\[CONTEXT COMPACTION\b|\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]|\[System:\s*You edited code in this turn\b|\[Coding\]\s*Before you run tests\/linters\b)/i;
 const REVIEW_FILE_RE = /\/data\/(exam-reviews|practice-reviews)\/(\d+)-([^\n]+\.md)/;
 const UPLOAD_FILE_RE = /((?:\/[^\n]*)?\/data\/uploads\/(\d{4}\.\d{2}\.\d{2})\/([^\n/]+)\/([^\n]+))/;
+// 后台脚本跑完，Hermes 运行时会把整段 stdout 当成一条用户消息塞回对话。
+// 原文长得像一坨日志，直接上屏很难看，解析出来交给 BackgroundNotice 折叠显示。
+const BACKGROUND_NOTICE_RE = /^\s*\[IMPORTANT:\s*Background process\s+\S+\s+exited\s*\(exit code\s*(-?\d+)\)/i;
 const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
 const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
 const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
@@ -21,6 +24,18 @@ export const isSystemInjectedNotice = (text) => {
   const raw = String(text || '').trimStart();
   return (raw.charCodeAt(0) === 0 && raw.slice(1).startsWith('json:'))
     || SYSTEM_NOTICE_RE.test(raw);
+};
+
+export const parseBackgroundNotice = (text) => {
+  const raw = String(text || '');
+  const head = raw.match(BACKGROUND_NOTICE_RE);
+  if (!head) return null;
+  const outputAt = raw.search(/Output:/i);
+  return {
+    exitCode: Number(head[1]),
+    command: raw.match(/Command:\s*([^\n]+)/)?.[1]?.trim() || '',
+    output: outputAt < 0 ? '' : raw.slice(outputAt + 7).replace(/\]\s*$/, '').trim(),
+  };
 };
 
 const extractEmbeddedImages = (text) => text.match(EMBEDDED_IMAGE_RE) || [];
@@ -99,6 +114,11 @@ export const normalizeHermesHistory = (
     })
     .map((message) => {
       const rawText = String(message.text || '');
+      const notice = message.role === 'user' ? parseBackgroundNotice(rawText) : null;
+      if (notice) {
+        // 单独一个 role，这样「最后一条用户消息」的判定不会被它顶掉。
+        return { id: nextId(), role: 'notice', content: '', notice, tools: [], thinking: '' };
+      }
       const images = extractEmbeddedImages(rawText);
       const stripped = images.length > 0 ? stripEmbeddedImages(rawText) : rawText;
       const pulled = message.role === 'user'
@@ -130,6 +150,7 @@ export const normalizeHermesHistory = (
       || message.review
       || message.audioSec
       || message.hadAudio
+      || message.notice
     )),
 );
 
@@ -237,7 +258,9 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
   });
   const lastHydratedUser = [...hydrated].reverse().find((message) => message.role === 'user');
   const inflightCandidate = String(resume?.inflight?.user || '').trim();
-  const inflightRaw = isSystemInjectedNotice(inflightCandidate) ? '' : inflightCandidate;
+  const inflightRaw = isSystemInjectedNotice(inflightCandidate) || parseBackgroundNotice(inflightCandidate)
+    ? ''
+    : inflightCandidate;
   const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
 
   const lastLocalUser = [...prev].reverse().find((message) => message.role === 'user');

@@ -8,9 +8,11 @@ import {
   isSystemInjectedNotice,
   mergeResumedMessages,
   normalizeHermesHistory,
+  parseBackgroundNotice,
   shouldAcceptRemoteResume,
 } from '../src/hermes/hermesProtocol.js';
 import { HIDDEN_SOURCES, sessionListReachable, sessionPickerMode } from '../src/hermes/hermesLayout.js';
+import { audioLabelOf, isAudioLabel, parseAudioLen } from '../src/hermes/voiceLabel.js';
 
 let id = 0;
 const nextId = () => `m${++id}`;
@@ -20,10 +22,60 @@ const deps = {
   isAudioLabel: () => false,
 };
 
+// 语音消息在对话里只留时长标签当正文，所以「产标签」和「认标签」必须互逆。
+// 之前正文写成「请直接听录音」，isAudioLabel 认不出，气泡就退化成一行裸文字。
+for (const sec of [1, 7, 12, 59, 60, 61, 90, 120, 125, 3599]) {
+  const label = audioLabelOf(sec);
+  assert.equal(isAudioLabel(label), true, `认不出 ${label}`);
+  assert.equal(parseAudioLen(label), sec, `${label} 还原错了`);
+}
+assert.equal(audioLabelOf(0), '语音');
+assert.equal(isAudioLabel('语音'), true);
+assert.equal(isAudioLabel('请直接听录音'), false);
+assert.equal(isAudioLabel('给我出10道题'), false);
+
+// 只带语音发送时，水合出来必须是语音气泡，而不是把标签当正文显示
+const voiceOnly = normalizeHermesHistory(
+  [{ role: 'user', text: `[USER_MESSAGE]\n${audioLabelOf(12)}\n[/USER_MESSAGE]` }],
+  { nextId, parseAudioLen, isAudioLabel },
+);
+assert.equal(voiceOnly[0].hadAudio, true);
+assert.equal(voiceOnly[0].audioSec, 12);
+
 assert.equal(isSystemInjectedNotice('[System: You edited code in this turn]'), true);
 assert.equal(isSystemInjectedNotice('[CONTEXT COMPACTION — REFERENCE ONLY]'), true);
 assert.equal(isSystemInjectedNotice(`\0json:[{"type":"text"}]`), true);
 assert.equal(isSystemInjectedNotice('正常用户消息'), false);
+
+// 后台脚本跑完，运行时把整段 stdout 当用户消息塞回来。它必须收成一张折叠卡片，
+// 而不是在对话里铺一坨日志，也不能顶替「最后一条用户消息」。
+const noticeText = '[IMPORTANT: Background process proc_b658b6818c25 exited (exit code 1).\n'
+  + 'Command: python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module 数量关系 --count 10\n'
+  + 'Output:\n{"status": "error", "batch_id": "20260914_x", "message": "generation gate failed"}]';
+const notice = parseBackgroundNotice(noticeText);
+assert.equal(notice.exitCode, 1);
+assert.match(notice.command, /quiz_lite\.py/);
+assert.match(notice.output, /generation gate failed/);
+assert.equal(parseBackgroundNotice('正常用户消息'), null);
+assert.equal(parseBackgroundNotice(''), null);
+
+const withNotice = normalizeHermesHistory([
+  { role: 'user', text: '[USER_MESSAGE]\n来10道\n[/USER_MESSAGE]' },
+  { role: 'assistant', text: '在出了' },
+  { role: 'user', text: noticeText },
+], deps);
+assert.deepEqual(withNotice.map((m) => m.role), ['user', 'assistant', 'notice']);
+assert.equal(withNotice[2].content, '');
+assert.equal(withNotice[2].notice.exitCode, 1);
+
+// 通知不能被当成待发送的用户消息重复上屏
+const noticeInflight = mergeResumedMessages([], {
+  messages: [{ role: 'user', text: '[USER_MESSAGE]\n来10道\n[/USER_MESSAGE]' }],
+  inflight: { user: noticeText, assistant: '' },
+  running: false,
+}, deps);
+assert.equal(noticeInflight.filter((m) => m.role === 'user').length, 1);
+assert.equal(noticeInflight.some((m) => String(m.content).includes('Background process')), false);
 
 const review = extractReview(
   '[USER_MESSAGE]\n复盘\n[/USER_MESSAGE]\n'

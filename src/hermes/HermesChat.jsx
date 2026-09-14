@@ -13,6 +13,8 @@ import {
 import { api } from '../api.js';
 import { parseSqliteTime } from '../sqliteTime.js';
 import HermesGateway from './gateway.js';
+import { audioLabelOf, fmtVoiceQuote, isAudioLabel, parseAudioLen } from './voiceLabel.js';
+import BackgroundNotice from './BackgroundNotice.jsx';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
 import { getToolActivity } from './toolActivity.js';
@@ -125,39 +127,6 @@ const exitOsFullscreen = () => {
 const fmtSec = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
-};
-
-const fmtAudioLen = (sec) => {
-  const s = Math.max(0, Math.round(Number(sec) || 0));
-  if (s < 60) return `${s}秒`;
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return r ? `${m}分${r}秒` : `${m}分钟`;
-};
-
-const parseAudioLen = (text) => {
-  const s = String(text || '').trim().replace(/^[（(]|[）)]$/g, '');
-  const m = s.match(/^(?:语音\s*)?(\d+)\s*秒$/) || s.match(/^(\d+)\s*s$/i);
-  if (m) return Number(m[1]);
-  const mm = s.match(/^(?:语音\s*)?(\d+)\s*分钟$/);
-  if (mm) return Number(mm[1]) * 60;
-  const mix = s.match(/^(?:语音\s*)?(\d+)\s*分(\d+)\s*秒$/);
-  if (mix) return Number(mix[1]) * 60 + Number(mix[2]);
-  return null;
-};
-
-const isAudioLabel = (text) => {
-  const s = String(text || '').trim();
-  return s === '语音' || s === '（语音口述）' || parseAudioLen(s) != null;
-};
-
-const fmtVoiceQuote = (sec) => {
-  const s = Math.max(0, Math.round(Number(sec) || 0));
-  if (s <= 0) return '语音';
-  if (s < 60) return `${s}"`;
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return r ? `${m}'${r}"` : `${m}'`;
 };
 
 const RecWave = ({ stream }) => {
@@ -1105,9 +1074,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       : review?.kind === 'upload'
         ? uploadReviewLead
         : examReviewLead;
-    const audioLabel = audio
-      ? (audio.sec > 0 ? fmtAudioLen(audio.sec) : '语音')
-      : '';
+    const audioLabel = audio ? audioLabelOf(audio.sec) : '';
 
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     const masteryNudge = review?.kind === 'practice' && review?.profileReviewed
@@ -1226,7 +1193,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
           ].join('\n')
         : '';
-      const persistText = spokenText || (audio ? '请直接听录音' : '');
+      const persistText = spokenText || audioLabel;
       const submittedText = review || persistText
         ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
         : '';
@@ -1879,7 +1846,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
           {messages.map((m) => (
             <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : ''}>
-              {m.role === 'user' ? (
+              {m.role === 'notice' ? (
+                <BackgroundNotice notice={m.notice} />
+              ) : m.role === 'user' ? (
                 <div className="max-w-[78%] flex flex-col items-end gap-1.5">
                   {(m.audio || m.audioSec > 0 || m.hadAudio || isAudioLabel(m.content)) && (
                     <VoiceBubble
