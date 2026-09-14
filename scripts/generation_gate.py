@@ -37,6 +37,9 @@ def is_zhenti_question(question: dict) -> bool:
 
 VERSION = 3
 LEGACY_VERSIONS = {1, 2}
+# 轻量专项（quiz_lite.py）：盲解官 + 考官双审替代四路线与真题 holdout。
+# 只收纯文字专项批次，证据链仍然是 questions.json 的 sha256 + 逐题复核记录。
+LITE_VERSION = 10
 RECEIPT = ".gate.json"
 
 
@@ -352,6 +355,37 @@ def validate_system_quality(batch_dir: Path, evidence: dict, ids: list[str]) -> 
             raise ValueError(f"系统正确性检查未通过：{qid}")
         if (item.get("quality") or {}).get("verdict") != "PASS":
             raise ValueError(f"系统风格质量棢�查未通过：{qid}")
+
+
+def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> None:
+    if evidence.get("kind") != "examsystem-lite-review":
+        raise ValueError("轻量复核证据 kind 错误")
+    manifest = read_json(batch_dir / "manifest.json")
+    if evidence.get("batch_id") != manifest.get("batch_id"):
+        raise ValueError("轻量复核 batch_id 不一致")
+    if "flash" not in str(evidence.get("model") or "").lower():
+        raise ValueError("轻量复核必须由 Gemini Flash 执行")
+    if evidence.get("questions_sha256") != digest(batch_dir / "questions.json"):
+        raise ValueError("轻量复核后的 questions.json 已变更")
+    if str(evidence.get("verdict") or "").upper() != "PASS":
+        raise ValueError("轻量复核未通过")
+    results = {
+        str(item.get("question_id") or ""): item
+        for item in evidence.get("results") or []
+        if isinstance(item, dict)
+    }
+    if set(results) != set(ids):
+        raise ValueError("轻量复核未覆盖全部生成题")
+    for qid, item in results.items():
+        if str(item.get("verdict") or "").upper() != "PASS":
+            raise ValueError(f"轻量复核未通过：{qid}")
+        blind = item.get("blind") or {}
+        if str(blind.get("answer") or "") != str(item.get("answer") or ""):
+            raise ValueError(f"盲解官答案与题面不一致：{qid}")
+        if blind.get("also_valid"):
+            raise ValueError(f"盲解官发现第二个可成立选项：{qid}")
+        if str((item.get("examiner") or {}).get("verdict") or "").upper() != "PASS":
+            raise ValueError(f"考官未通过：{qid}")
 
 
 def run_system_quality_gate(batch_dir: Path, ids: list[str]) -> Path:
@@ -685,7 +719,7 @@ def verify(batch_dir: Path) -> dict:
     receipt = read_json(receipt_path)
     manifest_path = batch_dir / "manifest.json"
     questions_path = batch_dir / "questions.json"
-    if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION}:
+    if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION, LITE_VERSION}:
         raise ValueError("闸门回执版本不支挄1�71ￄ1�771ￄ1�71ￄ1�777")
     manifest = read_json(manifest_path)
     ids = question_ids(batch_dir)
@@ -728,6 +762,15 @@ def verify(batch_dir: Path) -> dict:
         if not isinstance(evidence, dict):
             raise ValueError("ExamSystem 系统质检证据格式错误")
         validate_system_quality(batch_dir, evidence, ids)
+    if version == LITE_VERSION:
+        meta = receipt.get("lite_review") or {}
+        path = safe_child(batch_dir, str(meta.get("path") or ""))
+        if not path.is_file() or digest(path) != meta.get("sha256"):
+            raise ValueError("轻量复核证据缺失或被修改")
+        evidence = read_json(path)
+        if not isinstance(evidence, dict):
+            raise ValueError("轻量复核证据格式错误")
+        validate_lite_review(batch_dir, evidence, ids)
     return {
         "ok": True,
         "batch_id": receipt["batch_id"],

@@ -1232,13 +1232,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         : '';
       const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3|(?:来|出|再来|各来|各出)\s*[\d\u4e00-\u9fa5]{1,3}\s*(?:\u9053|\u4e2a)(?![\u5e74\u6708\u5468])/.test(spokenText);
       const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(spokenText);
-      const quizScript = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>' --interactive`;
-      const quizBlueprint = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --batch-id '<YYYYMMDD_hermes_考点_序号>' --interactive --blueprint '{"slots":[{"tag":"<规范主标签A>","count":3,"difficulty":"mid"},{"tag":"<规范主标签B>","count":3,"difficulty":"hard"},{"tag":"<规范主标签C>","count":4,"difficulty":"hard"}]}'`;
+      const quizScript = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>'`;
+      const quizBlueprint = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --batch-id '<YYYYMMDD_hermes_考点_序号>' --blueprint '{"slots":[{"tag":"<规范主标签A>","count":3,"difficulty":"mid"},{"tag":"<规范主标签B>","count":3,"difficulty":"hard"},{"tag":"<规范主标签C>","count":4,"difficulty":"hard"}]}'`;
       const quizSlotHint = [
         `If the user wants several 考法/题型 in one batch, a difficulty mix, or a split like 3+3+4, use the blueprint form instead of a single --tag (they are mutually exclusive): ${quizBlueprint}`,
         'Slots map to item order. Each slot needs tag+count; difficulty is optional (easy/mid/hard); all slots must share one module; the total still has to be 1-15. Choosing the slots, their counts and the difficulty spread is your call.',
         'A slot may also carry "brief": free text (<=600 chars) that is YOUR drafting instruction for this batch. The script already injects the solver-canon 固定识别/考场步骤/禁止 for that 考法, so use brief for what the canon cannot know: this run\'s emphasis, degenerate patterns to avoid, current-exam intel you looked up, or a difficulty demand the user just voiced. brief may only tighten constraints, never relax the gate, and must never contain stems, answers or numbers.',
         '一个一级知识点下的不同考法是不同的二级标签，只传一个标签整批就只有那一个考法。最值问题有四个独立考法标签：和定最值与构造 / 最不利原则与抽屉 / 反向构造与多集合最值 / 二次函数与乘积极值，不要用一个标签笼统覆盖。',
+        'quiz_lite 出稿后会跑两个独立审核：盲解官看不到答案自己重做一遍，考官查难度档、考法归属、公考风格与解析可复算。只有不合格的那几道会被退回重出，已通过的题不动，所以返回的 rounds 里可能有多轮，这是正常的。',
       ].join('\n');
       const quizNudge = wantsQuiz && !wantsInlineQuiz
         ? [

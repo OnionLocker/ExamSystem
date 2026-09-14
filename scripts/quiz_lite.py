@@ -1,0 +1,675 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Hermes 轻量专项出题：一次出稿 + 盲解官/考官并行双审 → 只重出不合格的题 → 入库。
+
+重的那条路仍在 quiz_generator.py（四条 correctness 路线、真题 holdout、
+资料分析视觉质检、一题不合格整批重出），留给日练成套卷与带图卷。
+
+这里只解一件事：Hermes 点名一个考法，快速拿到一批答案唯一、难度对档的纯文字题。
+答案正确性不靠硬编码验算，靠盲解官——不给它答案与解析，让它自己把题做一遍。
+给了答案的模型会去论证那个答案，不给答案的模型才会真的算。
+"""
+
+from __future__ import annotations
+
+import argparse
+import difflib
+import json
+import os
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from generation_gate import LITE_VERSION, RECEIPT, digest
+from quiz_generator import (
+    BASE_URL,
+    api_key,
+    canon_card,
+    infer_subcategory,
+    parse_json,
+    reject_unsupported,
+    resolve_slots,
+)
+from scheduler_common import DB, ROOT, local_today
+from spoken_quiz_intent import slug_of
+
+MODEL = os.environ.get("QUIZ_LITE_MODEL", "gemini-3.8-flash-high")
+HTTP_RETRIES = 3
+MAX_COUNT = 15
+DUP_RATIO = 0.82
+# 出题模型会把倒推答案的草稿留在解析里（「为了让答案等于 14，把合格人数调整为…」），
+# 题干却没跟着改。这种解析一眼可辨，不必花审核调用。
+SCRATCHPAD = (
+    "修改题干",
+    "调整数据",
+    "微调数据",
+    "为了让答案",
+    "为了使答案",
+    "若答案要",
+    "重新设定题干",
+)
+# 题库的 difficulty 是 1–5 的整数，主体落在 2–4。声明档位按槽位换算，
+# 不收模型自己写的 difficulty——它会直接把 "easy" 这种字符串塞进来。
+TIER_TO_LEVEL = {"easy": 2, "mid": 3, "hard": 4}
+
+WRITER_SYSTEM = (
+    "你是广东省考行测命题人。只输出一个 JSON 对象，不要 markdown 围栏，不要任何解释文字。"
+)
+
+BLIND_SYSTEM = (
+    "你是独立做题人。你看不到出题人的答案与解析，必须自己把题解出来。\n"
+    "解完之后，再逐个选项回头检查：除了你选的那个，还有没有别的选项也站得住。\n"
+    '只输出 JSON：{"questions":[{"id":"...","answer":"A","steps":"...",'
+    '"also_valid":[],"unsolvable":false,"reason":"..."}]}\n'
+    "answer 必须是你自己算出来的那一项，不要猜、不要凑。\n"
+    "steps 要写出每一步的算式和数值结果，含取整方向（向上/向下），禁止跳步心算。\n"
+    "also_valid 列出除 answer 之外同样成立的选项字母，没有就给空数组。\n"
+    "若题干条件不足、自相矛盾，或四个选项里没有正确答案，unsolvable 置 true 并在 reason 说明。"
+)
+
+EXAMINER_SYSTEM = (
+    "你是广东省考行测命题审核官，能看到答案与解析。逐题只判四件事：\n"
+    "difficulty_ok：难度是否匹配声明的档位。easy 是一两步直问；mid 多一层转化；"
+    "hard 是表述变形或多重约束，但仍必须是同一个考点，不许换成偏题怪题。\n"
+    "kaodian_ok：是否严格落在指定考法的固定识别与考场步骤上，没有串到同卡的别的考法。\n"
+    "style_ok：题干情境、设问方式、选项设置、篇幅是否像广东省考真题，"
+    "不是奥数题、不是教材例题、不是脑筋急转弯。\n"
+    "analysis_ok：解析每一步是否可复算，最后结论是否确实等于键定选项；算式与数值必须自洽。\n"
+    '只输出 JSON：{"questions":[{"id":"...","verdict":"PASS","difficulty_ok":true,'
+    '"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"issues":[]}]}\n'
+    "四项全 true 才给 PASS；任一为 false 必须 REJECT，并在 issues 里写明具体哪一步错、怎么错的。"
+)
+
+
+def call(system: str, prompt: str, temperature: float, timeout: int) -> dict:
+    body = json.dumps(
+        {
+            "model": MODEL,
+            "temperature": temperature,
+            "max_tokens": 16384,
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+        }
+    ).encode("utf-8")
+    last = ""
+    for attempt in range(HTTP_RETRIES):
+        try:
+            request = urllib.request.Request(
+                f"{BASE_URL}/chat/completions",
+                data=body,
+                method="POST",
+                headers={
+                    "Authorization": f"Bearer {api_key()}",
+                    "Content-Type": "application/json",
+                },
+            )
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            return parse_json((payload["choices"][0]["message"].get("content") or "").strip())
+        except Exception as exc:  # noqa: BLE001
+            last = f"{type(exc).__name__}: {exc}"
+            if attempt + 1 < HTTP_RETRIES:
+                time.sleep(4 * (attempt + 1))
+    raise RuntimeError(last)
+
+
+def indexed(payload: dict) -> dict[str, dict]:
+    out = {}
+    for item in payload.get("questions") or []:
+        if isinstance(item, dict) and item.get("id"):
+            out[str(item["id"])] = item
+    return out
+
+
+def item_index(item: dict) -> int:
+    """模型偶尔把 index 写成字符串或漏掉，认不出就返回 0，交给按位次兜底。"""
+    try:
+        return int(item.get("index") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def expand_slots(slots: list[dict]) -> list[dict]:
+    """槽位摊平成「每题一份口径」，下标即题号 - 1。"""
+    per_item: list[dict] = []
+    for slot in slots:
+        per_item.extend([slot] * int(slot["count"]))
+    return per_item
+
+
+def public(question: dict, with_answer: bool) -> dict:
+    out = {
+        "id": question.get("external_id"),
+        "category": question.get("category"),
+        "sub_category": question.get("sub_category"),
+        "tags": question.get("tags") or [],
+        "stem": question.get("stem"),
+        "options": [
+            {"key": option.get("key"), "text": option.get("text")}
+            for option in question.get("options") or []
+        ],
+    }
+    if with_answer:
+        out["answer"] = question.get("answer")
+        out["analysis"] = question.get("analysis")
+    return out
+
+
+def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
+    cards: dict[str, str] = {}
+    for ask in asks:
+        tag = str(ask["tag"])
+        if tag not in cards:
+            cards[tag] = canon_card(run["module"], tag)
+    lines = [
+        "严格按下面每一条 item 出题，一条一道，数量不多不少。",
+        json.dumps(
+            {"module": run["module"], "batch_id": run["batch_id"], "items": asks},
+            ensure_ascii=False,
+        ),
+        "",
+        "考法口径（按 item 的 tag 各自对照，不要让别的考法渗进来）：",
+    ]
+    for tag, card in cards.items():
+        lines.append(f"[{tag}]\n{card}" if card else f"[{tag}]（此考法无卡片，按标签字面出题）")
+    lines += [
+        "",
+        "硬要求：",
+        "- 每题四个选项 A/B/C/D，有且只有一个正确；另外三项必须各有一个致命缺陷，"
+        "不能是同样成立的另一种合理答案。",
+        "- 每道题的正确项放哪个字母由你自己定，不要为了凑某个字母去改数据；"
+        f"但本次这 {len(asks)} 道题的正确项字母要分散，同一个字母不要超过 "
+        f"{max(1, round(len(asks) * 0.4))} 道。",
+        "- analysis 写出完整可复算的步骤：每一步的算式、数值结果、取整方向，"
+        "最后一行给出结论并指明等于哪个选项。",
+        "- 先按题干原样的数据算出真答案，再据此设选项。一旦发现选项与真答案对不上，"
+        "改的是选项，不是题干数据，更不是解析里的数据。",
+        "- analysis 是给考生看的解题步骤，不是你的草稿纸。里面不得出现"
+        "「修改题干」「调整数据」「为了让答案等于…」这类自言自语；"
+        "解析解的必须是题干原样的那道题。",
+        "- 数值题的四个选项必须围绕取整之后的最终答案设置，正确答案必须真的在选项里。",
+        "- 纯文字题，不带图、不引用图；禁止照搬真题；主体用某单位/某企业/某科室这类中性称谓。",
+        "- 题干与设问要像广东省考真题：情境简洁、设问明确、篇幅不超过真题常见长度。",
+    ]
+    if kept:
+        lines += [
+            "",
+            "本批次已通过的题（新题不得与它们同模型同数据，情境也要换）：",
+            *[f"- {stem[:120]}" for stem in kept],
+        ]
+    lines += [
+        "",
+        '只输出 JSON：{"questions":[{"index":1,"stem":"...",'
+        '"options":[{"key":"A","text":"..."}],"answer":"A","analysis":"..."}]}',
+    ]
+    return "\n".join(lines)
+
+
+def local_issues(question: dict) -> list[str]:
+    """不花模型调用就能查的结构问题，送审前先筛掉。"""
+    issues = []
+    options = question.get("options") or []
+    keys = [str(option.get("key") or "") for option in options]
+    if keys != ["A", "B", "C", "D"]:
+        issues.append("选项必须是 A/B/C/D 四项")
+    texts = [str(option.get("text") or "").strip() for option in options]
+    if any(not text for text in texts):
+        issues.append("存在空选项")
+    elif len(set(texts)) != len(texts):
+        issues.append("选项文本重复")
+    if str(question.get("answer") or "") not in set(keys):
+        issues.append("answer 不在选项内")
+    if len(str(question.get("stem") or "").strip()) < 15:
+        issues.append("题干过短")
+    analysis = str(question.get("analysis") or "").strip()
+    if len(analysis) < 30:
+        issues.append("解析过短，无法复算")
+    leaked = [phrase for phrase in SCRATCHPAD if phrase in analysis]
+    if leaked:
+        issues.append(
+            f"解析里留着倒推答案的草稿（{'、'.join(leaked)}），题干与解析已脱节，重写这道题"
+        )
+    return issues
+
+
+def duplicate_stem(stem: str, others: list[str]) -> bool:
+    return any(
+        difflib.SequenceMatcher(None, stem, other).ratio() >= DUP_RATIO for other in others
+    )
+
+
+def tier_of(run: dict, slot: dict) -> str:
+    return str(slot.get("difficulty") or run.get("difficulty") or "mid")
+
+
+def stamp(run: dict, raw: dict, index: int, slot: dict, source: str) -> dict:
+    """给单题打上批次身份；只动簿记字段，不改题面内容。"""
+    tag = str(slot["tag"])
+    row = dict(raw)
+    for field in ("index", "origin", "calculations", "stem_images", "explanation_images"):
+        row.pop(field, None)
+    row["difficulty"] = TIER_TO_LEVEL.get(tier_of(run, slot), 3)
+    row["external_id"] = f"{run['batch_id']}_{index + 1:02d}"
+    row["category"] = run["module"]
+    row["sub_category"] = infer_subcategory(tag, run["module"])
+    row["tags"] = [tag]
+    row["question_type"] = "single"
+    row["source"] = source
+    row["year"] = 2026
+    row["region"] = "广东-省直"
+    row["options"] = [
+        {"key": str(option.get("key") or ""), "text": str(option.get("text") or "").strip()}
+        for option in row.get("options") or []
+    ]
+    analysis = str(row.get("analysis") or row.get("explanation") or "").strip()
+    row["analysis"] = analysis
+    row["explanation"] = analysis
+    return row
+
+
+def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, dict]:
+    """盲解官与考官并行各跑一次，返回逐题结论。"""
+    if not questions:
+        return {}
+    blind_payload = json.dumps(
+        {"questions": [public(q, with_answer=False) for q in questions]}, ensure_ascii=False
+    )
+    cards: dict[str, str] = {}
+    examiner_items = []
+    for question in questions:
+        index = int(str(question["external_id"]).rsplit("_", 1)[1]) - 1
+        slot = per_item[index]
+        tag = str(slot["tag"])
+        if tag not in cards:
+            cards[tag] = canon_card(run["module"], tag)
+        examiner_items.append(
+            {
+                "question": public(question, with_answer=True),
+                "declared_kaofa": tag,
+                "declared_difficulty": tier_of(run, slot),
+            }
+        )
+    examiner_payload = json.dumps(
+        {
+            "items": examiner_items,
+            "kaofa_canon": {tag: card for tag, card in cards.items() if card},
+        },
+        ensure_ascii=False,
+    )
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        blind_future = pool.submit(
+            call, BLIND_SYSTEM, "逐题独立作答：\n" + blind_payload, 0.0, 300
+        )
+        examiner_future = pool.submit(
+            call, EXAMINER_SYSTEM, "逐题审核：\n" + examiner_payload, 0.0, 300
+        )
+        blind = indexed(blind_future.result())
+        examiner = indexed(examiner_future.result())
+
+    out = {}
+    for question in questions:
+        qid = str(question["external_id"])
+        answer = str(question.get("answer") or "")
+        issues = local_issues(question)
+        blind_item = blind.get(qid)
+        examiner_item = examiner.get(qid)
+        if not blind_item:
+            issues.append("盲解官无结论")
+        else:
+            if blind_item.get("unsolvable") is True:
+                issues.append(f"盲解官认为此题无解：{str(blind_item.get('reason') or '')[:300]}")
+            blind_answer = str(blind_item.get("answer") or "").strip().upper()
+            if blind_answer != answer:
+                issues.append(
+                    f"盲解官独立解出 {blind_answer or '空'}，题面键定 {answer}："
+                    f"{str(blind_item.get('steps') or '')[:400]}"
+                )
+            extra = [str(key).strip().upper() for key in blind_item.get("also_valid") or []]
+            extra = [key for key in extra if key and key != answer]
+            if extra:
+                issues.append(f"盲解官认为 {'/'.join(extra)} 同样成立，答案不唯一")
+        if not examiner_item:
+            issues.append("考官无结论")
+        else:
+            flags = {
+                "难度不匹配声明档位": examiner_item.get("difficulty_ok"),
+                "没落在指定考法上": examiner_item.get("kaodian_ok"),
+                "不像广东省考真题": examiner_item.get("style_ok"),
+                "解析无法复算或与答案不自洽": examiner_item.get("analysis_ok"),
+            }
+            for label, ok in flags.items():
+                if ok is not True:
+                    issues.append(label)
+            if str(examiner_item.get("verdict") or "").upper() != "PASS":
+                issues.extend(str(item)[:300] for item in examiner_item.get("issues") or [])
+        out[qid] = {
+            "question_id": qid,
+            "answer": answer,
+            "verdict": "PASS" if not issues else "REJECT",
+            "blind": {
+                "answer": str((blind_item or {}).get("answer") or "").strip().upper(),
+                "also_valid": [
+                    key
+                    for key in (
+                        str(k).strip().upper() for k in (blind_item or {}).get("also_valid") or []
+                    )
+                    if key and key != answer
+                ],
+                "unsolvable": bool((blind_item or {}).get("unsolvable")),
+                "steps": str((blind_item or {}).get("steps") or "")[:1500],
+            },
+            "examiner": {
+                "verdict": str((examiner_item or {}).get("verdict") or "REJECT").upper(),
+                "difficulty_ok": (examiner_item or {}).get("difficulty_ok"),
+                "kaodian_ok": (examiner_item or {}).get("kaodian_ok"),
+                "style_ok": (examiner_item or {}).get("style_ok"),
+                "analysis_ok": (examiner_item or {}).get("analysis_ok"),
+                "issues": [str(item)[:300] for item in (examiner_item or {}).get("issues") or []],
+            },
+            "issues": issues,
+        }
+    return out
+
+
+def build_batch(run: dict, rounds: int, source: str) -> tuple[list[dict], dict, list[dict]]:
+    """出稿 → 双审 → 只重出不合格的题。返回题目、逐题证据、每轮记录。"""
+    total = int(run["planned_count"])
+    per_item = expand_slots(run["slots"])
+    slots: list[dict | None] = [None] * total
+    results: dict[str, dict] = {}
+    feedback: dict[int, list[str]] = {}
+    log = []
+
+    for attempt in range(1, rounds + 1):
+        todo = [index for index, value in enumerate(slots) if value is None]
+        if not todo:
+            break
+        asks = []
+        for index in todo:
+            slot = per_item[index]
+            ask = {
+                "index": index + 1,
+                "tag": str(slot["tag"]),
+                "difficulty": tier_of(run, slot),
+            }
+            if slot.get("brief"):
+                ask["brief"] = str(slot["brief"])
+            if feedback.get(index):
+                ask["上一轮被退回的原因"] = feedback[index]
+            asks.append(ask)
+        kept = [str(value.get("stem") or "") for value in slots if value]
+        started = time.monotonic()
+        draft = call(WRITER_SYSTEM, writer_prompt(run, asks, kept), 0.5, 600)
+
+        produced = [item for item in draft.get("questions") or [] if isinstance(item, dict)]
+        fresh: list[dict] = []
+        rejected = []
+        for position, index in enumerate(todo):
+            raw = next(
+                (item for item in produced if item_index(item) == index + 1),
+                produced[position] if position < len(produced) else None,
+            )
+            if raw is None:
+                continue
+            question = stamp(run, raw, index, per_item[index], source)
+            others = [str(value.get("stem") or "") for value in slots if value]
+            others += [str(value.get("stem") or "") for value in fresh]
+            # 结构问题和撞题都不花审核调用，当场退回。
+            reasons = local_issues(question)
+            if duplicate_stem(str(question.get("stem") or ""), others):
+                reasons.append("与本批次已有题目撞题，换情境与数据重出")
+            if reasons:
+                feedback[index] = reasons
+                rejected.append({"question_id": str(question["external_id"]), "issues": reasons})
+                continue
+            slots[index] = question
+            fresh.append(question)
+
+        round_results = review(run, fresh, per_item)
+        results.update(round_results)
+        for question in fresh:
+            qid = str(question["external_id"])
+            if round_results[qid]["verdict"] == "PASS":
+                continue
+            index = int(qid.rsplit("_", 1)[1]) - 1
+            slots[index] = None
+            feedback[index] = round_results[qid]["issues"]
+            results.pop(qid, None)
+            # 退掉的题不会进 results，原因留在这里，否则事后无从判断审核官是否过严。
+            rejected.append({"question_id": qid, "issues": round_results[qid]["issues"]})
+        log.append(
+            {
+                "round": attempt,
+                "asked": [index + 1 for index in todo],
+                "accepted": sum(1 for index in todo if slots[index] is not None),
+                "rejected": rejected,
+                "seconds": round(time.monotonic() - started, 1),
+            }
+        )
+
+    missing = [index + 1 for index, value in enumerate(slots) if value is None]
+    if missing:
+        detail = "; ".join(
+            f"第{index}题：{'、'.join(feedback.get(index - 1) or ['未产出'])[:300]}"
+            for index in missing
+        )
+        raise RuntimeError(f"{rounds} 轮后仍有 {len(missing)} 道不合格（{detail}）")
+    return [value for value in slots if value], results, log
+
+
+def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) -> None:
+    batch_dir.mkdir(parents=True, exist_ok=True)
+    letters = [str(question.get("answer") or "") for question in questions]
+    counts: dict[str, int] = {}
+    for letter in letters:
+        counts[letter] = counts.get(letter, 0) + 1
+    manifest = {
+        "batch_id": run["batch_id"],
+        "source": source,
+        "region": "广东-省直",
+        "year": 2026,
+        "kind": "ai-generated",
+        "difficulty_tier": run.get("difficulty") or "mid",
+        "generation": {
+            "style_marker": "GONGKAO-STYLE-v1",
+            "pipeline": "quiz_lite",
+            "batch_constraints": {
+                "all_original": True,
+                "question_count": len(questions),
+                "targeted_drill": True,
+                "no_images": True,
+                "answer_max_per_letter": max(counts.values()) if counts else 1,
+                "answer_min_letters": len(counts),
+                "tag_counts": {
+                    str(slot["tag"]): sum(
+                        int(other["count"])
+                        for other in run["slots"]
+                        if str(other["tag"]) == str(slot["tag"])
+                    )
+                    for slot in run["slots"]
+                },
+                "slot_plan": [
+                    {key: value for key, value in slot.items() if value not in (None, "")}
+                    for slot in run["slots"]
+                ],
+            },
+            "generation_contexts": [],
+            "evaluation_contexts": [],
+        },
+    }
+    (batch_dir / "questions.json").write_text(
+        json.dumps(questions, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    (batch_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) -> None:
+    """写逐题复核证据并签发精简收据，import-batch 仍然要校验它。"""
+    questions = json.loads((batch_dir / "questions.json").read_text(encoding="utf-8"))
+    ids = [str(question["external_id"]) for question in questions]
+    evidence = {
+        "version": 1,
+        "kind": "examsystem-lite-review",
+        "batch_id": run["batch_id"],
+        "model": MODEL,
+        "reviewed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "verdict": "PASS" if all(results[qid]["verdict"] == "PASS" for qid in ids) else "REJECT",
+        "rounds": log,
+        "questions_sha256": digest(batch_dir / "questions.json"),
+        "results": [results[qid] for qid in ids],
+    }
+    evidence_dir = batch_dir / "evidence"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    evidence_path = evidence_dir / "lite-review.json"
+    evidence_path.write_text(
+        json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    receipt = {
+        "version": LITE_VERSION,
+        "batch_id": run["batch_id"],
+        "issued_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "manifest_sha256": digest(batch_dir / "manifest.json"),
+        "questions_sha256": digest(batch_dir / "questions.json"),
+        "question_ids": ids,
+        "lite_review": {
+            "path": str(evidence_path.relative_to(batch_dir)),
+            "sha256": digest(evidence_path),
+            "model": MODEL,
+        },
+    }
+    (batch_dir / RECEIPT).write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def import_batch(batch_dir: Path, db_path: Path) -> int:
+    env = {**os.environ, "EXAM_DB": str(db_path)}
+    result = subprocess.run(
+        ["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "import failed").strip()[-2000:])
+    conn = sqlite3.connect(db_path, timeout=30)
+    try:
+        return int(
+            conn.execute(
+                "SELECT COUNT(*) FROM questions WHERE batch_id=?", (batch_dir.name,)
+            ).fetchone()[0]
+        )
+    finally:
+        conn.close()
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Hermes 轻量专项出题（盲解官 + 考官双审）")
+    parser.add_argument("--module", default="", help="判断推理 / 数量关系 / 言语理解与表达")
+    parser.add_argument("--tag", help="规范主标签，如 判断推理-逻辑判断-翻译推理")
+    parser.add_argument("--count", type=int)
+    parser.add_argument(
+        "--blueprint",
+        help='多考法编排，内联 JSON 或 @路径：{"slots":[{"tag":"...","count":3,"difficulty":"hard"}]}',
+    )
+    parser.add_argument("--batch-id", required=True)
+    parser.add_argument("--difficulty", choices=["easy", "mid", "hard"])
+    parser.add_argument("--rounds", type=int, default=3, help="最多几轮补题，默认 3")
+    parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
+    parser.add_argument("--db", type=Path, default=DB)
+    parser.add_argument("--no-import", action="store_true", help="只出题签收据，不写库")
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    started = time.monotonic()
+    try:
+        module, slots = resolve_slots(args)
+        total = sum(int(slot["count"]) for slot in slots)
+        if total < 1 or total > MAX_COUNT:
+            raise SystemExit(f"专项题量必须是 1–{MAX_COUNT}；成套卷走日练")
+        for slot in slots:
+            reject_unsupported(module, str(slot["tag"]))
+        today = local_today()
+        run = {
+            "module": module,
+            "batch_id": args.batch_id,
+            "planned_count": total,
+            "slots": slots,
+            "difficulty": args.difficulty,
+        }
+        conn = sqlite3.connect(args.db, timeout=30)
+        try:
+            exists = int(
+                conn.execute(
+                    "SELECT COUNT(*) FROM questions WHERE batch_id=?", (args.batch_id,)
+                ).fetchone()[0]
+            )
+        finally:
+            conn.close()
+        if exists:
+            raise SystemExit(f"batch_id 已入库 {exists} 题，换一个序号")
+
+        topic = slug_of(slots[0]["tag"])
+        if topic == "专项":
+            topic = str(slots[0]["tag"]).split("-")[-1]
+        source = f"广东省考行测-{module}-{topic}-{today:%Y%m%d}"
+        batch_dir = args.output_dir / today.isoformat() / args.batch_id
+
+        questions, results, log = build_batch(run, max(1, args.rounds), source)
+        # 复核与签发之间不许有任何东西再动 questions.json，否则证据对不上题面。
+        write_batch(run, batch_dir, questions, source)
+        sign(batch_dir, run, results, log)
+        imported = 0 if args.no_import else import_batch(batch_dir, args.db)
+        print(
+            json.dumps(
+                {
+                    "status": "success",
+                    "batch_id": args.batch_id,
+                    "imported": imported,
+                    "batch_dir": str(batch_dir),
+                    "slots": slots,
+                    "rounds": log,
+                    "seconds": round(time.monotonic() - started, 1),
+                    "message": f"已{'出题' if args.no_import else '入库'} {len(questions)} 题，"
+                    f"批次 {args.batch_id}，耗时 {round(time.monotonic() - started)} 秒",
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
+    except SystemExit:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        print(
+            json.dumps(
+                {
+                    "status": "error",
+                    "batch_id": args.batch_id,
+                    "error": str(exc)[:2000],
+                    "seconds": round(time.monotonic() - started, 1),
+                    "message": f"出题失败：{str(exc)[:600]}",
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

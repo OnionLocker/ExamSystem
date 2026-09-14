@@ -1,9 +1,9 @@
 ---
 name: quiz-pipeline
 description: >
-  出题只调外部脚本 quiz_generator.py。禁止在会话里写 questions.json、
+  出题只调外部脚本 quiz_lite.py。禁止在会话里写 questions.json、
   禁止手跑 generation_gate / import-batch。触发词：出题、来几题、测测我、刷题、专项。
-version: 3.8.0
+version: 4.0.0
 author: local
 license: MIT
 metadata:
@@ -59,7 +59,7 @@ Hermes 只认意图。出题、闸门、入库全部由脚本完成。
 
 ```
 terminal({
-  command: "python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py --module '数量关系' --tag '数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）' --count 5 --batch-id 'YYYYMMDD_hermes_排列组合特殊模型_01' --interactive",
+  command: "python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' --tag '数量关系-逢考必有的排列组合与概率-相邻不相邻与位置限制' --count 5 --batch-id 'YYYYMMDD_hermes_相邻不相邻_01'",
   workdir: "/home/ubuntu/ExamSystem",
   background: true,
   notify_on_complete: true
@@ -68,6 +68,20 @@ terminal({
 
 等 JSON。成功：`status=success`。失败：把 `message` 原样告诉用户。
 
+### 2a. 脚本内部会怎么审（知道就行，不用你插手）
+
+出稿之后并行跑两个独立审核，都用 Gemini Flash：
+
+- **盲解官**：拿不到答案和解析，自己把题做一遍，报出它算出的选项，并逐个检查还有没有
+  第二个选项也站得住。它的答案和题面键定答案不一致，或者发现第二个可成立选项，这题就退回。
+  这条是「答案对不对、唯不唯一」的主判官——**不是**拿硬编码算式去套选项。
+- **考官**：看得到答案和解析，只判四件事：难度是否匹配声明档位、是否落在指定考法上、
+  是否像广东省考真题、解析每一步能否复算且结论等于键定选项。
+
+**只有不合格的那几道会被退回重出，已通过的题原样保留**，最多 `--rounds` 轮（默认 3）。
+所以返回的 `rounds` 里出现多轮、`rejected` 里有题号，都是正常工作，不是故障。
+全部通过后脚本自己签精简闸门收据并入库，你不要手跑 `generation_gate` 或 `import-batch`。
+
 ### 2b. 要多个考法混在一批，就用 `--blueprint`
 
 用户说「三种题型都要有」「难易结合」「3+3+4」这类**结构化要求**时，
@@ -75,7 +89,7 @@ terminal({
 
 ```
 terminal({
-  command: "python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py --module '数量关系' --batch-id '20260914_hermes_最值三考法_01' --interactive --blueprint '{\"slots\":[{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉\",\"count\":3,\"difficulty\":\"mid\"},{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-反向构造与多集合最值\",\"count\":3,\"difficulty\":\"hard\"},{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-和定最值与构造\",\"count\":4,\"difficulty\":\"hard\"}]}'",
+  command: "python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' --batch-id '20260914_hermes_最值三考法_01' --blueprint '{\"slots\":[{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉\",\"count\":3,\"difficulty\":\"mid\"},{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-反向构造与多集合最值\",\"count\":3,\"difficulty\":\"hard\"},{\"tag\":\"数量关系-既烧脑又能套公式的最值问题-和定最值与构造\",\"count\":4,\"difficulty\":\"hard\"}]}'",
   workdir: "/home/ubuntu/ExamSystem",
   background: true,
   notify_on_complete: true
@@ -124,8 +138,8 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --plan '最值' --cou
 
 ```bash
 BP=$(python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --plan '最值' --count 10)
-python3 /home/ubuntu/ExamSystem/scripts/quiz_generator.py --module '数量关系' \
-  --batch-id '20260914_hermes_最值均衡_01' --interactive --blueprint "$BP"
+python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' \
+  --batch-id '20260914_hermes_最值均衡_01' --blueprint "$BP"
 ```
 
 `--plan` 只负责配题量，想再加命题侧重就往槽位里补 `brief` 后再传。
@@ -156,9 +170,17 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --register \
 ### 3. 回复
 
 ```
-已入库 5 题，批次 20260910_hermes_排列组合特殊模型_01
+已入库 5 题，批次 20260910_hermes_相邻不相邻_01
 去 ExamSystem → AI 练题。
 ```
+
+`rounds` 里的补题轮次、`seconds` 这些是给排查用的，不用报给用户。
+
+## 成套卷与带图卷走另一条路
+
+`quiz_lite.py` 只出纯文字专项（判断 / 数量 / 言语），题量 1–15。
+日练成套卷、资料分析带图卷、科学推理、图形推理仍然走 `quiz_generator.py`
+那条重管线（真题 holdout、四路线质检、资料视觉质检）。本 skill 不负责它们。
 
 ## 禁止
 
