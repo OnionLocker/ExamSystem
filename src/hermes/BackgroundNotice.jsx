@@ -1,21 +1,21 @@
 import { useState } from 'react';
 
-// 出题脚本回 {"status":...,"batch_id":...,"imported":N,...}。
-// 用正则挑那两个字段，别整段 JSON.parse——失败时 stdout 里混着别的内容。
+// 优先用脚本自己回的那句话；没有就从 JSON 里挑字段拼一句。
+// 别整段 JSON.parse——失败时 stdout 里混着 traceback 之类的非 JSON 内容。
 const summarize = (notice) => {
+  if (notice.message) return notice.message;
   const imported = notice.output.match(/"imported"\s*:\s*(\d+)/)?.[1];
   const batchId = notice.output.match(/"batch_id"\s*:\s*"([^"]+)"/)?.[1];
-  const script = notice.command.match(/scripts\/([\w.-]+?)(?:\.py|\.mjs|\b)/)?.[1];
-  if (notice.exitCode === 0 && imported) {
-    return `已入库 ${imported} 题${batchId ? ` · ${batchId}` : ''}`;
-  }
-  if (notice.exitCode === 0) return `${script || '后台任务'} 已完成`;
-  return `${script || '后台任务'} 失败 · 退出码 ${notice.exitCode}`;
+  const script = notice.command.match(/scripts\/([\w.-]+?)(?:\.py|\.mjs|\b)/)?.[1] || '后台任务';
+  if (imported) return `已入库 ${imported} 题${batchId ? ` · ${batchId}` : ''}`;
+  if (notice.exitCode === 0) return `${script} 已完成`;
+  if (notice.exitCode == null) return `${script} 已结束`;
+  return `${script} 失败 · 退出码 ${notice.exitCode}`;
 };
 
 const BackgroundNotice = ({ notice }) => {
   const [open, setOpen] = useState(false);
-  const ok = notice.exitCode === 0;
+  const ok = notice.exitCode == null || notice.exitCode === 0;
 
   return (
     <div className="my-1.5">

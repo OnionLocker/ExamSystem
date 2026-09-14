@@ -59,6 +59,18 @@ assert.match(notice.output, /generation gate failed/);
 assert.equal(parseBackgroundNotice('正常用户消息'), null);
 assert.equal(parseBackgroundNotice(''), null);
 
+// 动词随退出方式变：成功是 completed normally，失败才是 exited。
+// 第一版只认 exited，于是成功那条照样铺了一屏日志。
+const okNotice = parseBackgroundNotice(
+  '[IMPORTANT: Background process proc_48021296856f8 completed normally (exit code 0).\n'
+  + 'Command: python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module 数量关系\n'
+  + 'Output:\n{"status": "success", "batch_id": "20260914_hermes_zuizhi_02", "imported": 10, '
+  + '"seconds": 181.01, "message": "已入库 10 题，批次 20260914_hermes_zuizhi_02，耗时 181 秒"}]',
+);
+assert.equal(okNotice.exitCode, 0);
+assert.equal(okNotice.message, '已入库 10 题，批次 20260914_hermes_zuizhi_02，耗时 181 秒');
+assert.equal(parseBackgroundNotice('[Background process proc_x was killed.]').exitCode, null);
+
 const withNotice = normalizeHermesHistory([
   { role: 'user', text: '[USER_MESSAGE]\n来10道\n[/USER_MESSAGE]' },
   { role: 'assistant', text: '在出了' },

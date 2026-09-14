@@ -7,7 +7,10 @@ const REVIEW_FILE_RE = /\/data\/(exam-reviews|practice-reviews)\/(\d+)-([^\n]+\.
 const UPLOAD_FILE_RE = /((?:\/[^\n]*)?\/data\/uploads\/(\d{4}\.\d{2}\.\d{2})\/([^\n/]+)\/([^\n]+))/;
 // 后台脚本跑完，Hermes 运行时会把整段 stdout 当成一条用户消息塞回对话。
 // 原文长得像一坨日志，直接上屏很难看，解析出来交给 BackgroundNotice 折叠显示。
-const BACKGROUND_NOTICE_RE = /^\s*\[IMPORTANT:\s*Background process\s+\S+\s+exited\s*\(exit code\s*(-?\d+)\)/i;
+// 动词按退出方式变：成功是 completed normally，失败是 exited，所以只认头，
+// 退出码另外抓——抓不到就当未知，宁可显示得保守一点也别漏成一坨日志。
+const BACKGROUND_NOTICE_RE = /^\s*\[(?:[A-Z]+:\s*)?Background process\b/i;
+const EXIT_CODE_RE = /\(exit code\s*(-?\d+)\)/i;
 const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
 const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
 const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
@@ -28,13 +31,19 @@ export const isSystemInjectedNotice = (text) => {
 
 export const parseBackgroundNotice = (text) => {
   const raw = String(text || '');
-  const head = raw.match(BACKGROUND_NOTICE_RE);
-  if (!head) return null;
+  if (!BACKGROUND_NOTICE_RE.test(raw)) return null;
+  const code = raw.match(EXIT_CODE_RE)?.[1];
   const outputAt = raw.search(/Output:/i);
+  const output = outputAt < 0 ? '' : raw.slice(outputAt + 7).replace(/\]\s*$/, '').trim();
   return {
-    exitCode: Number(head[1]),
+    exitCode: code == null ? null : Number(code),
     command: raw.match(/Command:\s*([^\n]+)/)?.[1]?.trim() || '',
-    output: outputAt < 0 ? '' : raw.slice(outputAt + 7).replace(/\]\s*$/, '').trim(),
+    output,
+    // 脚本自己回的那句人话，比任何我这边拼的摘要都准。
+    message: output.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/)?.[1]
+      ?.replace(/\\(["\\/])/g, '$1')
+      .replace(/\\[nrt]/g, ' ')
+      .trim() || '',
   };
 };
 
