@@ -89,6 +89,30 @@ class LocalChecks(unittest.TestCase):
         row["analysis"] = "选 A"
         self.assertIn("解析过短，无法复算", quiz_lite.local_issues(row))
 
+    def test_unordered_numeric_options_are_caught(self):
+        row = stamped("b", 1)
+        for option, text in zip(row["options"], ["10", "12", "18", "15"]):
+            option["text"] = text
+        self.assertIn("数值选项没按大小排，A→D 要么升序要么降序", quiz_lite.local_issues(row))
+
+    def test_ordered_numeric_options_pass(self):
+        for texts in (
+            ["10", "12", "15", "18"],
+            ["18个", "15个", "12个", "10个"],
+            ["5/16", "3/8", "7/16", "9/16"],
+        ):
+            row = stamped("b", 1)
+            for option, text in zip(row["options"], texts):
+                option["text"] = text
+            self.assertEqual(quiz_lite.local_issues(row), [], texts)
+
+    def test_text_options_skip_the_ordering_check(self):
+        row = stamped("b", 1)
+        row["category"] = "判断推理"
+        for option, text in zip(row["options"], ["甲", "乙", "丙", "丁"]):
+            option["text"] = text
+        self.assertEqual(quiz_lite.local_issues(row), [])
+
     def test_item_index_tolerates_junk(self):
         self.assertEqual(quiz_lite.item_index({"index": "3"}), 3)
         self.assertEqual(quiz_lite.item_index({"index": "第三题"}), 0)

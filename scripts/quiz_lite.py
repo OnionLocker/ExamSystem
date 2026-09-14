@@ -16,6 +16,7 @@ import argparse
 import difflib
 import json
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -45,6 +46,8 @@ MODEL = os.environ.get("QUIZ_LITE_MODEL", "gemini-3.8-flash-high")
 HTTP_RETRIES = 3
 MAX_COUNT = 15
 DUP_RATIO = 0.82
+# 选项开头的数值：整数、小数，或 5/16 这样的分数。带单位的「23个」也认。
+OPTION_NUMBER = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(?:/\s*(\d+(?:\.\d+)?))?")
 # 题库的 difficulty 是 1–5 的整数，主体落在 2–4。声明档位按槽位换算，
 # 不收模型自己写的 difficulty——它会直接把 "easy" 这种字符串塞进来。
 TIER_TO_LEVEL = {"easy": 2, "mid": 3, "hard": 4}
@@ -187,7 +190,8 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
         "- analysis 是给考生看的解题步骤，不是你的草稿纸。里面不得出现"
         "「修改题干」「调整数据」「为了让答案等于…」这类自言自语；"
         "解析解的必须是题干原样的那道题。",
-        "- 数值题的四个选项必须围绕取整之后的最终答案设置，正确答案必须真的在选项里。",
+        "- 数值题的四个选项必须围绕取整之后的最终答案设置，正确答案必须真的在选项里；"
+        "四个选项按大小排好，A→D 升序（或统一降序），不许乱序。",
         "- 纯文字题，不带图、不引用图；禁止照搬真题；主体用某单位/某企业/某科室这类中性称谓。",
         "- 题干与设问要像广东省考真题：情境简洁、设问明确、篇幅不超过真题常见长度。",
     ]
@@ -205,6 +209,27 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
     return "\n".join(lines)
 
 
+def option_number(text: str) -> float | None:
+    match = OPTION_NUMBER.match(text)
+    if not match:
+        return None
+    top, bottom = match.group(1), match.group(2)
+    try:
+        return float(top) / float(bottom) if bottom else float(top)
+    except (ValueError, ZeroDivisionError):
+        return None
+
+
+def unordered_numbers(question: dict, texts: list[str]) -> bool:
+    """数值选项乱序（A:10 B:12 C:18 D:15）一眼就露怯，真题不会这样排。"""
+    if str(question.get("category") or "") != "数量关系" or len(texts) != 4:
+        return False
+    values = [option_number(text) for text in texts]
+    if any(value is None for value in values):
+        return False
+    return values != sorted(values) and values != sorted(values, reverse=True)
+
+
 def local_issues(question: dict) -> list[str]:
     """不花模型调用就能查的结构问题，送审前先筛掉。"""
     issues = []
@@ -217,6 +242,8 @@ def local_issues(question: dict) -> list[str]:
         issues.append("存在空选项")
     elif len(set(texts)) != len(texts):
         issues.append("选项文本重复")
+    elif unordered_numbers(question, texts):
+        issues.append("数值选项没按大小排，A→D 要么升序要么降序")
     if str(question.get("answer") or "") not in set(keys):
         issues.append("answer 不在选项内")
     if len(str(question.get("stem") or "").strip()) < 15:
