@@ -4,6 +4,7 @@ const METRICS_KEY = 'hermes.protocolMetrics.v1';
 const EMBEDDED_IMAGE_RE = /data:image\/[A-Za-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
 const SYSTEM_NOTICE_RE = /^\s*(?:\[CONTEXT COMPACTION\b|\[(?:ASYNC DELEGATION[^\]]*|SYSTEM NOTIFICATION[^\]]*|BACKGROUND TASK[^\]]*)\]|\[System:\s*You edited code in this turn\b|\[Coding\]\s*Before you run tests\/linters\b)/i;
 const REVIEW_FILE_RE = /\/data\/(exam-reviews|practice-reviews)\/(\d+)-([^\n]+\.md)/;
+const UPLOAD_FILE_RE = /((?:\/[^\n]*)?\/data\/uploads\/(\d{4}\.\d{2}\.\d{2})\/([^\n/]+)\/([^\n]+))/;
 const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
 const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
 const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
@@ -36,22 +37,37 @@ export const extractReview = (text) => {
   const raw = String(text || '');
   const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
   const match = raw.match(REVIEW_FILE_RE);
-  if (!match) return { content: visibleUserText(raw), review: null };
-  const kind = match[1] === 'practice-reviews' ? 'practice' : 'exam';
-  const name = match[3];
-  const cleanTitle = name.replace(/^\d+-/, '').replace(/\.md$/i, '');
-  const review = {
-    id: Number(match[2]),
-    kind,
-    name,
-    title: kind === 'practice' ? `AI 练题复盘：${cleanTitle}` : cleanTitle,
-    label: kind === 'practice' ? `AI练题复盘 #${match[2]} · ${cleanTitle}` : name,
-  };
+  const upload = raw.match(UPLOAD_FILE_RE);
+  let review = null;
+  if (match) {
+    const kind = match[1] === 'practice-reviews' ? 'practice' : 'exam';
+    const name = match[3];
+    const cleanTitle = name.replace(/^\d+-/, '').replace(/\.md$/i, '');
+    review = {
+      id: Number(match[2]),
+      kind,
+      name,
+      title: kind === 'practice' ? `AI 练题复盘：${cleanTitle}` : cleanTitle,
+      label: kind === 'practice' ? `AI练题复盘 #${match[2]} · ${cleanTitle}` : name,
+    };
+  } else if (upload) {
+    const name = String(upload[4] || '').trim();
+    const cleanTitle = name.replace(/\.pdf$/i, '');
+    review = {
+      id: `${upload[2]}/${upload[3]}/${name}`,
+      kind: 'upload',
+      name,
+      path: String(upload[1] || '').trim(),
+      title: cleanTitle,
+      label: `资料上传 · ${upload[2]} · ${cleanTitle}`,
+    };
+  }
+  if (!review) return { content: visibleUserText(raw), review: null };
   if (marked != null) return { content: marked.trim(), review };
   const cleaned = raw.replace(INTERNAL_NUDGE_RE, '').trim();
   const chunks = cleaned.split(/\n{2,}/);
   const last = (chunks[chunks.length - 1] || '').trim();
-  const lastIsLead = REVIEW_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
+  const lastIsLead = REVIEW_FILE_RE.test(last) || UPLOAD_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
   return { content: lastIsLead ? '' : last, review };
 };
 

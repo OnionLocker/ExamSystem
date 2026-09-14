@@ -591,7 +591,7 @@ const Uploads = ({ onReviewWithHermes }) => {
                               <button
                                 onClick={() => onReviewWithHermes({ date: d.date, type: t.key, name: f.name })}
                                 className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black text-slate-500 hover:text-[#1a1a1a] hover:bg-black/5"
-                                title="把这份文件的路径交给 Hermes 复盘"
+                                title="交给 Hermes，按 AI 练题复盘同一套讲"
                               >
                                 <MessageSquare size={12} />
                                 复盘

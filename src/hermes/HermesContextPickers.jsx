@@ -224,7 +224,8 @@ export default function HermesContextPickers({
                 <button
                   key={`${file.date}/${file.type}/${file.name}`}
                   onClick={() => attachUpload(file)}
-                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group"
+                  disabled={attaching}
+                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group disabled:opacity-50"
                 >
                   <div className="text-xs font-black italic truncate">{file.name}</div>
                   <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
@@ -235,7 +236,7 @@ export default function HermesContextPickers({
             </div>
             <div className="px-5 py-3 border-t border-black/5">
               <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
-                会把这份文件的绝对路径装进输入框，Hermes 直接打开，不再满盘搜索。
+                不是塞进输入框。选一份粉笔练习卷，会按 AI 练题复盘同一套五段版式讲。不占输入框，发送后还在这个会话里接着聊。
               </p>
             </div>
           </div>

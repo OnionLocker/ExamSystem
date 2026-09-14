@@ -43,6 +43,7 @@ export default function ReviewFloater({
   streaming,
   fontScale = 100,
   practiceSessionId,
+  scratchId,
   onClose,
 }) {
   const [box, setBox] = useState(readBox);
@@ -169,6 +170,7 @@ export default function ReviewFloater({
               <MarkdownMessage
                 content={content}
                 streaming={streaming}
+                scratchId={scratchId}
                 draftQuestions={draftQuestions}
                 activeDraftNumber={draftPanel?.questionNumber}
                 draftLoadingNumber={draftPanel?.loading ? draftPanel.questionNumber : null}

@@ -4,7 +4,7 @@
 //   remark-gfm    表格 / 删除线 / 任务列表
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
-import { normalizeOriginalQuestionOptions, splitStemOptions } from './reviewFormat.js';
+import { normalizeOriginalQuestionOptions } from './reviewFormat.js';
 import { memo, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -12,6 +12,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import hljs from 'highlight.js/lib/common';
 import { Check, Copy, FileImage, Loader2 } from 'lucide-react';
+import ReviewScratch, { ScratchTools } from './ReviewScratch.jsx';
 
 import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
@@ -140,7 +141,7 @@ const QuestionHeading = ({
   const loading = draft && draftLoadingNumber === questionNumber;
 
   return (
-    <h3 className="mt-3 mb-1.5 flex items-center gap-2 text-sm font-black tracking-tight">
+    <h3 className="relative z-30 mt-3 mb-1.5 flex items-center gap-2 text-sm font-black tracking-tight">
       <span className="min-w-0 flex-1">
         {hit ? (
           <button
@@ -173,6 +174,7 @@ const QuestionHeading = ({
           <span>草稿</span>
         </button>
       )}
+      <ScratchTools questionNumber={questionNumber} />
     </h3>
   );
 };
@@ -237,21 +239,6 @@ const components = {
     const raw = textOf(children).trim();
     const tagged = raw.match(/^本题考察知识点[:：]\s*(.+)$/);
     if (tagged) return <KnowledgeChip label={tagged[1].trim()} />;
-    const split = splitStemOptions(raw);
-    if (split && (raw.includes('原题') || raw.includes('由此可以推出') || raw.includes('由此可知'))) {
-      return (
-        <div className="space-y-1.5">
-          {split.head.trim() ? (
-            <p className="my-1 leading-[1.75] first:mt-0 last:mb-0">{split.head.trim()}</p>
-          ) : null}
-          {split.chunks.map((chunk) => (
-            <p key={chunk.letter} className="my-1 leading-[1.75]">
-              <strong>{chunk.letter}.</strong> {chunk.body}
-            </p>
-          ))}
-        </div>
-      );
-    }
     return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
   },
   h1({ children }) {
@@ -307,6 +294,7 @@ const Caret = () => (
 const MarkdownMessage = memo(function MarkdownMessage({
   content,
   streaming,
+  scratchId,
   draftQuestions,
   activeDraftNumber,
   draftLoadingNumber,
@@ -328,16 +316,18 @@ const MarkdownMessage = memo(function MarkdownMessage({
   }), [draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft]);
 
   return (
-    <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
-      <ReactMarkdown
-        remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
-        rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
-        components={renderedComponents}
-      >
-        {displayContent}
-      </ReactMarkdown>
-      {streaming && <Caret />}
-    </div>
+    <ReviewScratch storageKey={scratchId} enabled={Boolean(scratchId) && !streaming}>
+      <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
+        <ReactMarkdown
+          remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
+          rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
+          components={renderedComponents}
+        >
+          {displayContent}
+        </ReactMarkdown>
+        {streaming && <Caret />}
+      </div>
+    </ReviewScratch>
   );
 });
 

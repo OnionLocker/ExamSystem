@@ -377,6 +377,16 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, []);
 
   useEffect(() => {
+    if (!reviewPreview) return undefined;
+    if (reviewPreview.kind === 'upload') {
+      setReviewMdErr('');
+      setReviewMd([
+        '粉笔练习卷（资料上传）',
+        '',
+        reviewPreview.path || reviewPreview.name || '',
+      ].join('\n'));
+      return undefined;
+    }
     if (!reviewPreview?.id) return undefined;
     let cancelled = false;
     const practice = reviewPreview.kind === 'practice';
@@ -1069,7 +1079,32 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '',
         ].join('\n')
       : '';
-    const reviewLead = review?.kind === 'practice' ? practiceReviewLead : examReviewLead;
+    const uploadReviewLead = review?.kind === 'upload'
+      ? [
+          `下面这份 PDF 是我在粉笔做的练习卷《${review.title}》，请直接打开，禁止 search_files，禁止 ls 其他目录。`,
+          review.path,
+          '立刻用 python3 + fitz 抽出题干、选项、「你的答案：」「正确答案：」。口吻、标题和版式必须与 AI 练题复盘完全相同。禁止改成三段式，禁止 skill_view 换版式。',
+          '没有草稿纸和用时：作答结果写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 无`。`#### 草稿诊断` 只根据对错和题干判断，禁止编造草稿、停留、涂改或用时。',
+          '',
+          '回复的第一行必须是 `### 01 · 题型名`。禁止先写总况、长短处、知识点总表或模块总评。直接按题讲。',
+          '言语、判断、数量、资料必须同一套标题，禁止按模块换版式。展开的题五段标题一行都不能少：`### 02 · 题型名` → `> **原题**` → `**作答结果**` → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。禁止改成「为什么会错 / 解题流程 / 下次遇到怎么做」，禁止把「下次动作」收成没有标题的一句收尾。',
+          '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
+          '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 无`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时写清看 PDF 哪一页，禁止凭文字编造图形。',
+          '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
+          '4. 正确题不能按结果直接跳过。方法绕远、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`。禁止用「确认通过」「没问题」打发，禁止省略 `#### 下次动作`。',
+          '5. 只有做法干净且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
+          '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
+          '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
+          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号，禁止空话和知识点总表。建议仍是考场动作。',
+          '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
+          '',
+        ].join('\n')
+      : '';
+    const reviewLead = review?.kind === 'practice'
+      ? practiceReviewLead
+      : review?.kind === 'upload'
+        ? uploadReviewLead
+        : examReviewLead;
     const audioLabel = audio
       ? (audio.sec > 0 ? fmtAudioLen(audio.sec) : '语音')
       : '';
@@ -1129,7 +1164,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         audio: audio?.dataUrl || null,
         audioSec: audio?.sec > 0 ? Math.round(audio.sec) : (parseAudioLen(audioLabel) || null),
         hadAudio: !!audio,
-        review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label, profileReviewed: Boolean(review.profileReviewed) } : null,
+        review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label, path: review.path || null, profileReviewed: Boolean(review.profileReviewed) } : null,
       },
     ]);
     setInput('');
@@ -1211,7 +1246,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           ? [
               `If the recording asks to generate questions, call once in the background with notify_on_complete: ${quizScript}`,
               'Use the knowledge point and count from the recording (including a point you just recommended from the snapshot). Do not explore the repo first.',
-            ].join('\n')
+              ].join('\n')
           : '';
       const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
         || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
@@ -1450,34 +1485,33 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const typ = file?.type || 'pdf';
     const name = file?.name;
     if (!date || !name) return;
-    let context;
+    setAttaching(true);
+    setBanner('');
     try {
-      context = await loadHermesContext();
+      const context = await loadHermesContext();
+      const uploadRoot = context?.upload_root;
+      if (!uploadRoot) {
+        setBanner('无法读取 ExamSystem 项目路径');
+        return;
+      }
+      const abs = `${uploadRoot.replace(/\/+$/, '')}/${date}/${typ}/${name}`;
+      const title = String(name).replace(/\.pdf$/i, '');
+      setPendingReview({
+        id: `${date}/${typ}/${name}`,
+        kind: 'upload',
+        path: abs,
+        name,
+        title,
+        label: `资料上传 · ${date} · ${title}`,
+      });
+      setShowUploads(false);
+      stickToBottom.current = true;
+      setTimeout(() => taRef.current?.focus(), 0);
     } catch (err) {
-      setBanner(`读取项目路径失败：${err.message}`);
-      return;
+      setBanner(`带上资料失败：${err.message}`);
+    } finally {
+      setAttaching(false);
     }
-    const uploadRoot = context?.upload_root;
-    const projectRoot = context?.project_root;
-    if (!uploadRoot || !projectRoot) {
-      setBanner('无法读取 ExamSystem 项目路径');
-      return;
-    }
-    const abs = `${uploadRoot.replace(/\/+$/, '')}/${date}/${typ}/${name}`;
-    const prompt = [
-      `复盘这份资料上传的练习卷：${name}`,
-      '',
-      '绝对路径已经写好，直接打开，禁止 search_files，禁止 ls 其他目录，禁止猜项目目录。',
-      abs,
-      '',
-      '立刻用 python3 + fitz 抽文字，按「你的答案：」「正确答案：」对答案。',
-      "先 skill_view('gd-gongkao-coach') 和 skill_view('exam-coaching-gd-provincial')，按里面的三段式逐题复盘。",
-      `复盘完用 ${projectRoot}/scripts/kaodian_profile.py 的 record() 写入 ${projectRoot}/data/exam.db；掌握度由算法自动重算，不要用 --mastery 猜分。`,
-    ].join('\n');
-    setInput((cur) => (cur.trim() ? `${cur.trim()}\n\n${prompt}` : prompt));
-    setShowUploads(false);
-    stickToBottom.current = true;
-    setTimeout(() => taRef.current?.focus(), 0);
   }, [loadHermesContext]);
 
   const loadUploads = useCallback(async () => {
@@ -1913,7 +1947,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   )}
 
                   {(m.content || !m.streaming) && (
-                    <MarkdownMessage content={m.content} streaming={m.streaming} />
+                    <MarkdownMessage content={m.content} streaming={m.streaming} scratchId={String(m.id)} />
                   )}
                 </div>
               )}
@@ -2086,7 +2120,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             {reviewMdErr ? (
               <p className="text-sm font-bold text-slate-400">{reviewMdErr}</p>
             ) : reviewMd ? (
-              <MarkdownMessage content={reviewMd} />
+              <MarkdownMessage content={reviewMd} scratchId={reviewPreview?.id ? `preview:${reviewPreview.id}` : 'preview'} />
             ) : (
               <div className="flex items-center gap-2 text-[11px] text-[#999]">
                 <Loader2 size={11} className="animate-spin" />
@@ -2102,6 +2136,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           streaming={!!messages.find((m) => m.id === popout.id)?.streaming}
           fontScale={fontScale}
           practiceSessionId={popout.practiceSessionId}
+          scratchId={String(popout.id)}
           onClose={() => setPopout(null)}
         />
       )}

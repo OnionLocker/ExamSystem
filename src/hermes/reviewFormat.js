@@ -62,7 +62,9 @@ export function normalizeOriginalQuestionOptions(raw = '') {
       const headLines = split.head.replace(/\s+$/g, '').split('\n').map((line) => `> ${line}`.replace(/> $/, '>'));
       const optionLines = split.chunks.map((chunk) => `> **${chunk.letter}.** ${chunk.body}`);
       const suffix = block.endsWith('\n') ? '\n' : '';
-      return `${[...headLines, ...optionLines].join('\n')}${suffix}`;
+      const head = headLines.join('\n');
+      const options = optionLines.join('\n>\n');
+      return `${head ? `${head}\n>\n${options}` : options}${suffix}`;
     },
   );
 }

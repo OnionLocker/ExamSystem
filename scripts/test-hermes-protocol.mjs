@@ -33,6 +33,16 @@ assert.equal(review.content, '复盘');
 assert.equal(review.review.kind, 'practice');
 assert.equal(review.review.id, 82);
 
+const uploadReview = extractReview(
+  '[USER_MESSAGE]\n\n[/USER_MESSAGE]\n'
+  + '/home/ubuntu/ExamSystem/data/uploads/2026.08.16/pdf/专项智能练习（言语理解与表达）.pdf',
+);
+assert.equal(uploadReview.content, '');
+assert.equal(uploadReview.review.kind, 'upload');
+assert.equal(uploadReview.review.id, '2026.08.16/pdf/专项智能练习（言语理解与表达）.pdf');
+assert.match(uploadReview.review.path, /data\/uploads\/2026\.08\.16\/pdf\//);
+assert.equal(uploadReview.review.title, '专项智能练习（言语理解与表达）');
+
 const history = normalizeHermesHistory([
   { role: 'user', text: '你好' },
   { role: 'user', text: '[Coding] Before you run tests/linters or call this done:' },
@@ -92,6 +102,22 @@ assert.match(dottedStem, /> \*\*A\.\*\* 甲先到/);
 const compactPlaces = normalizeOriginalQuestionOptions('> **原题** 地点A.B.C.D同时出发。由此可以推出： A. 甲 B. 乙 C. 丙 D. 丁');
 assert.match(compactPlaces, /地点A\.B\.C\.D同时出发/);
 assert.match(compactPlaces, /> \*\*A\.\*\* 甲/);
+
+
+const mathQ = normalizeOriginalQuestionOptions([
+  '> **原题** 正方形区域 $OABC$（以 $O$ 为坐标原点）满足 $x+y\\le 4$。概率为：',
+  '> **A.** $\\frac{4-\\pi}{8}$',
+  '> **B.** $8-\\pi$',
+  '> **C.** $\\frac{\\pi}{16}$',
+  '> **D.** $\\frac{4-\\pi}{16}$',
+].join('\n'));
+assert.match(mathQ, /\$OABC\$/);
+assert.match(mathQ, /\$x\+y\\le 4\$/);
+assert.match(mathQ, /> \*\*A\.\*\* \$\\frac\{4-\\pi\}\{8\}\$/);
+assert.match(mathQ, /\n>\n> \*\*A\.\*\*/);
+assert.match(mathQ, /\n>\n> \*\*B\.\*\*/);
+assert.doesNotMatch(mathQ, /OABCOABCOABC/);
+assert.doesNotMatch(mathQ, /4-\\pi8/);
 
 console.log('review option normalize: ok');
 
