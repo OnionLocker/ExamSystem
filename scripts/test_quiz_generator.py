@@ -2,16 +2,30 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import argparse
+
 from quiz_generator import (
     align_answers,
     build_calculations,
     build_prompt,
     holdout_matches,
     infer_subcategory,
+    canon_card,
     module_of,
     reject_unsupported,
+    resolve_slots,
+    slot_tags,
     stamp_questions,
 )
+
+
+EXTREME = "数量关系-既烧脑又能套公式的最值问题-"
+
+
+def blueprint_args(blueprint=None, tag=None, count=None, module="数量关系"):
+    return argparse.Namespace(
+        module=module, tag=tag, count=count, blueprint=blueprint, difficulty=None
+    )
 
 
 class QuizGeneratorTest(unittest.TestCase):
@@ -124,6 +138,114 @@ class QuizGeneratorTest(unittest.TestCase):
                 {"references": [{"tags": ["数量关系-和差倍比与方程法-方程、比例与代入验证"], "stem": "容积"}]},
             )
         )
+
+
+class BlueprintTest(unittest.TestCase):
+    """--blueprint 让 Hermes 在一批里编排同一知识点下的不同考法。"""
+
+    def test_single_tag_still_works(self):
+        module, slots = resolve_slots(blueprint_args(tag=EXTREME + "和定最值与构造", count=10))
+        self.assertEqual(module, "数量关系")
+        self.assertEqual(slots, [{"tag": EXTREME + "和定最值与构造", "count": 10}])
+
+    def test_slots_expand_per_item(self):
+        blueprint = (
+            '{"slots":['
+            '{"tag":"' + EXTREME + '最不利原则与抽屉","count":2},'
+            '{"tag":"' + EXTREME + '反向构造与多集合最值","count":3}]}'
+        )
+        _, slots = resolve_slots(blueprint_args(blueprint=blueprint))
+        run = {"slots": slots, "module": "数量关系"}
+        self.assertEqual(
+            slot_tags(run),
+            [EXTREME + "最不利原则与抽屉"] * 2 + [EXTREME + "反向构造与多集合最值"] * 3,
+        )
+
+    def test_prompt_names_each_slot_range(self):
+        _, slots = resolve_slots(
+            blueprint_args(
+                blueprint='{"slots":[{"tag":"抽屉原理","count":2},{"tag":"和定最值","count":1}]}'
+            )
+        )
+        run = {
+            "module": "数量关系",
+            "focus_tag": slots[0]["tag"],
+            "slots": slots,
+            "planned_count": 3,
+            "batch_id": "x",
+            "plan_date": "2026-09-14",
+        }
+        extras = {"answer_plan": [{"index": i, "answer": "ABC"[i - 1]} for i in range(1, 4)]}
+        text = build_prompt(run, {}, extras)
+        self.assertIn("items 1-2: tags[0] = " + EXTREME + "最不利原则与抽屉", text)
+        self.assertIn("item 3: tags[0] = " + EXTREME + "和定最值与构造", text)
+
+    def test_short_tags_canonicalize(self):
+        _, slots = resolve_slots(blueprint_args(blueprint='{"slots":[{"tag":"抽屉原理","count":1}]}'))
+        self.assertEqual(slots[0]["tag"], EXTREME + "最不利原则与抽屉")
+
+    def test_rejects_bad_blueprints(self):
+        cases = [
+            blueprint_args(blueprint="{}", tag="t", count=1),
+            blueprint_args(blueprint='{"slots":[{"tag":"数量关系-瞎编-不存在","count":3}]}'),
+            blueprint_args(blueprint='{"slots":[{"tag":"抽屉原理"}]}'),
+            blueprint_args(
+                blueprint='{"slots":[{"tag":"抽屉原理","count":1},'
+                '{"tag":"判断推理-逻辑判断-翻译推理","count":1}]}'
+            ),
+        ]
+        for args in cases:
+            with self.assertRaises((SystemExit, ValueError)):
+                resolve_slots(args)
+
+
+class CanonInjectionTest(unittest.TestCase):
+    """生成侧必须拿到考法口径，而不是只有一个标签字符串。"""
+
+    def test_card_is_sliced_to_the_named_考法(self):
+        card = canon_card("数量关系", EXTREME + "最不利原则与抽屉")
+        self.assertIn("考法二", card)
+        self.assertIn("抽屉", card)
+        self.assertNotIn("考法一", card)
+        self.assertNotIn("考法三", card)
+
+    def test_multiline_bullets_keep_their_sub_lines(self):
+        card = canon_card("数量关系", "数量关系-逢考必有的排列组合与概率-分堆分配与定序消序")
+        self.assertIn("插板法", card)
+        self.assertIn("部分均等分堆", card)   # 平均分堆的子行没有被切掉
+        self.assertNotIn("捆绑法", card)      # 别的槽位的模型没渗进来
+
+    def test_whole_card_when_tag_is_not_per_考法(self):
+        card = canon_card("判断推理", "判断推理-逻辑判断-翻译推理")
+        self.assertIn("固定识别", card)
+        self.assertIn("逆否", card)
+
+    def test_unknown_tag_yields_nothing(self):
+        self.assertEqual(canon_card("数量关系", "数量关系-查无此点-查无此点"), "")
+
+    def test_brief_reaches_the_prompt(self):
+        _, slots = resolve_slots(
+            blueprint_args(
+                blueprint=(
+                    '{"slots":[{"tag":"抽屉原理","count":2,'
+                    '"brief":"必须出现残缺抽屉；禁止退化成和定排大小"}]}'
+                )
+            )
+        )
+        self.assertEqual(slots[0]["brief"], "必须出现残缺抽屉；禁止退化成和定排大小")
+        run = {
+            "module": "数量关系",
+            "focus_tag": slots[0]["tag"],
+            "slots": slots,
+            "planned_count": 2,
+            "batch_id": "x",
+            "plan_date": "2026-09-14",
+        }
+        extras = {"answer_plan": [{"index": 1, "answer": "A"}, {"index": 2, "answer": "B"}]}
+        text = build_prompt(run, {}, extras)
+        self.assertIn("必须出现残缺抽屉", text)
+        self.assertIn("只能收紧不得放宽", text)
+        self.assertIn("考法二", text)
 
 
 if __name__ == "__main__":

@@ -6,24 +6,53 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 import sqlite3
 from collections import Counter
 from pathlib import Path
 
 
 TRANSLATION = "判断推理-逻辑判断-翻译推理"
+PD_SUPPORT = "判断推理-逻辑判断-逻辑论证-支持与前提假设"
+PD_WEAKEN = "判断推理-逻辑判断-逻辑论证-一般质疑"
+PD_CAUSE = "判断推理-逻辑判断-逻辑论证-归因论证"
+PD_RATIO = "判断推理-逻辑判断-比例类论证与解释说明"
+PD_DAILY = "判断推理-逻辑判断-分析类-日常分析推理"
+PD_TRUEFALSE = "判断推理-逻辑判断-分析类-真假推理与范畴分析"
+PD_QUICK = "判断推理-逻辑判断-秒杀模型与速解技巧"
+# 与 panduan_pack.LOGIC_TAGS 及 solver-canon/05-panduan.md 对齐。
+KNOWN_PANDUAN_TAGS = {
+    TRANSLATION,
+    PD_SUPPORT,
+    PD_WEAKEN,
+    PD_CAUSE,
+    PD_RATIO,
+    PD_DAILY,
+    PD_TRUEFALSE,
+    PD_QUICK,
+}
 NUM_DATE = "数量关系-有规律的周期循环与要算准的日期星期-日期推算与余数"
 NUM_CYCLE = "数量关系-有规律的周期循环与要算准的日期星期-周期排班与公倍数"
 NUM_PERM_BASIC = "数量关系-逢考必有的排列组合与概率-基础原理与几何概型"
 NUM_PERM_SPECIAL = "数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）"
 NUM_PERM_REVERSE = "数量关系-逢考必有的排列组合与概率-反面容斥与逆向思维"
+NUM_PERM_POSITION = "数量关系-逢考必有的排列组合与概率-相邻不相邻与位置限制"
+NUM_PERM_GROUPING = "数量关系-逢考必有的排列组合与概率-分堆分配与定序消序"
+NUM_PERM_MISC = "数量关系-逢考必有的排列组合与概率-错位环形与同组概率"
 NUM_EXTREME = "数量关系-既烧脑又能套公式的最值问题-和定最值与构造"
+NUM_EXTREME_DRAWER = "数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉"
+NUM_EXTREME_REVERSE = "数量关系-既烧脑又能套公式的最值问题-反向构造与多集合最值"
+NUM_EXTREME_QUAD = "数量关系-既烧脑又能套公式的最值问题-二次函数与乘积极值"
 NUM_GEOMETRY = "数量关系-要抓住常考图形的几何问题-平面图形周长与面积"
 NUM_TRAVEL = "数量关系-能“七十二变”的行程问题-基础行程、平均速度与相对运动"
 NUM_PROFIT = "数量关系-容易找到等式关系的利润问题-利润与分段计费"
 NUM_ENGINEERING = "数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作"
 NUM_EQUATION = "数量关系-和差倍比与方程法-方程、比例与代入验证"
 NUM_INCLUSION = "数量关系-容斥问题-集合计数与逆向排除"
+NUM_CATTLE = "数量关系-古老的“牛吃草”与不变的容斥问题-牛吃草与匀速消耗"
+NUM_TRAVEL_MEDIUM = "数量关系-能“七十二变”的行程问题-流水行船与扶梯"
+NUM_TRAVEL_LENGTH = "数量关系-能“七十二变”的行程问题-过桥与队伍长度"
+NUM_TRAVEL_MULTI = "数量关系-能“七十二变”的行程问题-多次相遇与环形追及"
 NUM_SEQUENCE = "数量关系-数字推理-数字推理"
 NUM_SEQUENCE_RECUR = "数量关系-数字推理-递推数列"
 NUM_SEQUENCE_SPLIT = "数量关系-数字推理-机械划分"
@@ -33,17 +62,30 @@ KNOWN_QUANTITY_TAGS = {
     NUM_PERM_BASIC,
     NUM_PERM_SPECIAL,
     NUM_PERM_REVERSE,
+    NUM_PERM_POSITION,
+    NUM_PERM_GROUPING,
+    NUM_PERM_MISC,
     NUM_EXTREME,
+    NUM_EXTREME_DRAWER,
+    NUM_EXTREME_REVERSE,
+    NUM_EXTREME_QUAD,
     NUM_GEOMETRY,
     NUM_TRAVEL,
     NUM_PROFIT,
     NUM_ENGINEERING,
     NUM_EQUATION,
     NUM_INCLUSION,
+    NUM_CATTLE,
+    NUM_TRAVEL_MEDIUM,
+    NUM_TRAVEL_LENGTH,
+    NUM_TRAVEL_MULTI,
     NUM_SEQUENCE,
     NUM_SEQUENCE_RECUR,
     NUM_SEQUENCE_SPLIT,
 }
+# 已被细考法取代的合并标签：历史题继续留着，但不再往上面出新题。
+LEGACY_TAGS = {NUM_PERM_SPECIAL}
+
 COARSE_PRIMARY_TAGS = {
     "数量关系-数学运算-排列组合",
     "数量关系-数学运算-排列组合与概率",
@@ -176,6 +218,53 @@ ZILIAO_TAG_ALIASES = {
 }
 
 
+CANON_DIR = Path(__file__).resolve().parents[1] / "hermes-skills" / "gd-gongkao-coach" / "references" / "solver-canon"
+CANON_FILES = {
+    "判断推理": "05-panduan.md",
+    "数量关系": "04-shuliang.md",
+    "言语理解与表达": "03-yanyu.md",
+}
+_SECTION = re.compile(r"^\*\*([^*：\n]+?)(?:（[^）\n]*）)?：\*\*", re.M)
+_TAG_IN_TEXT = re.compile(r"`([^`]*-[^`]*-[^`]*)`")
+
+
+def canon_index(module: str = "") -> list[dict]:
+    """把 solver-canon 读成 [{module,title,一级,bullets:[{text,tag}],tags:[...]}]。
+
+    bullets 是卡片「考场步骤」里的顶层条目，即这张卡覆盖的考法；
+    tag 为空表示这条考法还没有自己的二级标签（和同卡其它考法共用一个）。
+    """
+    cards = []
+    for mod, name in CANON_FILES.items():
+        if module and mod != module:
+            continue
+        path = CANON_DIR / name
+        if not path.is_file():
+            continue
+        for chunk in path.read_text(encoding="utf-8").split("\n### ")[1:]:
+            title = chunk.split("\n", 1)[0].strip()
+            marks = [(m.group(1), m.start(), m.end()) for m in _SECTION.finditer(chunk)]
+            sections = {
+                n: chunk[e : (marks[i + 1][1] if i + 1 < len(marks) else len(chunk))].strip()
+                for i, (n, _s, e) in enumerate(marks)
+            }
+            bullets = []
+            for line in sections.get("考场步骤", "").split("\n"):
+                if not line.startswith("- "):
+                    continue
+                found = _TAG_IN_TEXT.findall(line)
+                head = re.split(r"[：:（(]", line[2:].strip("*· "), 1)[0].strip("*· ")
+                bullets.append({"text": head[:28], "tag": found[0] if found else ""})
+            tags = [t for t in _TAG_IN_TEXT.findall(chunk)]
+            cards.append({
+                "module": mod,
+                "title": title,
+                "bullets": bullets,
+                "tags": sorted({t for t in tags}),
+            })
+    return cards
+
+
 def kaodian_family(kaodian: str) -> str:
     """三级标签的前两级：特殊模型与基础原理同属排列组合族。"""
     parts = [part for part in str(kaodian or "").split("-") if part]
@@ -201,6 +290,15 @@ def _has_any(text: str, *needles: str) -> bool:
 
 def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
     raw = (tag or "").strip()
+    # Hermes 显式 --register 过的三级标签是权威的，不能再被下面的关键词兜底改写。
+    # 资料分析例外：它是封闭词表，旧标签必须继续被归一到白名单上。
+    if (
+        raw.count("-") >= 2
+        and not raw.startswith("资料分析-")
+        and normalize_module(module) != "资料分析"
+        and raw in registered_canonical_tags()
+    ):
+        return raw
     mod = normalize_module(module)
     if (not module or mod == "未分类") and "-" in raw:
         inferred = normalize_module(raw.split("-", 1)[0])
@@ -212,12 +310,39 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
     if _has_any(raw, "翻译推理", "德摩根", "否后否前", "否定肯定", "只有才", "除非", "必要条件", "逆否"):
         return TRANSLATION
 
-    if mod == "判断推理" and (sub == "逻辑判断" or not sub):
-        return TRANSLATION
+    if mod == "判断推理":
+        if raw in KNOWN_PANDUAN_TAGS:
+            return raw
+        if _has_any(raw, "归因", "因果倒置", "他因"):
+            return PD_CAUSE
+        if _has_any(raw, "削弱", "质疑", "反驳"):
+            return PD_WEAKEN
+        if _has_any(raw, "加强", "支持", "前提", "假设"):
+            return PD_SUPPORT
+        if _has_any(raw, "比例", "解释说明", "解释型"):
+            return PD_RATIO
+        if _has_any(raw, "真假", "矛盾关系", "反对关系", "范畴"):
+            return PD_TRUEFALSE
+        if _has_any(raw, "日常", "排列匹配", "分析推理", "对应关系"):
+            return PD_DAILY
+        if _has_any(raw, "秒杀", "速解"):
+            return PD_QUICK
+        if raw.startswith("判断推理-") and raw.count("-") >= 2:
+            return raw
+        if sub == "逻辑判断" or not sub:
+            return TRANSLATION
 
     if mod == "数量关系":
         if raw in KNOWN_QUANTITY_TAGS:
             return raw
+        if "牛吃草" in raw:
+            return NUM_CATTLE
+        if _has_any(raw, "流水行船", "顺水", "逆水", "扶梯", "漂流"):
+            return NUM_TRAVEL_MEDIUM
+        if _has_any(raw, "过桥", "车长", "队伍行进"):
+            return NUM_TRAVEL_LENGTH
+        if _has_any(raw, "多次相遇", "环形追及", "环形相遇"):
+            return NUM_TRAVEL_MULTI
         if sub == "数字推理" or "数字推理" in raw or _has_any(
             raw, "倍数递推", "多级递推积", "机械拆分", "递推数列", "广东数推"
         ):
@@ -235,15 +360,25 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
             return NUM_CYCLE
         if _has_any(raw, "反面容斥", "正难则反", "反面剥离", "反面法"):
             return NUM_PERM_REVERSE
-        if _has_any(raw, "插空", "优限", "特殊位置", "位置限制", "隔板"):
-            return NUM_PERM_SPECIAL
+        if _has_any(raw, "捆绑", "插空", "优限", "相邻限制", "不相邻", "特殊位置", "位置限制"):
+            return NUM_PERM_POSITION
+        if _has_any(raw, "插板", "隔板", "分堆", "分组分配", "定序", "消序"):
+            return NUM_PERM_GROUPING
+        if _has_any(raw, "错位排列", "错位排序", "环形排列", "重复排列", "同组概率"):
+            return NUM_PERM_MISC
         if _has_any(raw, "排列", "组合数"):
             return NUM_PERM_BASIC
+        if _has_any(raw, "抽屉", "最不利"):
+            return NUM_EXTREME_DRAWER
+        if _has_any(raw, "反向构造", "多集合最值", "反向相加", "总数倒扣"):
+            return NUM_EXTREME_REVERSE
+        if _has_any(raw, "二次函数", "乘积极值", "均值定理", "和定差小"):
+            return NUM_EXTREME_QUAD
         if _has_any(raw, "极值", "最值", "统筹"):
             return NUM_EXTREME
         if _has_any(raw, "几何", "矩形", "勾股", "组合图形", "平面割补"):
             return NUM_GEOMETRY
-        if _has_any(raw, "行程", "相遇", "单人模型"):
+        if _has_any(raw, "行程", "相遇", "单人模型", "平均速度", "追及"):
             return NUM_TRAVEL
         if _has_any(raw, "利润", "计费", "促销"):
             return NUM_PROFIT
@@ -258,6 +393,8 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
         return f"数量关系-{sub or '数学运算'}-{raw}"
 
     if mod == "言语理解与表达":
+        if raw.startswith("言语理解-"):
+            raw = "言语理解与表达-" + raw.split("-", 1)[1]
         if raw.startswith("言语理解与表达-") and raw.count("-") >= 2:
             return raw
         if raw.startswith("片段阅读"):
@@ -405,22 +542,35 @@ def question_primary_tag(question: dict) -> str:
     return ""
 
 
+_REGISTERED_CACHE: dict[str, tuple[float, set[str]]] = {}
+
+
 def registered_canonical_tags() -> set[str]:
-    """已 --register 进画像的三级标签，允许作为新补录考点出题。"""
+    """已 --register 进画像的三级标签，允许作为新补录考点出题。
+
+    canonicalize 每次都要问，所以按库文件 mtime 缓存；新登记会立刻失效重读。
+    """
     path = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "data" / "exam.db")
     if not path.is_file():
         return set()
+    key = str(path)
+    stamp = path.stat().st_mtime
+    hit = _REGISTERED_CACHE.get(key)
+    if hit and hit[0] == stamp:
+        return hit[1]
     try:
         conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         rows = conn.execute("SELECT kaodian FROM kaodian_profile").fetchall()
         conn.close()
     except sqlite3.Error:
         return set()
-    return {
+    found = {
         str(row[0])
         for row in rows
         if row[0] and str(row[0]).count("-") >= 2 and not str(row[0]).startswith("未分类")
     }
+    _REGISTERED_CACHE[key] = (stamp, found)
+    return found
 
 
 def validate_ai_primary_tag(raw: str, category: str = "") -> str:

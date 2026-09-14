@@ -1230,9 +1230,16 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const submittedText = review || persistText
         ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
         : '';
-      const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3/.test(spokenText);
+      const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3|(?:来|出|再来|各来|各出)\s*[\d\u4e00-\u9fa5]{1,3}\s*(?:\u9053|\u4e2a)(?![\u5e74\u6708\u5468])/.test(spokenText);
       const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(spokenText);
       const quizScript = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>' --interactive`;
+      const quizBlueprint = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --batch-id '<YYYYMMDD_hermes_考点_序号>' --interactive --blueprint '{"slots":[{"tag":"<规范主标签A>","count":3,"difficulty":"mid"},{"tag":"<规范主标签B>","count":3,"difficulty":"hard"},{"tag":"<规范主标签C>","count":4,"difficulty":"hard"}]}'`;
+      const quizSlotHint = [
+        `If the user wants several 考法/题型 in one batch, a difficulty mix, or a split like 3+3+4, use the blueprint form instead of a single --tag (they are mutually exclusive): ${quizBlueprint}`,
+        'Slots map to item order. Each slot needs tag+count; difficulty is optional (easy/mid/hard); all slots must share one module; the total still has to be 1-15. Choosing the slots, their counts and the difficulty spread is your call.',
+        'A slot may also carry "brief": free text (<=600 chars) that is YOUR drafting instruction for this batch. The script already injects the solver-canon 固定识别/考场步骤/禁止 for that 考法, so use brief for what the canon cannot know: this run\'s emphasis, degenerate patterns to avoid, current-exam intel you looked up, or a difficulty demand the user just voiced. brief may only tighten constraints, never relax the gate, and must never contain stems, answers or numbers.',
+        '一个一级知识点下的不同考法是不同的二级标签，只传一个标签整批就只有那一个考法。最值问题有四个独立考法标签：和定最值与构造 / 最不利原则与抽屉 / 反向构造与多集合最值 / 二次函数与乘积极值，不要用一个标签笼统覆盖。',
+      ].join('\n');
       const quizNudge = wantsQuiz && !wantsInlineQuiz
         ? [
             'This is a question-generation request. Deliver only to ExamSystem AI Practice.',
@@ -1240,13 +1247,15 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             'First tool call must be the script below. Do not ls, search_files, read_file, or sqlite first.',
             `Call exactly once, in the background with notify_on_complete (foreground terminal dies at 180s): ${quizScript}`,
             'workdir=/home/ubuntu/ExamSystem. If the user names a knowledge point, --tag must be that canonical 模块-一级-二级. Count is what they asked; default 5 if unnamed. Do not emit a 20-question daily paper.',
+            quizSlotHint,
             'Wait for the JSON. Success: report only batch_id and imported count. Failure: report the script message. Never draft questions yourself.',
           ].join('\n')
         : audio && !review
           ? [
               `If the recording asks to generate questions, call once in the background with notify_on_complete: ${quizScript}`,
               'Use the knowledge point and count from the recording (including a point you just recommended from the snapshot). Do not explore the repo first.',
-              ].join('\n')
+              quizSlotHint,
+            ].join('\n')
           : '';
       const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
         || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));

@@ -30,6 +30,15 @@ RETRIES = 3
 FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.I | re.M)
 FIGURE_HINT = re.compile(r"图形推理|科学推理|空间类")
 HARD_RULES = ROOT / "hermes-skills" / "quiz-pipeline" / "references" / "module-hard-rules.md"
+CANON_DIR = ROOT / "hermes-skills" / "gd-gongkao-coach" / "references" / "solver-canon"
+CANON_FILES = {
+    "判断推理": "05-panduan.md",
+    "数量关系": "04-shuliang.md",
+    "言语理解与表达": "03-yanyu.md",
+}
+SECTION = re.compile(r"^\*\*([^*：\n]+?)(?:（[^）\n]*）)?：\*\*", re.M)
+BRIEF_LIMIT = 600
+CANON_LIMIT = 1400
 
 MODULES = {
     "判断推理",
@@ -199,17 +208,33 @@ def build_calculations(questions: list[dict]) -> dict:
     return {"questions": rows}
 
 
+def run_slots(run: dict) -> list[dict]:
+    """没给 slots 就退回单槽，保持 --tag/--count 老调用不变。"""
+    slots = run.get("slots")
+    if slots:
+        return list(slots)
+    return [{"tag": str(run["focus_tag"]), "count": int(run["planned_count"])}]
+
+
+def slot_tags(run: dict) -> list[str]:
+    """按槽位展开成「每题一个规范主标签」，顺序即题号顺序。"""
+    expanded: list[str] = []
+    for slot in run_slots(run):
+        expanded.extend([str(slot["tag"])] * int(slot["count"]))
+    return expanded
+
+
 def stamp_questions(run: dict, questions: list[dict], source: str) -> list[dict]:
-    tag = str(run["focus_tag"])
     module = run["module"]
-    sub = infer_subcategory(tag, module)
+    per_item = slot_tags(run)
     letters = [row["answer"] for row in run["answer_plan"]]
     stamped = []
     for index, raw in enumerate(questions[: int(run["planned_count"])], start=1):
         row = dict(raw)
+        tag = per_item[index - 1]
         row["external_id"] = f"{run['batch_id']}_{index:02d}"
         row["category"] = module
-        row["sub_category"] = sub
+        row["sub_category"] = infer_subcategory(tag, module)
         row["tags"] = [tag]
         row["question_type"] = "single"
         row["source"] = source
@@ -225,12 +250,102 @@ def stamp_questions(run: dict, questions: list[dict], source: str) -> list[dict]
     return stamped
 
 
+def card_sections(card: str) -> dict[str, str]:
+    """把一张考点卡片按 **小节：** 切开。"""
+    marks = [(m.group(1), m.start(), m.end()) for m in SECTION.finditer(card)]
+    out = {}
+    for index, (name, start, end) in enumerate(marks):
+        stop = marks[index + 1][1] if index + 1 < len(marks) else len(card)
+        out[name] = card[end:stop].strip()
+    return out
+
+
+def bullet_blocks(steps: str) -> list[str]:
+    """按顶层 `- ` 分块，子行（缩进或 ①②③）跟着自己的父块走。"""
+    blocks: list[list[str]] = []
+    for line in steps.split("\n"):
+        if line.startswith("- ") or not blocks:
+            blocks.append([line])
+        else:
+            blocks[-1].append(line)
+    return ["\n".join(block).strip() for block in blocks]
+
+
+def canon_card(module: str, tag: str) -> str:
+    """取 solver-canon 里该考法的固定识别/考场步骤/禁止，当生成器的考法底座。
+
+    标签挂在某条考法 bullet 上时只取那一条，否则退回整张卡的考场步骤。
+    """
+    name = CANON_FILES.get(module)
+    if not name or not (CANON_DIR / name).is_file():
+        return ""
+    text = (CANON_DIR / name).read_text(encoding="utf-8")
+    card = next((part for part in text.split("\n### ") if f"`{tag}`" in part), None)
+    if not card:
+        return ""
+    sections = card_sections(card)
+    parts = [f"考点卡片：{card.split(chr(10), 1)[0].strip()}"]
+    if sections.get("固定识别"):
+        parts.append("固定识别：" + sections["固定识别"])
+    steps = sections.get("考场步骤", "")
+    if steps:
+        own = [block for block in bullet_blocks(steps) if f"`{tag}`" in block]
+        parts.append("考场步骤：\n" + "\n".join(own or bullet_blocks(steps)))
+    if sections.get("禁止"):
+        parts.append("禁止：" + sections["禁止"])
+    return "\n".join(parts)[:CANON_LIMIT]
+
+
+def slot_briefs(run: dict) -> str:
+    """考法底座 + Hermes 本批次的命题指令。只能加约束，不能松约束。"""
+    chunks = []
+    for index, slot in enumerate(run_slots(run), start=1):
+        tag = str(slot["tag"])
+        body = [f"[slot {index}] {tag}"]
+        card = canon_card(run["module"], tag)
+        if card:
+            body.append(card)
+        if slot.get("brief"):
+            body.append("本批次额外命题要求（Hermes 下达，只能收紧不得放宽既有规则）：" + str(slot["brief"]))
+        if len(body) > 1:
+            chunks.append("\n".join(body))
+    if not chunks:
+        return ""
+    return (
+        "\nPer-slot 考法口径。每个槽位严格按自己的固定识别与考场步骤命题，"
+        "不要让别的槽位的模型渗进来：\n" + "\n\n".join(chunks) + "\n"
+    )
+
+
+def slot_rules(run: dict) -> str:
+    """把槽位翻译成「第几题到第几题打哪个标签」的硬约束。"""
+    slots = run_slots(run)
+    if len(slots) == 1:
+        return f"Every tags[0] must be exactly {slots[0]['tag']}.\n"
+    lines, start = [], 1
+    for slot in slots:
+        end = start + int(slot["count"]) - 1
+        span = f"item {start}" if start == end else f"items {start}-{end}"
+        hint = f", difficulty {slot['difficulty']}" if slot.get("difficulty") else ""
+        lines.append(f"  {span}: tags[0] = {slot['tag']} ({slot['count']} questions{hint})")
+        start = end + 1
+    return (
+        "Split the batch into these slots by item index. Each slot is a DIFFERENT 考法 of the "
+        "same 一级知识点 — do not let one slot's model leak into another:\n"
+        + "\n".join(lines)
+        + "\n"
+    )
+
+
 def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = None) -> str:
     tag = run["focus_tag"]
     n = int(run["planned_count"])
     payload = {
         "module": run["module"],
         "focus_tag": tag,
+        "slots": [
+            {k: v for k, v in slot.items() if v not in (None, "")} for slot in run_slots(run)
+        ],
         "question_count": n,
         "batch_id": run["batch_id"],
         "all_original": True,
@@ -263,7 +378,7 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
         "You are ExamSystem's targeted-drill writer. Output one JSON object only. "
         "No markdown fences, no commentary.\n"
         f"{json.dumps(payload, ensure_ascii=False)}\n\n"
-        f"Exactly {n} original questions. Every tags[0] must be exactly {tag}. "
+        f"Exactly {n} original questions. {slot_rules(run)}"
         "Do not emit a mixed daily paper, 真题, 定义判断, or 类比推理. No images.\n"
         f"{extra}"
         "Each item: external_id, category, sub_category, tags, stem, "
@@ -272,6 +387,7 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
         + ".\n"
         "Put the keyed option on answer_plan[i].answer. Do not invent extra questions.\n"
         f"{rules}\n"
+        f"{slot_briefs(run)}"
         f"{retry}"
         'JSON: {"questions":[...]}\n'
     )
@@ -294,9 +410,9 @@ def holdout_matches(tag: str, data: dict) -> bool:
     return any(token in hay for token in tokens)
 
 
-def attach_evaluate(run: dict, questions: list[dict], batch_dir: Path) -> list[dict]:
-    tag = run["focus_tag"]
-    out = batch_dir / "evaluate-holdout.json"
+def evaluate_slot(run: dict, tag: str, ids: list[str], batch_dir: Path, index: int) -> dict | None:
+    """给一个槽位捞一份真题 holdout；捞不到或对不上就返回 None。"""
+    out = batch_dir / (f"evaluate-holdout-{index:02d}.json" if index else "evaluate-holdout.json")
     command = [
         sys.executable,
         str(ROOT / "scripts" / "reference_style.py"),
@@ -320,17 +436,31 @@ def attach_evaluate(run: dict, questions: list[dict], batch_dir: Path) -> list[d
         subprocess.run(command, cwd=ROOT, check=False, capture_output=True, text=True, timeout=90)
         data = json.loads(out.read_text(encoding="utf-8")) if out.is_file() else {}
     except (OSError, json.JSONDecodeError, subprocess.TimeoutExpired):
-        return []
+        return None
     context_id = str(data.get("context_id") or "").strip()
     if not context_id or not holdout_matches(tag, data):
-        return []
-    return [
-        {
-            "context_id": context_id,
-            "reference_ids": list(data.get("reference_ids") or []),
-            "question_ids": [row["external_id"] for row in questions],
-        }
-    ]
+        return None
+    return {
+        "context_id": context_id,
+        "reference_ids": list(data.get("reference_ids") or []),
+        "question_ids": ids,
+    }
+
+
+def attach_evaluate(run: dict, questions: list[dict], batch_dir: Path) -> list[dict]:
+    """每个槽位各捞一份 holdout，避免整批被单一考法的真题风格带偏。"""
+    slots = run_slots(run)
+    contexts, cursor = [], 0
+    for index, slot in enumerate(slots, start=1):
+        count = int(slot["count"])
+        ids = [row["external_id"] for row in questions[cursor : cursor + count]]
+        cursor += count
+        if not ids:
+            continue
+        context = evaluate_slot(run, str(slot["tag"]), ids, batch_dir, 0 if len(slots) == 1 else index)
+        if context:
+            contexts.append(context)
+    return contexts
 
 
 def write_batch(run: dict, batch_dir: Path, questions: list[dict], extras: dict, source: str) -> None:
@@ -383,11 +513,19 @@ def run_cmd(command: list[str], env: dict[str, str]) -> None:
 
 
 def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int, snapshot: dict) -> int:
-    reject_unsupported(run["module"], run["focus_tag"])
+    for slot in run_slots(run):
+        reject_unsupported(run["module"], str(slot["tag"]))
     extras = generation_payload_extras(run["module"], int(run["planned_count"]), str(run["batch_id"]), db_path)
     extras["batch_constraints"]["targeted_drill"] = True
     extras["batch_constraints"]["no_images"] = True
-    extras["batch_constraints"]["tag_counts"] = {run["focus_tag"]: int(run["planned_count"])}
+    tag_counts: dict[str, int] = {}
+    for slot in run_slots(run):
+        tag_counts[str(slot["tag"])] = tag_counts.get(str(slot["tag"]), 0) + int(slot["count"])
+    extras["batch_constraints"]["tag_counts"] = tag_counts
+    if len(run_slots(run)) > 1:
+        extras["batch_constraints"]["slot_plan"] = [
+            {k: v for k, v in slot.items() if v not in (None, "")} for slot in run_slots(run)
+        ]
     extras["batch_constraints"].pop("shuliang_layout", None)
     extras["batch_constraints"].pop("panduan_layout", None)
     run["answer_plan"] = extras["answer_plan"]
@@ -427,11 +565,63 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
     raise RuntimeError(error or "generation failed")
 
 
+def load_blueprint(raw: str) -> list[dict]:
+    """--blueprint 收内联 JSON 或 @文件路径，取出原始槽位列表。"""
+    text = raw.strip()
+    if text.startswith("@"):
+        text = Path(text[1:]).expanduser().read_text(encoding="utf-8")
+    data = json.loads(text)
+    slots = data.get("slots") if isinstance(data, dict) else data
+    if not isinstance(slots, list) or not slots:
+        raise SystemExit("blueprint 需要非空的 slots 列表")
+    return slots
+
+
+def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
+    """把 --tag/--count 或 --blueprint 统一成校验过的槽位列表。校验一视同仁，不因蓝图放宽。"""
+    if args.blueprint:
+        if args.tag or args.count:
+            raise SystemExit("--blueprint 与 --tag/--count 互斥")
+        raw_slots = load_blueprint(args.blueprint)
+    else:
+        if not args.tag or not args.count:
+            raise SystemExit("需要 --tag 与 --count，或改用 --blueprint")
+        raw_slots = [{"tag": args.tag, "count": args.count, "difficulty": args.difficulty}]
+
+    slots: list[dict] = []
+    modules: set[str] = set()
+    for raw in raw_slots:
+        if not isinstance(raw, dict):
+            raise SystemExit(f"槽位必须是对象: {raw!r}")
+        tag_in = str(raw.get("tag") or "").strip()
+        count = int(raw.get("count") or 0)
+        if not tag_in or count < 1:
+            raise SystemExit(f"槽位缺 tag 或 count: {raw!r}")
+        parts = [part for part in tag_in.split("-") if part]
+        subtype = parts[1] if len(parts) > 1 else ""
+        tag = validate_ai_primary_tag(canonicalize(tag_in, args.module, subtype), args.module)
+        head = tag.split("-", 1)[0]
+        modules.add(head if head in MODULES else module_of(tag, args.module))
+        slot = {"tag": tag, "count": count}
+        if raw.get("difficulty"):
+            slot["difficulty"] = str(raw["difficulty"])
+        if raw.get("brief"):
+            slot["brief"] = str(raw["brief"]).strip()[:BRIEF_LIMIT]
+        slots.append(slot)
+    if len(modules) > 1:
+        raise SystemExit(f"一个批次只能一个模块，收到: {sorted(modules)}")
+    return modules.pop(), slots
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hermes / CLI 专项出题")
     parser.add_argument("--module", default="", help="判断推理 / 数量关系 / 言语理解与表达")
-    parser.add_argument("--tag", required=True, help="规范主标签，如 判断推理-逻辑判断-翻译推理")
-    parser.add_argument("--count", type=int, required=True)
+    parser.add_argument("--tag", help="规范主标签，如 判断推理-逻辑判断-翻译推理")
+    parser.add_argument("--count", type=int)
+    parser.add_argument(
+        "--blueprint",
+        help='多考法编排，内联 JSON 或 @路径：{"slots":[{"tag":"...","count":3,"difficulty":"hard"}]}',
+    )
     parser.add_argument("--batch-id", required=True)
     parser.add_argument("--difficulty", choices=["easy", "hard"])
     parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
@@ -443,22 +633,22 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    parts = [p for p in args.tag.split("-") if p]
-    subtype = parts[1] if len(parts) > 1 else ""
-    tag = validate_ai_primary_tag(canonicalize(args.tag, args.module, subtype), args.module)
-    module = module_of(tag, args.module)
-    if args.count < 1 or args.count > 15:
+    module, slots = resolve_slots(args)
+    total = sum(int(slot["count"]) for slot in slots)
+    if total < 1 or total > 15:
         raise SystemExit("专项题量必须是 1–15；成套卷走日练")
     today = local_today()
     run = {
         "module": module,
         "plan_date": today,
         "batch_id": args.batch_id,
-        "planned_count": args.count,
-        "focus_tag": tag,
+        "planned_count": total,
+        "focus_tag": slots[0]["tag"],
+        "slots": slots,
         "difficulty": args.difficulty,
     }
-    reject_unsupported(module, tag)
+    for slot in slots:
+        reject_unsupported(module, str(slot["tag"]))
     conn = sqlite3.connect(args.db, timeout=30)
     try:
         snapshot = load_snapshot(conn)
@@ -477,7 +667,8 @@ def main() -> int:
             "batch_id": args.batch_id,
             "imported": imported,
             "batch_dir": str(batch_dir),
-            "tag": tag,
+            "tag": run["focus_tag"],
+            "slots": slots,
             "message": f"已入库 {imported} 题，批次 {args.batch_id}",
         }
         print(json.dumps(result, ensure_ascii=False))

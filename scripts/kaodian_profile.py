@@ -6,6 +6,7 @@
 按 Beta 先验、时间衰减和证据来源自动估计；遇到新考点时，先登记再记录事件。
 """
 
+import json
 import os
 import sqlite3
 import sys
@@ -174,14 +175,25 @@ def recompute_mastery(conn, kaodian=None):
             )
 
 
-def resolve_kaodian(conn, kaodian, module="", subtype=""):
+def wellformed_kaodian(kaodian: str) -> bool:
+    """`模块-一级-二级`，且模块名认得出来。"""
+    head = str(kaodian or "").split("-", 1)[0]
+    return str(kaodian or "").count("-") >= 2 and normalize_module(head) == head
+
+
+def resolve_kaodian(conn, kaodian, module="", subtype="", verbatim=False):
     row = conn.execute(
         "SELECT canonical, module, subtype FROM kaodian_aliases WHERE alias=?",
         (kaodian,),
     ).fetchone()
     if row:
         return row[0], row[1], row[2]
-    canonical = canonicalize(kaodian, module, subtype)
+    # 显式登记新考点时按原样收下：--register 本身就是「这是个独立新点」的声明，
+    # 不能再让关键词兜底把它并进某个老考点（那样新点永远建不起来）。
+    if verbatim and wellformed_kaodian(kaodian):
+        canonical = kaodian
+    else:
+        canonical = canonicalize(kaodian, module, subtype)
     normalized_module = normalize_module(module or canonical.split("-", 1)[0])
     canonical_subtype = canonical.split("-")[1] if "-" in canonical else subtype
     conn.execute(
@@ -374,7 +386,7 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
     note 建议包含来源题号、定义和与相邻考点的区分，方便下次复盘确认是否合并。
     """
     ensure_schema(conn)
-    kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
+    kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype, verbatim=True)
     conn.execute("""
         INSERT INTO kaodian_profile
           (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak, note)
@@ -586,6 +598,108 @@ def _demo():
     print("demo ok")
 
 
+
+def coverage_report(conn, keyword=""):
+    """按一级知识点汇总：这张卡有几种考法、建了几个标签、各自多少题多少练习。
+
+    给 Hermes 回答「这个知识点下的题型覆盖全面了吗」。
+    """
+    from kaodian_taxonomy import canon_index, canonicalize
+
+    stock, seen = {}, {}
+    try:
+        rows = conn.execute(
+            "SELECT tags, COUNT(*) FROM questions WHERE tags IS NOT NULL GROUP BY tags"
+        ).fetchall()
+    except sqlite3.OperationalError:
+        rows = []  # 题库表由导入器建；画像库单独存在时只报考点不报库存
+    for tag, n in rows:
+        try:
+            first = json.loads(tag)[0]
+        except (ValueError, IndexError, TypeError):
+            continue
+        stock[first] = stock.get(first, 0) + n
+    for row in conn.execute(
+        "SELECT kaodian, attempts, mastery, mastery_confidence FROM kaodian_profile"
+    ):
+        seen[row[0]] = row[1:]
+
+    out = []
+    for card in canon_index():
+        # 图形推理/科学推理/资料分析走日练，专项出不了，列出来只是噪音
+        if any("图形推理" in t for t in card["tags"]) or not card["tags"]:
+            continue
+        family = card["tags"][0].rsplit("-", 1)[0]
+        if keyword and keyword not in family and keyword not in card["title"]:
+            continue
+        # canon 里写的可能是旧名，先归一到实际在用的标签，库存/练习才对得上
+        usable = {canonicalize(t, card["module"]) for t in card["tags"]}
+        rows = []
+        for tag in sorted(usable):
+            attempts, mastery, conf = seen.get(tag, (0, None, 0))
+            rows.append({
+                "tag": tag,
+                "stock": stock.get(tag, 0),
+                "attempts": attempts or 0,
+                "mastery": mastery,
+                "confidence": conf or 0,
+            })
+        # 一张卡只有一个标签时，卡内条目既可能是并列步骤也可能是可拆的考法，
+        # 不替 Hermes 下结论，如实列出让它自己判断。
+        untagged = [b["text"] for b in card["bullets"] if not b["tag"]] if len(rows) <= 1 else []
+        out.append({
+            "module": card["module"],
+            "title": card["title"],
+            "family": family,
+            "methods": len(card["bullets"]),
+            "rows": rows,
+            "untagged": untagged,
+        })
+    return out
+
+
+def print_coverage(conn, keyword=""):
+    import signal
+
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    cards = coverage_report(conn, keyword)
+    if not cards:
+        print("(没有匹配的考点，换个关键词)")
+        return
+    for card in cards:
+        n_tag, n_method = len(card["rows"]), card["methods"]
+        mark = "已按考法拆分" if n_tag > 1 else ("单一考法" if n_method <= 1 else "尚未拆分")
+        print(f"【{card['module']}】{card['title']}")
+        print(f"    {n_tag} 标签 / 卡内 {n_method} 条 · {mark}")
+        for row in card["rows"]:
+            m = "-" if row["mastery"] is None else row["mastery"]
+            print(
+                f"      题{row['stock']:<4}练{row['attempts']:<4}掌握{m:<5}"
+                f"{row['tag'].rsplit('-', 1)[-1]}"
+            )
+        if card["untagged"]:
+            print("      卡内条目（并列步骤还是可拆考法，自行判断）：" + "｜".join(card["untagged"]))
+
+
+def plan_blueprint(conn, keyword, count):
+    """在匹配到的考点之间均衡分题，弱项优先，直接吐出 quiz_generator 能吃的蓝图。"""
+    cards = coverage_report(conn, keyword)
+    from kaodian_taxonomy import LEGACY_TAGS
+
+    pool = [row for card in cards for row in card["rows"] if row["tag"] not in LEGACY_TAGS]
+    if not pool:
+        raise SystemExit(f"没有匹配 '{keyword}' 的考点；先 --coverage 看有哪些")
+    pool.sort(key=lambda r: (r["mastery"] if r["mastery"] is not None else 50, r["stock"]))
+    pool = pool[:count]
+    base, extra = divmod(count, len(pool))
+    slots = []
+    for index, row in enumerate(pool):
+        n = base + (1 if index < extra else 0)
+        if n:
+            slots.append({"tag": row["tag"], "count": n})
+    return {"slots": slots}
+
+
 if __name__ == "__main__":
     if "--demo" in sys.argv:
         _demo()
@@ -701,6 +815,21 @@ if __name__ == "__main__":
         set_mastery(conn, tag, score, note, module, subtype)
         conn.commit()
         print(f"mastery -> {tag} = {int(score)}")
+    elif "--coverage" in sys.argv:
+        args = [a for a in sys.argv[sys.argv.index("--coverage") + 1:] if not a.startswith("-")]
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        print_coverage(conn, args[0] if args else "")
+    elif "--plan" in sys.argv:
+        args = [a for a in sys.argv[sys.argv.index("--plan") + 1:] if not a.startswith("-")]
+        if not args:
+            raise SystemExit("用法：--plan <考点关键词> [--count N]")
+        count = 5
+        if "--count" in sys.argv:
+            count = int(sys.argv[sys.argv.index("--count") + 1])
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        print(json.dumps(plan_blueprint(conn, args[0], count), ensure_ascii=False))
     elif "--list" in sys.argv:
         conn = sqlite3.connect(DB)
         ensure_schema(conn)
