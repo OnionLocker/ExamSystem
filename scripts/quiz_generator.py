@@ -197,14 +197,17 @@ def build_calculations(questions: list[dict]) -> dict:
         correct = calc.get("correct") or options.get(str(question.get("answer") or ""))
         if not correct:
             raise ValueError(f"{question.get('external_id')} 缺 correct 验算式")
-        rows.append(
-            {
-                "question_id": question["external_id"],
-                "correct": str(correct).strip(),
-                "options": options,
-                "tolerance": float(calc.get("tolerance") or 0.01),
-            }
-        )
+        row = {
+            "question_id": question["external_id"],
+            "correct": str(correct).strip(),
+            "options": options,
+            "tolerance": float(calc.get("tolerance") or 0.01),
+        }
+        # 取整方向原样带下去：correct 停在取整前的小数上时，闸门靠它才判得出命中。
+        direction = str(calc.get("round") or "").strip().lower()
+        if direction:
+            row["round"] = direction
+        rows.append(row)
     return {"questions": rows}
 
 
@@ -227,7 +230,6 @@ def slot_tags(run: dict) -> list[str]:
 def stamp_questions(run: dict, questions: list[dict], source: str) -> list[dict]:
     module = run["module"]
     per_item = slot_tags(run)
-    letters = [row["answer"] for row in run["answer_plan"]]
     stamped = []
     for index, raw in enumerate(questions[: int(run["planned_count"])], start=1):
         row = dict(raw)
@@ -246,7 +248,8 @@ def stamp_questions(run: dict, questions: list[dict], source: str) -> list[dict]
         if not str(row.get("explanation") or "").strip():
             row["explanation"] = row["analysis"]
         stamped.append(row)
-    align_answers(stamped, letters)
+    # 不在这里按计划表换字母：字母只要整批不扎堆就行，真扎堆了由闸门里的
+    # normalize_batch → redistribute_answers 机械重排，并同步 calculations。
     return stamped
 
 
@@ -350,7 +353,6 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
         "batch_id": run["batch_id"],
         "all_original": True,
         "difficulty_tier": run.get("difficulty") or difficulty_tier(run["plan_date"]),
-        "answer_plan": extras["answer_plan"],
         "learner_snapshot": {
             "as_of": snapshot.get("as_of"),
             "compact": snapshot.get("compact"),
@@ -372,6 +374,10 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
             '{"correct":"纯四则","options":{"A":"...","B":"...","C":"...","D":"..."},"tolerance":0.01}。'
             "式子只能用数字和 + - * / ( )，排列组合写成 8*7*6/(3*2*1)，禁止 C()/P()/factorial。"
             "选项展示可带单位，calculations 必须能直接求值。\n"
+            "答案要取整的题（和定最值、最不利原则这类），correct 写取整前的式子，"
+            '另加 "round":"floor"（问最多向下取整）或 "round":"ceil"（问最少向上取整）；'
+            "也可以直接把 correct 写成取整后的最终整数。两种都行，"
+            "但不许让 correct 停在小数上又不交代取整方向——那样选项永远对不上。\n"
         )
     retry = f"\nPrevious gate error, rewrite the rejected items:\n{error[-4000:]}\n" if error else ""
     return (
@@ -385,7 +391,23 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
         'options [{"key":"A","text":"..."} x4], answer, analysis'
         + (", calculations" if run["module"] == "数量关系" else "")
         + ".\n"
-        "Put the keyed option on answer_plan[i].answer. Do not invent extra questions.\n"
+        # 别再逐题点名正确项字母。一点名，模型就会算出真答案后发现落不到那个字母，
+        # 转而去改解析里的数据来凑字母，题干却不跟着动。字母均衡改由整批约束 +
+        # normalize_batch 的机械重排负责。
+        f"Each item's keyed letter is your own choice. Spread them across the batch: "
+        f"no single letter on more than {int(extras['batch_constraints']['answer_max_per_letter'])} "
+        f"items, and use at least {int(extras['batch_constraints']['answer_min_letters'])} "
+        "different letters. Never bend a question's data to land on a particular letter — "
+        "solve the stem as written, then set the options around the true answer.\n"
+        # 模型凑不出好看的选项时会中途改数据，却只改解析不改题干，还把草稿留在解析里。
+        # 这是目前最高频的废题来源，且算式验算看不见（calculations 跟着改过的数据一起写）。
+        "Solve the stem exactly as written, then build the options around that answer. "
+        "If the options do not fit, change the options — never the stem's data, and never "
+        "the data inside the analysis. The analysis is what the student reads: it must not "
+        "contain your own revisions (\u300c\u4fee\u6539\u9898\u5e72\u300d\u300c\u8c03\u6574\u6570\u636e\u300d"
+        "\u300c\u4e3a\u4e86\u8ba9\u7b54\u6848\u7b49\u4e8e\u2026\u300d). Any stem number quoted in the "
+        "analysis must be the number that is actually in the stem.\n"
+        "Do not invent extra questions.\n"
         f"{rules}\n"
         f"{slot_briefs(run)}"
         f"{retry}"

@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from generation_gate import LITE_VERSION, RECEIPT, digest
+from normalize_ai_batch import scratchpad_leak
 from quiz_generator import (
     BASE_URL,
     api_key,
@@ -44,17 +45,6 @@ MODEL = os.environ.get("QUIZ_LITE_MODEL", "gemini-3.8-flash-high")
 HTTP_RETRIES = 3
 MAX_COUNT = 15
 DUP_RATIO = 0.82
-# 出题模型会把倒推答案的草稿留在解析里（「为了让答案等于 14，把合格人数调整为…」），
-# 题干却没跟着改。这种解析一眼可辨，不必花审核调用。
-SCRATCHPAD = (
-    "修改题干",
-    "调整数据",
-    "微调数据",
-    "为了让答案",
-    "为了使答案",
-    "若答案要",
-    "重新设定题干",
-)
 # 题库的 difficulty 是 1–5 的整数，主体落在 2–4。声明档位按槽位换算，
 # 不收模型自己写的 difficulty——它会直接把 "easy" 这种字符串塞进来。
 TIER_TO_LEVEL = {"easy": 2, "mid": 3, "hard": 4}
@@ -234,8 +224,7 @@ def local_issues(question: dict) -> list[str]:
     analysis = str(question.get("analysis") or "").strip()
     if len(analysis) < 30:
         issues.append("解析过短，无法复算")
-    leaked = [phrase for phrase in SCRATCHPAD if phrase in analysis]
-    if leaked:
+    if leaked := scratchpad_leak(question):
         issues.append(
             f"解析里留着倒推答案的草稿（{'、'.join(leaked)}），题干与解析已脱节，重写这道题"
         )

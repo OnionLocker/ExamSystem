@@ -26,7 +26,7 @@ from PIL import Image
 
 from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
-from normalize_ai_batch import generated_questions
+from normalize_ai_batch import generated_questions, scratchpad_leak
 from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
 
 
@@ -376,11 +376,25 @@ def run_route_a(questions: list[dict]) -> dict[str, dict]:
 
 ALLOWED_FUNCTIONS = {
     "abs": abs,
+    "ceil": math.ceil,
+    "floor": math.floor,
     "max": max,
     "min": min,
     "round": round,
     "sum": sum,
     "sqrt": math.sqrt,
+}
+
+# 最值、抽屉这些考法的最后一步是取整，不是算术。correct 停在取整前的小数上
+# 是正常的，方向由 spec 声明——不能靠「floor 或 ceil 都算命中」去猜，
+# 因为相邻整数选项（24/25/26/27）是常态，两头都放行就等于放弃判定。
+ROUNDING = {
+    "floor": math.floor,
+    "down": math.floor,
+    "向下": math.floor,
+    "ceil": math.ceil,
+    "up": math.ceil,
+    "向上": math.ceil,
 }
 
 
@@ -435,7 +449,11 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
         else:
             try:
                 tolerance = float(spec.get("tolerance", 1e-9))
-                target = safe_eval(spec["correct"])
+                raw_target = safe_eval(spec["correct"])
+                direction = str(spec.get("round") or "").strip().lower()
+                if direction and direction not in ROUNDING:
+                    raise ValueError(f"unknown rounding direction: {direction}")
+                target = ROUNDING[direction](raw_target) if direction else raw_target
                 option_values = {
                     str(key): safe_eval(value) for key, value in (spec.get("options") or {}).items()
                 }
@@ -449,6 +467,9 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
                     "matching_options": matches,
                     "tolerance": tolerance,
                 }
+                if direction:
+                    details["pre_rounding_value"] = raw_target
+                    details["round"] = direction
                 if matches != [str(question.get("answer") or "")]:
                     issues.append(f"calculation match is {matches}, claimed {question.get('answer')}")
                 if set(option_values) != {
@@ -688,6 +709,11 @@ def translation_echo_issues(question: dict) -> list[str]:
 def local_quality_issues(question: dict) -> list[str]:
     """Only deterministic defects; comparative language quality stays with blind review."""
     issues = []
+    if leaked := scratchpad_leak(question):
+        issues.append(
+            "analysis leaks a reverse-engineering scratchpad "
+            f"({'、'.join(leaked)}); the stem was never updated to match"
+        )
     if is_translation_logic(question):
         issues.extend(translation_echo_issues(question))
     if not is_yanyu(question):

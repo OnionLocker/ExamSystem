@@ -4,6 +4,8 @@ import unittest
 
 import argparse
 
+from normalize_ai_batch import generation_payload_extras
+
 from quiz_generator import (
     align_answers,
     build_calculations,
@@ -20,6 +22,13 @@ from quiz_generator import (
 
 
 EXTREME = "数量关系-既烧脑又能套公式的最值问题-"
+
+def prompt_extras(run):
+    """提示测试要用生产形状的 extras：里面有字母上限，build_prompt 会读。"""
+    return generation_payload_extras(
+        run["module"], int(run["planned_count"]), str(run["batch_id"])
+    )
+
 
 
 def blueprint_args(blueprint=None, tag=None, count=None, module="数量关系"):
@@ -48,19 +57,18 @@ class QuizGeneratorTest(unittest.TestCase):
             "batch_id": "x",
             "plan_date": "2026-09-10",
         }
-        extras = {"answer_plan": [{"index": 1, "answer": "A"}, {"index": 2, "answer": "B"}]}
+        extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
         self.assertIn("判断推理-逻辑判断-翻译推理", text)
         self.assertIn("echo_given_fact", text)
         self.assertNotIn("5_graphic_plus_15_logic", text)
 
-    def test_align_and_stamp(self):
+    def test_stamp_keeps_the_writers_own_letter(self):
         run = {
             "module": "判断推理",
             "focus_tag": "判断推理-逻辑判断-翻译推理",
             "planned_count": 1,
             "batch_id": "demo",
-            "answer_plan": [{"index": 1, "answer": "C"}],
         }
         questions = stamp_questions(
             run,
@@ -79,10 +87,11 @@ class QuizGeneratorTest(unittest.TestCase):
             ],
             "src",
         )
-        self.assertEqual(questions[0]["answer"], "C")
+        # 打标签不碰答案：换字母的诱因就是模型倒推数据去凑字母的来源。
+        self.assertEqual(questions[0]["answer"], "A")
+        self.assertIn("故选A", questions[0]["analysis"])
         self.assertEqual(questions[0]["external_id"], "demo_01")
         self.assertEqual(questions[0]["tags"], ["判断推理-逻辑判断-翻译推理"])
-        self.assertIn("故选C", questions[0]["analysis"])
 
     def test_quantity_prompt_asks_calculations(self):
         run = {
@@ -92,7 +101,7 @@ class QuizGeneratorTest(unittest.TestCase):
             "batch_id": "x",
             "plan_date": "2026-09-10",
         }
-        extras = {"answer_plan": [{"index": i, "answer": "ABCD"[(i - 1) % 4]} for i in range(1, 6)]}
+        extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
         self.assertIn("calculations", text)
         self.assertIn("8*7*6/(3*2*1)", text)
@@ -175,7 +184,7 @@ class BlueprintTest(unittest.TestCase):
             "batch_id": "x",
             "plan_date": "2026-09-14",
         }
-        extras = {"answer_plan": [{"index": i, "answer": "ABC"[i - 1]} for i in range(1, 4)]}
+        extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
         self.assertIn("items 1-2: tags[0] = " + EXTREME + "最不利原则与抽屉", text)
         self.assertIn("item 3: tags[0] = " + EXTREME + "和定最值与构造", text)
@@ -241,7 +250,7 @@ class CanonInjectionTest(unittest.TestCase):
             "batch_id": "x",
             "plan_date": "2026-09-14",
         }
-        extras = {"answer_plan": [{"index": 1, "answer": "A"}, {"index": 2, "answer": "B"}]}
+        extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
         self.assertIn("必须出现残缺抽屉", text)
         self.assertIn("只能收紧不得放宽", text)

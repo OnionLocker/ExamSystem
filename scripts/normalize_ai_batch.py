@@ -296,6 +296,26 @@ def _assert_ziliao_layout(questions: list[dict]) -> None:
         validate_ziliao_paper_answers(list(groups.values()))
 
 
+# 出题模型凑不出好看的选项时，会中途改数据，却只改解析不改题干，
+# 留下「为了让答案等于…把总分调整为…」这类自言自语。算式验算抓不到它——
+# 模型把 calculations.json 也按改过的数据写了，自成一体——但字面特征很硬。
+SCRATCHPAD_PHRASES = (
+    "修改题干",
+    "重新设定题干",
+    "调整数据",
+    "微调数据",
+    "为了让答案",
+    "为了使答案",
+    "若答案要",
+)
+
+
+def scratchpad_leak(question: dict) -> list[str]:
+    """返回解析里出现的倒推草稿字样；没有就是空表。"""
+    analysis = str(question.get("analysis") or question.get("explanation") or "")
+    return [phrase for phrase in SCRATCHPAD_PHRASES if phrase in analysis]
+
+
 def has_question_images(question: dict) -> bool:
     if question.get("stem_images"):
         return True

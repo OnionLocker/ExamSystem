@@ -102,6 +102,102 @@ def test_routes_and_calculations(root: Path) -> None:
     assert qo.run_route_b(root, [quantity])["Q-B"]["verdict"] == "REJECT"
 
 
+def test_route_b_rounding(root: Path) -> None:
+    """最值这类考法的最后一步是取整，不是算术。
+
+    三个用例都取自 20260914_hermes_zuizhi_02——前两道题本身是对的却被闸门误杀，
+    第三道是模型真算错。修完取整之后，前两道必须放行，第三道必须照旧拦死。
+    """
+    quantity = question(
+        "Q-B", qo.CAT_SHULIANG, "\u6570\u5b66\u8fd0\u7b97",
+        f"{qo.CAT_SHULIANG}-\u6570\u5b66\u8fd0\u7b97-\u65b9\u7a0b\u95ee\u9898",
+    )
+
+    def verdict(spec: dict) -> dict:
+        write_json(root / "calculations.json", {"questions": [{"question_id": "Q-B", **spec}]})
+        return qo.run_route_b(root, [quantity])["Q-B"]
+
+    # 问最多向下取整：24.5 → 24
+    floor_spec = {
+        "correct": "(100-26-25+1-1)/2",
+        "options": {"A": "24", "B": "25", "C": "26", "D": "27"},
+        "tolerance": 0.01,
+    }
+    assert verdict(floor_spec)["verdict"] == "REJECT", "没声明方向时小数本就该拦"
+    result = verdict({**floor_spec, "round": "floor"})
+    assert result["verdict"] == "PASS", result["issues"]
+    assert result["calculation"]["correct_value"] == 24
+    assert result["calculation"]["pre_rounding_value"] == 24.5
+
+    # 问最少向上取整：8.67 → 9
+    ceil_result = verdict(
+        {
+            "correct": "(83-21-20-19+1+2)/3",
+            "options": {"A": "9", "B": "10", "C": "11", "D": "12"},
+            "tolerance": 0.01,
+            "round": "ceil",
+        }
+    )
+    assert ceil_result["verdict"] == "PASS", ceil_result["issues"]
+    assert ceil_result["calculation"]["correct_value"] == 9
+
+    # 模型真算错（80-50 写成 10）：取整放宽不能把它放过去
+    for extra in ({}, {"round": "floor"}, {"round": "ceil"}):
+        wrong = verdict(
+            {
+                "correct": "80-((80-74)+(80-72)+(80-71)+(80-68)+(80-65))",
+                "options": {"A": "10", "B": "12", "C": "14", "D": "16"},
+                "tolerance": 0.01,
+                **extra,
+            }
+        )
+        assert wrong["verdict"] == "REJECT", extra
+        assert wrong["calculation"]["correct_value"] == 30
+
+    # 方向写错不能静默当没声明
+    bogus = verdict(
+        {
+            "correct": "76/3",
+            "options": {"A": "25", "B": "26", "C": "27", "D": "28"},
+            "round": "四舍五入",
+        }
+    )
+    assert bogus["verdict"] == "REJECT"
+    assert any("unknown rounding" in issue for issue in bogus["issues"]), bogus["issues"]
+
+    # 也允许直接把取整写进式子
+    inline = verdict(
+        {
+            "correct": "floor(76/3)",
+            "options": {"A": "25", "B": "26", "C": "27", "D": "28"},
+            "tolerance": 0.01,
+        }
+    )
+    assert inline["verdict"] == "PASS", inline["issues"]
+    assert qo.safe_eval("ceil(76/3)") == 26
+
+
+def test_scratchpad_leak_is_caught_locally() -> None:
+    """模型中途改数据只改解析不改题干，是目前最高频的废题来源。
+
+    20260914_legacy_zuizhi_01 五道题全中，而 route B 对其中三道判了 PASS——
+    因为 calculations.json 是按改过的数据写的，自成一体。所以这条必须本地兜。
+    """
+    leaky = question(
+        "Q-L", qo.CAT_SHULIANG, "\u6570\u5b66\u8fd0\u7b97",
+        f"{qo.CAT_SHULIANG}-\u6570\u5b66\u8fd0\u7b97-\u65b9\u7a0b\u95ee\u9898",
+    )
+    leaky["analysis"] = (
+        "\u8bbe\u7b2c\u4e03\u540d\u5f97\u5206\u4e3a x\u3002"
+        "\u4e3a\u4e86\u8ba9\u7b54\u6848\u7b49\u4e8e 76\uff0c\u628a\u603b\u5206\u8c03\u6574\u4e3a 560 \u5206\u3002"
+    )
+    issues = qo.local_quality_issues(leaky)
+    assert any("scratchpad" in issue for issue in issues), issues
+
+    clean = dict(leaky, analysis="\u603b\u5206 580\uff0c\u524d\u516d\u540d\u53d6\u6700\u5927\uff0c\u6545\u9009 A\u3002")
+    assert qo.local_quality_issues(clean) == []
+
+
 def test_blind_conflict_and_image_requirements(root: Path) -> None:
     verbal = question(
         "Q-C", qo.CAT_YANYU, "", f"{qo.CAT_YANYU}-\u7247\u6bb5\u9605\u8bfb-\u4e3b\u65e8\u6982\u62ec"
@@ -467,6 +563,9 @@ def main() -> None:
     test_question_verdict_is_per_item()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_routes_and_calculations(Path(temp) / "calc")
+    with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
+        test_route_b_rounding(Path(temp) / "rounding")
+    test_scratchpad_leak_is_caught_locally()
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
         test_blind_conflict_and_image_requirements(Path(temp))
     with tempfile.TemporaryDirectory(prefix="quality-gate-test-") as temp:
