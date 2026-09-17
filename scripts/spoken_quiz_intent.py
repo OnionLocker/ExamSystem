@@ -8,6 +8,7 @@ import re
 from datetime import date
 
 from kaodian_taxonomy import (
+    NUM_AVERAGE,
     NUM_CYCLE,
     NUM_DATE,
     NUM_ENGINEERING,
@@ -15,15 +16,17 @@ from kaodian_taxonomy import (
     NUM_EXTREME,
     NUM_GEOMETRY,
     NUM_INCLUSION,
-    NUM_PERM_BASIC,
-    NUM_PERM_REVERSE,
-    NUM_PERM_SPECIAL,
+    NUM_PERM,
+    NUM_PROB,
     NUM_PROFIT,
     NUM_SEQUENCE,
     NUM_SEQUENCE_RECUR,
     NUM_SEQUENCE_SPLIT,
     NUM_TRAVEL,
     TRANSLATION,
+    YANYU_MAIN,
+    lookup_fenbi_short,
+    parse_fenbi_tag,
 )
 from scheduler_common import local_today
 
@@ -42,17 +45,19 @@ CN_NUM = {
     "十": 10,
 }
 
-# 先写更细的，避免「排列组合」把特殊模型收成基础原理。
+# 先写更细的叶子，再写家族词。粉笔短名由 lookup_fenbi_short 兜底。
 TAG_ALIASES: tuple[tuple[tuple[str, ...], str], ...] = (
-    (("特殊模型", "八大情形", "同组概率", "经典模型", "捆绑", "插空", "隔板"), NUM_PERM_SPECIAL),
-    (("反面容斥", "正难则反", "反面剥离"), NUM_PERM_REVERSE),
-    (("排列组合", "组合概率", "几何概型"), NUM_PERM_BASIC),
+    (("平均数问题", "平均数"), NUM_AVERAGE),
+    (("工程问题", "工程", "效率合作"), NUM_ENGINEERING),
+    (("片段阅读", "中心理解"), YANYU_MAIN),
+    (("古典概型", "同组概率", "几何概型", "概率问题"), NUM_PROB),
+    (("特殊模型", "八大情形", "经典模型", "捆绑", "插空", "隔板", "排列组合"), NUM_PERM),
+    (("反面容斥", "正难则反", "反面剥离"), NUM_PERM),
     (("翻译推理", "逆否", "德摩根", "否后否前"), TRANSLATION),
-    (("和定最值", "和定", "最值构造"), NUM_EXTREME),
+    (("和定最值", "和定", "最值构造", "抽屉", "最不利"), NUM_EXTREME),
     (("日期", "星期"), NUM_DATE),
     (("周期", "排班"), NUM_CYCLE),
     (("行程", "相遇", "追及"), NUM_TRAVEL),
-    (("工程", "效率合作"), NUM_ENGINEERING),
     (("利润", "分段计费"), NUM_PROFIT),
     (("容斥", "集合计数"), NUM_INCLUSION),
     (("方程", "和差倍比", "比例代入"), NUM_EQUATION),
@@ -72,11 +77,11 @@ UNSUPPORTED_HINT = re.compile(r"图形推理|科学推理|资料分析|空间类
 FIGURE_HINT = re.compile(r"图形推理|科学推理|空间类")
 
 SLUGS = {
-    NUM_PERM_SPECIAL: "排列组合特殊模型",
-    NUM_PERM_REVERSE: "排列组合反面",
-    NUM_PERM_BASIC: "排列组合基础",
+    NUM_PERM: "排列组合",
+    NUM_PROB: "概率",
     TRANSLATION: "翻译推理",
-    NUM_EXTREME: "和定最值",
+    NUM_EXTREME: "最值",
+    NUM_AVERAGE: "平均数",
     NUM_DATE: "日期星期",
     NUM_CYCLE: "周期排班",
     NUM_TRAVEL: "行程",
@@ -88,6 +93,7 @@ SLUGS = {
     NUM_SEQUENCE: "数字推理",
     NUM_SEQUENCE_RECUR: "递推数列",
     NUM_SEQUENCE_SPLIT: "机械划分",
+    YANYU_MAIN: "片段阅读",
 }
 
 
@@ -108,6 +114,9 @@ def extract_count(text: str, default: int = 5) -> int:
 
 def resolve_tag(text: str) -> str:
     blob = text or ""
+    short = lookup_fenbi_short(blob)
+    if short:
+        return short
     for needles, tag in TAG_ALIASES:
         if any(needle in blob for needle in needles):
             return tag
@@ -124,11 +133,19 @@ def wants_quiz(text: str) -> bool:
 
 
 def module_of_tag(tag: str) -> str:
+    parsed = parse_fenbi_tag(tag)
+    if parsed:
+        return parsed[0]
     return (tag or "").split("-", 1)[0]
 
 
 def slug_of(tag: str) -> str:
-    return SLUGS.get(tag) or "专项"
+    if tag in SLUGS:
+        return SLUGS[tag]
+    parsed = parse_fenbi_tag(tag)
+    if parsed:
+        return parsed[3] or parsed[2]
+    return "专项"
 
 
 def suggest_batch_id(tag: str, today: date | None = None, taken: set[str] | None = None) -> str:

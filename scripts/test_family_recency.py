@@ -15,7 +15,7 @@ from kaodian_taxonomy import NUM_GEOMETRY, NUM_PERM_SPECIAL, kaodian_family
 from learner_snapshot import TZ, build_snapshot
 
 
-assert kaodian_family(NUM_PERM_SPECIAL) == "数量关系-逢考必有的排列组合与概率"
+assert kaodian_family(NUM_PERM_SPECIAL) == "数量关系-数学运算-排列组合问题"
 
 conn = sqlite3.connect(":memory:")
 ensure_schema(conn)

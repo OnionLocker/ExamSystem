@@ -12,7 +12,14 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from kaodian_taxonomy import canonicalize, normalize_module
+from kaodian_taxonomy import (
+    assert_registerable_tag,
+    canonicalize,
+    is_fenbi_primary,
+    normalize_module,
+    parse_fenbi_tag,
+    static_alias,
+)
 
 DB = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parent.parent / "data" / "exam.db")
 
@@ -176,9 +183,8 @@ def recompute_mastery(conn, kaodian=None):
 
 
 def wellformed_kaodian(kaodian: str) -> bool:
-    """`模块-一级-二级`，且模块名认得出来。"""
-    head = str(kaodian or "").split("-", 1)[0]
-    return str(kaodian or "").count("-") >= 2 and normalize_module(head) == head
+    """粉笔 `模块-一级-二级`，或挂在 L3 下的 L4。"""
+    return is_fenbi_primary(kaodian)
 
 
 def resolve_kaodian(conn, kaodian, module="", subtype="", verbatim=False):
@@ -187,15 +193,18 @@ def resolve_kaodian(conn, kaodian, module="", subtype="", verbatim=False):
         (kaodian,),
     ).fetchone()
     if row:
-        return row[0], row[1], row[2]
+        stored = static_alias(row[0]) or row[0]
+        parsed = parse_fenbi_tag(stored)
+        return stored, row[1] or (parsed[0] if parsed else row[1]), row[2] or (parsed[1] if parsed else row[2])
     # 显式登记新考点时按原样收下：--register 本身就是「这是个独立新点」的声明，
     # 不能再让关键词兜底把它并进某个老考点（那样新点永远建不起来）。
     if verbatim and wellformed_kaodian(kaodian):
         canonical = kaodian
     else:
         canonical = canonicalize(kaodian, module, subtype)
-    normalized_module = normalize_module(module or canonical.split("-", 1)[0])
-    canonical_subtype = canonical.split("-")[1] if "-" in canonical else subtype
+    parsed = parse_fenbi_tag(canonical)
+    normalized_module = normalize_module(module or (parsed[0] if parsed else canonical.split("-", 1)[0]))
+    canonical_subtype = parsed[1] if parsed else (canonical.split("-")[1] if "-" in canonical else subtype)
     conn.execute(
         """INSERT INTO kaodian_aliases(alias, canonical, module, subtype)
            VALUES (?,?,?,?)
@@ -386,6 +395,7 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
     note 建议包含来源题号、定义和与相邻考点的区分，方便下次复盘确认是否合并。
     """
     ensure_schema(conn)
+    kaodian = assert_registerable_tag(kaodian, module)
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype, verbatim=True)
     conn.execute("""
         INSERT INTO kaodian_profile
@@ -571,14 +581,14 @@ def _demo():
     assert conn.execute("SELECT streak FROM kaodian_profile WHERE kaodian=?", (share_diff,)).fetchone()[0] == -2
     register_knowledge_point(
         conn,
-        "政治理论-党史党建-党的组织路线",
+        "政治理论-毛中特-党的基本知识-党的组织路线",
         "政治理论",
-        "党史党建",
+        "毛中特",
         "来源：复盘新题；待确认与组织建设表述的边界",
     )
     pending = conn.execute(
         "SELECT attempts, note FROM kaodian_profile WHERE kaodian=?",
-        ("政治理论-党史党建-党的组织路线",),
+        ("政治理论-毛中特-党的基本知识-党的组织路线",),
     ).fetchone()
     assert pending == (0, "来源：复盘新题；待确认与组织建设表述的边界"), pending
     set_mastery(conn, "假言命题逆否", 35, "刚讲完逆否，自己做还要停很久")

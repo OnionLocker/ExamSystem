@@ -8,7 +8,7 @@ from pathlib import Path
 import quiz_lite
 from generation_gate import validate_lite_review
 
-TAG = "数量关系-既烧脑又能套公式的最值问题-和定最值与构造"
+TAG = "数量关系-数学运算-最值问题"
 SLOT = {"tag": TAG, "count": 1, "difficulty": "hard"}
 
 
