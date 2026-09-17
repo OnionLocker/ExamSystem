@@ -26,7 +26,7 @@ saveDailyPlan({
   items: [
     {
       id: 'ai',
-      module: '判断推理',
+      module: '鍒ゆ柇鎺ㄧ悊',
       task_type: 'ai_practice',
       batch_id: '20260901_logic_01',
       count: 70,
@@ -36,7 +36,7 @@ saveDailyPlan({
     },
     {
       id: 'quant',
-      module: '资料分析',
+      module: '璧勬枡鍒嗘瀽',
       task_type: 'quant_groups',
       groups: [{ id: 'g1', count: 50 }],
       count: 50,
@@ -49,10 +49,10 @@ saveDailyPlan({
   planDate: date,
   source: 'test',
   items: [
-    { id: 'ai', module: '判断推理', batch_id: '20260901_logic_01', count: 70 },
+    { id: 'ai', module: '鍒ゆ柇鎺ㄧ悊', batch_id: '20260901_logic_01', count: 70 },
     {
       id: 'quant',
-      module: '资料分析',
+      module: '璧勬枡鍒嗘瀽',
       task_type: 'quant_groups',
       groups: [{ id: 'g1', count: 50 }],
       count: 50,
@@ -63,7 +63,7 @@ assert.equal(getDailyPlan(date).items[0].done, 1, 'save must preserve done');
 
 const insertQuestion = db.prepare(`
   INSERT INTO questions(external_id, category, content, correct_answer, batch_id)
-  VALUES (?, '判断推理', ?, 'A', '20260901_logic_01')
+  VALUES (?, '鍒ゆ柇鎺ㄧ悊', ?, 'A', '20260901_logic_01')
 `);
 const questionIds = [1, 2, 3].map((n) =>
   Number(insertQuestion.run(`daily-Q${n}`, `question ${n}`).lastInsertRowid));
@@ -99,10 +99,10 @@ try {
   assert.equal(todayPayload.runs[0].status, 'imported');
 
   const importedBatches = await fetch(
-    `${base}/questions/meta/batches?date=${date}&module=${encodeURIComponent('判断推理')}`,
+    `${base}/questions/meta/batches?date=${date}&module=${encodeURIComponent('鍒ゆ柇鎺ㄧ悊')}`,
   ).then((response) => response.json());
   assert.equal(importedBatches.length, 1);
-  assert.equal(importedBatches[0].category, '判断推理');
+  assert.equal(importedBatches[0].category, '鍒ゆ柇鎺ㄧ悊');
   assert.equal(importedBatches[0].status, 'imported');
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -122,10 +122,10 @@ try {
 
   db.prepare(`
     INSERT INTO ai_daily_batch_runs(plan_date, module, batch_id, status, planned_count)
-    VALUES ('2026-09-02', '言语理解与表达', '20260902_yanyu_01', 'scheduled', 70)
+    VALUES ('2026-09-02', '瑷�璇悊瑙ｄ笌琛ㄨ揪', '20260902_yanyu_01', 'scheduled', 70)
   `).run();
   const scheduled = await fetch(
-    `${base}/questions/meta/batches?date=2026-09-02&module=${encodeURIComponent('言语理解与表达')}&include_scheduled=1`,
+    `${base}/questions/meta/batches?date=2026-09-02&module=${encodeURIComponent('瑷�璇悊瑙ｄ笌琛ㄨ揪')}&include_scheduled=1`,
   ).then((response) => response.json());
   assert.equal(scheduled.length, 1);
   assert.equal(scheduled[0].status, 'scheduled');
