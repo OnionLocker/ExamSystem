@@ -150,6 +150,7 @@ const OptionRow = ({ option, state, onClick, disabled }) => {
   return (
     <button
       type="button"
+      data-option-row="1"
       onClick={onClick}
       disabled={disabled}
       // iPad 上是手指点：整行都是热区，最小高度顶到 56px
@@ -587,7 +588,15 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
     if ((drafts[qid] || []).length === 0) return;
     if (!dirtyDraftsRef.current.has(qid) && uploadedRef.current.has(qid)) return;
 
-    const snap = detachForCapture(paperRef.current);
+    const paper = paperRef.current;
+    const width = paper?.offsetWidth || 1;
+    const inkBottom = (drafts[qid] || []).reduce((bottom, stroke) => {
+      for (const pt of stroke.pts || []) {
+        bottom = Math.max(bottom, (Number(pt[1]) || 0) * width);
+      }
+      return bottom;
+    }, 0) + 24;
+    const snap = detachForCapture(paper, { minHeight: inkBottom });
     if (!snap) return;
     dirtyDraftsRef.current.delete(qid);
     bumpSaving(1);
@@ -1062,8 +1071,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
 
           if (!hasMaterial) {
             return (
-              <div className="absolute inset-0 overflow-y-auto overscroll-y-contain">
-                <div className="min-h-full p-5 sm:p-8 lg:px-10">
+              <div className="absolute inset-0 overflow-y-auto overscroll-y-contain" data-draft-scroll="1">
+                <div className="p-5 sm:p-8 lg:px-10" data-draft-content="1">
                   <div className="mx-auto max-w-4xl">{questionPane}</div>
                 </div>
               </div>
@@ -1075,6 +1084,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
               <aside
                 key={current.material_id}
                 className="h-[40%] min-h-[9rem] overflow-y-auto overscroll-y-contain border-b border-black/10 bg-white lg:h-auto lg:min-h-0 lg:w-[46%] lg:border-b-0 lg:border-r"
+                data-draft-scroll="1"
+                data-draft-content="1"
               >
                 <div className="sticky top-0 z-10 flex items-baseline justify-between gap-2 bg-white px-5 py-3">
                   <span className="text-sm font-bold text-black">材料</span>
@@ -1089,8 +1100,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                   <ImageList images={current.material.images} wide />
                 </div>
               </aside>
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-                <div className="p-5 sm:p-8 lg:px-10">{questionPane}</div>
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain" data-draft-scroll="1">
+                <div className="p-5 sm:p-8 lg:px-10" data-draft-content="1">{questionPane}</div>
               </div>
             </div>
           );

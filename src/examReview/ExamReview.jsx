@@ -299,7 +299,7 @@ const ExamReview = () => {
 
         {md ? (
           <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-8">
-            <MarkdownMessage content={md} scratchId={detail?.id ? `exam:${detail.id}` : "exam"} />
+            <MarkdownMessage content={md} />
           </div>
         ) : (
           <div className="bg-white rounded-[2rem] border border-[#e8d5b0] p-10 text-center">

@@ -17,21 +17,78 @@ const load = () => {
 // 提前把库拉下来：用户点开批注模式时就预热，真正截图那一刻不用等网络
 export const warmUpCapture = () => { load().catch(() => {}); };
 
-// 把节点当前的样子原地复制一份挂到屏幕外，好让截图在后台慢慢跑。
+const PAPER = '#f2e4c4'; // 与 index.css --color-white 同一张纸，别写成 #ffffff
+
+const paperColorOf = (node) => {
+  const bg = node ? getComputedStyle(node).backgroundColor : '';
+  return bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' ? bg : PAPER;
+};
+
+const contentHeightOf = (node) => {
+  const blocks = [...node.querySelectorAll('[data-draft-content]')];
+  const fromMarks = blocks.reduce((h, el) => Math.max(h, el.scrollHeight || 0), 0);
+  return fromMarks || node.scrollHeight || node.offsetHeight || 0;
+};
+
+// 活着的选项行尺寸拷到副本上，并把 <button> 换成 <div>。
+// html2canvas 在 iPad Safari 上几乎不画 form 控件；副本再挂到屏幕外，flex 按钮还会
+// 收成 A420 那种小胶囊，跟做题页上的整行选项对不上。
+const freezeOptionRows = (liveRoot, cloneRoot) => {
+  const from = liveRoot.querySelectorAll('[data-option-row]');
+  const to = cloneRoot.querySelectorAll('[data-option-row]');
+  from.forEach((src, i) => {
+    const dst = to[i];
+    if (!dst) return;
+    const div = document.createElement('div');
+    for (const attr of dst.attributes) div.setAttribute(attr.name, attr.value);
+    while (dst.firstChild) div.appendChild(dst.firstChild);
+    div.style.display = 'flex';
+    div.style.alignItems = 'flex-start';
+    div.style.boxSizing = 'border-box';
+    div.style.flexShrink = '0';
+    div.style.width = `${src.offsetWidth}px`;
+    div.style.minWidth = `${src.offsetWidth}px`;
+    div.style.height = `${src.offsetHeight}px`;
+    div.style.minHeight = `${src.offsetHeight}px`;
+    dst.replaceWith(div);
+  });
+};
+
+// 把节点当前的样子原地复制一份，好让截图在后台慢慢跑。
 //
 // html2canvas 读的是活着的 DOM：直接把截图丢到后台，用户一翻页就会截到下一题的内容。
 // 而截图在 iPad 上要几百毫秒到一秒多，让用户站在原地等一个"正在保存草稿"的圈显然不对。
 // 先同步克隆一份（这一步很快，就是一次 DOM 复制），翻页立刻走，截图对着副本跑，
 // 快照仍然是离开时那道题。
-export const detachForCapture = (node) => {
+//
+// 副本必须还在视口里（只是几乎全透明）：Safari 对 left:-99999px 的节点不排 flex，
+// 选项行会塌掉。a8a6b89 把题卡改成 h-full 之后，照 offsetHeight 截会带上题面下面
+// 一大块空白，所以高度仍按题面（和笔迹下沿）裁。
+export const detachForCapture = (node, { minHeight = 0 } = {}) => {
   const cssW = node?.offsetWidth;
-  const cssH = node?.offsetHeight;
-  if (!cssW || !cssH) return null;
+  if (!cssW) return null;
 
+  const paperBg = paperColorOf(node);
+  const captureH = Math.ceil(Math.max(contentHeightOf(node), minHeight, 1));
   const clone = node.cloneNode(true);
   clone.style.width = `${cssW}px`;
-  clone.style.height = `${cssH}px`;
-  // cloneNode 不会搬 canvas 里的像素，笔迹得自己画过去一次
+  clone.style.height = `${captureH}px`;
+  clone.style.maxHeight = 'none';
+  clone.style.overflow = 'hidden';
+  clone.style.backgroundColor = paperBg;
+
+  clone.querySelectorAll('[data-draft-scroll]').forEach((el) => {
+    el.style.position = 'relative';
+    el.style.inset = 'auto';
+    el.style.overflow = 'visible';
+    el.style.height = 'auto';
+    el.style.maxHeight = 'none';
+  });
+
+  freezeOptionRows(node, clone);
+
+  // cloneNode 不会搬 canvas 里的像素，笔迹得自己画过去一次。
+  // 画布仍按屏幕上的尺寸摆，超出题面的空白被 overflow:hidden 裁掉，笔迹不缩放。
   const from = node.querySelectorAll('canvas');
   const to = clone.querySelectorAll('canvas');
   from.forEach((src, i) => {
@@ -39,6 +96,12 @@ export const detachForCapture = (node) => {
     if (!dst || !src.width || !src.height) return;
     dst.width = src.width;
     dst.height = src.height;
+    dst.style.width = `${src.offsetWidth}px`;
+    dst.style.height = `${src.offsetHeight}px`;
+    dst.style.position = 'absolute';
+    dst.style.inset = 'auto';
+    dst.style.left = '0';
+    dst.style.top = '0';
     try {
       dst.getContext('2d')?.drawImage(src, 0, 0);
     } catch {
@@ -46,9 +109,8 @@ export const detachForCapture = (node) => {
     }
   });
 
-  // 宽度钉成原来那么宽，副本里的 w-full / 换行位置才跟屏幕上一模一样
   const holder = document.createElement('div');
-  holder.style.cssText = `position:fixed;top:0;left:-99999px;width:${cssW}px;height:${cssH}px;pointer-events:none;z-index:-1;`;
+  holder.style.cssText = `position:fixed;top:0;left:0;width:${cssW}px;height:${captureH}px;opacity:0.01;pointer-events:none;z-index:-1;background:${paperBg};`;
   holder.appendChild(clone);
   document.body.appendChild(holder);
 
@@ -64,27 +126,24 @@ export async function captureNode(node) {
 
   try {
     const html2canvas = await load();
-    // 题面是要给模型读的，分辨率太低会认错字；但也别无脑 2x 撑出好几 MB
     const scale = Math.max(1, Math.min(2, MAX_PX / cssW));
     const canvas = await html2canvas(node, {
-      backgroundColor: '#ffffff',
+      backgroundColor: paperColorOf(node),
       scale,
       useCORS: true,
       logging: false,
-      // 浮动工具栏、悬浮提示这类东西不该出现在草稿纸上
       ignoreElements: (el) => el.dataset?.captureIgnore === '1',
-      // 答题时笔迹在屏幕上是收起来的（opacity: 0），但存档快照必须带上。
-      // 只在克隆出来的那份 DOM 里把它显回去：屏幕不会闪，
-      // 而且只改 opacity 不动布局，克隆里的 canvas 尺寸跟屏幕上一模一样，笔迹不会被拉变。
       onclone: (doc) => {
         doc.querySelectorAll('[data-capture-reveal="1"]').forEach((el) => {
           el.style.opacity = '1';
           el.style.visibility = 'visible';
         });
+        doc.querySelectorAll('[data-option-row]').forEach((el) => {
+          el.style.display = 'flex';
+          el.style.boxSizing = 'border-box';
+        });
       },
     });
-    // JPEG 比 PNG data URL 小一个数量级。iPad Safari 把整页 PNG 塞进 JSON
-    // 再 PUT，WebKit 会直接抛 TypeError: Load failed，服务端根本收不到。
     const blob = await new Promise((resolve, reject) => {
       canvas.toBlob(
         (b) => (b && b.size ? resolve(b) : reject(new Error('截图为空'))),

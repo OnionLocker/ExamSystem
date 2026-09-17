@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { addEntry as addStudyEntry, scorePomodoro } from '../studyLog/studyLog.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 
@@ -61,12 +61,23 @@ const notify = (title, body) => {
   }
 };
 
-// 内置提示音：WebAudio 生成双音铃
-const playBeep = () => {
+// 内置提示音：开始计时那次点击里解锁 AudioContext，结束时才能响。
+let beepCtx = null;
+const unlockBeep = () => {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    if (!beepCtx) beepCtx = new AudioCtx();
+    if (beepCtx.state === 'suspended') beepCtx.resume().catch(() => {});
+  } catch {
+    // ignore
+  }
+};
+const playBeep = () => {
+  try {
+    unlockBeep();
+    const ctx = beepCtx;
+    if (!ctx) return;
     const play = (freq, start, dur = 0.22) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -83,7 +94,6 @@ const playBeep = () => {
     play(880, 0);
     play(1175, 0.26);
     play(1568, 0.5, 0.4);
-    setTimeout(() => ctx.close(), 1200);
   } catch {
     // ignore
   }
@@ -404,24 +414,13 @@ export const PomodoroProvider = ({ children }) => {
     }),
   );
   const [history, setHistory] = useState(() => loadArr(HISTORY_KEY));
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
   const phaseEndHandledRef = useRef(false);
   // SoundEngine 只需构造一次。用 useState 的惰性初始化，而不是渲染期写 ref：
   // 渲染期读写 ref 在 React 19 并发渲染下不保证只执行一次。
   const [noiseEngine] = useState(() =>
     typeof window !== 'undefined' ? new SoundEngine() : null,
   );
-
-  // 持久化
-  useEffect(() => save(SETTINGS_KEY, settings), [settings]);
-  useEffect(() => save(STATE_KEY, state), [state]);
-  useEffect(() => saveArr(HISTORY_KEY, history), [history]);
-
-  // 1Hz tick
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   // 计算剩余毫秒
   const getRemaining = useCallback(() => {
@@ -430,6 +429,24 @@ export const PomodoroProvider = ({ children }) => {
     if (!state.startedAt || !state.durationMs) return 0;
     return Math.max(0, state.startedAt + state.durationMs - Date.now());
   }, [state]);
+
+  // 持久化
+  useEffect(() => save(SETTINGS_KEY, settings), [settings]);
+  useEffect(() => save(STATE_KEY, state), [state]);
+  useEffect(() => saveArr(HISTORY_KEY, history), [history]);
+
+  // 1Hz 刷新显示；到期瞬间再补一拍，结束检测才能跑到（tick 原先没进 deps，会停在 00:00）
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    if (state.phase === 'idle' || state.phase === 'paused') return undefined;
+    const remainingMs = getRemaining();
+    if (remainingMs <= 0) return undefined;
+    const id = setTimeout(() => setTick((t) => t + 1), remainingMs);
+    return () => clearTimeout(id);
+  }, [state, getRemaining]);
 
   // 记录一个完成的工作番茄到历史
   const recordCompletion = useCallback(
@@ -457,14 +474,14 @@ export const PomodoroProvider = ({ children }) => {
     [],
   );
 
-  // 阶段自动切换
-  useEffect(() => {
+  // 阶段自动切换。layout 里切走，避免先画出 00:00。
+  useLayoutEffect(() => {
     if (state.phase === 'idle' || state.phase === 'paused') {
       phaseEndHandledRef.current = false;
       return;
     }
-    const remaining = getRemaining();
-    if (remaining > 0) {
+    const remainingMs = getRemaining();
+    if (remainingMs > 0) {
       phaseEndHandledRef.current = false;
       return;
     }
@@ -539,7 +556,7 @@ export const PomodoroProvider = ({ children }) => {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, settings, getRemaining]);
+  }, [state, settings, getRemaining, tick]);
 
   // ------- 背景白噪音 -------
   // idle 不抢试听（点雨声要马上有声）。暂停 / 休息且未勾选 / 关掉才停。
@@ -589,6 +606,7 @@ export const PomodoroProvider = ({ children }) => {
   // ------- 控制操作 -------
   const startWork = useCallback(
     (customMs) => {
+      unlockBeep();
       const dur = customMs ?? settings.workMs;
       setState((s) => ({
         ...s,
@@ -618,6 +636,7 @@ export const PomodoroProvider = ({ children }) => {
 
   const startBreak = useCallback(
     (long = false) => {
+      unlockBeep();
       const dur = long ? settings.longBreakMs : settings.breakMs;
       if (!dur) return;
       setState((s) => ({

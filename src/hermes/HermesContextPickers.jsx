@@ -20,7 +20,15 @@ const fmtDateTime = (raw) => {
   });
 };
 
+const DEFAULT_TAB = '默认排序';
 const TIME_TAB = '时间';
+
+const endedAtMs = (raw) => {
+  const ms = parseSqliteTime(raw);
+  return Number.isFinite(ms) ? ms : 0;
+};
+
+const byEndedAtDesc = (a, b) => endedAtMs(b.ended_at) - endedAtMs(a.ended_at);
 
 const formatDotDate = (date) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date || '';
@@ -62,7 +70,7 @@ export default function HermesContextPickers({
 }) {
   const [reviewKind, setReviewKind] = useState('zhenti');
   const shownReviews = examReviews.filter((r) => (r.kind || 'zhenti') === reviewKind);
-  const [activeModule, setActiveModule] = useState(TIME_TAB);
+  const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
   const [timeDate, setTimeDate] = useState('');
 
   const moduleCounts = useMemo(
@@ -90,6 +98,9 @@ export default function HermesContextPickers({
   }, [activeModule, dailyDates, timeDate]);
 
   const visibleRuns = useMemo(() => {
+    if (activeModule === DEFAULT_TAB) {
+      return [...practiceRuns].sort(byEndedAtDesc);
+    }
     if (activeModule === TIME_TAB) {
       return dailyRuns
         .filter((run) => dailyDateOf(run) === timeDate)
@@ -98,11 +109,12 @@ export default function HermesContextPickers({
             const index = MODULES.indexOf(moduleOf(item));
             return index < 0 ? 99 : index;
           };
-          return rank(a) - rank(b) || String(b.ended_at || '').localeCompare(String(a.ended_at || ''));
+          return rank(a) - rank(b) || byEndedAtDesc(a, b);
         });
     }
-    return practiceRuns.filter((run) => moduleOf(run) === activeModule);
+    return practiceRuns.filter((run) => moduleOf(run) === activeModule).sort(byEndedAtDesc);
   }, [activeModule, dailyRuns, practiceRuns, timeDate]);
+  const mixedModules = activeModule === DEFAULT_TAB || activeModule === TIME_TAB;
 
   return (
     <>
@@ -284,6 +296,18 @@ export default function HermesContextPickers({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={activeModule === DEFAULT_TAB}
+                  onClick={() => setActiveModule(DEFAULT_TAB)}
+                  className={tabClass(activeModule === DEFAULT_TAB)}
+                >
+                  {DEFAULT_TAB}
+                  <span className={`ml-1.5 text-[10px] ${activeModule === DEFAULT_TAB ? 'text-white/60' : 'text-slate-400'}`}>
+                    {practiceRuns.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={activeModule === TIME_TAB}
                   onClick={() => setActiveModule(TIME_TAB)}
                   className={tabClass(activeModule === TIME_TAB)}
@@ -367,7 +391,7 @@ export default function HermesContextPickers({
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2 min-w-0">
                       <span className="block text-xs font-black truncate">{run.display_title || run.category || '未命名批次'}</span>
-                      {activeModule === TIME_TAB && moduleOf(run) && (
+                      {mixedModules && moduleOf(run) && (
                         <span className="shrink-0 rounded-full border border-[#e8d5b0] bg-[#fcfaf6] px-2 py-0.5 text-[10px] font-black text-[#6b5428]">
                           {moduleOf(run)}
                         </span>
@@ -391,7 +415,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              和时间、言语、判断、科学、图形题目、数量、资料同一套索引：定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
+              默认按交卷时间从近到远排全部场次。定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
             </p>
           </div>
         </ModalShell>,

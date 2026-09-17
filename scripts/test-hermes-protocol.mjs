@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import {
+  appendAssistantDelta,
   coerceResumePayload,
   ensureStreamingAssistant,
   extractReview,
@@ -41,6 +42,12 @@ const voiceOnly = normalizeHermesHistory(
 );
 assert.equal(voiceOnly[0].hadAudio, true);
 assert.equal(voiceOnly[0].audioSec, 12);
+
+const stamped = normalizeHermesHistory(
+  [{ role: 'user', text: '[USER_MESSAGE]\n语音 3秒\n[/USER_MESSAGE]', timestamp: 1758031860 }],
+  { nextId, parseAudioLen, isAudioLabel },
+);
+assert.equal(stamped[0].sentAt, 1758031860000);
 
 assert.equal(isSystemInjectedNotice('[System: You edited code in this turn]'), true);
 assert.equal(isSystemInjectedNotice('[CONTEXT COMPACTION — REFERENCE ONLY]'), true);
@@ -241,3 +248,78 @@ assert.equal(inflightSynced.some((message) => message.role === 'user' && message
 assert.equal(inflightSynced[inflightSynced.length - 1].role, 'assistant');
 assert.equal(inflightSynced[inflightSynced.length - 1].streaming, true);
 console.log('hermes multi-client resume sync: ok');
+
+id = 0;
+const oldAnswer = '### 01 · 数量关系\n\n> **原题** 某机关有66名新入职人员分配到甲、乙、丙、丁四个科室。';
+const replayed = mergeResumedMessages(
+  [
+    { id: 'u1', role: 'user', content: '复盘', streaming: false, tools: [], thinking: '', images: [], review: null },
+    { id: 'a1', role: 'assistant', content: oldAnswer, streaming: false, tools: [], thinking: '' },
+  ],
+  {
+    messages: [
+      { role: 'user', text: '复盘' },
+      { role: 'assistant', text: oldAnswer },
+    ],
+    inflight: { assistant: oldAnswer },
+    running: true,
+  },
+  deps,
+);
+assert.equal(replayed.filter((message) => message.role === 'assistant').length, 1);
+assert.equal(replayed[replayed.length - 1].content, oldAnswer);
+
+const alreadyDone = [
+  { id: 'u1', role: 'user', content: '复盘', streaming: false, tools: [], thinking: '' },
+  { id: 'a1', role: 'assistant', content: oldAnswer, streaming: false, tools: [], thinking: '' },
+];
+assert.equal(ensureStreamingAssistant(alreadyDone, nextId).filter((m) => m.role === 'assistant').length, 1);
+assert.equal(appendAssistantDelta(alreadyDone, oldAnswer, nextId).filter((m) => m.role === 'assistant').length, 1);
+
+const doubled = normalizeHermesHistory([
+  { role: 'user', text: '复盘' },
+  { role: 'assistant', text: oldAnswer },
+  { role: 'assistant', text: oldAnswer },
+], deps);
+assert.equal(doubled.filter((message) => message.role === 'assistant').length, 1);
+console.log('hermes duplicate assistant replay: ok');
+
+id = 0;
+const voiceLocal = [
+  { id: 'u1', role: 'user', content: '复盘', streaming: false, tools: [], thinking: '', images: [], audio: null, audioSec: 0, hadAudio: false, review: null },
+  { id: 'a1', role: 'assistant', content: oldAnswer, streaming: false, tools: [], thinking: '' },
+  {
+    id: 'v1', role: 'user', content: '', streaming: false, tools: [], thinking: '',
+    images: [], audio: 'data:audio/webm;base64,xx', audioSec: 8, hadAudio: true, review: null,
+  },
+  {
+    id: 's1', role: 'assistant', content: '', streaming: true,
+    tools: [{ name: 'terminal', done: false }], thinking: '',
+  },
+];
+const voiceResume = mergeResumedMessages(voiceLocal, {
+  messages: [
+    { role: 'user', text: '[USER_MESSAGE]\n复盘\n[/USER_MESSAGE]' },
+    { role: 'assistant', text: oldAnswer },
+    { role: 'user', text: `[USER_MESSAGE]\n${audioLabelOf(8)}\n[/USER_MESSAGE]` },
+  ],
+  inflight: { assistant: '' },
+  running: true,
+}, {
+  nextId,
+  parseAudioLen,
+  isAudioLabel,
+});
+assert.equal(voiceResume.filter((message) => message.role === 'user' && message.hadAudio).length, 1);
+assert.equal(voiceResume[voiceResume.length - 1].streaming, true);
+assert.equal(voiceResume[voiceResume.length - 1].tools[0].name, 'terminal');
+assert.equal(voiceResume.find((message) => message.hadAudio)?.audio, 'data:audio/webm;base64,xx');
+
+const afterUser = [
+  ...alreadyDone,
+  { id: 'v2', role: 'user', content: audioLabelOf(8), streaming: false, tools: [], thinking: '', hadAudio: true, audioSec: 8 },
+];
+const started = ensureStreamingAssistant(afterUser, nextId);
+assert.equal(started[started.length - 1].streaming, true);
+assert.equal(started.filter((message) => message.role === 'assistant').length, 2);
+console.log('hermes voice streaming resume: ok');

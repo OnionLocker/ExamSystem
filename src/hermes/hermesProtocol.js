@@ -95,19 +95,37 @@ export const extractReview = (text) => {
   return { content: lastIsLead ? '' : last, review };
 };
 
+const assistantSig = (message) => String(message?.content || '').replace(/\s+/g, ' ').trim();
+
+const sameAssistantText = (left, right) => {
+  const a = assistantSig(left);
+  const b = assistantSig(right);
+  if (!a || !b || a.length < 40 || b.length < 40) return false;
+  return a === b || a.startsWith(b) || b.startsWith(a);
+};
+
 const dedupeHistory = (messages) => {
-  const seenAssistant = new Set();
-  return messages.filter((message) => {
-    if (message.role !== 'assistant') return true;
-    const signature = String(message.content || '').replace(/\s+/g, ' ').trim();
-    if (signature.length < 40) return true;
-    if (seenAssistant.has(signature)) {
+  const out = [];
+  for (const message of messages) {
+    const prev = out[out.length - 1];
+    if (message.role === 'assistant' && prev?.role === 'assistant' && sameAssistantText(prev, message)) {
       bump('hydrate_duplicate_assistant');
-      return false;
+      if (assistantSig(message).length > assistantSig(prev).length) out[out.length - 1] = message;
+      continue;
     }
-    seenAssistant.add(signature);
-    return true;
-  });
+    if (message.role === 'assistant') {
+      const signature = assistantSig(message);
+      if (
+        signature.length >= 40
+        && out.some((item) => item.role === 'assistant' && assistantSig(item) === signature)
+      ) {
+        bump('hydrate_duplicate_assistant');
+        continue;
+      }
+    }
+    out.push(message);
+  }
+  return out;
 };
 
 export const normalizeHermesHistory = (
@@ -126,7 +144,7 @@ export const normalizeHermesHistory = (
       const notice = message.role === 'user' ? parseBackgroundNotice(rawText) : null;
       if (notice) {
         // 单独一个 role，这样「最后一条用户消息」的判定不会被它顶掉。
-        return { id: nextId(), role: 'notice', content: '', notice, tools: [], thinking: '' };
+        return { id: nextId(), role: 'notice', content: '', notice, tools: [], thinking: '', sentAt: sentAtMs(message.timestamp) };
       }
       const images = extractEmbeddedImages(rawText);
       const stripped = images.length > 0 ? stripEmbeddedImages(rawText) : rawText;
@@ -151,6 +169,7 @@ export const normalizeHermesHistory = (
         review: pulled.review,
         audio: null,
         hadAudio,
+        sentAt: sentAtMs(message.timestamp),
       };
     })
     .filter((message) => (
@@ -170,6 +189,10 @@ export const appendAssistantDelta = (messages, text, nextId) => {
     copy.push({ ...last, content: last.content + text });
     return copy;
   }
+  if (last?.role === 'assistant' && !last.streaming) {
+    bump('duplicate_delta_on_complete');
+    return messages;
+  }
   bump('delta_without_start');
   return [
     ...messages,
@@ -186,7 +209,7 @@ export const appendAssistantDelta = (messages, text, nextId) => {
 
 export const ensureStreamingAssistant = (messages, nextId) => {
   const last = messages[messages.length - 1];
-  if (last?.role === 'assistant' && last.streaming) {
+  if (last?.role === 'assistant') {
     bump('duplicate_message_start');
     return messages;
   }
@@ -255,7 +278,20 @@ export const coerceResumePayload = (result) => {
   return { ...result, messages };
 };
 
-const userKey = (message) => `${String(message?.content || '')}\0${message?.review?.id || ''}`;
+const sentAtMs = (ts) => {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  return n < 1e12 ? Math.round(n * 1000) : Math.round(n);
+};
+
+const userKey = (message, parseAudioLen, isAudioLabel) => {
+  const raw = String(message?.content || '').trim();
+  const audio = Boolean(message?.hadAudio || message?.audio || isAudioLabel?.(raw));
+  const body = audio
+    ? `[audio]:${message.audioSec || parseAudioLen?.(raw) || 0}`
+    : raw;
+  return `${body}\0${message?.review?.id || ''}`;
+};
 
 // 把 session.resume / session.history 的 transcript 合并进当前气泡。
 // 另一台设备后发的用户消息会出现在 resume.messages 或 inflight.user 里。
@@ -273,16 +309,19 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
   const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
 
   const lastLocalUser = [...prev].reverse().find((message) => message.role === 'user');
+  const keyOf = (message) => userKey(message, parseAudioLen, isAudioLabel);
   const hydratedUserKeys = new Set(
-    hydrated.filter((message) => message.role === 'user').map(userKey),
+    hydrated.filter((message) => message.role === 'user').map(keyOf),
   );
   const localStillPending = Boolean(
     lastLocalUser
-    && !hydratedUserKeys.has(userKey(lastLocalUser))
-    && (!inflightUser || userKey({
+    && !hydratedUserKeys.has(keyOf(lastLocalUser))
+    && (!inflightUser || keyOf({
       content: inflightUser.content,
       review: inflightUser.review,
-    }) === userKey(lastLocalUser)),
+      hadAudio: lastLocalUser.hadAudio,
+      audioSec: lastLocalUser.audioSec,
+    }) === keyOf(lastLocalUser)),
   );
   const pendingContent = inflightUser?.content ?? (localStillPending ? lastLocalUser.content : '');
   const pendingReview = inflightUser?.review ?? (localStillPending ? lastLocalUser.review : null);
@@ -299,6 +338,7 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
       audio: message.audio || old.audio,
       audioSec: message.audioSec ?? old.audioSec,
       hadAudio: message.hadAudio || old.hadAudio,
+      sentAt: old.sentAt ?? message.sentAt,
     };
   });
   if ((pendingContent || pendingReview) && !alreadyHydrated) {
@@ -314,15 +354,38 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
       audioSec: lastLocalUser?.audioSec ?? parseAudioLen(pendingContent),
       hadAudio: lastLocalUser?.hadAudio || isAudioLabel(pendingContent),
       review: pendingReview,
+      sentAt: lastLocalUser?.sentAt,
     });
   }
   if (resume?.running) {
     const last = next[next.length - 1];
-    if (!(last && last.role === 'assistant' && last.streaming)) {
+    const inflight = String(resume.inflight?.assistant || '');
+    const lastText = String(last?.content || '');
+    const localStream = [...prev].reverse().find((message) => message.role === 'assistant' && message.streaming);
+    const alreadyOnScreen = last?.role === 'assistant' && (
+      last.streaming
+      || sameAssistantText(last, { content: inflight })
+    );
+    if (alreadyOnScreen) {
+      if (last.streaming) {
+        next[next.length - 1] = {
+          ...last,
+          content: inflight.length > lastText.length ? inflight : last.content,
+          tools: last.tools?.length ? last.tools : (localStream?.tools || last.tools),
+          thinking: last.thinking || localStream?.thinking || '',
+        };
+      }
+    } else if (localStream) {
+      next.push({
+        ...localStream,
+        content: inflight.length > String(localStream.content || '').length ? inflight : localStream.content,
+        streaming: true,
+      });
+    } else {
       next.push({
         id: nextId(),
         role: 'assistant',
-        content: resume.inflight?.assistant || '',
+        content: inflight,
         streaming: true,
         tools: [],
         thinking: '',

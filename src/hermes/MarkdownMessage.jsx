@@ -5,13 +5,15 @@
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
 import { normalizeOriginalQuestionOptions } from './reviewFormat.js';
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import hljs from 'highlight.js/lib/common';
 import { Check, Copy, FileImage, Loader2 } from 'lucide-react';
+import { api } from '../api.js';
+import DraftFloater from './DraftFloater.jsx';
 import ReviewScratch, { ScratchTools } from './ReviewScratch.jsx';
 
 import 'katex/dist/katex.min.css';
@@ -115,14 +117,101 @@ const CodeBlock = ({ language, code }) => {
 };
 
 const questionNumberOf = (title) => {
+  // 只认复盘题号：`01 · 题型` / `第 1 题`。不要把普通聊天的 `1. 概念混淆` 当成第 1 题。
   const match = String(title || '').match(
-    /^(?:第\s*)?0*(\d{1,3})\s*(?:题(?:\s|[·.．、-]|$)|[·.．、-])/,
+    /^(?:第\s*)?0*(\d{1,3})\s*(?:题(?:\s|[·.．、:-]|$)|[·．、])/,
   );
   return match ? Number(match[1]) : null;
 };
 
+const looksLikePracticeReview = (content) =>
+  /(?:\*\*作答结果\*\*|####\s*草稿诊断|>\s*\*\*原题\*\*|###\s*0*\d+\s*[·．])/.test(String(content || ''));
+
+const usePracticeDrafts = (sessionId) => {
+  const [map, setMap] = useState(null);
+  const [panel, setPanel] = useState(null);
+  const cacheRef = useRef(new Map());
+
+  useEffect(() => {
+    cacheRef.current.clear();
+    setPanel(null);
+    if (!sessionId) {
+      setMap(null);
+      return undefined;
+    }
+    let cancelled = false;
+    setMap(null);
+    api(`/api/practice/sessions/${sessionId}/report`)
+      .then((report) => {
+        if (cancelled) return;
+        const mapped = new Map();
+        for (const [index, item] of (report?.items || []).entries()) {
+          mapped.set(index + 1, item?.draft_url ? { questionId: item.question_id } : null);
+        }
+        setMap(mapped);
+      })
+      .catch(() => { if (!cancelled) setMap(new Map()); });
+    return () => { cancelled = true; };
+  }, [sessionId]);
+
+  const openDraft = async (questionNumber, draft) => {
+    if (!draft?.questionId || !sessionId) return;
+    const cacheKey = `${sessionId}:${draft.questionId}`;
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      setPanel({ questionNumber, cacheKey, src: cached, loading: false, error: '' });
+      return;
+    }
+    setPanel({ questionNumber, cacheKey, src: '', loading: true, error: '' });
+    try {
+      const result = await api(
+        `/api/practice/sessions/${sessionId}/drafts/${draft.questionId}/base64`,
+      );
+      if (!result?.data_url) throw new Error('草稿文件不存在');
+      cacheRef.current.set(cacheKey, result.data_url);
+      setPanel((current) => (
+        current?.cacheKey === cacheKey
+          ? { ...current, src: result.data_url, loading: false }
+          : current
+      ));
+    } catch (error) {
+      setPanel((current) => (
+        current?.cacheKey === cacheKey
+          ? { ...current, loading: false, error: error?.message || '草稿加载失败' }
+          : current
+      ));
+    }
+  };
+
+  return { map, panel, openDraft, closePanel: () => setPanel(null) };
+};
+
+const DraftButton = ({ questionNumber, draft, loading, active, onOpen }) => (
+  <button
+    type="button"
+    disabled={!draft || loading}
+    onClick={(event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onOpen?.(questionNumber, draft);
+    }}
+    title={draft ? '查看本题当时的草稿' : '本题没有草稿'}
+    className={`shrink-0 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors ${
+      active
+        ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
+        : draft
+          ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white hover:bg-[#2c261c]'
+          : 'cursor-not-allowed border-black/15 bg-white/80 text-[#888]'
+    }`}
+  >
+    {loading ? <Loader2 size={11} className="animate-spin" /> : <FileImage size={11} />}
+    <span>草稿</span>
+  </button>
+);
+
 const QuestionHeading = ({
   children,
+  draftEnabled,
   draftQuestions,
   activeDraftNumber,
   draftLoadingNumber,
@@ -135,10 +224,11 @@ const QuestionHeading = ({
   const title = raw.replace(/^(?:第\s*)?\d+\s*(?:题\s*)?[·.．、-]?\s*/, '');
   const hit = findKnowledgeTarget(title);
   const questionNumber = questionNumberOf(raw);
-  const hasQuestion = questionNumber != null && draftQuestions?.has(questionNumber);
-  const draft = hasQuestion ? draftQuestions.get(questionNumber) : null;
-  const active = draft && activeDraftNumber === questionNumber;
-  const loading = draft && draftLoadingNumber === questionNumber;
+  const showDraft = questionNumber != null && draftEnabled;
+  const draft = draftQuestions?.get(questionNumber) ?? null;
+  const mapLoading = draftEnabled && draftQuestions == null;
+  const active = Boolean(draft) && activeDraftNumber === questionNumber;
+  const loading = mapLoading || (Boolean(draft) && draftLoadingNumber === questionNumber);
 
   return (
     <h3 className="relative z-30 mt-3 mb-1.5 flex items-center gap-2 text-sm font-black tracking-tight">
@@ -154,25 +244,14 @@ const QuestionHeading = ({
           </button>
         ) : children}
       </span>
-      {hasQuestion && (
-        <button
-          type="button"
-          disabled={!draft || loading}
-          onClick={() => onOpenDraft?.(questionNumber, draft)}
-          title={draft ? '查看本题当时的草稿' : '本题没有草稿'}
-          className={`shrink-0 inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-black transition-colors ${
-            active
-              ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white'
-              : draft
-                ? 'border-[#d4c09a] bg-[#f4e6c8] text-[#6b5428] hover:border-[#6b5428]'
-                : 'cursor-not-allowed border-black/5 bg-black/[0.03] text-[#bbb]'
-          }`}
-        >
-          {loading
-            ? <Loader2 size={11} className="animate-spin" />
-            : <FileImage size={11} />}
-          <span>草稿</span>
-        </button>
+      {showDraft && (
+        <DraftButton
+          questionNumber={questionNumber}
+          draft={draft}
+          loading={loading}
+          active={active}
+          onOpen={onOpenDraft}
+        />
       )}
       <ScratchTools questionNumber={questionNumber} />
     </h3>
@@ -255,7 +334,7 @@ const components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="my-4 rounded-2xl border border-[#c4aa6a] bg-[#e8d5b0] px-5 py-4 text-[#40382b] [&_p]:my-1.5 [&_strong]:text-[#1a1a1a]">
+      <blockquote className="relative my-4 rounded-2xl border border-[#c4aa6a] bg-[#e8d5b0] px-5 py-4 text-[#40382b] [&_p]:my-1.5 [&_strong]:text-[#1a1a1a]">
         {children}
       </blockquote>
     );
@@ -295,16 +374,29 @@ const MarkdownMessage = memo(function MarkdownMessage({
   content,
   streaming,
   scratchId,
-  draftQuestions,
-  activeDraftNumber,
-  draftLoadingNumber,
-  onOpenDraft,
+  practiceSessionId,
+  draftQuestions: draftQuestionsProp,
+  activeDraftNumber: activeDraftNumberProp,
+  draftLoadingNumber: draftLoadingNumberProp,
+  onOpenDraft: onOpenDraftProp,
 }) {
   const displayContent = useMemo(() => normalizeOriginalQuestionOptions(content), [content]);
+  const own = usePracticeDrafts(
+    !draftQuestionsProp && practiceSessionId ? practiceSessionId : null,
+  );
+  const draftQuestions = draftQuestionsProp ?? own.map;
+  const activeDraftNumber = activeDraftNumberProp ?? own.panel?.questionNumber;
+  const draftLoadingNumber = draftLoadingNumberProp
+    ?? (own.panel?.loading ? own.panel.questionNumber : null);
+  const onOpenDraft = onOpenDraftProp ?? own.openDraft;
+  const draftEnabled = (Boolean(practiceSessionId) || draftQuestions != null)
+    && looksLikePracticeReview(displayContent);
+
   const renderedComponents = useMemo(() => ({
     ...components,
     h3: ({ children }) => (
       <QuestionHeading
+        draftEnabled={draftEnabled}
         draftQuestions={draftQuestions}
         activeDraftNumber={activeDraftNumber}
         draftLoadingNumber={draftLoadingNumber}
@@ -313,21 +405,32 @@ const MarkdownMessage = memo(function MarkdownMessage({
         {children}
       </QuestionHeading>
     ),
-  }), [draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft]);
+  }), [draftEnabled, draftQuestions, activeDraftNumber, draftLoadingNumber, onOpenDraft]);
 
   return (
-    <ReviewScratch storageKey={scratchId} enabled={Boolean(scratchId) && !streaming}>
-      <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
-        <ReactMarkdown
-          remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
-          rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
-          components={renderedComponents}
-        >
-          {displayContent}
-        </ReactMarkdown>
-        {streaming && <Caret />}
-      </div>
-    </ReviewScratch>
+    <>
+      <ReviewScratch storageKey={scratchId} enabled={Boolean(scratchId) && !streaming}>
+        <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
+          <ReactMarkdown
+            remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
+            rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
+            components={renderedComponents}
+          >
+            {displayContent}
+          </ReactMarkdown>
+          {streaming && <Caret />}
+        </div>
+      </ReviewScratch>
+      {!onOpenDraftProp && own.panel && (
+        <DraftFloater
+          questionNumber={own.panel.questionNumber}
+          src={own.panel.src}
+          loading={own.panel.loading}
+          error={own.panel.error}
+          onClose={own.closePanel}
+        />
+      )}
+    </>
   );
 });
 

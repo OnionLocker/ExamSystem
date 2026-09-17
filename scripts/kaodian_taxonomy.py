@@ -39,6 +39,9 @@ NUM_PERM_REVERSE = "数量关系-逢考必有的排列组合与概率-反面容�
 NUM_PERM_POSITION = "数量关系-逢考必有的排列组合与概率-相邻不相邻与位置限制"
 NUM_PERM_GROUPING = "数量关系-逢考必有的排列组合与概率-分堆分配与定序消序"
 NUM_PERM_MISC = "数量关系-逢考必有的排列组合与概率-错位环形与同组概率"
+NUM_PERM_DERANGE = "数量关系-逢考必有的排列组合与概率-错位重排与环形圆桌"
+NUM_PROB_CLASSIC = "数量关系-逢考必有的排列组合与概率-古典概型与定位秒杀"
+NUM_PROB_INDEPENDENT = "数量关系-逢考必有的排列组合与概率-分步独立与赛制决胜"
 NUM_EXTREME = "数量关系-既烧脑又能套公式的最值问题-和定最值与构造"
 NUM_EXTREME_DRAWER = "数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉"
 NUM_EXTREME_REVERSE = "数量关系-既烧脑又能套公式的最值问题-反向构造与多集合最值"
@@ -65,6 +68,9 @@ KNOWN_QUANTITY_TAGS = {
     NUM_PERM_POSITION,
     NUM_PERM_GROUPING,
     NUM_PERM_MISC,
+    NUM_PERM_DERANGE,
+    NUM_PROB_CLASSIC,
+    NUM_PROB_INDEPENDENT,
     NUM_EXTREME,
     NUM_EXTREME_DRAWER,
     NUM_EXTREME_REVERSE,
@@ -84,7 +90,7 @@ KNOWN_QUANTITY_TAGS = {
     NUM_SEQUENCE_SPLIT,
 }
 # 已被细考法取代的合并标签：历史题继续留着，但不再往上面出新题。
-LEGACY_TAGS = {NUM_PERM_SPECIAL}
+LEGACY_TAGS = {NUM_PERM_SPECIAL, NUM_PERM_MISC}
 
 COARSE_PRIMARY_TAGS = {
     "数量关系-数学运算-排列组合",
@@ -360,12 +366,20 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
             return NUM_CYCLE
         if _has_any(raw, "反面容斥", "正难则反", "反面剥离", "反面法"):
             return NUM_PERM_REVERSE
-        if _has_any(raw, "捆绑", "插空", "优限", "相邻限制", "不相邻", "特殊位置", "位置限制"):
+        if _has_any(raw, "捆绑", "插空", "优限", "相邻限制", "不相邻", "特殊位置", "位置限制", "涂色", "染色"):
             return NUM_PERM_POSITION
         if _has_any(raw, "插板", "隔板", "分堆", "分组分配", "定序", "消序"):
             return NUM_PERM_GROUPING
-        if _has_any(raw, "错位排列", "错位排序", "环形排列", "重复排列", "同组概率"):
-            return NUM_PERM_MISC
+        if _has_any(raw, "独立重复", "伯努利", "赛制", "三局两胜", "五局三胜", "决胜", "闯关", "分步独立"):
+            return NUM_PROB_INDEPENDENT
+        if _has_any(raw, "同组概率", "古典概型", "抽签", "定位法"):
+            return NUM_PROB_CLASSIC
+        if _has_any(raw, "错位重排", "圆桌"):
+            return NUM_PERM_DERANGE
+        if _has_any(raw, "错位排列", "错位排序", "环形排列", "重复排列"):
+            return NUM_PERM_DERANGE
+        if _has_any(raw, "网格路径", "最短路径", "几何概型"):
+            return NUM_PERM_BASIC
         if _has_any(raw, "排列", "组合数"):
             return NUM_PERM_BASIC
         if _has_any(raw, "抽屉", "最不利"):

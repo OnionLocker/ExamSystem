@@ -245,6 +245,13 @@ const fmtDateTime = (raw) => {
   });
 };
 
+const fmtBubbleTime = (ms) => {
+  const date = new Date(ms);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
 // 只放大对话正文（表格/Markdown），不动顶栏和浏览器缩放。
 // 整数百分比，避开 1.15 这类浮点对不上 localStorage 读回来的问题。
 const FONT_KEY = 'hermes.fontScale';
@@ -470,6 +477,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   const finishStreaming = useCallback((finalText = '') => {
     setMessages((prev) => finishAssistantMessage(prev, finalText, uid));
+    sendingRef.current = false;
     setBusy(false);
     setStatus('');
     // 回复完成后刷新列表：Hermes 在第一轮对话结束后才生成 title，
@@ -546,6 +554,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         const msg = ev.payload?.message || '未知错误';
         setBanner(msg);
         setWaitSec(0);
+        sendingRef.current = false;
         setBusy(false);
         setStatus('');
       }),
@@ -646,7 +655,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
   }, []);
 
-  const applyResume = useCallback((res, storedId, { force = true } = {}) => {
+  const applyResume = useCallback((res, storedId, { force = true, stick = false } = {}) => {
     const payload = coerceResumePayload(res);
     rememberSession({
       ...payload,
@@ -665,11 +674,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setWaitSec(0);
       setBusy(true);
       setStatus('生成中');
-    } else if (force || Object.prototype.hasOwnProperty.call(payload, 'running')) {
+    } else if (!sendingRef.current && (force || Object.prototype.hasOwnProperty.call(payload, 'running'))) {
       setBusy(false);
       setStatus('');
     }
-    stickToBottom.current = true;
+    if (stick) stickToBottom.current = true;
   }, [rememberSession]);
 
   const historySupportedRef = useRef(null);
@@ -726,7 +735,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const cachedActive = readCachedActiveSession();
       if (!cachedActive) return;
       gw.request('session.resume', { session_id: cachedActive, cols: 100 })
-        .then((res) => applyResume(res, cachedActive))
+        .then((res) => applyResume(res, cachedActive, { stick: true }))
         .catch(() => writeCachedActiveSession(null));
       return;
     }
@@ -791,7 +800,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setStatus('载入会话');
     try {
       const res = await gw.request('session.resume', { session_id: stored.id, cols: 100 });
-      applyResume(res, stored.id);
+      applyResume(res, stored.id, { stick: true });
     } catch (err) {
       setBanner(`打开会话失败：${err.message}`);
       setStatus('');
@@ -1125,12 +1134,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ...prev,
       {
         id: msgId, role: 'user',
-        content: text || '',
+        content: text || audioLabel || '',
         streaming: false,
         tools: [], thinking: '', images: images.filter((i) => !i.hidden).map((i) => i.dataUrl),
         audio: audio?.dataUrl || null,
         audioSec: audio?.sec > 0 ? Math.round(audio.sec) : (parseAudioLen(audioLabel) || null),
         hadAudio: !!audio,
+        sentAt: Date.now(),
         review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label, path: review.path || null, profileReviewed: Boolean(review.profileReviewed) } : null,
       },
     ]);
@@ -1283,10 +1293,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setPendingImages((cur) => (cur.length > 0 ? cur : images));
       setPendingAudio((cur) => cur || audio);
       setPendingReview((cur) => cur || review);
+      sendingRef.current = false;
       setBusy(false);
       setStatus('');
-    } finally {
-      sendingRef.current = false;
     }
   }, [busy, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
 
@@ -1651,13 +1660,20 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   const practiceSessionForMessage = (messageId) => {
     const index = messages.findIndex((message) => message.id === messageId);
-    for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+    const from = index < 0 ? messages.length - 1 : index;
+    for (let cursor = from; cursor >= 0; cursor -= 1) {
       const message = messages[cursor];
-      if (message.role !== 'user') continue;
-      return message.review?.kind === 'practice' ? Number(message.review.id) : null;
+      if (message.role === 'user' && message.review?.kind === 'practice' && message.review.id) {
+        return Number(message.review.id);
+      }
     }
     return null;
   };
+
+  // 铅笔草稿只给 AI 练题复盘：粉笔 PDF / 录屏复盘没有当时草稿，盖一层画布只会把题面错位。
+  const scratchIdForMessage = (messageId) => (
+    practiceSessionForMessage(messageId) ? String(messageId) : undefined
+  );
 
   const connLabel = {
     idle: '未连接', connecting: '连接中…', open: '已连接', closed: '已断开', error: '连接失败',
@@ -1850,6 +1866,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 <BackgroundNotice notice={m.notice} />
               ) : m.role === 'user' ? (
                 <div className="max-w-[78%] flex flex-col items-end gap-1.5">
+                  {m.sentAt ? (
+                    <span className="text-[10px] tabular-nums text-[#999] leading-none pr-1">
+                      {fmtBubbleTime(m.sentAt)}
+                    </span>
+                  ) : null}
                   {(m.audio || m.audioSec > 0 || m.hadAudio || isAudioLabel(m.content)) && (
                     <VoiceBubble
                       src={m.audio}
@@ -1926,7 +1947,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                   )}
 
                   {(m.content || !m.streaming) && (
-                    <MarkdownMessage content={m.content} streaming={m.streaming} scratchId={String(m.id)} />
+                    <MarkdownMessage
+                      content={m.content}
+                      streaming={m.streaming}
+                      scratchId={popout?.id === m.id ? undefined : scratchIdForMessage(m.id)}
+                      practiceSessionId={practiceSessionForMessage(m.id)}
+                    />
                   )}
                 </div>
               )}
@@ -2099,7 +2125,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             {reviewMdErr ? (
               <p className="text-sm font-bold text-slate-400">{reviewMdErr}</p>
             ) : reviewMd ? (
-              <MarkdownMessage content={reviewMd} scratchId={reviewPreview?.id ? `preview:${reviewPreview.id}` : 'preview'} />
+              <MarkdownMessage
+                content={reviewMd}
+                scratchId={reviewPreview?.kind === 'practice' && reviewPreview?.id
+                  ? `preview:${reviewPreview.id}`
+                  : undefined}
+              />
             ) : (
               <div className="flex items-center gap-2 text-[11px] text-[#999]">
                 <Loader2 size={11} className="animate-spin" />
@@ -2115,7 +2146,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           streaming={!!messages.find((m) => m.id === popout.id)?.streaming}
           fontScale={fontScale}
           practiceSessionId={popout.practiceSessionId}
-          scratchId={String(popout.id)}
+          scratchId={popout.practiceSessionId ? String(popout.id) : undefined}
           onClose={() => setPopout(null)}
         />
       )}

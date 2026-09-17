@@ -43,6 +43,8 @@ const TopBarTimer = ({ onOpen }) => {
   } = usePomodoro();
 
   const [open, setOpen] = useState(false);
+  const [customFocus, setCustomFocus] = useState(false);
+  const [customText, setCustomText] = useState('');
   const boxRef = useRef(null);
   const panelRef = useRef(null);
   const [panelPos, setPanelPos] = useState(null);
@@ -87,6 +89,8 @@ const TopBarTimer = ({ onOpen }) => {
 
   const pickWork = (min) => updateSettings({ workMs: min * 60000 });
   const pickBreak = (min) => updateSettings({ breakMs: min * 60000 });
+  const workIsPreset = WORK_MINS.includes(workMin);
+  const customWorkValue = customFocus ? customText : (workIsPreset ? '' : String(workMin));
   const pickBgm = (id) => {
     if (!id) {
       updateSettings({ bgmEnabled: false });
@@ -121,6 +125,33 @@ const TopBarTimer = ({ onOpen }) => {
                   {m} 分
                 </Chip>
               ))}
+              <label
+                className={`inline-flex items-center gap-0.5 px-2.5 py-1.5 rounded-xl text-[11px] font-black tabular-nums transition-all ${
+                  !workIsPreset ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] text-slate-500'
+                }`}
+              >
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="自定义"
+                  value={customWorkValue}
+                  onFocus={() => {
+                    setCustomFocus(true);
+                    setCustomText(workIsPreset ? '' : String(workMin));
+                  }}
+                  onBlur={() => setCustomFocus(false)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '').slice(0, 3);
+                    setCustomText(raw);
+                    const n = Number(raw);
+                    if (n >= 1 && n <= 180) pickWork(n);
+                  }}
+                  className={`w-14 bg-transparent outline-none text-center placeholder:text-current placeholder:opacity-70 ${
+                    !workIsPreset ? 'text-white' : 'text-slate-500'
+                  }`}
+                />
+                {customWorkValue !== '' && <span>分</span>}
+              </label>
             </div>
           </div>
           <div>

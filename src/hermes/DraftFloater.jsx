@@ -123,7 +123,7 @@ export default function DraftFloater({
           <img
             src={src}
             alt={`第 ${questionNumber} 题当时的草稿`}
-            className="block w-full h-auto rounded-xl bg-white"
+            className="block w-full h-auto rounded-xl bg-[#f2e4c4]"
           />
         ) : null}
       </div>

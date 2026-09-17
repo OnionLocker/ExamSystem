@@ -71,7 +71,7 @@ export default function ReviewScratch({ storageKey, enabled = true, children }) 
 
   return (
     <Ctx.Provider value={value}>
-      <div className="relative">
+      <div className="relative isolate">
         {children}
         {value.enabled && (
           <DraftLayer
