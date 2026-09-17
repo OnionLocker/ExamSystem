@@ -20,6 +20,7 @@ from learner_snapshot import select_ziliao_paper, select_ziliao_slots
 assert question_primary_tag({"knowledge_points": [NUM_PERM_SPECIAL]}) == NUM_PERM_SPECIAL
 assert question_primary_tag({"tags": [NUM_PERM_SPECIAL]}) == NUM_PERM_SPECIAL
 assert validate_ai_primary_tag(NUM_PERM_SPECIAL, "数量关系") == NUM_PERM_SPECIAL
+assert canonicalize("数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）", "数量关系") == NUM_PERM_SPECIAL
 try:
     validate_ai_primary_tag("数量关系-数学运算-排列组合", "数量关系")
 except ValueError as exc:

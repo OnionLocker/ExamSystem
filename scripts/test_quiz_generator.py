@@ -21,7 +21,9 @@ from quiz_generator import (
 )
 
 
-EXTREME = "数量关系-既烧脑又能套公式的最值问题-"
+EXTREME = "数量关系-数学运算-"
+FENBI_EXTREME = "数量关系-数学运算-最值问题"
+FENBI_PERM = "数量关系-数学运算-排列组合问题"
 
 def prompt_extras(run):
     """提示测试要用生产形状的 extras：里面有字母上限，build_prompt 会读。"""
@@ -96,7 +98,7 @@ class QuizGeneratorTest(unittest.TestCase):
     def test_quantity_prompt_asks_calculations(self):
         run = {
             "module": "数量关系",
-            "focus_tag": "数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）",
+            "focus_tag": "数量关系-数学运算-排列组合问题",
             "planned_count": 5,
             "batch_id": "x",
             "plan_date": "2026-09-10",
@@ -134,17 +136,17 @@ class QuizGeneratorTest(unittest.TestCase):
         self.assertNotIn("calculations", questions[0])
 
     def test_holdout_must_share_family(self):
-        tag = "数量关系-逢考必有的排列组合与概率-特殊模型（八大情形与同组概率）"
+        tag = FENBI_PERM
         self.assertTrue(
             holdout_matches(
                 tag,
-                {"references": [{"tags": ["数量关系-逢考必有的排列组合与概率-基础原理与几何概型"], "stem": "分组"}]},
+                {"references": [{"tags": ["数量关系-数学运算-排列组合问题"], "stem": "分组"}]},
             )
         )
         self.assertFalse(
             holdout_matches(
                 tag,
-                {"references": [{"tags": ["数量关系-和差倍比与方程法-方程、比例与代入验证"], "stem": "容积"}]},
+                {"references": [{"tags": ["数量关系-数学运算-和差倍比问题"], "stem": "容积"}]},
             )
         )
 
@@ -153,21 +155,21 @@ class BlueprintTest(unittest.TestCase):
     """--blueprint 让 Hermes 在一批里编排同一知识点下的不同考法。"""
 
     def test_single_tag_still_works(self):
-        module, slots = resolve_slots(blueprint_args(tag=EXTREME + "和定最值与构造", count=10))
+        module, slots = resolve_slots(blueprint_args(tag=FENBI_EXTREME, count=10))
         self.assertEqual(module, "数量关系")
-        self.assertEqual(slots, [{"tag": EXTREME + "和定最值与构造", "count": 10}])
+        self.assertEqual(slots, [{"tag": FENBI_EXTREME, "count": 10}])
 
     def test_slots_expand_per_item(self):
         blueprint = (
             '{"slots":['
-            '{"tag":"' + EXTREME + '最不利原则与抽屉","count":2},'
-            '{"tag":"' + EXTREME + '反向构造与多集合最值","count":3}]}'
+            '{"tag":"' + EXTREME + '最值问题","count":2},'
+            '{"tag":"' + EXTREME + '函数最值问题","count":3}]}'
         )
         _, slots = resolve_slots(blueprint_args(blueprint=blueprint))
         run = {"slots": slots, "module": "数量关系"}
         self.assertEqual(
             slot_tags(run),
-            [EXTREME + "最不利原则与抽屉"] * 2 + [EXTREME + "反向构造与多集合最值"] * 3,
+            [EXTREME + "最值问题"] * 2 + [EXTREME + "函数最值问题"] * 3,
         )
 
     def test_prompt_names_each_slot_range(self):
@@ -186,12 +188,12 @@ class BlueprintTest(unittest.TestCase):
         }
         extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
-        self.assertIn("items 1-2: tags[0] = " + EXTREME + "最不利原则与抽屉", text)
-        self.assertIn("item 3: tags[0] = " + EXTREME + "和定最值与构造", text)
+        self.assertIn("items 1-2: tags[0] = " + FENBI_EXTREME, text)
+        self.assertIn("item 3: tags[0] = " + FENBI_EXTREME, text)
 
     def test_short_tags_canonicalize(self):
         _, slots = resolve_slots(blueprint_args(blueprint='{"slots":[{"tag":"抽屉原理","count":1}]}'))
-        self.assertEqual(slots[0]["tag"], EXTREME + "最不利原则与抽屉")
+        self.assertEqual(slots[0]["tag"], FENBI_EXTREME)
 
     def test_rejects_bad_blueprints(self):
         cases = [
@@ -212,14 +214,14 @@ class CanonInjectionTest(unittest.TestCase):
     """生成侧必须拿到考法口径，而不是只有一个标签字符串。"""
 
     def test_card_is_sliced_to_the_named_考法(self):
-        card = canon_card("数量关系", EXTREME + "最不利原则与抽屉")
+        card = canon_card("数量关系", "数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉")
         self.assertIn("考法二", card)
         self.assertIn("抽屉", card)
         self.assertNotIn("考法一", card)
         self.assertNotIn("考法三", card)
 
     def test_multiline_bullets_keep_their_sub_lines(self):
-        card = canon_card("数量关系", "数量关系-逢考必有的排列组合与概率-分堆分配与定序消序")
+        card = canon_card("数量关系", "数量关系-数学运算-排列组合问题-分堆分配与定序消序")
         self.assertIn("插板法", card)
         self.assertIn("部分均等分堆", card)   # 平均分堆的子行没有被切掉
         self.assertNotIn("捆绑法", card)      # 别的槽位的模型没渗进来

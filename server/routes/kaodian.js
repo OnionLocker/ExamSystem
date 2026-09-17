@@ -25,7 +25,13 @@ router.get('/', (_req, res) => {
       FROM kaodian_profile
      ORDER BY module, kaodian
   `).all();
-  res.json({ items: items.map(view) });
+  let aliases = [];
+  try {
+    aliases = db.prepare('SELECT alias, canonical, module, subtype FROM kaodian_aliases').all();
+  } catch {
+    aliases = [];
+  }
+  res.json({ items: items.map(view), aliases });
 });
 
 router.post('/mastery', (req, res) => {

@@ -50,9 +50,9 @@ DB = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "da
 TZ = dt.timezone(dt.timedelta(hours=8))
 FAMILY_MAIN_COOLDOWN_DAYS = 1
 SESSION_FAMILY_HINTS = (
-    ("plzh", "数量关系-逢考必有的排列组合与概率"),
-    ("date_cycle", "数量关系-有规律的周期循环与要算准的日期星期"),
-    ("date-cycle", "数量关系-有规律的周期循环与要算准的日期星期"),
+    ("plzh", "数量关系-数学运算-排列组合问题"),
+    ("date_cycle", "数量关系-数学运算-星期日期问题"),
+    ("date-cycle", "数量关系-数学运算-周期问题"),
 )
 
 

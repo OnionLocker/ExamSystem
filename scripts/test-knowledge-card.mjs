@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 import { cardRow, relatedRows } from '../src/knowledge/match.js';
 import { cardToMarkdown, decorateMath } from '../src/knowledge/cardMarkdown.js';
+import { findFenbiTarget, leftoverRows, mergeFenbiTree, parseFenbiTag, rowsForTag } from '../src/knowledge/fenbiTree.js';
 
 assert.equal(
   decorateMath('平方差：a^2 - b^2 = (a + b)(a - b)'),
@@ -54,5 +55,61 @@ const md = cardToMarkdown({
 assert.match(md, /#### 怎么做/);
 assert.match(md, /\$a\^\{2\}/);
 assert.match(md, /#### 禁止/);
+
+const tree = mergeFenbiTree(
+  [
+    {
+      kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序',
+      mastery: 62,
+      mastery_confidence: 80,
+    },
+    {
+      kaodian: '数量关系-数学运算-平均数问题-加权平均数',
+      mastery: 40,
+      mastery_confidence: 30,
+    },
+  ],
+  [
+    {
+      alias: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序',
+      canonical: '数量关系-数学运算-排列组合问题',
+    },
+  ],
+);
+const shuliang = tree.find((mod) => mod.id === 'shuliang');
+const math = shuliang.children.find((g) => g.name === '数学运算');
+const perm = math.children.find((leaf) => leaf.name === '排列组合问题');
+const avg = math.children.find((leaf) => leaf.name === '平均数问题');
+assert.equal(perm.score, 62);
+assert.equal(avg.extensions.length, 1);
+assert.equal(avg.extensions[0].name, '加权平均数');
+assert.equal(parseFenbiTag('判断推理-逻辑判断-组合排列-单题').l3, '组合排列-单题');
+assert.equal(rowsForTag('数量关系-数学运算-排列组合问题', [
+  { kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序' },
+]).length, 1);
+
+const staticTree = mergeFenbiTree([
+  {
+    kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序',
+    mastery: 55,
+    mastery_confidence: 70,
+  },
+]);
+const staticPerm = staticTree
+  .find((mod) => mod.id === 'shuliang')
+  .children.find((g) => g.name === '数学运算')
+  .children.find((leaf) => leaf.name === '排列组合问题');
+assert.equal(staticPerm.score, 55);
+
+const leftovers = leftoverRows([
+  { kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序' },
+  { kaodian: '资料分析-ABRX类-基期量计算与比较' },
+]);
+assert.equal(leftovers.length, 1);
+assert.equal(leftovers[0].kaodian, '资料分析-ABRX类-基期量计算与比较');
+
+const jumped = findFenbiTarget('数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉');
+assert.equal(jumped.tag, '数量关系-数学运算-最值问题');
+assert.equal(jumped.moduleId, 'shuliang');
 
 console.log('knowledge card markdown: ok');

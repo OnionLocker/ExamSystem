@@ -1,4 +1,5 @@
 import { XINGCE, SHENLUN } from './canon.js';
+import { findFenbiTarget } from './fenbiTree.js';
 
 const EVENT = 'examsystem:open-knowledge';
 
@@ -25,6 +26,8 @@ const scoreName = (name, query) => {
 };
 
 export function findKnowledgeTarget(query) {
+  const fenbi = findFenbiTarget(query);
+  if (fenbi) return fenbi;
   const raw = String(query || '').replace(/^本题考察知识点[:：]\s*/, '').trim();
   if (!raw) return null;
   const pieces = raw.split(/[-—－/]/).map((s) => s.trim()).filter(Boolean);

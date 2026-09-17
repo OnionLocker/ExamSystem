@@ -4,17 +4,23 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { TRACKS, XINGCE, SHENLUN } from './canon.js';
+import { TRACKS } from './canon.js';
 import { consumeKnowledgeFocus, KNOWLEDGE_OPEN_EVENT } from './nav.js';
 import { api } from '../api.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
-import { cardRow as matchCardRow, relatedRows } from './match.js';
-import { cardToMarkdown, decorateMath } from './cardMarkdown.js';
+import { cardRow as matchCardRow } from './match.js';
+import { decorateMath } from './cardMarkdown.js';
+import {
+  cardsForNode,
+  leftoverRows,
+  mergeFenbiTree,
+  methodCardsFor,
+  aliasMapFrom,
+} from './fenbiTree.js';
 import 'katex/dist/katex.min.css';
 import '../hermes/katex-fix.css';
 
 const OVERRIDE_KEY = 'knowledge_overrides_v1';
-const packOf = (id) => (id === 'shenlun' ? SHENLUN : XINGCE);
 
 const emptyOverrides = () => ({ cards: {}, extras: {} });
 
@@ -349,7 +355,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
   };
 
   return (
-    <article className="rounded-3xl bg-white border border-[#e8d5b0] overflow-hidden">
+    <article className="rounded-3xl bg-[#fdfbf7] border border-[#e8d5b0] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -401,7 +407,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                 <input
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm font-bold"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm font-bold"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -409,7 +415,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                 <input
                   value={draft.how}
                   onChange={(e) => setDraft({ ...draft, how: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -418,7 +424,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                   value={draft.steps}
                   onChange={(e) => setDraft({ ...draft, steps: e.target.value })}
                   rows={5}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -427,7 +433,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                   value={draft.know}
                   onChange={(e) => setDraft({ ...draft, know: e.target.value })}
                   rows={4}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -436,7 +442,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                   value={draft.ban}
                   onChange={(e) => setDraft({ ...draft, ban: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -444,7 +450,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                 <input
                   value={draft.next}
                   onChange={(e) => setDraft({ ...draft, next: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -453,7 +459,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
                   value={draft.mine}
                   onChange={(e) => setDraft({ ...draft, mine: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <div className="flex gap-2">
@@ -495,88 +501,95 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
   );
 }
 
-function ProfileList({ rows, onAdd }) {
-  const [name, setName] = useState('');
-  const [module, setModule] = useState('判断推理');
-  const groups = useMemo(() => {
-    const map = new Map();
-    for (const r of rows) {
-      const key = r.module || '未分类';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(r);
-    }
-    return [...map.entries()];
-  }, [rows]);
+function FenbiTree({ modules, selectedTag, onSelect, filterScored }) {
+  const [openL2, setOpenL2] = useState(() => new Set(modules[0]?.children?.map((g) => g.name) || []));
+
+  const toggleL2 = (name) => {
+    setOpenL2((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl bg-white border border-[#e8d5b0] p-5 space-y-3">
-        <p className="text-sm font-black">补一个考点</p>
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="模块-一级-二级，或现有短标签"
-            className="flex-1 min-w-[16rem] rounded-xl border border-[#e8d5b0] px-3 py-2 text-sm"
-          />
-          <input
-            value={module}
-            onChange={(e) => setModule(e.target.value)}
-            placeholder="模块"
-            className="w-32 rounded-xl border border-[#e8d5b0] px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              const kaodian = name.trim();
-              if (!kaodian) return;
-              onAdd(kaodian, module.trim() || kaodian.split('-')[0]);
-              setName('');
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1a1a1a] text-white text-xs font-black"
-          >
-            <Plus size={12} /> 加上
-          </button>
-        </div>
-      </div>
-      {groups.length === 0 ? (
-        <div className="rounded-3xl bg-white border border-[#e8d5b0] p-10 text-center text-sm text-slate-500">
-          练习或跟 Hermes 聊过之后，考点会落在这里。
-        </div>
-      ) : (
-        groups.map(([mod, items]) => (
-          <section key={mod} className="space-y-3">
-            <h3 className="text-lg font-black tracking-tight">{mod}</h3>
-            <div className="space-y-3">
-              {items.map((r) => (
-                <article key={r.kaodian} className="rounded-3xl bg-white border border-[#e8d5b0] px-5 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-black">{r.kaodian}</p>
-                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
-                      </div>
-                      <p className="text-[11px] text-slate-400 font-bold mt-0.5">
-                        {[r.subtype, r.attempts ? `${r.correct}/${r.attempts} 次` : '还没做题'].filter(Boolean).join(' · ')}
-                      </p>
-                    </div>
+    <div className="space-y-3">
+      {modules.map((mod) => (
+        <div key={mod.id} className="space-y-2">
+          {(mod.children || []).map((group) => {
+            const leaves = filterScored
+              ? (group.children || []).filter((leaf) => leaf.score != null || leaf.extensions?.length)
+              : (group.children || []);
+            if (filterScored && !leaves.length) return null;
+            const open = openL2.has(group.name);
+            return (
+              <section key={group.name} className="rounded-2xl border border-[#e8d5b0] overflow-hidden bg-[#faf6ec]">
+                <button
+                  type="button"
+                  onClick={() => toggleL2(group.name)}
+                  className="w-full min-h-[48px] flex items-center justify-between gap-3 px-4 py-3 text-left"
+                >
+                  <span className="text-[15px] font-black tracking-tight">{group.name}</span>
+                  <ChevronDown size={16} className={`text-[#8a6d3b] transition-transform ${open ? 'rotate-180' : ''}`} />
+                </button>
+                {open && (
+                  <div className="px-2 pb-2 space-y-1.5">
+                    {leaves.map((leaf) => {
+                      const selected = selectedTag === leaf.tag;
+                      return (
+                        <div key={leaf.tag}>
+                          <button
+                            type="button"
+                            onClick={() => onSelect(leaf)}
+                            className={`w-full min-h-[48px] flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left border ${
+                              selected
+                                ? 'bg-[#f6ecd4] border-[#cbb387]'
+                                : 'bg-[#fdfbf7] border-[#e8d5b0]'
+                            }`}
+                          >
+                            <span className="text-[15px] font-bold min-w-0 truncate">{leaf.name}</span>
+                            <MasteryBar
+                              score={leaf.score}
+                              hint={leaf.row ? [leaf.row.mastery_note, masteryHint(leaf.row)].filter(Boolean).join(' · ') : ''}
+                            />
+                          </button>
+                          {(leaf.extensions || []).map((ext) => (
+                            <button
+                              key={ext.tag}
+                              type="button"
+                              onClick={() => onSelect({ ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true })}
+                              className={`mt-1 ml-4 w-[calc(100%-1rem)] min-h-[44px] flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left border ${
+                                selectedTag === ext.tag
+                                  ? 'bg-[#f6ecd4] border-[#cbb387]'
+                                  : 'bg-[#f6ecd4]/70 border-[#e8d5b0]'
+                              }`}
+                            >
+                              <span className="text-sm font-bold min-w-0 truncate">{ext.name}</span>
+                              <MasteryBar score={ext.score} hint={ext.row ? masteryHint(ext.row) : ''} />
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        ))
-      )}
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }
 
 export default function Knowledge() {
   const [track, setTrack] = useState('xingce');
-  const pack = packOf(track);
-  const [modId, setModId] = useState(pack.modules[0]?.id || '');
-  const [openId, setOpenId] = useState(pack.modules[0]?.types[0]?.id || '');
+  const [modId, setModId] = useState('shuliang');
+  const [selectedTag, setSelectedTag] = useState('数量关系-数学运算-平均数问题');
+  const [openId, setOpenId] = useState('');
   const [rows, setRows] = useState([]);
+  const [aliases, setAliases] = useState([]);
   const [overrides, setOverrides] = useState(loadOverrides);
 
   const persist = (next) => {
@@ -586,10 +599,11 @@ export default function Knowledge() {
 
   useEffect(() => {
     const apply = (detail) => {
-      if (!detail?.moduleId || !detail?.typeId) return;
+      if (!detail) return;
       setTrack(detail.track || 'xingce');
-      setModId(detail.moduleId);
-      setOpenId(detail.typeId);
+      if (detail.moduleId) setModId(detail.moduleId);
+      if (detail.tag) setSelectedTag(detail.tag);
+      if (detail.typeId) setOpenId(detail.typeId);
     };
     apply(consumeKnowledgeFocus());
     const onOpen = (e) => apply(e.detail);
@@ -600,7 +614,10 @@ export default function Knowledge() {
   useEffect(() => {
     const load = () => {
       api('/api/kaodian')
-        .then((d) => setRows(d?.items || []))
+        .then((d) => {
+          setRows(d?.items || []);
+          setAliases(d?.aliases || []);
+        })
         .catch(() => {});
     };
     load();
@@ -615,23 +632,26 @@ export default function Knowledge() {
     };
   }, []);
 
-  const selectTrack = (nextTrack) => {
-    setTrack(nextTrack);
-    if (nextTrack === 'mine') return;
-    const next = packOf(nextTrack);
-    const first = next.modules[0];
-    setModId(first?.id || '');
-    setOpenId(first?.types[0]?.id || '');
-  };
+  const tree = useMemo(() => mergeFenbiTree(rows, aliases), [rows, aliases]);
+  const fenbiMod = tree.find((m) => m.id === modId) || tree[0];
+  const aliasLookup = useMemo(() => aliasMapFrom(aliases), [aliases]);
+  const leftover = useMemo(() => leftoverRows(rows, aliasLookup), [rows, aliasLookup]);
+
+  const selectedLeaf = useMemo(() => {
+    if (!fenbiMod || !selectedTag) return null;
+    for (const group of fenbiMod.children || []) {
+      for (const leaf of group.children || []) {
+        if (leaf.tag === selectedTag) return leaf;
+        const ext = (leaf.extensions || []).find((item) => item.tag === selectedTag);
+        if (ext) return { ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true };
+      }
+    }
+    return null;
+  }, [fenbiMod, selectedTag]);
 
   const extras = overrides.extras[modId] || [];
-  const mod = pack.modules.find((m) => m.id === modId) || pack.modules[0];
-  const types = [...(mod?.types || []), ...extras];
-  const used = new Set();
-  for (const t of types) {
-    for (const r of relatedRows(t, rows)) used.add(r.kaodian);
-  }
-  const leftover = rows.filter((r) => r.module === mod?.name && !used.has(r.kaodian));
+  const mappedCards = selectedLeaf ? cardsForNode(selectedLeaf, fenbiMod) : methodCardsFor(fenbiMod);
+  const types = [...mappedCards, ...extras];
 
   const saveCard = (id, patch, custom) => {
     if (custom) {
@@ -666,149 +686,130 @@ export default function Knowledge() {
     if (openId === id) setOpenId('');
   };
 
-  const addProfile = async (kaodian, module) => {
-    try {
-      const row = await api('/api/kaodian/mastery', {
-        method: 'POST',
-        body: { kaodian, note: '自己补的考点，先记着', module },
-      });
-      setRows((prev) => {
-        const rest = prev.filter((r) => r.kaodian !== row.kaodian);
-        return [...rest, row];
-      });
-    } catch {
-      /* ignore */
+  const selectTrack = (nextTrack) => {
+    setTrack(nextTrack);
+    if (nextTrack === 'shenlun') {
+      setModId('');
+      setSelectedTag('');
     }
   };
+
+  const pill = (active) =>
+    `min-h-[44px] px-5 py-2.5 rounded-full text-sm font-black transition-all ${
+      active ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500 hover:border-[#1a1a1a]'
+    }`;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         {TRACKS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => selectTrack(t.id)}
-            className={`px-5 py-2.5 rounded-full text-sm font-black transition-all ${
-              track === t.id
-                ? 'bg-[#1a1a1a] text-white'
-                : 'bg-white border border-[#e8d5b0] text-slate-500 hover:border-[#1a1a1a]'
-            }`}
-          >
+          <button key={t.id} type="button" onClick={() => selectTrack(t.id)} className={pill(track === t.id)}>
             {t.name}
             <span className="ml-2 text-[10px] font-bold opacity-60">{t.hint}</span>
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => selectTrack('mine')}
-          className={`px-5 py-2.5 rounded-full text-sm font-black transition-all ${
-            track === 'mine'
-              ? 'bg-[#1a1a1a] text-white'
-              : 'bg-white border border-[#e8d5b0] text-slate-500 hover:border-[#1a1a1a]'
-          }`}
-        >
+        <button type="button" onClick={() => selectTrack('mine')} className={pill(track === 'mine')}>
           我的考点
           <span className="ml-2 text-[10px] font-bold opacity-60">{rows.length}</span>
         </button>
       </div>
 
-      {track === 'mine' ? (
-        <ProfileList rows={rows} onAdd={addProfile} />
+      {track === 'shenlun' ? (
+        <div className="rounded-3xl bg-[#fdfbf7] border border-[#e8d5b0] p-10 text-center text-sm text-slate-500 font-medium">
+          申论步骤还没写进老师口径。真题上传并要求补的时候再填。
+        </div>
       ) : (
         <>
           <div className="rounded-3xl bg-[#1a1a1a] text-white p-6">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-2">
-              {pack.intro.title}
-            </p>
-            <div className="space-y-2 text-sm leading-relaxed opacity-90">
-              {pack.intro.lines.map((l) => (
-                <p key={l}>{l}</p>
-              ))}
-            </div>
-            <p className="mt-3 text-xs opacity-70">
-              名字右边那排斜条是掌握度：没接触过全灰，亮起来从红到绿。跟 Hermes 聊题、复盘、改错，它都会按你当时的实际情况改。口径不够用就点「改口径」，或自己补一张。
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-2">粉笔广东·省市类树</p>
+            <p className="text-sm leading-relaxed opacity-90">
+              政治 / 常识 / 言语 / 数量 / 判断按粉笔一级→二级展开。右边斜条是掌握度，旧长标签通过别名对到新节点，画像不会清零。
+              Hermes 要更细的叶子，登记成 `模块-一级-二级-子题型`，刷新后挂在对应二级下面。
             </p>
           </div>
 
-          {pack.modules.length === 0 ? (
-            <div className="rounded-3xl bg-white border border-[#e8d5b0] p-10 text-center text-sm text-slate-500 font-medium">
-              申论步骤还没写进老师口径。真题上传并要求补的时候再填。
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-6 items-start">
-              <nav className="lg:sticky lg:top-0 flex lg:flex-col lg:items-center gap-2 overflow-x-auto [scrollbar-width:none]">
-                {pack.modules.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => {
-                      setModId(m.id);
-                      setOpenId(m.types[0]?.id || '');
-                    }}
-                    className={`flex-shrink-0 w-full max-w-[14rem] text-center px-4 py-3 rounded-2xl transition-all ${
-                      m.id === mod?.id
-                        ? 'bg-[#1a1a1a] text-white'
-                        : 'bg-white border border-[#e8d5b0] hover:border-[#1a1a1a]'
-                    }`}
-                  >
-                    <p className="text-sm font-black">{m.name}</p>
-                    <p className={`text-[10px] font-bold mt-0.5 ${m.id === mod?.id ? 'opacity-60' : 'text-slate-400'}`}>
-                      {m.qty}
-                    </p>
-                  </button>
-                ))}
-              </nav>
+          <nav className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+            {tree.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => {
+                  setModId(m.id);
+                  const first = m.children?.[0]?.children?.[0];
+                  setSelectedTag(first?.tag || '');
+                  setOpenId('');
+                }}
+                className={`flex-shrink-0 min-h-[48px] min-w-[7.5rem] px-4 py-3 rounded-2xl text-center ${
+                  m.id === fenbiMod?.id ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0]'
+                }`}
+              >
+                <p className="text-sm font-black">{m.name}</p>
+                <p className={`text-[10px] font-bold mt-0.5 ${m.id === fenbiMod?.id ? 'opacity-60' : 'text-slate-400'}`}>
+                  {m.qty}
+                </p>
+              </button>
+            ))}
+          </nav>
 
-              <div className="space-y-4 min-w-0">
-                {mod && (
-                  <>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl font-black tracking-tight">
-                          {mod.name}
-                          <span className="ml-2 text-sm font-bold text-slate-400">{mod.qty}</span>
-                        </h3>
-                        <p className="text-sm text-slate-500 mt-1 leading-relaxed">{mod.blurb}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={addExtra}
-                        className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-[#e8d5b0] text-xs font-black hover:border-[#1a1a1a]"
-                      >
-                        <Plus size={12} /> 补一张
-                      </button>
-                    </div>
-                    {types.map((t) => (
-                      <TypeCard
-                        key={t.id}
-                        t={t}
-                        open={openId === t.id}
-                        onToggle={() => setOpenId((id) => (id === t.id ? '' : t.id))}
-                        rows={rows}
-                        override={overrides.cards[t.id]}
-                        onSave={(patch) => saveCard(t.id, patch, t.custom)}
-                        onDelete={t.custom ? () => removeExtra(t.id) : undefined}
-                      />
-                    ))}
-                    {leftover.length > 0 && (
-                      <section className="pt-2 space-y-3">
-                        <h4 className="text-sm font-black text-slate-500">这个模块里还对不上卡片的考点</h4>
-                        {leftover.map((r) => (
-                          <article key={r.kaodian} className="rounded-3xl bg-white border border-dashed border-[#e8d5b0] px-5 py-4">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-black">{r.kaodian}</p>
-                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
-                            </div>
-                          </article>
-                        ))}
-                      </section>
-                    )}
-                  </>
-                )}
-              </div>
+          <div className="grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-6 items-start">
+            <div className="rounded-3xl border border-[#e8d5b0] bg-[#fdfbf7] p-3">
+              <FenbiTree
+                modules={fenbiMod ? [fenbiMod] : []}
+                selectedTag={selectedTag}
+                filterScored={track === 'mine'}
+                onSelect={(leaf) => {
+                  setSelectedTag(leaf.tag);
+                  setOpenId('');
+                }}
+              />
             </div>
-          )}
+
+            <div className="space-y-4 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-xl font-black tracking-tight">
+                    {selectedLeaf?.name || fenbiMod?.name}
+                    <span className="ml-2 text-sm font-bold text-slate-400">{selectedLeaf?.tag || fenbiMod?.qty}</span>
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                    {selectedLeaf?.tag || fenbiMod?.blurb}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addExtra}
+                  className="flex-shrink-0 min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#faf6ec] border border-[#e8d5b0] text-xs font-black hover:border-[#1a1a1a]"
+                >
+                  <Plus size={12} /> 补一张
+                </button>
+              </div>
+              {types.map((t) => (
+                <TypeCard
+                  key={t.id}
+                  t={t}
+                  open={openId === t.id}
+                  onToggle={() => setOpenId((id) => (id === t.id ? '' : t.id))}
+                  rows={rows}
+                  override={overrides.cards[t.id]}
+                  onSave={(patch) => saveCard(t.id, patch, t.custom)}
+                  onDelete={t.custom ? () => removeExtra(t.id) : undefined}
+                />
+              ))}
+              {track === 'mine' && leftover.length > 0 && (
+                <section className="pt-2 space-y-3">
+                  <h4 className="text-sm font-black text-slate-500">还对不上粉笔树的旧标签 / 资料分析</h4>
+                  {leftover.map((r) => (
+                    <article key={r.kaodian} className="rounded-3xl bg-[#faf6ec] border border-dashed border-[#e8d5b0] px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-black">{r.kaodian}</p>
+                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
+                      </div>
+                    </article>
+                  ))}
+                </section>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>

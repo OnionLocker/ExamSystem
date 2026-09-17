@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kaodian_taxonomy import canonicalize, validate_ai_primary_tag
+from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, tags_for_canon_lookup, validate_ai_primary_tag
 from normalize_ai_batch import generation_payload_extras
 from scheduler_common import DB, ROOT, difficulty_tier, load_snapshot, local_today
 from spoken_quiz_intent import slug_of
@@ -125,13 +125,20 @@ def reject_unsupported(module: str, tag: str) -> None:
 
 
 def infer_subcategory(tag: str, module: str) -> str:
-    parts = [p for p in (tag or "").split("-") if p]
+    parsed = parse_fenbi_tag(tag)
+    if parsed:
+        return parsed[1]
     if module == "判断推理":
         return "逻辑判断"
     if module == "数量关系":
         return "数字推理" if "数字推理" in tag else "数学运算"
     if module == "言语理解与表达":
-        return "逻辑填空" if "逻辑填空" in tag else "片段阅读"
+        if "逻辑填空" in tag:
+            return "逻辑填空"
+        if "语句表达" in tag:
+            return "语句表达"
+        return "片段阅读"
+    parts = [p for p in (tag or "").split("-") if p]
     return parts[1] if len(parts) > 1 else module
 
 
@@ -283,7 +290,13 @@ def canon_card(module: str, tag: str) -> str:
     if not name or not (CANON_DIR / name).is_file():
         return ""
     text = (CANON_DIR / name).read_text(encoding="utf-8")
-    card = next((part for part in text.split("\n### ") if f"`{tag}`" in part), None)
+    card = None
+    matched = tag
+    for candidate in tags_for_canon_lookup(tag):
+        card = next((part for part in text.split("\n### ") if f"`{candidate}`" in part), None)
+        if card:
+            matched = candidate
+            break
     if not card:
         return ""
     sections = card_sections(card)
@@ -292,7 +305,19 @@ def canon_card(module: str, tag: str) -> str:
         parts.append("固定识别：" + sections["固定识别"])
     steps = sections.get("考场步骤", "")
     if steps:
-        own = [block for block in bullet_blocks(steps) if f"`{tag}`" in block]
+        if is_fenbi_l3(tag):
+            own = []
+        else:
+            candidates = tags_for_canon_lookup(tag)
+            own = [block for block in bullet_blocks(steps) if f"`{tag}`" in block]
+            if not own:
+                own = [block for block in bullet_blocks(steps) if f"`{matched}`" in block]
+            if not own:
+                own = [
+                    block
+                    for block in bullet_blocks(steps)
+                    if any(f"`{candidate}`" in block for candidate in candidates)
+                ]
         parts.append("考场步骤：\n" + "\n".join(own or bullet_blocks(steps)))
     if sections.get("禁止"):
         parts.append("禁止：" + sections["禁止"])

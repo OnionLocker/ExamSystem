@@ -13,7 +13,7 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
 - 只有明确作答、复盘能确认对错时才记录；“聊到过”“听懂了”“感觉会了”不算证据。
 - **AI 练题复盘只读**：交卷接口已经写入，禁止再 `record()`。
 - **录屏/真题复盘必须记**：视频分析本身不落库。带上报告讲解时，对每道有对错的题用 `exam --exam-id <场次id> --item <题号>` 写一次；重复带同一场同一题会 `already recorded`，不要换标签再记。
-- 确认是独立新考点时，先用 `--register <标签> <模块> <一级> [备注]` 登记，再用 `--record` 记录本题。
+- 确认是独立新考点时，先用 `--register '模块-一级-二级-子题型' <模块> <一级> [备注]` 把叶子挂在粉笔 L3 下，再用 `--record` 记录本题。
 - `--mastery` 仅供 Russell 明确要求人工覆盖分数时使用；Hermes 禁止凭感觉填写 0–100。
 - Mastery/profile bookkeeping must run silently in the background. Never show commands, tool output, database-write details, mastery scores, confidence, sample counts, or bookkeeping summaries unless Russell explicitly asks for statistics.
 
