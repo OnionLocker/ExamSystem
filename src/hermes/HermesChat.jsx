@@ -270,6 +270,18 @@ const readFontScale = () => {
   return 100;
 };
 
+const fmtTokens = (n) => {
+  const v = Number(n) || 0;
+  if (v >= 1000000) return `${(v / 1048576).toFixed(v >= 10485760 ? 0 : 1).replace(/\.0$/, '')}M`;
+  if (v >= 1000) return `${Math.round(v / 1000)}K`;
+  return String(v);
+};
+
+const fmtMinutes = (sec) => {
+  const s = Math.max(0, Math.round(sec || 0));
+  return s >= 60 ? `${Math.floor(s / 60)} 分 ${String(s % 60).padStart(2, '0')} 秒` : `${s} 秒`;
+};
+
 // 消息导航刻度：静止 12px，指针最近处放大到 26px，34px 内平滑过渡成波浪
 const TICK_MIN_W = 12;
 const TICK_LIFT = 14;
@@ -338,6 +350,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [reviewMd, setReviewMd] = useState('');
   const [reviewMdErr, setReviewMdErr] = useState('');
   const [activeMessageId, setActiveMessageId] = useState(null);
+  // 网关每轮随 message.complete 推 usage（context_used/max/percent），切会话时再补一次
+  const [usage, setUsage] = useState(null);
   // railFocus = { y, index }：指针（或手指）在导航轨道上的位置，驱动波浪和信息卡
   const [railFocus, setRailFocus] = useState(null);
   const [railScrub, setRailScrub] = useState(false);
@@ -552,6 +566,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       })),
       gw.on('message.complete', onActive((ev) => {
         const review = practiceReviewRef.current;
+        if (ev.payload?.usage) setUsage(ev.payload.usage);
         finishStreaming(eventText(ev));
         practiceReviewRef.current = null;
         if (review?.kind !== 'practice' || review.profileReviewed) return;
@@ -791,6 +806,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       .catch((err) => setBanner(`重连会话失败：${err.message}`));
   }, [connState, applyResume]);
 
+  // usage 只随 message.complete 推送，打开一个老会话时先主动问一次，
+  // 否则指示器要等你发完一轮才有数。
+  useEffect(() => {
+    const gw = gwRef.current;
+    if (!gw || connState !== 'open' || !sid) return undefined;
+    let cancelled = false;
+    gw.request('session.usage', { session_id: sid })
+      .then((res) => { if (!cancelled && res && typeof res === 'object') setUsage(res); })
+      .catch(() => { /* 老版本 gateway 没有这个方法，指示器留空即可 */ });
+    return () => { cancelled = true; };
+  }, [sid, connState]);
+
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
     window.addEventListener('resize', onResize);
@@ -843,6 +870,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setStatus('载入会话');
     try {
       setMessages([]);
+      setUsage(null);
       const res = await gw.request('session.resume', { session_id: stored.id, cols: 100 });
       applyResume(res, stored.id, { stick: true });
     } catch (err) {
@@ -862,6 +890,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const res = await gw.request('session.create', await sessionCreateParams());
       rememberSession(res);
       setMessages([]);
+      setUsage(null);
       setPendingImages([]);
       setPendingAudio(null);
       setPendingReview(null);
@@ -1912,6 +1941,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     practiceSessionForMessage(messageId) ? String(messageId) : undefined
   );
 
+  // 上下文占用。口径完全用网关的：context_used 是当前窗口实际占用，
+  // 只有压缩器报出真实值时才有——拿不到就不显示，不编一个 0% 出来。
+  const contextGauge = (() => {
+    const used = Number(usage?.context_used);
+    const max = Number(usage?.context_max);
+    if (!Number.isFinite(used) || !Number.isFinite(max) || used <= 0 || max <= 0) return null;
+    const percent = Math.max(0, Math.min(100, Math.round((used / max) * 100)));
+    // 语音是唯一会在后续每轮整包重传的附件，而 token 百分比不会告诉你负担来自哪，
+    // 所以把它单独点出来。时长取自消息上的语音标签，resume 之后依然在。
+    const voices = messages.filter((m) => m.role === 'user' && (m.audio || m.audioSec > 0 || m.hadAudio));
+    const voiceSec = voices.reduce((sum, m) => sum + (Number(m.audioSec) || 0), 0);
+    return {
+      percent,
+      used,
+      max,
+      level: percent >= 75 ? 'is-high' : percent >= 50 ? 'is-mid' : '',
+      detail: [
+        `上下文占用 ${percent}%（${used.toLocaleString()} / ${max.toLocaleString()} tokens）`,
+        voices.length ? `本会话 ${voices.length} 段语音，共 ${fmtMinutes(voiceSec)}；语音会在之后每一轮整包重传` : '',
+        usage?.compressions ? `已自动压缩 ${usage.compressions} 次` : '',
+        percent >= 75 ? '偏重了：可以开新会话，或让它先压缩上下文' : '',
+      ].filter(Boolean).join('\n'),
+    };
+  })();
+
   const connLabel = {
     idle: '未连接', connecting: '连接中…', open: '已连接', closed: '已断开', error: '连接失败',
   }[connState] || connState;
@@ -2457,12 +2511,24 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             )}
           </div>
 
-          {!fullscreen && (
-            <p className="mt-1.5 px-1 text-[10px] text-[#ccc] flex items-center space-x-1">
-              <ImageIcon size={9} />
-              <span>Hermes 拥有终端与文件权限，请谨慎发送指令</span>
-            </p>
-          )}
+          <div className="mt-1.5 px-1 flex items-center gap-2">
+            {!fullscreen && (
+              <p className="text-[10px] text-[#ccc] flex items-center space-x-1 min-w-0">
+                <ImageIcon size={9} />
+                <span className="truncate">Hermes 拥有终端与文件权限，请谨慎发送指令</span>
+              </p>
+            )}
+            {contextGauge && (
+              <div className={`hermes-ctx ml-auto ${contextGauge.level}`} title={contextGauge.detail}>
+                <span className="hermes-ctx-bar" aria-hidden="true">
+                  <span style={{ width: `${contextGauge.percent}%` }} />
+                </span>
+                <span className="hermes-ctx-text">
+                  {contextGauge.percent}% · {fmtTokens(contextGauge.used)}/{fmtTokens(contextGauge.max)}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       {reviewPreview && (
