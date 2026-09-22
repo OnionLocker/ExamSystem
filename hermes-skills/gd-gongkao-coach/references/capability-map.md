@@ -35,7 +35,7 @@ last_updated: 2026-08-22
 ### B. 解析复盘 —— `gd-gongkao-coach` + `software-development/exam-coaching-gd-provincial`
 触发：用户上传做题 PDF、说"讲解一下"、"复盘"、"看我的草稿"。
 **只认两个来源，禁止 search_files / 乱 ls / 猜错仓库名。本机无 sqlite3 CLI，用 python3。**
-- AI 练题 → `/home/ubuntu/ExamSystem/data/exam.db` 的 `practice_sessions`（最近一场）
+- AI 练题 → 用户消息里的报告 Markdown（已附草稿图）；禁止再查 `exam.db` 探路
 - 资料上传 → `/home/ubuntu/ExamSystem/data/uploads/YYYY.MM.DD/pdf/` 最新 PDF，fitz 抽文字
 流程：按来源直接打开 → 联动正确性、用时与草稿筛选复盘重点 → 错题三段式解析 / 正确异常题简析 → **写画像**。
 硬约束：非带图题必附完整原题；错题用【为什么会错】【解题流程】【下次怎么做】；正确但慢、有草稿或方法绕远的题也要看，正确快速且草稿干净的题略过；草稿图只在用户明确要求时读，一次≤10张（一张约3.7万token且每轮重发）。
