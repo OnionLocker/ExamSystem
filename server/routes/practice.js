@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import crypto from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,6 +11,9 @@ const router = Router();
 
 // 错题连对几次才算掌握、退出错题本
 const MISTAKE_CLEAR = 2;
+
+// 空题盯够这么久仍然交白卷，就按错题处理（与 kaodian_profile.BLANK_WEIGHTS 的满权重档一致）
+const BLANK_AS_WRONG_SEC = 60;
 
 const parseTags = (raw) => {
   if (!raw) return [];
@@ -28,6 +31,22 @@ const draftDir = process.env.EXAM_DRAFT_DIR
 const practiceReviewDir = path.join(__dirname, '..', '..', 'data', 'practice-reviews');
 if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
 if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursive: true });
+
+const projectRoot = path.join(__dirname, '..', '..');
+
+// 空题证据交给脚本写：考点别名归一、知识债、熟练度重算都在 Python 那边，
+// 这里再实现一遍就是两套口径。异步跑，交卷响应不等它。
+const recordBlanksLater = (sessionId) => {
+  execFile(
+    'python3',
+    [path.join(projectRoot, 'scripts', 'kaodian_profile.py'), '--record-blanks', String(sessionId)],
+    { cwd: projectRoot, timeout: 30000 },
+    (err, stdout, stderr) => {
+      if (err) console.error(`[practice] 空题证据写入失败 session=${sessionId}:`, stderr || err.message);
+      else if (stdout.trim()) console.log(`[practice] 空题证据 ${stdout.trim()}`);
+    },
+  );
+};
 
 const DRAFT_MAX_BYTES = 8 * 1024 * 1024;
 
@@ -243,10 +262,14 @@ router.post('/sessions/:id/submit', (req, res) => {
 
       insertAnswer.run(sessionId, q.id, userAnswer, isCorrect ? 1 : 0, timeSpent);
 
-      // 跳过的题不进错题本也不算考点样本：它反映的是没时间，不是不会
+      // 空题按停留时间区别对待：盯了一分钟以上仍然交白卷，和做错是同一回事，
+      // 该进错题本；几秒翻过去才是真的没看，不留痕迹。
+      // 考点证据由 recordBlanksLater 统一写，权重同样按停留时间分档。
       if (!skipped) {
         if (isCorrect) clearMistake.run(q.id);
         else addMistake.run(q.id);
+      } else if (timeSpent >= BLANK_AS_WRONG_SEC) {
+        addMistake.run(q.id);
       }
 
       results.push({
@@ -269,6 +292,7 @@ router.post('/sessions/:id/submit', (req, res) => {
   });
 
   const { results, correct } = grade(answers);
+  recordBlanksLater(sessionId);
   reconcileDailyPlanBatch(session.category);
   res.json({
     total: results.length,

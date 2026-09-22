@@ -123,6 +123,54 @@ assert.equal(complete.status, 200);
 assert.equal(db.prepare('SELECT profile_reviewed_at IS NOT NULL AS reviewed FROM practice_sessions WHERE id=?').get(sessions[0].id).reviewed, 1);
 assert.equal(db.pragma('integrity_check', { simple: true }), 'ok');
 
+// ── 空题：交卷即写证据，不等模型自觉 ──
+const [longBlank, shortBlank] = db.prepare(
+  'SELECT id FROM questions WHERE id != ? ORDER BY id LIMIT 2',
+).all(question.id);
+for (const row of [longBlank, shortBlank]) {
+  db.prepare(
+    `UPDATE questions
+        SET correct_answer='C', category='数量关系', sub_category='数学运算',
+            tags=?, question_type='single'
+      WHERE id=?`,
+  ).run(JSON.stringify([alias]), row.id);
+}
+
+const blankSession = await call('/api/practice/sessions', { category: 'blank-evidence' });
+await call(`/api/practice/sessions/${blankSession.id}/submit`, {
+  duration_sec: 200,
+  answers: [
+    { question_id: longBlank.id, user_answer: '', time_spent_sec: 120 },
+    { question_id: shortBlank.id, user_answer: '', time_spent_sec: 3 },
+  ],
+});
+
+// 证据由子进程异步写入，轮询等它落库
+const blankEvents = () => db.prepare(
+  'SELECT question_id, is_correct, evidence_weight FROM kaodian_events WHERE session_id=?',
+).all(blankSession.id);
+for (let wait = 0; wait < 100 && blankEvents().length === 0; wait += 1) {
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
+const written = blankEvents();
+assert.equal(written.length, 1, '只有盯久了的那道空题算证据');
+assert.equal(written[0].question_id, longBlank.id);
+assert.equal(written[0].is_correct, 0, '空题记为不会');
+assert.equal(written[0].evidence_weight, 1, '停留 120 秒是满权重证据');
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(longBlank.id).n, 1);
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(shortBlank.id).n, 0);
+
+// 还差一道没写证据，封存必须被拒绝
+const refused = spawnSync('python3', [
+  'scripts/kaodian_profile.py', '--seal-practice', String(blankSession.id),
+], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+assert.equal(refused.status, 0, (refused.stderr || '') + (refused.stdout || ''));
+assert.match(refused.stdout, /refused/);
+assert.equal(
+  db.prepare('SELECT profile_reviewed_at FROM practice_sessions WHERE id=?').get(blankSession.id).profile_reviewed_at,
+  null,
+);
+
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',

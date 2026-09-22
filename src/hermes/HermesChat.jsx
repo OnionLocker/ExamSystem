@@ -1165,11 +1165,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               ]
             : []),
           `本场（practice_sessions.id=${review.id}）尚未封存。必须逐题结合答案、用时、草稿实图和过程质量判断“可复现掌握”后写入画像。`,
-          '每道有知识点的题都要写一次；答对但蒙对、方法不稳、步骤不可复现，结果填 0；只有答案正确且过程可靠可复现才填 1。空题明确视为不会，按 0 写入。',
+          '每道有作答的题都要写一次；答对但蒙对、方法不稳、步骤不可复现，结果填 0；只有答案正确且过程可靠可复现才填 1。',
+          '空题不用你写：交卷时系统已按停留时长自动记为不会（盯满 1 分钟算满权重证据，几秒翻过的不算）。你只写有作答的题，空题仍要在正文里讲。',
           '权重是证据可信度，不是分数：完整答案+草稿+过程清楚用 1.0；缺草稿或过程只能部分判断用 0.5-0.8；明显猜测、绕路或证据不足用 0.3-0.5。权重必须在 0.1-1.5。',
           `逐题使用：python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' <0或1> <用时毫秒> practice --weight <0.1-1.5> --practice-id ${review.id} --item <题目id>`,
           '题目id、模块、一级和用时严格取报告表格；没有明确知识点或证据不足以判断时不要编造标签。命令返回 already recorded 就跳过。',
           `所有可判断题写完后，且仅在写入命令均成功后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --seal-practice ${review.id}`,
+          '封存有覆盖率闸门：还有题没写证据时它会打印 refused 并列出缺的题目id，这时补齐再封，不要用 --force 绕过。',
         ].join('\n')
       : review?.kind === 'exam'
 

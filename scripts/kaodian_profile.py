@@ -231,8 +231,38 @@ def practice_session_sealed(conn, session_id):
     return bool(row and row[0])
 
 
-def seal_practice(conn, session_id):
+def practice_coverage(conn, session_id):
+    """这一场有几道题该有证据、已经写了几道、还差哪几道。"""
+    rows = conn.execute(
+        """SELECT pa.question_id, q.tags
+             FROM practice_answers pa
+             JOIN questions q ON q.id = pa.question_id
+            WHERE pa.session_id = ?
+            ORDER BY pa.id""",
+        (int(session_id),),
+    ).fetchall()
+    eligible = [qid for qid, tags in rows if primary_tag(tags)]
+    written = {
+        row[0] for row in conn.execute(
+            """SELECT DISTINCT question_id FROM kaodian_events
+                WHERE session_id=? AND question_id IS NOT NULL""",
+            (int(session_id),),
+        )
+    }
+    missing = [qid for qid in eligible if qid not in written]
+    return len(eligible), len(eligible) - len(missing), missing
+
+
+def seal_practice(conn, session_id, force=False):
+    """封存前先查覆盖率：漏记的题一旦封存就永远补不回来。
+
+    服务端 review-complete 一直有这道闸门，脚本这边没有，而模型走的正是脚本，
+    于是 #310 只写了 2/10 条证据也照样封死。两边口径必须一致。
+    """
     ensure_schema(conn)
+    eligible, written, missing = practice_coverage(conn, session_id)
+    if missing and not force:
+        return {"sealed": False, "eligible": eligible, "recorded": written, "missing": missing}
     try:
         cur = conn.execute(
             """UPDATE practice_sessions
@@ -240,9 +270,9 @@ def seal_practice(conn, session_id):
                 WHERE id=? AND profile_reviewed_at IS NULL""",
             (session_id,),
         )
-        return cur.rowcount > 0
+        return {"sealed": cur.rowcount > 0, "eligible": eligible, "recorded": written, "missing": missing}
     except sqlite3.OperationalError:
-        return False
+        return {"sealed": False, "eligible": eligible, "recorded": written, "missing": missing}
 
 
 def apply_debt(conn, kaodian, is_correct):
@@ -351,6 +381,72 @@ def undo_practice_session(conn, session_id):
     for kaodian in canonicals:
         rebuild_kaodian(conn, kaodian)
     return len(tags)
+
+
+# 空题的停留时间就是它的证据强度：盯了几分钟仍然交白卷，和做错一样说明不会；
+# 几秒翻过去只说明没看题，不构成证据。实测 130 道空题是双峰分布（63 道 ≥60 秒、
+# 42 道 <5 秒），所以按停留分档，而不是一刀切。
+BLANK_WEIGHTS = ((60, 1.0), (20, 0.7), (5, 0.4))
+
+
+def blank_weight(seconds):
+    for floor, weight in BLANK_WEIGHTS:
+        if seconds >= floor:
+            return weight
+    return 0.0
+
+
+def primary_tag(raw_tags):
+    """题目的规范主标签：tags[0]。取不到就返回空串，调用方跳过这道题。"""
+    try:
+        tags = json.loads(raw_tags or "[]")
+    except (TypeError, ValueError):
+        return ""
+    if isinstance(tags, str):
+        tags = [tags]
+    for tag in tags or []:
+        text = str(tag or "").strip()
+        if text:
+            return text
+    return ""
+
+
+def record_blanks(conn, session_id):
+    """把一场练习里的空题按"不会"写进画像。
+
+    模型复盘时经常漏记空题（#310 十道里八道空，只写了两条证据，画像反而把
+    10% 的正确率看成 50%）。空题不需要任何判断——交卷那一刻就能确定，所以在
+    这里直接写，不进模型的自觉范围。
+    """
+    ensure_schema(conn)
+    if practice_session_sealed(conn, session_id):
+        return {"sealed": True, "recorded": 0, "skipped": 0}
+    rows = conn.execute(
+        """SELECT pa.question_id, pa.time_spent_sec, q.tags
+             FROM practice_answers pa
+             JOIN questions q ON q.id = pa.question_id
+            WHERE pa.session_id = ?
+              AND (pa.user_answer IS NULL OR pa.user_answer = '')""",
+        (int(session_id),),
+    ).fetchall()
+    recorded = 0
+    skipped = 0
+    for question_id, seconds, raw_tags in rows:
+        tag = primary_tag(raw_tags)
+        weight = blank_weight(int(seconds or 0))
+        if not tag or weight == 0.0:
+            skipped += 1
+            continue
+        if record(
+            conn, tag, "", "", False,
+            int(seconds or 0) * 1000, "practice", weight,
+            session_id=int(session_id), question_id=int(question_id),
+            practice_lock=True,
+        ):
+            recorded += 1
+        else:
+            skipped += 1
+    return {"sealed": False, "recorded": recorded, "skipped": skipped, "blanks": len(rows)}
 
 
 def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0, session_id=None, question_id=None, practice_lock=False):
@@ -800,9 +896,40 @@ if __name__ == "__main__":
             raise SystemExit("用法：--seal-practice <practice_sessions.id>")
         conn = sqlite3.connect(DB)
         ensure_schema(conn)
-        changed = seal_practice(conn, int(args[0]))
+        result = seal_practice(conn, int(args[0]), force="--force" in sys.argv)
         conn.commit()
-        print(f"{'sealed' if changed else 'already sealed'} -> practice {args[0]}")
+        if result["missing"] and not result["sealed"]:
+            missing = "、".join(str(q) for q in result["missing"])
+            print(
+                f"refused -> practice {args[0]}：还有 {len(result['missing'])} 道题没写证据"
+                f"（已写 {result['recorded']}/{result['eligible']}，缺题目id {missing}）。"
+                "补齐后再封存；确实无法判断时用 --force。"
+            )
+        else:
+            print(f"{'sealed' if result['sealed'] else 'already sealed'} -> practice {args[0]}")
+    elif "--unseal-practice" in sys.argv:
+        # 只解封，保留已写的证据。漏记被误封时用它开门补齐，
+        # 不像 --undo-practice 那样连对的那几条一起删掉。
+        args = sys.argv[sys.argv.index("--unseal-practice") + 1:]
+        if not args:
+            raise SystemExit("用法：--unseal-practice <practice_sessions.id>")
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        cur = conn.execute(
+            "UPDATE practice_sessions SET profile_reviewed_at=NULL WHERE id=?",
+            (int(args[0]),),
+        )
+        conn.commit()
+        print(f"{'unsealed' if cur.rowcount else 'not found'} -> practice {args[0]}")
+    elif "--record-blanks" in sys.argv:
+        args = sys.argv[sys.argv.index("--record-blanks") + 1:]
+        if not args:
+            raise SystemExit("用法：--record-blanks <practice_sessions.id>")
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        stats = record_blanks(conn, int(args[0]))
+        conn.commit()
+        print(json.dumps({"practice_id": int(args[0]), **stats}, ensure_ascii=False))
     elif "--undo-practice" in sys.argv:
         args = sys.argv[sys.argv.index("--undo-practice") + 1:]
         if not args:
