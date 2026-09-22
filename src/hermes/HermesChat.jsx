@@ -270,6 +270,15 @@ const readFontScale = () => {
   return 100;
 };
 
+// 口述笔记的落盘路径。录音不落库，会话一回收就听不到了，所以每段录音都先留一份
+// 文字底稿；文件名带时间戳，一段一个文件，方便日后按时间翻。
+const voiceNotePath = (projectRoot) => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  return `${projectRoot}/data/voice-notes/${stamp}-voice.md`;
+};
+
 const fmtTokens = (n) => {
   const v = Number(n) || 0;
   if (v >= 1000000) return `${(v / 1048576).toFixed(v >= 10485760 ? 0 : 1).replace(/\.0$/, '')}M`;
@@ -373,6 +382,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
   const practiceReviewRef = useRef(null);
+  // 这一轮带了录音：回合结束后要把运行时里的音频清掉，见 dropAudioFromContext
+  const voiceTurnRef = useRef(false);
+  // 连接是在挂载时建立的，事件回调拿不到后面定义的 dropAudioFromContext，用 ref 转一手
+  const dropAudioContextRef = useRef(null);
 
   const openReviewPreview = useCallback((review) => {
     setReviewMd('');
@@ -569,6 +582,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         if (ev.payload?.usage) setUsage(ev.payload.usage);
         finishStreaming(eventText(ev));
         practiceReviewRef.current = null;
+        // 录音已经用完，也已由模型写成口述笔记，现在把它从上下文里摘掉。
+        // 等一下再动手，免得撞上紧跟着的后台回执或工具事件。
+        if (voiceTurnRef.current) {
+          voiceTurnRef.current = false;
+          setTimeout(() => { void dropAudioContextRef.current?.(); }, 2000);
+        }
         if (review?.kind !== 'practice' || review.profileReviewed) return;
         api(`/api/practice/sessions/${review.id}/review-complete`, { method: 'POST' })
           .then(() => api('/api/practice/sessions?limit=100'))
@@ -738,6 +757,29 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
     if (stick) stickToBottom.current = true;
   }, [rememberSession]);
+
+  // 录音只活在运行时的消息列表里，之后每一轮都要整包重传：一段 8 分钟的口述约
+  // 2.7MB，说过三次就是每轮 3.8MB，今晚那次上游 EOF 就是这么撑出来的。
+  // 数据库只存文字，所以 close 掉运行时再 resume，历史照旧、音频归零（实测 39 条
+  // 消息一条不少）。语气已经由模型写进口述笔记，内容不会丢。
+  const dropAudioFromContext = useCallback(async () => {
+    const gw = gwRef.current;
+    const stored = activeStoredIdRef.current;
+    const live = sidRef.current;
+    if (!gw || gw.connectionState !== 'open' || !stored || !live) return;
+    if (sendingRef.current) return;
+    try {
+      await gw.request('session.close', { session_id: live });
+      const res = await gw.request('session.resume', { session_id: stored, cols: 100 });
+      applyResume(res, stored, { allowSwitch: false });
+    } catch {
+      /* 清不掉就算了，下一次会话回收时系统也会把音频丢掉 */
+    }
+  }, [applyResume]);
+
+  useEffect(() => {
+    dropAudioContextRef.current = dropAudioFromContext;
+  }, [dropAudioFromContext]);
 
   const historySupportedRef = useRef(null);
   const syncingRef = useRef(false);
@@ -1087,6 +1129,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const images = pendingImages;
     const review = pendingReview;
     practiceReviewRef.current = review;
+    voiceTurnRef.current = Boolean(audio);
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
       : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
@@ -1321,6 +1364,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ? [
             '下面附了口述录音，请直接听，不要转写成文字，不要让用户改成打字。',
             '录音才是本轮指令。不要把时长标签当作用户正文。',
+            // 录音本身不落库，会话一被回收就永远听不到了；而它留在运行时里，
+            // 之后每一轮都要整包重传。所以听完先留一份文字底稿，再把音频丢掉。
+            `听完之后、回答之前，先把这段口述写成笔记存到 ${voiceNotePath(projectRoot)}（用 write_file，一次写完，不要先 ls 或读目录）。`,
+            '笔记用四段：`## 我说了什么`（逐条列要点，保留具体数字、题号和人名）、`## 语气与状态`（急躁/困惑/有把握/疲惫，以及听出来的犹豫或强调）、`## 你要做的事`（据此要执行的动作）、`## 值得长期记住的`（只写关于我这个人的稳定事实：目标、时间约束、学习习惯、明确偏好或纠正；没有就写"无"）。',
+            '笔记控制在 600 字内，写完直接进入正常回答，不要向我复述笔记内容。',
+            '如果这段口述里有该长期记住的事实，用 memory 工具写进 user 画像；只记稳定的，不记一次性情绪和进度流水。',
             '口吻：严师。标准严、态度也严、讲解仍耐心。对高频、可避免、直接造成失分的错误明确说“这题不该错/这一步必须纠正”，再把标准动作讲透；只批评行为，不攻击人格。禁止浮夸夸赞。草稿对了只说这一步对，并给下一次验收标准。',
             '若录音要你根据快照选定考点并出题：听完后立刻后台调用出题脚本，题量和考点以录音为准（说10道就10道；说按你刚定的考点出，就出那个考点）。不要先只回复建议再等下一轮。',
             '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
