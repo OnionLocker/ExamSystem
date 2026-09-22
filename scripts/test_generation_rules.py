@@ -47,6 +47,12 @@ def ziliao_paper(distinct=True):
         packs[1] = ["资料分析-基础知识-统计术语与常考概念", "资料分析-比重类-比重趋势、比重差与比值差",
                     "资料分析-盐水类-十字交叉法与混合增长率", "资料分析-比较类-双线法与增量比较",
                     "资料分析-特殊考点-拉动增长、贡献率与容斥"]
+        packs[2] = ["资料分析-比较类-双线法与增量比较", "资料分析-平均类-一般平均值与年均增速/增量",
+                    "资料分析-基础知识-统计术语与常考概念", "资料分析-ABRX类-增长率计算模型",
+                    "资料分析-比重类-比重趋势、比重差与比值差"]
+        packs[3] = ["资料分析-特殊考点-拉动增长、贡献率与容斥", "资料分析-ABRX类-基期量计算与比较",
+                    "资料分析-比重类-现期、基期与隔级比重", "资料分析-盐水类-十字交叉法与混合增长率",
+                    "资料分析-ABRX类-增长量计算与现期推算"]
     judge_forms = [
         "根据资料，以下说法可以判断属实的是（  ）。",
         "根据资料，以下说法不能从上述资料中推出的是（  ）。",
@@ -132,9 +138,8 @@ class ShuliangTest(unittest.TestCase):
 
 
 class ZiliaoVarietyTest(unittest.TestCase):
-    def test_clone_rejected(self):
-        with self.assertRaisesRegex(ValueError, "同一套五连招"):
-            validate_ziliao_variety(ziliao_paper(distinct=False))
+    def test_clone_is_allowed(self):
+        validate_ziliao_variety(ziliao_paper(distinct=False))
 
     def test_distinct_ok(self):
         validate_ziliao_variety(ziliao_paper(distinct=True))
@@ -300,6 +305,11 @@ class ScienceTest(unittest.TestCase):
     def test_wrong_count_rejected(self):
         with self.assertRaisesRegex(ValueError, "科学推理须为 5 题"):
             validate_paper_hard_rules({}, science_paper(4, with_images=True))
+
+    def test_targeted_science_drill_allows_one_knowledge_point(self):
+        item = science_paper(1, with_images=True)
+        manifest = {"generation": {"batch_constraints": {"targeted_drill": True}}}
+        validate_paper_hard_rules(manifest, item)
 
 
 class AnswerBalanceTest(unittest.TestCase):

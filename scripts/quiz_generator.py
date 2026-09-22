@@ -16,6 +16,9 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from PIL import Image, ImageDraw, ImageFont
+from PIL import ImageChops
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, tags_for_canon_lookup, validate_ai_primary_tag
@@ -35,6 +38,7 @@ CANON_FILES = {
     "判断推理": "05-panduan.md",
     "数量关系": "04-shuliang.md",
     "言语理解与表达": "03-yanyu.md",
+    "科学推理": "06-kepui.md",
 }
 SECTION = re.compile(r"^\*\*([^*：\n]+?)(?:（[^）\n]*）)?：\*\*", re.M)
 BRIEF_LIMIT = 600
@@ -116,12 +120,235 @@ def module_of(tag: str, fallback: str) -> str:
     raise ValueError(f"无法识别模块：module={fallback!r} tag={tag!r}")
 
 
-def reject_unsupported(module: str, tag: str) -> None:
+def reject_unsupported(module: str, tag: str, *, allow_images: bool = False) -> None:
     blob = f"{module} {tag}"
-    if module in {"科学推理", "资料分析"} or FIGURE_HINT.search(blob):
+    if module == "资料分析" or (FIGURE_HINT.search(blob) and not allow_images):
         raise ValueError(
-            f"{module or tag} 带图/成套卷请走日练。本入口只出文字专项（逻辑/数量/言语）。"
+            f"{module or tag} 带图/成套卷请走 quiz_generator.py 重型管线。"
         )
+
+
+def needs_figure(run: dict) -> bool:
+    return bool(run.get("images")) or run["module"] == "科学推理" or any(
+        FIGURE_HINT.search(str(slot.get("tag") or "")) for slot in run_slots(run)
+    )
+
+
+FONT_PATHS = (
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+)
+
+
+def _font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for path in FONT_PATHS:
+        if Path(path).is_file():
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
+
+
+def _xy(value: object, limit: int) -> int:
+    number = float(value or 0)
+    return round(number * limit) if 0 <= number <= 1 else round(number)
+
+
+def _point(element: dict, prefix: str, width: int, height: int) -> tuple[int, int]:
+    if prefix:
+        y_key = prefix.replace("x2", "y2")
+        return _xy(element.get(prefix, element.get("x", 0)), width), _xy(
+            element.get(y_key, element.get("y", 0)), height
+        )
+    return _xy(element.get("x", element.get("x1", 0)), width), _xy(
+        element.get("y", element.get("y1", 0)), height
+    )
+
+
+def _bounds(element: dict, width: int, height: int) -> tuple[int, int, int, int]:
+    x, y = _point(element, "", width, height)
+    x2 = element.get("x2", element.get("x1"))
+    y2 = element.get("y2", element.get("y1"))
+    if x2 is None:
+        x2 = float(element.get("x", 0) or 0) + float(element.get("width", 0) or 0)
+    if y2 is None:
+        y2 = float(element.get("y", 0) or 0) + float(element.get("height", 0) or 0)
+    right, bottom = _xy(x2, width), _xy(y2, height)
+    return min(x, right), min(y, bottom), max(x, right), max(y, bottom)
+
+
+def render_figure(spec: dict, output: Path) -> None:
+    """Render Gemini's bounded diagram description; facts stay in the generated PNG."""
+    if not isinstance(spec, dict):
+        raise ValueError("带图题缺少 figure 对象")
+    width = max(480, min(1600, int(spec.get("width") or 960)))
+    height = max(300, min(1000, int(spec.get("height") or 560)))
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    title = str(spec.get("title") or "")[:80]
+    if title:
+        draw.text((28, 20), title, fill="#111111", font=_font(28))
+    for item in spec.get("elements") or []:
+        if not isinstance(item, dict):
+            continue
+        kind = str(item.get("type") or "").lower()
+        fill = str(item.get("fill") or "#ffffff")
+        stroke = str(item.get("stroke") or "#222222")
+        width_px = max(2, min(12, int(item.get("stroke_width") or 4)))
+        x, y = _point(item, "", width, height)
+        x2, y2 = _point(item, "x2", width, height)
+        if kind in {"line", "arrow"}:
+            x, y = _point({**item, "x": item.get("x1", item.get("x", 0)), "y": item.get("y1", item.get("y", 0))}, "", width, height)
+            draw.line((x, y, x2, y2), fill=stroke, width=width_px)
+            if kind == "arrow":
+                import math
+
+                angle = math.atan2(y2 - y, x2 - x)
+                wing = 16
+                points = [
+                    (x2, y2),
+                    (x2 - wing * math.cos(angle - 0.45), y2 - wing * math.sin(angle - 0.45)),
+                    (x2 - wing * math.cos(angle + 0.45), y2 - wing * math.sin(angle + 0.45)),
+                ]
+                draw.polygon(points, fill=stroke)
+        elif kind in {"rect", "box"}:
+            draw.rectangle(_bounds(item, width, height), fill=fill, outline=stroke, width=width_px)
+        elif kind == "circle":
+            if "cx" in item or "cy" in item:
+                x = _xy(item.get("cx", 0), width)
+                y = _xy(item.get("cy", 0), height)
+            radius = max(8, _xy(item.get("r") or item.get("radius") or 0.05, min(width, height)))
+            draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=fill, outline=stroke, width=width_px)
+        elif kind == "polygon":
+            points = [(_xy(p.get("x"), width), _xy(p.get("y"), height)) for p in item.get("points") or [] if isinstance(p, dict)]
+            if len(points) >= 3:
+                draw.polygon(points, fill=fill, outline=stroke)
+        elif kind == "bar":
+            draw.rectangle(_bounds(item, width, height), fill=fill, outline=stroke, width=width_px)
+        elif kind == "text":
+            text = str(item.get("text") or "")[:120]
+            draw.text((x, y), text, fill=stroke, font=_font(max(18, min(34, int(item.get("size") or 24)))))
+
+    # Gemini often uses a small coordinate cluster in a large nominal canvas.
+    # Crop that cluster, enlarge it to the readable area, then restore a stable canvas.
+    diff = ImageChops.difference(image, Image.new("RGB", image.size, "white"))
+    bbox = diff.getbbox()
+    if bbox:
+        margin = 24
+        left = max(0, bbox[0] - margin)
+        top = max(0, bbox[1] - margin)
+        right = min(width, bbox[2] + margin)
+        bottom = min(height, bbox[3] + margin)
+        content = image.crop((left, top, right, bottom))
+        max_width, max_height = width - 56, height - 72
+        scale = min(max_width / content.width, max_height / content.height, 4.0)
+        if scale != 1.0:
+            content = content.resize(
+                (max(1, round(content.width * scale)), max(1, round(content.height * scale))),
+                Image.Resampling.LANCZOS,
+            )
+        fitted = Image.new("RGB", (width, height), "white")
+        fitted.paste(content, ((width - content.width) // 2, (height - content.height) // 2))
+        image = fitted
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((8, 8, width - 8, height - 8), radius=12, outline="#c8c8c8", width=3)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output, "PNG", optimize=True)
+
+
+def render_question_figures(questions: list[dict], batch_dir: Path, required: bool) -> None:
+    allowed = {"line", "arrow", "rect", "box", "circle", "polygon", "bar", "text"}
+    specs = {}
+    for question in questions:
+        spec = question.get("figure")
+        if not spec:
+            if required:
+                raise ValueError(f"带图题缺 figure 规格：{question.get('external_id')}")
+            continue
+        if not isinstance(spec, dict) or not spec.get("image_only_facts"):
+            raise ValueError(f"figure 必须声明非空 image_only_facts：{question.get('external_id')}")
+        elements = spec.get("elements")
+        if not isinstance(elements, list) or not elements:
+            raise ValueError(f"figure 必须声明非空 elements：{question.get('external_id')}")
+        unknown = []
+        for item in elements:
+            if not isinstance(item, dict):
+                unknown.append("<非对象>")
+            elif str(item.get("type") or "").lower() not in allowed:
+                unknown.append(str(item.get("type") or ""))
+        if unknown:
+            raise ValueError(f"figure 含不支持的元素类型：{question.get('external_id')} {unknown}")
+        relative = f"images/{question['external_id']}-stem.png"
+        render_figure(spec, batch_dir / relative)
+        question["stem_images"] = [relative]
+        specs[str(question["external_id"])] = {
+            "kind": spec.get("kind") or "diagram",
+            "image_only_facts": list(spec.get("image_only_facts") or []),
+            "must_derive": list(spec.get("must_derive") or []),
+            "image_facts": list(spec.get("image_facts") or []),
+            "path": relative,
+        }
+        question.pop("figure", None)
+    if specs:
+        (batch_dir / "image-specs.json").write_text(
+            json.dumps(
+                {"questions": [{"question_id": qid, **spec} for qid, spec in specs.items()]},
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+
+def yanyu_contract_issues(question: dict, tag: str | None = None) -> list[str]:
+    """Reject a named language subtype collapsing into an easier neighboring type."""
+    tag = tag or " ".join(str(value) for value in question.get("tags") or [])
+    stem = str(question.get("stem") or "")
+    signal = str(question.get("kaodian_signal") or "")
+    issues = []
+    if question.get("unsuitable") is True:
+        issues.append("声明无法满足指定言语考法")
+    if not signal.strip():
+        issues.append("缺少 kaodian_signal，疑似考点坍缩")
+    if "逻辑填空" in tag and not re.search(r"[_＿]{2,}|…{2,}", stem):
+        issues.append("指定逻辑填空但题干没有空格")
+    signal_rules = {
+        "成语填空": (r"成语|熟语", "未体现成语辨析"),
+        "实词填空": (r"实词|词义|语境辨析", "未体现实词辨析"),
+        "虚词填空": (r"虚词|关联词|语法关系", "未体现虚词辨析"),
+        "词的辨析": (r"词义|辨析|语境", "未体现词义辨析"),
+        "混搭填空": (r"混搭|实词.*虚词|虚词.*实词", "未体现实词/虚词混合判断"),
+        "语境分析": (r"语境", "未体现语境约束"),
+        "特殊题型": (r"特殊|语境|搭配|成语|实词|虚词", "kaodian_signal 过于空泛"),
+    }
+    for marker, (pattern, message) in signal_rules.items():
+        if marker in tag and not re.search(pattern, signal):
+            issues.append(f"指定{marker}{message}")
+    if "语句排序" in tag and not any(word in stem for word in ("排序", "顺序", "排列")):
+        issues.append("指定语句排序但设问未要求排序")
+    if "语句填空" in tag and not re.search(r"[_＿]{2,}|…{2,}|横线|填入", stem):
+        issues.append("指定语句填空但题干没有衔接空位")
+    if "标题填入" in tag and "标题" not in stem:
+        issues.append("指定标题题但设问未要求标题")
+    if "细节判断" in tag and not any(word in stem for word in ("符合", "不符合", "正确", "错误")):
+        issues.append("指定细节判断但设问未形成细节判断")
+    if "词句理解" in tag and not re.search(r"词|句|指代|含义|意思", stem + signal):
+        issues.append("指定词句理解但题干未形成词句含义/指代问题")
+    if "接语选择" in tag and not any(word in stem for word in ("下文", "接下来", "后文")):
+        issues.append("指定接语选择但设问未要求下文推断")
+    if "中心理解" in tag and not re.search(r"主旨|中心|意在|主要", stem + signal):
+        issues.append("指定中心理解但设问未形成主旨判断")
+    return issues
+
+
+def validate_question_contract(run: dict, questions: list[dict]) -> None:
+    """Reject a model that silently changes the requested knowledge point."""
+    if run["module"] != "言语理解与表达":
+        return
+    for question, tag in zip(questions, slot_tags(run)):
+        issues = yanyu_contract_issues(question, tag)
+        if issues:
+            raise ValueError(f"{question.get('external_id')} 未命中指定言语考法：{tag}；{'；'.join(issues)}")
 
 
 def infer_subcategory(tag: str, module: str) -> str:
@@ -138,6 +365,8 @@ def infer_subcategory(tag: str, module: str) -> str:
         if "语句表达" in tag:
             return "语句表达"
         return "片段阅读"
+    if module == "科学推理":
+        return "科学推理"
     parts = [p for p in (tag or "").split("-") if p]
     return parts[1] if len(parts) > 1 else module
 
@@ -290,6 +519,8 @@ def canon_card(module: str, tag: str) -> str:
     if not name or not (CANON_DIR / name).is_file():
         return ""
     text = (CANON_DIR / name).read_text(encoding="utf-8")
+    if module == "科学推理":
+        return "考点卡片：科学推理（广东独立模块）\n" + text[: CANON_LIMIT - 24]
     card = None
     matched = tag
     for candidate in tags_for_canon_lookup(tag):
@@ -404,13 +635,26 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
             "也可以直接把 correct 写成取整后的最终整数。两种都行，"
             "但不许让 correct 停在小数上又不交代取整方向——那样选项永远对不上。\n"
         )
+    if run["module"] == "言语理解与表达":
+        extra += (
+            "言语专项：每题必须严格命中槽位 tag，不得因某个知识点难写而降级为中心理解。"
+            "每题额外输出 kaodian_signal（实际识别动作）与 unsuitable:false；若无法满足指定考法，"
+            "输出 unsuitable:true 让系统退回，不得换题型。主题、领域、语体自由变化，避免同批重复开篇和论证骨架。\n"
+        )
     retry = f"\nPrevious gate error, rewrite the rejected items:\n{error[-4000:]}\n" if error else ""
+    figure_rule = (
+        "This is a figure-dependent batch. Every item MUST include a figure object with "
+        "kind, image_facts, image_only_facts, must_derive, and elements. The image must carry "
+        "at least one answer-essential fact omitted from the stem. elements may only use "
+        "line, arrow, rect, box, circle, polygon, bar, text; coordinates are pixels or 0..1.\n"
+        if needs_figure(run) else "No images.\n"
+    )
     return (
         "You are ExamSystem's targeted-drill writer. Output one JSON object only. "
         "No markdown fences, no commentary.\n"
         f"{json.dumps(payload, ensure_ascii=False)}\n\n"
         f"Exactly {n} original questions. {slot_rules(run)}"
-        "Do not emit a mixed daily paper, 真题, 定义判断, or 类比推理. No images.\n"
+        f"Do not emit a mixed daily paper, 真题, 定义判断, or 类比推理. {figure_rule}"
         f"{extra}"
         "Each item: external_id, category, sub_category, tags, stem, "
         'options [{"key":"A","text":"..."} x4], answer, analysis'
@@ -561,10 +805,16 @@ def run_cmd(command: list[str], env: dict[str, str]) -> None:
 
 def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int, snapshot: dict) -> int:
     for slot in run_slots(run):
-        reject_unsupported(run["module"], str(slot["tag"]))
+        reject_unsupported(run["module"], str(slot["tag"]), allow_images=needs_figure(run))
     extras = generation_payload_extras(run["module"], int(run["planned_count"]), str(run["batch_id"]), db_path)
     extras["batch_constraints"]["targeted_drill"] = True
-    extras["batch_constraints"]["no_images"] = True
+    if needs_figure(run):
+        extras["batch_constraints"]["image_dependent_count"] = {
+            "min": int(run["planned_count"]),
+            "max": int(run["planned_count"]),
+        }
+    else:
+        extras["batch_constraints"]["no_images"] = True
     tag_counts: dict[str, int] = {}
     for slot in run_slots(run):
         tag_counts[str(slot["tag"])] = tag_counts.get(str(slot["tag"]), 0) + int(slot["count"])
@@ -577,9 +827,26 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
     extras["batch_constraints"].pop("panduan_layout", None)
     run["answer_plan"] = extras["answer_plan"]
     topic = slug_of(run["focus_tag"])
-    if topic == "专项" and run.get("focus_tag"):
+    if len(run_slots(run)) > 1:
+        l3_set = {
+            parsed[2]
+            for slot in run_slots(run)
+            if (parsed := parse_fenbi_tag(str(slot.get("tag") or "")))
+        }
+        if len(l3_set) == 1:
+            l3_name = l3_set.pop().replace("问题", "")
+            topic = f"{l3_name}综合"
+    elif topic == "专项" and run.get("focus_tag"):
         topic = run["focus_tag"].split("-")[-1]
-    source = f"广东省考行测-{run['module']}-{topic}-{local_today():%Y%m%d}"
+    slots_list = run_slots(run)
+    diff = run.get("difficulty") or (slots_list[0].get("difficulty") if slots_list else None)
+    if not diff and run.get("batch_id"):
+        for d in ("easy", "mid", "hard"):
+            if f"_{d}_" in run["batch_id"] or run["batch_id"].endswith(f"_{d}"):
+                diff = d
+                break
+    diff_suffix = f"-{diff}" if diff else ""
+    source = f"广东省考行测-{run['module']}-{topic}{diff_suffix}-{local_today():%Y%m%d}"
     env = {**os.environ, "EXAM_DB": str(db_path)}
     deadline = time.monotonic() + timeout
     error = None
@@ -589,8 +856,10 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
         if len(questions) != int(run["planned_count"]):
             error = f"expected {run['planned_count']} questions, got {len(questions)}"
             continue
-        write_batch(run, batch_dir, questions, extras, source)
         try:
+            validate_question_contract(run, questions)
+            render_question_figures(questions, batch_dir, required=needs_figure(run))
+            write_batch(run, batch_dir, questions, extras, source)
             run_cmd([sys.executable, str(ROOT / "scripts" / "generation_gate.py"), "issue", str(batch_dir)], env)
             run_cmd(["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], env)
             conn = sqlite3.connect(db_path, timeout=30)
@@ -671,6 +940,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--batch-id", required=True)
     parser.add_argument("--difficulty", choices=["easy", "hard"])
+    parser.add_argument("--images", choices=["yes", "no"], default="no", help="要求每题生成程序渲染的题干图")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
     parser.add_argument("--timeout", type=int, default=2400)
     parser.add_argument("--db", type=Path, default=DB)
@@ -693,9 +963,14 @@ def main() -> int:
         "focus_tag": slots[0]["tag"],
         "slots": slots,
         "difficulty": args.difficulty,
+        "images": args.images == "yes",
     }
     for slot in slots:
-        reject_unsupported(module, str(slot["tag"]))
+        reject_unsupported(
+            module,
+            str(slot["tag"]),
+            allow_images=(args.images == "yes" or module == "科学推理" or "图形推理" in str(slot["tag"])),
+        )
     conn = sqlite3.connect(args.db, timeout=30)
     try:
         snapshot = load_snapshot(conn)

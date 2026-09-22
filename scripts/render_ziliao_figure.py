@@ -16,7 +16,7 @@ INK = (0, 0, 0)
 LINE = (0, 0, 0)
 RULE = (170, 170, 170)
 BG = (255, 255, 255)
-BAR_FILLS = [(30, 30, 30), (110, 110, 110), (190, 190, 190)]
+BAR_FILLS = [(25, 25, 25), (90, 90, 90), (155, 155, 155), (220, 220, 220), (55, 55, 55), (125, 125, 125)]
 
 
 def font(size: int) -> ImageFont.FreeTypeFont:
@@ -119,15 +119,26 @@ def render_bars(
         raise ValueError("多系列柱状图不得把不同单位合并写在同一纵轴；请把单位分别写入系列名称")
     face_title = font(22)
     face = font(18)
-    face_value = font(16)
-    left, right, top, bottom = 64, 16, 70, 78
-    plot_w, plot_h = 400, 250
+    face_value = font(13)
+    left, right, top, bottom = 64, 24, 70, 92
+    plot_w, plot_h = 700, 250
+    probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
+    title_lines = []
+    line = ""
+    for char in title:
+        if line and measure(probe, line + char, face_title)[0] > left + plot_w + right - 24:
+            title_lines.append(line)
+            line = ""
+        line += char
+    if line:
+        title_lines.append(line)
+    top += max(0, len(title_lines) - 1) * 30
     width, height = left + plot_w + right, top + plot_h + bottom
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
-    if title:
-        tw, _ = measure(draw, title, face_title)
-        draw.text(((width - tw) // 2, 12), title, fill=INK, font=face_title)
+    for index, title_line in enumerate(title_lines):
+        tw, _ = measure(draw, title_line, face_title)
+        draw.text(((width - tw) // 2, 12 + index * 30), title_line, fill=INK, font=face_title)
 
     values = [v for _, vals in series for v in vals]
     vmax = nice_max(max(values) * 1.08) if values else 1
@@ -160,7 +171,7 @@ def render_bars(
             y0 = origin_y - h
             x1 = x0 + bar_w - 3
             draw.rectangle((x0, y0, x1, origin_y), fill=BAR_FILLS[si % 3], outline=INK)
-            value_labels.append(((x0 + x1) / 2, y0, f"{val:g}"))
+            value_labels.append(((x0 + x1) / 2, y0 if h >= 14 else origin_y - 4 - si * 14, f"{val:g}"))
         cw, _ = measure(draw, category, face)
         draw.text((left + group_w * ci + (group_w - cw) / 2, origin_y + 10), category, fill=INK, font=face)
 

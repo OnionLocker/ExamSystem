@@ -28,8 +28,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from fenbi_taxonomy import parse_fenbi_tag
 from generation_gate import LITE_VERSION, RECEIPT, digest
 from normalize_ai_batch import scratchpad_leak
+from yanyu_variety import recent_yanyu_avoid, validate_yanyu_fills
 from quiz_generator import (
     BASE_URL,
     api_key,
@@ -38,6 +40,7 @@ from quiz_generator import (
     parse_json,
     reject_unsupported,
     resolve_slots,
+    yanyu_contract_issues,
 )
 from scheduler_common import DB, ROOT, local_today
 from spoken_quiz_intent import slug_of
@@ -71,7 +74,8 @@ EXAMINER_SYSTEM = (
     "你是广东省考行测命题审核官，能看到答案与解析。逐题只判四件事：\n"
     "difficulty_ok：难度是否匹配声明的档位。easy 是一两步直问；mid 多一层转化；"
     "hard 是表述变形或多重约束，但仍必须是同一个考点，不许换成偏题怪题。\n"
-    "kaodian_ok：是否严格落在指定考法的固定识别与考场步骤上，没有串到同卡的别的考法。\n"
+    "kaodian_ok：是否100%严格落在指定考法的固定识别与考场步骤上！"
+    "严禁任何考法发散或串台（例如考古典定位法却出现了赛制或独立关卡，直接判 false 毙掉）。\n"
     "style_ok：题干情境、设问方式、选项设置、篇幅是否像广东省考真题，"
     "不是奥数题、不是教材例题、不是脑筋急转弯。\n"
     "analysis_ok：解析每一步是否可复算，最后结论是否确实等于键定选项；算式与数值必须自洽。\n"
@@ -141,16 +145,24 @@ def expand_slots(slots: list[dict]) -> list[dict]:
 
 
 def public(question: dict, with_answer: bool) -> dict:
+    options = question.get("options")
+    if isinstance(options, str):
+        options = packed_options(options)
+    else:
+        options = [
+            {"key": option.get("key"), "text": option.get("text")}
+            if isinstance(option, dict)
+            else {"key": "", "text": str(option)}
+            for option in options or []
+        ]
     out = {
         "id": question.get("external_id"),
         "category": question.get("category"),
         "sub_category": question.get("sub_category"),
         "tags": question.get("tags") or [],
+        "kaodian_signal": question.get("kaodian_signal"),
         "stem": question.get("stem"),
-        "options": [
-            {"key": option.get("key"), "text": option.get("text")}
-            for option in question.get("options") or []
-        ],
+        "options": options,
     }
     if with_answer:
         out["answer"] = question.get("answer")
@@ -178,7 +190,9 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
     lines += [
         "",
         "硬要求：",
-        "- 每题四个选项 A/B/C/D，有且只有一个正确；另外三项必须各有一个致命缺陷，"
+        "- 【考法严格闭环（严禁发散）】：每道题必须100%严格落在对应 item 的 tag 及【考场步骤】指定的唯一解题动作上！",
+        "  严禁发散到同卡片下的其他考法或外部模型；无法满足指定考法时输出 unsuitable:true。",
+        "- 每题四个选项 A/B/C/D，有且只有一个正确；另外三项必须各有一个致命缺陷，",
         "不能是同样成立的另一种合理答案。",
         "- 每道题的正确项放哪个字母由你自己定，不要为了凑某个字母去改数据；"
         f"但本次这 {len(asks)} 道题的正确项字母要分散，同一个字母不要超过 "
@@ -195,6 +209,18 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
         "- 纯文字题，不带图、不引用图；禁止照搬真题；主体用某单位/某企业/某科室这类中性称谓。",
         "- 题干与设问要像广东省考真题：情境简洁、设问明确、篇幅不超过真题常见长度。",
     ]
+    if run["module"] == "言语理解与表达":
+        lines += [
+            "- 言语题必须严格命中 item 的 tag。额外输出 kaodian_signal，写明本题实际使用的识别动作和题型；"
+            "指定逻辑填空必须有空格，指定语句排序必须真问排序，指定标题/细节/接语必须体现对应动作。"
+            "不得把难的考点改写成中心理解题。",
+            "- 言语题主题、领域、语体、开篇必须换（说明、叙事、对话、实验记录、文化科普均可），"
+            "不得只换皮或复用同一句法骨架；同批题干开篇和骨架不能明显重复。",
+            "- 成语填空必须有空且四个选项均为成语；语句排序必须给出句子并真问排序；细节判断必须按原文细节正误判断。",
+            "- 不得因为某考点较难或素材不好写而换成相邻简单考点；无法满足指定考法时输出 unsuitable:true，"
+            "该题会被退回重出，不得伪装成另一题型。",
+            f"近期言语禁用模具与开篇：{json.dumps(run.get('yanyu_avoid') or {}, ensure_ascii=False)}",
+        ]
     if kept:
         lines += [
             "",
@@ -203,8 +229,9 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
         ]
     lines += [
         "",
-        '只输出 JSON：{"questions":[{"index":1,"stem":"...",'
-        '"options":[{"key":"A","text":"..."}],"answer":"A","analysis":"..."}]}',
+        "输出字段必须严格使用 stem（不要写 question/content）、options（必须是四个对象，不要合并成字符串）：",
+        '{"questions":[{"index":1,"kaodian_signal":"...","stem":"...","options":[{"key":"A","text":"..."},{"key":"B","text":"..."},{"key":"C","text":"..."},{"key":"D","text":"..."}],"answer":"A","analysis":"..."}]}',
+        "每题可带 unsuitable 字段；不要输出 schema 之外的包装对象。",
     ]
     return "\n".join(lines)
 
@@ -234,10 +261,10 @@ def local_issues(question: dict) -> list[str]:
     """不花模型调用就能查的结构问题，送审前先筛掉。"""
     issues = []
     options = question.get("options") or []
-    keys = [str(option.get("key") or "") for option in options]
+    keys = [str(option.get("key") or "") if isinstance(option, dict) else "" for option in options]
     if keys != ["A", "B", "C", "D"]:
         issues.append("选项必须是 A/B/C/D 四项")
-    texts = [str(option.get("text") or "").strip() for option in options]
+    texts = [str(option.get("text") or "").strip() if isinstance(option, dict) else str(option).strip() for option in options]
     if any(not text for text in texts):
         issues.append("存在空选项")
     elif len(set(texts)) != len(texts):
@@ -255,6 +282,8 @@ def local_issues(question: dict) -> list[str]:
         issues.append(
             f"解析里留着倒推答案的草稿（{'、'.join(leaked)}），题干与解析已脱节，重写这道题"
         )
+    if str(question.get("category") or "") == "言语理解与表达":
+        issues.extend(yanyu_contract_issues(question))
     return issues
 
 
@@ -268,16 +297,60 @@ def tier_of(run: dict, slot: dict) -> str:
     return str(slot.get("difficulty") or run.get("difficulty") or "mid")
 
 
+def source_difficulty_label(batch_id: str, cli_diff, slots: list) -> str | None:
+    """卡片标题用的难度后缀。混档给 ladder，不拿第一槽当整批名字。"""
+    slot_diffs = [str(slot.get("difficulty")) for slot in slots if slot.get("difficulty")]
+    uniq = list(dict.fromkeys(slot_diffs))
+    if len(uniq) > 1:
+        return "ladder"
+    bid = str(batch_id or "")
+    if "_ladder_" in bid or bid.endswith("_ladder"):
+        return "ladder"
+    if cli_diff:
+        return str(cli_diff)
+    if uniq:
+        return uniq[0]
+    for token in ("easy", "mid", "hard"):
+        if f"_{token}_" in bid or bid.endswith(f"_{token}"):
+            return token
+    return None
+
+
+def packed_options(text: str) -> list[dict]:
+    matches = list(re.finditer(r"(?:^|\s)([ABCD])[\.、:：]\s*(.*?)(?=\s+[ABCD][\.、:：]|$)", text or ""))
+    return [{"key": match.group(1), "text": match.group(2).strip()} for match in matches]
+
+
+def normalize_writer_shape(raw: dict) -> dict:
+    """Accept harmless field/option formatting drift; leave semantic defects for local_issues."""
+    row = dict(raw)
+    if not str(row.get("stem") or "").strip() and row.get("question"):
+        row["stem"] = row.get("question")
+    options = row.get("options")
+    if isinstance(options, str):
+        parsed = packed_options(options)
+        if parsed:
+            row["options"] = parsed
+    elif isinstance(options, dict):
+        row["options"] = [{"key": str(key), "text": str(value).strip()} for key, value in options.items()]
+    elif isinstance(options, list) and options and not all(isinstance(item, dict) for item in options):
+        parsed = packed_options(" ".join(str(item).strip() for item in options if str(item).strip()))
+        if parsed:
+            row["options"] = parsed
+    return row
+
+
 def stamp(run: dict, raw: dict, index: int, slot: dict, source: str) -> dict:
     """给单题打上批次身份；只动簿记字段，不改题面内容。"""
     tag = str(slot["tag"])
-    row = dict(raw)
+    row = normalize_writer_shape(raw)
     for field in ("index", "origin", "calculations", "stem_images", "explanation_images"):
         row.pop(field, None)
     row["difficulty"] = TIER_TO_LEVEL.get(tier_of(run, slot), 3)
     row["external_id"] = f"{run['batch_id']}_{index + 1:02d}"
     row["category"] = run["module"]
-    row["sub_category"] = infer_subcategory(tag, run["module"])
+    # 言语标签自身已包含一级/二级，数据库校验要求该模块 sub_category 为空。
+    row["sub_category"] = None if run["module"] == "言语理解与表达" else infer_subcategory(tag, run["module"])
     row["tags"] = [tag]
     row["question_type"] = "single"
     row["source"] = source
@@ -285,6 +358,8 @@ def stamp(run: dict, raw: dict, index: int, slot: dict, source: str) -> dict:
     row["region"] = "广东-省直"
     row["options"] = [
         {"key": str(option.get("key") or ""), "text": str(option.get("text") or "").strip()}
+        if isinstance(option, dict)
+        else {"key": "", "text": str(option).strip()}
         for option in row.get("options") or []
     ]
     analysis = str(row.get("analysis") or row.get("explanation") or "").strip()
@@ -451,6 +526,18 @@ def build_batch(run: dict, rounds: int, source: str) -> tuple[list[dict], dict, 
             slots[index] = question
             fresh.append(question)
 
+        if fresh and run["module"] == "言语理解与表达":
+            try:
+                validate_yanyu_fills([value for value in slots if value])
+            except ValueError as exc:
+                reason = str(exc)
+                for question in fresh:
+                    index = int(str(question["external_id"]).rsplit("_", 1)[1]) - 1
+                    slots[index] = None
+                    feedback[index] = [reason]
+                    rejected.append({"question_id": str(question["external_id"]), "issues": [reason]})
+                fresh = []
+
         round_results = review(run, fresh, per_item)
         results.update(round_results)
         for question in fresh:
@@ -485,6 +572,8 @@ def build_batch(run: dict, rounds: int, source: str) -> tuple[list[dict], dict, 
 
 def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) -> None:
     batch_dir.mkdir(parents=True, exist_ok=True)
+    if run["module"] == "言语理解与表达":
+        validate_yanyu_fills(questions)
     letters = [str(question.get("answer") or "") for question in questions]
     counts: dict[str, int] = {}
     for letter in letters:
@@ -495,7 +584,9 @@ def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) 
         "region": "广东-省直",
         "year": 2026,
         "kind": "ai-generated",
-        "difficulty_tier": run.get("difficulty") or "mid",
+        "difficulty_tier": run.get("difficulty")
+        or source_difficulty_label(run.get("batch_id") or "", None, run.get("slots") or [])
+        or "mid",
         "generation": {
             "style_marker": "GONGKAO-STYLE-v1",
             "pipeline": "quiz_lite",
@@ -629,6 +720,8 @@ def main() -> int:
             "slots": slots,
             "difficulty": args.difficulty,
         }
+        if module == "言语理解与表达":
+            run["yanyu_avoid"] = recent_yanyu_avoid(args.db)
         conn = sqlite3.connect(args.db, timeout=30)
         try:
             exists = int(
@@ -639,12 +732,22 @@ def main() -> int:
         finally:
             conn.close()
         if exists:
-            raise SystemExit(f"batch_id 已入库 {exists} 题，换一个序号")
+            raise RuntimeError(f"batch_id 已入库 {exists} 题，换一个序号")
 
-        topic = slug_of(slots[0]["tag"])
-        if topic == "专项":
-            topic = str(slots[0]["tag"]).split("-")[-1]
-        source = f"广东省考行测-{module}-{topic}-{today:%Y%m%d}"
+        tag_str = str(slots[0]["tag"])
+        parsed_tag = parse_fenbi_tag(tag_str)
+        if parsed_tag and parsed_tag[3]:
+            # L4 子考法：模块-二级知识点-子考法
+            topic = f"{parsed_tag[2]}-{parsed_tag[3]}"
+        else:
+            topic = slug_of(slots[0]["tag"])
+            if topic == "专项":
+                topic = tag_str.split("-")[-1]
+        diff = source_difficulty_label(args.batch_id, getattr(args, "difficulty", None), slots)
+        if diff:
+            run["difficulty"] = diff
+        diff_suffix = f"-{diff}" if diff else ""
+        source = f"广东省考行测-{module}-{topic}{diff_suffix}-{today:%Y%m%d}"
         batch_dir = args.output_dir / today.isoformat() / args.batch_id
 
         questions, results, log = build_batch(run, max(1, args.rounds), source)

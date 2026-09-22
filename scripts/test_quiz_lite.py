@@ -69,6 +69,14 @@ class LocalChecks(unittest.TestCase):
     def test_clean_question_has_no_local_issue(self):
         self.assertEqual(quiz_lite.local_issues(stamped("b", 1)), [])
 
+    def test_yanyu_requires_signal(self):
+        row = stamped("b", 1)
+        row["category"] = "言语理解与表达"
+        row["tags"] = ["言语理解与表达-逻辑填空-成语填空"]
+        row["stem"] = "这是一段有________的题干。"
+        row["analysis"] = "根据语境辨析词语的感情色彩和搭配关系，结合上下文确定唯一选项，故选 A。"
+        self.assertTrue(any("缺少 kaodian_signal" in issue for issue in quiz_lite.local_issues(row)))
+
     def test_duplicate_option_text_is_caught(self):
         row = stamped("b", 1)
         row["options"][1]["text"] = row["options"][0]["text"]
@@ -83,6 +91,48 @@ class LocalChecks(unittest.TestCase):
         row = stamped("b", 1)
         row["options"] = row["options"][:3]
         self.assertIn("选项必须是 A/B/C/D 四项", quiz_lite.local_issues(row))
+
+    def test_non_object_option_is_rejected_without_crashing(self):
+        row = stamped("b", 1)
+        row["options"][1] = "not-an-option-object"
+        self.assertIn("选项必须是 A/B/C/D 四项", quiz_lite.local_issues(row))
+
+    def test_writer_shape_normalizes_question_and_packed_options(self):
+        row = quiz_lite.normalize_writer_shape({
+            "question": "题干足够长，且包含一个________空格。",
+            "options": ["A. 甲 B. 乙 C. 丙 D. 丁"],
+        })
+        self.assertEqual(row["stem"], "题干足够长，且包含一个________空格。")
+        self.assertEqual([item["key"] for item in row["options"]], ["A", "B", "C", "D"])
+
+    def test_writer_shape_normalizes_options_string_and_mapping(self):
+        packed = quiz_lite.normalize_writer_shape({
+            "stem": "题干足够长足够长足够长足够",
+            "options": "A. 1/8 B. 1/6 C. 1/5 D. 1/4",
+        })
+        self.assertEqual([item["text"] for item in packed["options"]], ["1/8", "1/6", "1/5", "1/4"])
+        mapped = quiz_lite.normalize_writer_shape({
+            "stem": "题干足够长足够长足够长足够",
+            "options": {"A": "1/8", "B": "1/6", "C": "1/5", "D": "1/4"},
+        })
+        self.assertEqual([item["key"] for item in mapped["options"]], ["A", "B", "C", "D"])
+
+    def test_stamp_and_public_tolerate_string_options(self):
+        raw = question(1)
+        raw["options"] = "A. 25本 B. 26本 C. 27本 D. 28本"
+        row = quiz_lite.stamp({"module": "数量关系", "batch_id": "b"}, raw, 0, SLOT, "源")
+        self.assertEqual(quiz_lite.local_issues(row), [])
+        self.assertEqual([item["key"] for item in quiz_lite.public(row, False)["options"]], ["A", "B", "C", "D"])
+
+    def test_yanyu_mold_validator_is_applied_to_final_batch(self):
+        rows = [stamped("b", 1), stamped("b", 2)]
+        for row in rows:
+            row["category"] = "言语理解与表达"
+            row["tags"] = ["言语理解与表达-逻辑填空-成语填空"]
+            row["stem"] = "不仅需要统筹规划，更是要________，才能完成任务。"
+            row["kaodian_signal"] = "成语语境辨析"
+        with self.assertRaises(ValueError):
+            quiz_lite.validate_yanyu_fills(rows)
 
     def test_short_analysis_is_caught(self):
         row = stamped("b", 1)
@@ -135,6 +185,27 @@ class LocalChecks(unittest.TestCase):
         self.assertEqual(row["answer"], "B")
         self.assertEqual(
             [o["text"] for o in row["options"]], ["25本", "26本", "27本", "28本"]
+        )
+
+    def test_mixed_slots_source_label_is_ladder_not_first_slot(self):
+        slots = [
+            {"tag": TAG, "count": 4, "difficulty": "easy"},
+            {"tag": TAG, "count": 3, "difficulty": "mid"},
+            {"tag": TAG, "count": 3, "difficulty": "hard"},
+        ]
+        self.assertEqual(
+            quiz_lite.source_difficulty_label("20260921_hermes_gailv_chouqian_01", None, slots),
+            "ladder",
+        )
+        self.assertEqual(
+            quiz_lite.source_difficulty_label(
+                "20260921_hermes_gailv_chouqian_ladder_01", None, [{"tag": TAG, "count": 10}]
+            ),
+            "ladder",
+        )
+        self.assertEqual(
+            quiz_lite.source_difficulty_label("b", "hard", [{"tag": TAG, "count": 5, "difficulty": "hard"}]),
+            "hard",
         )
 
     def test_stamp_overwrites_model_difficulty_with_declared_tier(self):

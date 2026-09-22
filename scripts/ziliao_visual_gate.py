@@ -20,15 +20,17 @@ from PIL import Image
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
 MODEL = os.environ.get("ZILIAO_VISUAL_REVIEW_MODEL", "gemini-3.7-flash-high")
-MOBILE_WIDTH = 320
+# The target practice layout is iPad split view; 320px makes legitimate
+# multi-column exam tables unreadable and is not the user's display target.
+MOBILE_WIDTH = 768
 RETRIES = 2
 
-SYSTEM_PROMPT = """你是独立的公考资料分析图表质检员。你看到的第一张图是原图，第二张图是按320px宽缩放后的考生视图。
+SYSTEM_PROMPT = """你是独立的公考资料分析图表质检员。你看到的第一张图是原图，第二张图是按768px宽缩放后的iPad考生视图。
 只审查图表质量，不润色题目。逐项检查：
 1. 标题、单位、图例、坐标轴、刻度、年份、行列名和数据标签是否完整；
 2. 数字是否与柱形、折线、网格线、边框或其他文字重合、遮挡或被裁切；
 3. 多系列的单位是否与系列一一对应，是否需要靠正文顺序猜测；
-4. 原图和320px图中的全部关键信息是否都能直接辨认；
+4. 原图和768px图中的全部关键信息是否都能直接辨认；
 5. 图中可见数值是否与提供的材料和题目上下文冲突。
 任何一项不清楚都必须判 REJECT。只输出一个JSON对象，不要Markdown：
 {"verdict":"PASS或REJECT","checks":{"complete":true,"no_overlap":true,"units_mapped":true,"mobile_readable":true,"context_consistent":true},"issues":["具体问题"]}"""
@@ -162,7 +164,7 @@ def review_image(item: dict, key: str) -> dict:
         },
         {"type": "text", "text": "原图："},
         image_part(path.read_bytes(), "image/png" if path.suffix.lower() == ".png" else "image/jpeg"),
-        {"type": "text", "text": "320px宽考生视图："},
+        {"type": "text", "text": "768px宽iPad考生视图："},
         image_part(mobile),
     ]
     body = json.dumps(

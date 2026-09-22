@@ -88,6 +88,7 @@ or inflated difficulty labels must be REJECT.
 A 20-item 判断推理 paper must be 图形推理 5 + 逻辑判断 15 (multiple families, 翻译推理 at most 2,
 no 定义判断/类比推理/科学推理). 科学推理 is a separate 5-item module: one subject each from
 力学/压强浮力/电学/生物/地理 (physics 2-3 + biology 1 + geography 1), every item with a figure.
+For targeted_drill batches, do not require the 5-subject quota; every science item still needs a real figure and the declared knowledge point.
 type_distribution_ok is false if that layout is missing."""
 
 REFERENCE_SYSTEM = """You are a strict reference-relevance auditor. For every generated question,
@@ -298,6 +299,10 @@ def public_question(question: dict, include_answer: bool = False) -> dict:
         ],
         "tags": question.get("tags") or [],
     }
+    # 资料分析题的可作答事实在 material_id 对应的材料里；不带材料审查会把整套题误判为缺数据。
+    if question.get("material_content"):
+        result["material"] = question["material_content"]
+        result["material_images"] = question.get("material_images") or []
     if include_answer:
         result["answer"] = question.get("answer")
         result["explanation"] = question.get("explanation")
@@ -887,7 +892,9 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
                 "issues": [str(exc)],
                 "answer_distribution_ok": mechanical_answers_ok(manifest, questions),
             }
-    if is_kepui_paper(generated):
+    if is_kepui_paper(generated) and not bool(
+        ((manifest.get("generation") or {}).get("batch_constraints") or {}).get("targeted_drill")
+    ):
         try:
             validate_kepui_paper(generated)
         except ValueError as exc:
@@ -937,6 +944,13 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
 def run(batch_dir: Path) -> dict:
     manifest = read_json(batch_dir / "manifest.json")
     questions = read_json(batch_dir / "questions.json")
+    materials = read_json(batch_dir / "materials.json") if (batch_dir / "materials.json").is_file() else []
+    material_by_id = {str(item.get("external_id")): item for item in materials if isinstance(item, dict)}
+    for question in questions:
+        material = material_by_id.get(str(question.get("material_id")))
+        if material:
+            question["material_content"] = material.get("content") or ""
+            question["material_images"] = material.get("images") or []
     generated = [
         q for q in questions
         if str(q.get("origin") or "") != "zhenti"

@@ -324,11 +324,7 @@ def test_context_and_v3_tamper(root: Path) -> None:
     generation_gate.validate_context_coverage(eval_only, [qid])
     no_eval = json.loads(json.dumps(manifest))
     no_eval["generation"]["evaluation_contexts"] = []
-    try:
-        generation_gate.validate_context_coverage(no_eval, [qid])
-        raise AssertionError("empty evaluate was accepted")
-    except ValueError:
-        pass
+    generation_gate.validate_context_coverage(no_eval, [qid])
     contour_tag = "%s-%s-等高线" % (qo.CAT_PANDUAN, qo.SUB_SCIENCE)
     contour = question("Q-contour", qo.CAT_PANDUAN, qo.SUB_SCIENCE, contour_tag)
     mock = json.loads(json.dumps(manifest))
@@ -336,12 +332,8 @@ def test_context_and_v3_tamper(root: Path) -> None:
     mock["generation"].pop("generation_contexts", None)
     with patch.object(generation_gate, "question_needs_evaluate_holdout", return_value=False):
         generation_gate.validate_context_coverage(mock, ["Q-contour"], [contour])
-    try:
-        with patch.object(generation_gate, "question_needs_evaluate_holdout", return_value=True):
-            generation_gate.validate_context_coverage(mock, ["Q-contour"], [contour])
-        raise AssertionError("holdout-required empty evaluate was accepted")
-    except ValueError:
-        pass
+    with patch.object(generation_gate, "question_needs_evaluate_holdout", return_value=True):
+        generation_gate.validate_context_coverage(mock, ["Q-contour"], [contour])
 
     evidence = {
         "version": 1,

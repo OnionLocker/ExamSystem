@@ -3,6 +3,10 @@
 import unittest
 
 import argparse
+import tempfile
+from pathlib import Path
+
+from PIL import Image
 
 from normalize_ai_batch import generation_payload_extras
 
@@ -15,9 +19,13 @@ from quiz_generator import (
     canon_card,
     module_of,
     reject_unsupported,
+    render_question_figures,
+    render_figure,
     resolve_slots,
     slot_tags,
     stamp_questions,
+    validate_question_contract,
+    yanyu_contract_issues,
 )
 
 
@@ -50,6 +58,129 @@ class QuizGeneratorTest(unittest.TestCase):
             reject_unsupported("科学推理", "科学推理-力学-杠杆滑轮")
         with self.assertRaises(ValueError):
             reject_unsupported("判断推理", "判断推理-图形推理-空间类")
+
+    def test_required_figure_contract(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "缺 figure 规格"):
+                render_question_figures(
+                    [{"external_id": "demo_01"}], Path(directory), required=True
+                )
+
+    def test_science_tag_stays_in_independent_module(self):
+        args = argparse.Namespace(
+            module="科学推理",
+            tag="科学推理-力学-杠杆滑轮",
+            count=1,
+            blueprint=None,
+            difficulty=None,
+        )
+        module, slots = resolve_slots(args)
+        self.assertEqual(module, "科学推理")
+        self.assertEqual(slots[0]["tag"], "科学推理-力学-杠杆滑轮")
+        self.assertEqual(infer_subcategory(slots[0]["tag"], module), "科学推理")
+
+    def test_unknown_figure_element_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "不支持的元素类型"):
+                render_question_figures(
+                    [{
+                        "external_id": "demo_01",
+                        "figure": {
+                            "image_only_facts": ["方向"],
+                            "elements": [{"type": "freehand", "x": 0, "y": 0}],
+                        },
+                    }],
+                    Path(directory),
+                    required=True,
+                )
+
+    def test_figure_accepts_x1_y1_width_height_coordinates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "figure.png"
+            render_figure(
+                {
+                    "elements": [
+                        {"type": "line", "x1": 0.1, "y1": 0.5, "x2": 0.9, "y2": 0.5},
+                        {"type": "rect", "x": 0.2, "y": 0.2, "width": 0.2, "height": 0.2},
+                    ]
+                },
+                output,
+            )
+            self.assertGreater(output.stat().st_size, 1000)
+
+    def test_figure_content_is_fitted_when_coordinates_use_small_cluster(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "figure.png"
+            render_figure(
+                {
+                    "elements": [
+                        {"type": "line", "x1": 0.05, "y1": 0.2, "x2": 0.25, "y2": 0.2},
+                        {"type": "text", "x": 0.12, "y": 0.25, "text": "O"},
+                    ]
+                },
+                output,
+            )
+            with Image.open(output) as image:
+                pixels = list(image.convert("RGB").getdata())
+            nonwhite = sum(pixel != (255, 255, 255) for pixel in pixels)
+            self.assertGreater(nonwhite, len(pixels) * 0.01)
+
+    def test_non_object_figure_element_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "非对象"):
+                render_question_figures(
+                    [{
+                        "external_id": "demo_01",
+                        "figure": {
+                            "image_only_facts": ["方向"],
+                            "elements": ["line"],
+                        },
+                    }],
+                    Path(directory),
+                    required=True,
+                )
+
+    def test_science_tag_validates_without_category(self):
+        from kaodian_taxonomy import validate_ai_primary_tag
+
+        self.assertEqual(
+            validate_ai_primary_tag("科学推理-力学-杠杆滑轮"),
+            "科学推理-力学-杠杆滑轮",
+        )
+
+    def test_science_prompt_uses_gd_canon(self):
+        run = {
+            "module": "科学推理",
+            "focus_tag": "科学推理-力学-杠杆滑轮",
+            "planned_count": 1,
+            "batch_id": "science",
+            "plan_date": "2026-09-10",
+            "slots": [{"tag": "科学推理-力学-杠杆滑轮", "count": 1}],
+        }
+        text = build_prompt(run, {}, prompt_extras(run))
+        self.assertIn("广东独有", text)
+        self.assertIn("杠杆 F1 L1 = F2 L2", text)
+
+    def test_yanyu_contract_requires_signal_and_shape(self):
+        run = {
+            "module": "言语理解与表达",
+            "planned_count": 1,
+            "focus_tag": "言语理解与表达-逻辑填空-成语填空",
+            "slots": [{"tag": "言语理解与表达-逻辑填空-成语填空", "count": 1}],
+        }
+        with self.assertRaisesRegex(ValueError, "未命中指定言语考法"):
+            validate_question_contract(
+                run,
+                [{"external_id": "demo_01", "stem": "没有空格", "kaodian_signal": "成语辨析"}],
+            )
+
+    def test_yanyu_subtype_collapse_is_rejected(self):
+        question = {
+            "stem": "这是一段有________的题干。",
+            "tags": ["言语理解与表达-逻辑填空-成语填空"],
+            "kaodian_signal": "根据语境辨析实词的词义和搭配",
+        }
+        self.assertTrue(any("成语填空" in issue for issue in yanyu_contract_issues(question)))
 
     def test_focus_prompt(self):
         run = {

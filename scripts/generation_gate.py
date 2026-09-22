@@ -101,8 +101,8 @@ def validate_ziliao_visual_evidence(batch_dir: Path, evidence: dict, image_paths
         raise ValueError("资料分析多模态视觉质检未通过")
     if evidence.get("batch_id") != read_json(batch_dir / "manifest.json").get("batch_id"):
         raise ValueError("视觉质检 batch_id 不一致")
-    if int(evidence.get("mobile_width") or 0) != 320 or "flash" not in str(evidence.get("model") or "").lower():
-        raise ValueError("视觉质检必须由 Gemini Flash 同时检查原图和 320px 考生视图")
+    if int(evidence.get("mobile_width") or 0) != 768 or "flash" not in str(evidence.get("model") or "").lower():
+        raise ValueError("视觉质检必须由 Gemini Flash 同时检查原图和 768px iPad 考生视图")
     expected = {str(path.relative_to(batch_dir.resolve())): digest(path) for path in image_paths}
     results = evidence.get("images") or []
     actual = {str(item.get("path") or ""): item for item in results if isinstance(item, dict)}
@@ -114,7 +114,7 @@ def validate_ziliao_visual_evidence(batch_dir: Path, evidence: dict, image_paths
         checks = item.get("checks") or {}
         if item.get("sha256") != sha or str(item.get("verdict") or "").upper() != "PASS":
             raise ValueError(f"视觉质检图片未通过或已变化：{relative}")
-        if int(item.get("mobile_width") or 0) != 320 or not all(checks.get(key) is True for key in required):
+        if int(item.get("mobile_width") or 0) != 768 or not all(checks.get(key) is True for key in required):
             raise ValueError(f"视觉质检项不完整：{relative}")
 
 
@@ -297,15 +297,9 @@ def validate_context_coverage(manifest: dict, ids: list[str], questions: list[di
         raise ValueError("evaluation_contexts 绑定了不存在的生成题")
     if len(eval_covered) != len(set(eval_covered)):
         raise ValueError("evaluation_contexts 不得重复绑定同一生成题")
-    missing = expected - set(eval_covered)
-    by_id = {str(question.get("external_id") or ""): question for question in (questions or [])}
-    must = []
-    for qid in missing:
-        question = by_id.get(qid)
-        if question is None or question_needs_evaluate_holdout(question):
-            must.append(qid)
-    if must and not _is_targeted_drill(manifest):
-        raise ValueError("evaluation_contexts 必须覆盖有 holdout 的生成题")
+    # Holdout is an optional style/quality reference.  A syllabus-only slot is
+    # still a valid AI-generated question and must not be blocked because the
+    # reference bank has no matching item or the optional review was omitted.
     gen_contexts = generation.get("generation_contexts") or []
     gen_covered = [str(qid) for item in gen_contexts for qid in item.get("question_ids") or []]
     extra = set(gen_covered) - expected
@@ -466,8 +460,12 @@ def _validate_ziliao_answer_layout(questions: list) -> None:
             continue
         answer = str(question.get("answer") or question.get("correct_answer") or "").strip().upper()
         groups.setdefault(material_id, []).append(answer)
-    if len(groups) == 4 and all(len(keys) == 5 for keys in groups.values()):
-        validate_ziliao_paper_answers(list(groups.values()))
+    # Independent workers keep Gemini's original option order; answer-letter
+    # distribution is not a content constraint and must not trigger rewrites.
+    valid = {"A", "B", "C", "D"}
+    for material_id, answers in groups.items():
+        if any(answer not in valid for answer in answers):
+            raise ValueError(f"资料分析答案字母非法：{material_id} -> {answers}")
 
 
 def validate_evidence(
@@ -610,17 +608,18 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         if g != 5 or lg != 15:
             raise ValueError(f"广东判断 20 题须图形 5 + 逻辑 15，当前 {g}/{lg}")
         validate_panduan_paper(panduan)
-    # 8) 科学推理独立 5 题：5 学科去重、每题必带图、初中档禁词
+    # 8) 科学推理整卷须 5 学科；专项练习只保留逐题硬约束，允许同一知识点重复练习。
     science = [q for q in generated
                if "科学推理" in (str(q.get("category") or "") + str(q.get("sub_category") or ""))]
     if science:
-        if len(science) != 5:
-            raise ValueError(f"科学推理须为 5 题（独立模块），当前 {len(science)} 题")
         buckets = [kepui_bucket(_kepui_blob(q)) for q in science]
         if any(not b for b in buckets):
             raise ValueError("科学推理每题须落到具体学科（力学/压强浮力/电学/生物/地理等）")
-        if len(set(buckets)) != 5:
-            raise ValueError("科学推理 5 题学科须互不相同")
+        if not _is_targeted_drill(manifest):
+            if len(science) != 5:
+                raise ValueError(f"科学推理须为 5 题（独立模块），当前 {len(science)} 题")
+            if len(set(buckets)) != 5:
+                raise ValueError("科学推理 5 题学科须互不相同")
         for q in science:
             if not (q.get("stem_images") or any(o.get("images") for o in q.get("options") or [])):
                 raise ValueError(f"科学推理每题必带图：{q.get('external_id')}")
@@ -630,7 +629,8 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                 raise ValueError(
                     f"科学推理应为广东/初中难度，禁高中大学内容（{hit}）：{q.get('external_id')}。"
                     "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
-        validate_kepui_paper(science, require_images=True)
+        if not _is_targeted_drill(manifest):
+            validate_kepui_paper(science, require_images=True)
     # 9) 言语：禁“因此亟须”作文腔；逻辑填空禁极性送分与同批申论套句
     for question in questions:
         if str(question.get("category") or "") == "言语理解与表达":
