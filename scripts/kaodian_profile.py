@@ -232,16 +232,23 @@ def practice_session_sealed(conn, session_id):
 
 
 def practice_coverage(conn, session_id):
-    """这一场有几道题该有证据、已经写了几道、还差哪几道。"""
+    """这一场有几道题该有证据、已经写了几道、还差哪几道。
+
+    秒过的空题不算数：它按设计就不写证据，若算进分母，这一场会永远卡在
+    "证据不全"而封不了存。
+    """
     rows = conn.execute(
-        """SELECT pa.question_id, q.tags
+        """SELECT pa.question_id, pa.user_answer, pa.time_spent_sec, q.tags
              FROM practice_answers pa
              JOIN questions q ON q.id = pa.question_id
             WHERE pa.session_id = ?
             ORDER BY pa.id""",
         (int(session_id),),
     ).fetchall()
-    eligible = [qid for qid, tags in rows if primary_tag(tags)]
+    eligible = [
+        qid for qid, answer, seconds, tags in rows
+        if primary_tag(tags) and (answer or blank_weight(int(seconds or 0)) > 0)
+    ]
     written = {
         row[0] for row in conn.execute(
             """SELECT DISTINCT question_id FROM kaodian_events
@@ -447,6 +454,63 @@ def record_blanks(conn, session_id):
         else:
             skipped += 1
     return {"sealed": False, "recorded": recorded, "skipped": skipped, "blanks": len(rows)}
+
+
+# 回填答对题的权重。对错是客观的，但"是不是蒙对、过程能不能复现"只有复盘时
+# 看着草稿才判断得了，事后补录没有这个依据，所以打折收下而不是当满证据。
+BACKFILL_CORRECT_WEIGHT = 0.6
+
+
+def backfill_session(conn, session_id):
+    """把一场练习里漏记的题按客观结果补进画像。
+
+    只补 practice_coverage 认定缺失的题，已有证据一律不动。三类一起补：
+    漏补任何一类都会让画像系统性偏移（只补错题就把掌握度压低了）。
+    """
+    ensure_schema(conn)
+    _eligible, _written, missing = practice_coverage(conn, session_id)
+    stats = {"recorded": 0, "skipped": 0, "blank": 0, "wrong": 0, "correct": 0}
+    for question_id in missing:
+        row = conn.execute(
+            """SELECT pa.user_answer, pa.is_correct, pa.time_spent_sec, q.tags
+                 FROM practice_answers pa
+                 JOIN questions q ON q.id = pa.question_id
+                WHERE pa.session_id=? AND pa.question_id=?""",
+            (int(session_id), int(question_id)),
+        ).fetchone()
+        if not row:
+            stats["skipped"] += 1
+            continue
+        user_answer, is_correct, seconds, raw_tags = row
+        tag = primary_tag(raw_tags)
+        seconds = int(seconds or 0)
+        if not tag:
+            stats["skipped"] += 1
+            continue
+        if not user_answer:
+            weight = blank_weight(seconds)
+            kind = "blank"
+            correct = False
+        elif is_correct:
+            weight = BACKFILL_CORRECT_WEIGHT
+            kind = "correct"
+            correct = True
+        else:
+            weight = 1.0
+            kind = "wrong"
+            correct = False
+        if weight == 0.0:
+            stats["skipped"] += 1
+            continue
+        if record(
+            conn, tag, "", "", correct, seconds * 1000, "practice", weight,
+            session_id=int(session_id), question_id=int(question_id),
+        ):
+            stats["recorded"] += 1
+            stats[kind] += 1
+        else:
+            stats["skipped"] += 1
+    return stats
 
 
 def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="hermes", weight=1.0, session_id=None, question_id=None, practice_lock=False):
@@ -921,6 +985,29 @@ if __name__ == "__main__":
         )
         conn.commit()
         print(f"{'unsealed' if cur.rowcount else 'not found'} -> practice {args[0]}")
+    elif "--backfill-missing" in sys.argv:
+        # 历史欠账：复盘漏记的题事后按客观结果补录。给场次 id 补一场，
+        # 给 all 补所有已交卷场次（已封存的也补，不改封存状态）。
+        args = sys.argv[sys.argv.index("--backfill-missing") + 1:]
+        if not args:
+            raise SystemExit("用法：--backfill-missing <practice_sessions.id | all>")
+        conn = sqlite3.connect(DB)
+        ensure_schema(conn)
+        if args[0] == "all":
+            targets = [r[0] for r in conn.execute(
+                "SELECT id FROM practice_sessions WHERE ended_at IS NOT NULL ORDER BY id"
+            )]
+        else:
+            targets = [int(args[0])]
+        total = {"sessions": 0, "recorded": 0, "skipped": 0, "blank": 0, "wrong": 0, "correct": 0}
+        for sid in targets:
+            stats = backfill_session(conn, sid)
+            if stats["recorded"]:
+                total["sessions"] += 1
+                for key in ("recorded", "skipped", "blank", "wrong", "correct"):
+                    total[key] += stats[key]
+        conn.commit()
+        print(json.dumps(total, ensure_ascii=False))
     elif "--record-blanks" in sys.argv:
         args = sys.argv[sys.argv.index("--record-blanks") + 1:]
         if not args:

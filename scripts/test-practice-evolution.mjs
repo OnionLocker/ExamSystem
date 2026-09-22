@@ -142,6 +142,7 @@ await call(`/api/practice/sessions/${blankSession.id}/submit`, {
   answers: [
     { question_id: longBlank.id, user_answer: '', time_spent_sec: 120 },
     { question_id: shortBlank.id, user_answer: '', time_spent_sec: 3 },
+    { question_id: question.id, user_answer: 'B', time_spent_sec: 30 },
   ],
 });
 
@@ -160,13 +161,26 @@ assert.equal(written[0].evidence_weight, 1, '停留 120 秒是满权重证据');
 assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(longBlank.id).n, 1);
 assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(shortBlank.id).n, 0);
 
-// 还差一道没写证据，封存必须被拒绝
-const refused = spawnSync('python3', [
+// 有作答的那道还没写证据，封存必须被拒绝
+const seal = () => spawnSync('python3', [
   'scripts/kaodian_profile.py', '--seal-practice', String(blankSession.id),
 ], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+const refused = seal();
 assert.equal(refused.status, 0, (refused.stderr || '') + (refused.stdout || ''));
 assert.match(refused.stdout, /refused/);
+assert.match(refused.stdout, new RegExp(String(question.id)));
+assert.doesNotMatch(refused.stdout, new RegExp(String(shortBlank.id)), '秒过的空题不该算进分母');
 assert.equal(
+  db.prepare('SELECT profile_reviewed_at FROM practice_sessions WHERE id=?').get(blankSession.id).profile_reviewed_at,
+  null,
+);
+
+// 补上那道，封存就该通过——秒过的空题不会把这一场永远卡住
+record(blankSession.id, '0');
+const accepted = seal();
+assert.equal(accepted.status, 0, (accepted.stderr || '') + (accepted.stdout || ''));
+assert.match(accepted.stdout, /^sealed/);
+assert.notEqual(
   db.prepare('SELECT profile_reviewed_at FROM practice_sessions WHERE id=?').get(blankSession.id).profile_reviewed_at,
   null,
 );
