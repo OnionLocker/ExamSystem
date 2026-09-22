@@ -23,23 +23,23 @@ const BackgroundNotice = ({ notice }) => {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+        className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-[0.75em] font-bold transition-colors ${
           ok
             ? 'bg-black/[0.035] text-[#7b6a4a] hover:bg-black/[0.06]'
             : 'bg-[#b4231f]/10 text-[#b4231f] hover:bg-[#b4231f]/[0.16]'
         }`}
       >
-        <span aria-hidden="true" className="text-[13px] leading-none">{ok ? '✓' : '⚠'}</span>
+        <span aria-hidden="true" className="text-[1.18em] leading-none">{ok ? '✓' : '⚠'}</span>
         <span className="truncate">{summarize(notice)}</span>
         <span
           aria-hidden="true"
-          className={`text-[13px] leading-none opacity-50 transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`text-[1.18em] leading-none opacity-50 transition-transform ${open ? 'rotate-90' : ''}`}
         >
           ›
         </span>
       </button>
       {open && (
-        <pre className="mt-1.5 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-black/[0.04] p-3 text-[11px] leading-relaxed text-[#4a4336]">
+        <pre className="mt-1.5 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-black/[0.04] p-3 text-[0.75em] leading-relaxed text-[#4a4336]">
           {notice.command ? `$ ${notice.command}\n\n` : ''}
           {notice.output || '（无输出）'}
         </pre>

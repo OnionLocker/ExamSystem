@@ -103,7 +103,7 @@ export default function ReviewFloater({
       </div>
       <div
         className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 [&_blockquote]:bg-[#e8d5b0] [&_blockquote]:border-[#d4c09a]"
-        style={{ zoom: fontScale / 100, contain: 'paint' }}
+        style={{ fontSize: `calc(15px * ${fontScale / 100})`, contain: 'paint' }}
       >
         <MarkdownMessage
           content={content}

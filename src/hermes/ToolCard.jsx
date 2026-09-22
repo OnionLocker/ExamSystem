@@ -17,10 +17,10 @@ const ToolCard = ({ tool }) => {
     <div
       role="status"
       aria-label={`${activity.label}中`}
-      className="hermes-working my-2 inline-flex items-center gap-1.5 rounded-full bg-black/[0.035] px-3 py-1.5 text-[11px] font-bold text-[#7b6a4a]"
+      className="hermes-working my-2 inline-flex items-center gap-1.5 rounded-full bg-black/[0.035] px-3 py-1.5 text-[0.75em] font-bold text-[#7b6a4a]"
     >
       <span className="hermes-working-shimmer" aria-hidden="true" />
-      <span aria-hidden="true" className="hermes-working-emoji text-[15px] leading-none">{emoji}</span>
+      <span aria-hidden="true" className="hermes-working-emoji text-[1.36em] leading-none">{emoji}</span>
       <span className="relative z-[1]">{activity.label}</span>
       <span className="relative z-[1] inline-flex items-end gap-[2px]" aria-hidden="true">
         {[0, 1, 2].map((i) => (

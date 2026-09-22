@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
   ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
-  PictureInPicture2, Check,
+  PictureInPicture2, Check, Plus,
 } from 'lucide-react';
 
 import { api } from '../api.js';
@@ -27,9 +27,12 @@ import {
   appendAssistantDelta as appendAssistantDeltaState,
   coerceResumePayload,
   ensureStreamingAssistant,
+  eventMatchesSession,
   eventText,
   finishAssistantMessage,
   mergeResumedMessages,
+  visibleAssistantReply,
+  resumeMatchesSession,
   shouldAcceptRemoteResume,
 } from './hermesProtocol.js';
 
@@ -37,6 +40,8 @@ let msgSeq = 0;
 const uid = () => `m${++msgSeq}`;
 
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+const PDF_MAX_BYTES = 30 * 1024 * 1024;
+const FILE_MAX_BYTES = 50 * 1024 * 1024;
 const AUDIO_MAX_BYTES = 200 * 1024 * 1024;
 
 const pickRecorderMime = () => {
@@ -179,7 +184,7 @@ const RecWave = ({ stream }) => {
 };
 
 const VoiceWaves = ({ playing }) => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className={playing ? 'voice-playing' : ''}>
+  <svg width="1.07em" height="1.07em" viewBox="0 0 16 16" fill="none" aria-hidden className={playing ? 'voice-playing' : ''}>
     <path d="M10.6 6a2.2 2.2 0 0 0 0 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     <path d="M8.2 4.5a4.2 4.2 0 0 0 0 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     <path d="M5.8 3a6.2 6.2 0 0 0 0 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -190,7 +195,8 @@ const VoiceWaves = ({ playing }) => (
 const VoiceBubble = ({ src, sec = 0, onDuration }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
-  const width = 78 + Math.min(Math.max(Number(sec) || 1, 1), 60) * 2.1;
+  // em 而不是 px：正文放大时语音条跟着一起放大，不会缩成一小条
+  const width = `${(78 + Math.min(Math.max(Number(sec) || 1, 1), 60) * 2.1) / 15}em`;
 
   const toggle = () => {
     const el = audioRef.current;
@@ -211,10 +217,10 @@ const VoiceBubble = ({ src, sec = 0, onDuration }) => {
       onClick={toggle}
       disabled={!src}
       title={src ? (playing ? '暂停' : '播放') : '录音已不在本地'}
-      className="relative flex items-center justify-end gap-1.5 h-10 pr-3.5 pl-4 mr-1.5 rounded-[10px] bg-[#1a1a1a] text-[#f7efe0] disabled:opacity-90"
+      className="relative flex items-center justify-end gap-1.5 h-[2.67em] pr-3.5 pl-4 mr-1.5 rounded-[10px] bg-[#1a1a1a] text-[#f7efe0] disabled:opacity-90"
       style={{ width }}
     >
-      <span className="text-[15px] tabular-nums leading-none">{fmtVoiceQuote(sec)}</span>
+      <span className="text-[1em] tabular-nums leading-none">{fmtVoiceQuote(sec)}</span>
       <VoiceWaves playing={playing} />
       <span className="absolute -right-[5px] top-1/2 -mt-[5px] w-0 h-0 border-y-[5px] border-y-transparent border-l-[6px] border-l-[#1a1a1a]" />
       {src ? (
@@ -264,21 +270,26 @@ const readFontScale = () => {
   return 100;
 };
 
+// 消息导航刻度：静止 12px，指针最近处放大到 26px，34px 内平滑过渡成波浪
+const TICK_MIN_W = 12;
+const TICK_LIFT = 14;
+const TICK_FALLOFF = 34;
+
 const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
   <div className={`inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-xl border max-w-full ${
     dark ? 'bg-white/10 border-white/20 text-white' : 'bg-[#f4f0e6] border-[#e8d5b0] text-[#1a1a1a]'
   }`}>
     <button type="button" onClick={() => onOpen(review)} className="inline-flex items-center gap-1.5 min-w-0">
-      <FileText size={12} className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
-      <span className="text-[11px] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
+      <FileText size="0.8em" className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
+      <span className="text-[0.75em] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
     </button>
     {onRemove ? (
       <button
         type="button"
         onClick={onRemove}
-        className="w-4 h-4 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center shrink-0"
+        className="w-[1.07em] h-[1.07em] rounded-full bg-[#1a1a1a] text-white flex items-center justify-center shrink-0"
       >
-        <X size={9} />
+        <X size="0.6em" />
       </button>
     ) : null}
   </div>
@@ -326,19 +337,28 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [reviewPreview, setReviewPreview] = useState(null);
   const [reviewMd, setReviewMd] = useState('');
   const [reviewMdErr, setReviewMdErr] = useState('');
+  const [activeMessageId, setActiveMessageId] = useState(null);
+  // railFocus = { y, index }：指针（或手指）在导航轨道上的位置，驱动波浪和信息卡
+  const [railFocus, setRailFocus] = useState(null);
+  const [railScrub, setRailScrub] = useState(false);
+  const [tickCenters, setTickCenters] = useState([]);
   const [showUploads, setShowUploads] = useState(false);
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploadsLoading, setUploadsLoading] = useState(false);
 
   const scrollRef = useRef(null);
+  const messageRefs = useRef(new Map());
+  const railRef = useRef(null);
   const stickToBottom = useRef(true);
   const taRef = useRef(null);
+  const filePickRef = useRef(null);
   // sid 的镜像：send/interrupt 等回调里要读最新值，又不想因此重建回调
   const sidRef = useRef(null);
   useEffect(() => { sidRef.current = sid; }, [sid]);
   // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
+  const practiceReviewRef = useRef(null);
 
   const openReviewPreview = useCallback((review) => {
     setReviewMd('');
@@ -499,23 +519,28 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const gw = new HermesGateway();
     gwRef.current = gw;
 
+    const onActive = (fn) => (ev) => {
+      if (!eventMatchesSession(ev, sidRef.current, activeStoredIdRef.current)) return;
+      fn(ev);
+    };
+
     const offs = [
       gw.onState(setConnState),
 
-      gw.on('message.delta', (ev) => {
+      gw.on('message.delta', onActive((ev) => {
         const t = ev.payload?.text;
         if (t) appendAssistantDelta(t);
-      }),
+      })),
       // thinking.delta 是转圈状态文案，不是推理过程（官方 desktop 直接忽略）
-      gw.on('thinking.delta', (ev) => {
+      gw.on('thinking.delta', onActive((ev) => {
         const t = ev.payload?.text;
         if (t) setStatus(String(t));
-      }),
-      gw.on('reasoning.delta', (ev) => {
+      })),
+      gw.on('reasoning.delta', onActive((ev) => {
         const t = ev.payload?.text;
         if (t) appendThinking(t);
-      }),
-      gw.on('message.start', () => {
+      })),
+      gw.on('message.start', onActive(() => {
         setWaitSec(0);
         setBusy(true);
         setStatus('(｡•̀ᴗ-)✧ 整理一下');
@@ -524,10 +549,19 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         if (!sendingRef.current) {
           void pullRemoteSessionRef.current?.({ force: false });
         }
-      }),
-      gw.on('message.complete', (ev) => finishStreaming(eventText(ev))),
+      })),
+      gw.on('message.complete', onActive((ev) => {
+        const review = practiceReviewRef.current;
+        finishStreaming(eventText(ev));
+        practiceReviewRef.current = null;
+        if (review?.kind !== 'practice' || review.profileReviewed) return;
+        api(`/api/practice/sessions/${review.id}/review-complete`, { method: 'POST' })
+          .then(() => api('/api/practice/sessions?limit=100'))
+          .then((list) => setPracticeRuns(Array.isArray(list) ? list : []))
+          .catch(() => {});
+      })),
 
-      gw.on('tool.start', (ev) => {
+      gw.on('tool.start', onActive((ev) => {
         const p = ev.payload || {};
         upsertTool({
           tool_id: p.tool_id, name: p.name || 'tool', args: p.args,
@@ -535,34 +569,34 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         });
         const activity = getToolActivity(p.name);
         setStatus(`${activity.emoji} ${activity.label}`);
-      }),
-      gw.on('tool.complete', (ev) => {
+      })),
+      gw.on('tool.complete', onActive((ev) => {
         const p = ev.payload || {};
         upsertTool({
           tool_id: p.tool_id, name: p.name || 'tool', args: p.args,
           result: p.result, duration_s: p.duration_s, done: true,
         });
         setStatus('(｡•̀ᴗ-)✧ 整理一下');
-      }),
+      })),
 
-      gw.on('status.update', (ev) => {
+      gw.on('status.update', onActive((ev) => {
         const s = ev.payload?.text || ev.payload?.status;
         if (s) setStatus(String(s));
-      }),
+      })),
 
-      gw.on('error', (ev) => {
+      gw.on('error', onActive((ev) => {
         const msg = ev.payload?.message || '未知错误';
         setBanner(msg);
         setWaitSec(0);
         sendingRef.current = false;
         setBusy(false);
         setStatus('');
-      }),
+      })),
 
       // 审批请求：ExamSystem 这个界面不做审批 UI，提示去微信/终端处理
-      gw.on('approval.request', () => {
+      gw.on('approval.request', onActive(() => {
         setBanner('Hermes 请求操作授权，请到微信或终端确认（本页暂不支持审批）');
-      }),
+      })),
     ];
 
     let cancelled = false;
@@ -655,18 +689,26 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
   }, []);
 
-  const applyResume = useCallback((res, storedId, { force = true, stick = false } = {}) => {
+  const applyResume = useCallback((res, storedId, { force = true, stick = false, allowSwitch = force } = {}) => {
     const payload = coerceResumePayload(res);
+    if (!allowSwitch && !resumeMatchesSession(payload, sidRef.current, activeStoredIdRef.current || storedId)) {
+      return;
+    }
+    const prevStored = activeStoredIdRef.current;
+    const nextStored = storedId || payload.stored_session_id || null;
+    const sameSession = !prevStored || !nextStored || prevStored === nextStored;
     rememberSession({
       ...payload,
       session_id: payload.session_id || sidRef.current,
-      stored_session_id: storedId || payload.stored_session_id || null,
-    }, storedId || payload.stored_session_id || null);
+      stored_session_id: nextStored,
+    }, nextStored);
     setMessages((prev) => {
       const next = mergeResumedMessages(prev, payload, {
         nextId: uid,
         parseAudioLen,
         isAudioLabel,
+        sameSession,
+        storedId: nextStored,
       });
       return shouldAcceptRemoteResume(prev, next, payload, force) ? next : prev;
     });
@@ -674,7 +716,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setWaitSec(0);
       setBusy(true);
       setStatus('生成中');
-    } else if (!sendingRef.current && (force || Object.prototype.hasOwnProperty.call(payload, 'running'))) {
+    } else if (force || Object.prototype.hasOwnProperty.call(payload, 'running')) {
+      sendingRef.current = false;
       setBusy(false);
       setStatus('');
     }
@@ -711,7 +754,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       if (!res || (!res.messages?.length && !res.inflight && !res.running)) {
         res = await gw.request('session.resume', { session_id: stored, cols: 100 });
       }
-      applyResume(res, stored, { force });
+      applyResume(res, stored, { force, allowSwitch: false });
     } catch {
       /* 后台同步失败不应打断正在看的对话 */
     } finally {
@@ -744,7 +787,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     if (!stored) return;
     setStatus('重连会话');
     gw.request('session.resume', { session_id: stored, cols: 100 })
-      .then((res) => applyResume(res, stored))
+      .then((res) => applyResume(res, stored, { allowSwitch: false }))
       .catch((err) => setBanner(`重连会话失败：${err.message}`));
   }, [connState, applyResume]);
 
@@ -799,6 +842,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setBanner('');
     setStatus('载入会话');
     try {
+      setMessages([]);
       const res = await gw.request('session.resume', { session_id: stored.id, cols: 100 });
       applyResume(res, stored.id, { stick: true });
     } catch (err) {
@@ -1013,6 +1057,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     sendingRef.current = true;
     const images = pendingImages;
     const review = pendingReview;
+    practiceReviewRef.current = review;
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
       : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
@@ -1031,7 +1076,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号、行为或草稿，禁止空话和知识点总表。建议仍是考场动作。',
+          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
+          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1040,7 +1086,22 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ? [
           `下面这个 Markdown 是我选中的《${review.title}》，请先直接打开文件。`,
           review.path,
+          ...(review.audit
+            ? [
+                ...(review.auditSourcePath
+                  ? [`这是复盘审核。首次复盘报告在这里，先打开并严格对照：${review.auditSourcePath}`]
+                  : ['这是复盘审核，但首次复盘报告路径缺失；必须明确说明无法完成前后对照，不得假装看过首次复盘。']),
+                '本轮不是普通的第二次讲题，而是对首次复盘是否有效的验收。先读取首次复盘给出的错误起点、标准动作和下次验收证据，再检查本次重做是否真正做到。',
+                '逐题同时对照首次作答、本次作答、两次用时、两次草稿和首次复盘要求；每题必须给出“有效掌握 / 部分掌握 / 未掌握”的审核结论，并说明证据。',
+                '本次答对但仍依赖猜测、方法与首次要求不一致、步骤不能复现、用时明显失控或草稿无法支持结论，都不能判为有效掌握；本次空题或答错直接判为未掌握。',
+                '审核正文仍按题输出，但重点写“首次复盘要求是否落实 → 本次重做证据 → 是否通过 → 下一步验收动作”，禁止只复述首次解析。',
+              ]
+            : []),
           `本场共 ${review.total || 0} 题；已附上 ${review.draftCount || 0} 张实际保存的草稿纸。请逐题对应，不要把附件数量误认为题目总数。`,
+          '',
+          '本轮只复盘，不出题。第一件工具必须是打开上面这条路径；打开后立刻从 `### 01 · 题型名` 写给人看的正文。',
+          '禁止 search_files、ls、PRAGMA、猜列名、读 ExamSystem 源码、import kaodian_taxonomy / quiz_lite / quiz_generator / generation_gate。',
+          '题目id、对错、用时、知识点以报告表格为准。--item 只用表格里的题目id。草稿按附件 qN-draft.png 对题号，不要再去 draft-images 翻目录，不要再查 exam.db。',
           '',
           '回复的第一行必须是 `### 01 · 题型名`。禁止先写总况、长短处、知识点总表或模块总评。直接按题讲。',
           '言语、判断、数量、资料必须同一套标题，禁止按模块换版式。展开的题五段标题一行都不能少：`### 02 · 题型名` → `> **原题**` → `**作答结果**` → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。禁止改成「为什么会错 / 解题流程 / 下次遇到怎么做」，禁止把「下次动作」收成没有标题的一句收尾。',
@@ -1052,7 +1113,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号、行为或草稿，禁止空话和知识点总表。建议仍是考场动作。',
+          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
+          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1073,7 +1135,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。每条必须落到本场具体题号，禁止空话和知识点总表。建议仍是考场动作。',
+          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
+          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1094,20 +1157,19 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       : review?.kind === 'practice'
       ? [
           'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
-          `交卷只存了选项、用时和草稿，没有写画像。本场（practice_sessions.id=${review.id}）只有这一次第一次 Hermes 复盘可以更新画像；写完立刻封印，之后同一场永远不再写。`,
-          '画像记的是「会不会」，不是「选项对不对」。先结合 Markdown 报告、本题用时、本场慢题参考线、草稿纸实图做诊断，再逐题写入。空题先跳过。',
-          '判定（每题只记一条，--item 必须用报告里的题目id/数据库id，禁止用卷面 01/02）：',
-          '- 空题/未作答：不 record。没做完不等于不会。',
-          '- 选项对，且草稿/过程能看出对应考点的关键步骤：1 --weight 1',
-          '- 选项对，但无草稿、乱画、过程对不上，或明显蒙对：0 --weight 1。对选项不等于掌握。',
-          '- 选项错：0 --weight 1。若过程整体对、只是最后算错或填错选项：1 --weight 0.5（会做但不稳）。',
-          '- 选项对，但用时达到或超过本场慢题参考线，或方法明显绕远：1 --weight 0.7',
-          '- 证据不足、无法判断会不会：跳过，不要猜掌握度。',
-          '考点默认用该题 tags[0] /「本题考察知识点」的 模块-一级-二级。禁止 --mastery。禁止改 questions.tags。只有原标签明显标错才先 --register 再 --record。elapsed_ms = 报告本题用时秒 × 1000。',
-          `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes --weight 1 --practice-id ${review.id} --item 题目id`,
-          '命令打印 already recorded / already sealed 就跳过该题，禁止换标签再记一次。',
-          `全部应写题目写完后立刻执行：python3 ${projectRoot}/scripts/kaodian_profile.py --seal-practice ${review.id}`,
-          '封印后本场禁止再 record。',
+          ...(review.audit ? ['This is a review audit. Compare this retake with the first review requirements; blank answers are explicit evidence of not knowing and must be recorded as 0.'] : []),
+          ...(review.audit
+            ? [
+                '审核写入画像时，1 只表示本次重做已经用独立、可复现的方法通过首次复盘要求；仅仅看过解析、记住答案、蒙对或过程不完整，一律写 0。',
+                '审核结论必须以本次重做证据为主，首次复盘只提供待验收的要求；不能因为首次复盘写得完整，就替本次重做判定掌握。',
+              ]
+            : []),
+          `本场（practice_sessions.id=${review.id}）尚未封存。必须逐题结合答案、用时、草稿实图和过程质量判断“可复现掌握”后写入画像。`,
+          '每道有知识点的题都要写一次；答对但蒙对、方法不稳、步骤不可复现，结果填 0；只有答案正确且过程可靠可复现才填 1。空题明确视为不会，按 0 写入。',
+          '权重是证据可信度，不是分数：完整答案+草稿+过程清楚用 1.0；缺草稿或过程只能部分判断用 0.5-0.8；明显猜测、绕路或证据不足用 0.3-0.5。权重必须在 0.1-1.5。',
+          `逐题使用：python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' <0或1> <用时毫秒> practice --weight <0.1-1.5> --practice-id ${review.id} --item <题目id>`,
+          '题目id、模块、一级和用时严格取报告表格；没有明确知识点或证据不足以判断时不要编造标签。命令返回 already recorded 就跳过。',
+          `所有可判断题写完后，且仅在写入命令均成功后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --seal-practice ${review.id}`,
         ].join('\n')
       : review?.kind === 'exam'
 
@@ -1136,12 +1198,25 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         id: msgId, role: 'user',
         content: text || audioLabel || '',
         streaming: false,
-        tools: [], thinking: '', images: images.filter((i) => !i.hidden).map((i) => i.dataUrl),
+        tools: [], thinking: '',
+        images: images.filter((i) => !i.hidden && i.mime?.startsWith('image/')).map((i) => i.dataUrl),
+        attachments: images.filter((i) => !i.hidden).map((i) => ({ name: i.name, mime: i.mime, dataUrl: i.dataUrl })),
         audio: audio?.dataUrl || null,
         audioSec: audio?.sec > 0 ? Math.round(audio.sec) : (parseAudioLen(audioLabel) || null),
         hadAudio: !!audio,
         sentAt: Date.now(),
-        review: review ? { id: review.id, kind: review.kind, name: review.name, title: review.title, label: review.label, path: review.path || null, profileReviewed: Boolean(review.profileReviewed) } : null,
+        storedSessionId: activeStoredIdRef.current,
+        review: review ? {
+          id: review.id,
+          kind: review.kind,
+          name: review.name,
+          title: review.title,
+          label: review.label,
+          path: review.path || null,
+          audit: Boolean(review.audit),
+          auditSourcePath: review.auditSourcePath || null,
+          profileReviewed: Boolean(review.profileReviewed),
+        } : null,
       },
     ]);
     setInput('');
@@ -1150,7 +1225,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setPendingReview(null);
     setBusy(true);
     setWaitSec(0);
-    setStatus(audio ? '上传录音' : (images.length > 0 ? '上传图片' : '已发送'));
+    setStatus(audio ? '上传录音' : (images.length > 0 ? '上传附件' : '已发送'));
     stickToBottom.current = true;
 
     // 拿一个可用会话：优先 resume 当前存档（能保住上下文），
@@ -1174,11 +1249,27 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     // 所以图片不会只挂上一半
     const deliver = async (target, outbound) => {
       for (const img of images) {
-        await gw.request('image.attach_bytes', {
-          session_id: target,
-          content_base64: img.dataUrl,
-          filename: img.name,
-        });
+        const isPdf = img.mime === 'application/pdf' || /\.pdf$/i.test(img.name || '');
+        const isImage = img.mime?.startsWith('image/');
+        if (isPdf) {
+          await gw.request('pdf.attach', {
+            session_id: target,
+            content_base64: img.dataUrl,
+            filename: img.name,
+          });
+        } else if (isImage) {
+          await gw.request('image.attach_bytes', {
+            session_id: target,
+            content_base64: img.dataUrl,
+            filename: img.name,
+          });
+        } else {
+          await gw.request('file.attach', {
+            session_id: target,
+            data_url: img.dataUrl,
+            name: img.name,
+          });
+        }
       }
       if (audio) {
         await gw.request('audio.attach_bytes', {
@@ -1189,7 +1280,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       }
       await gw.request('prompt.submit', {
         session_id: target,
-        text: outbound || (audio ? '请听这段口述' : '看看这张图片'),
+        text: outbound || (audio ? '请听这段口述' : '请查看我上传的附件'),
       });
     };
 
@@ -1199,6 +1290,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ? [
             '下面附了口述录音，请直接听，不要转写成文字，不要让用户改成打字。',
             '录音才是本轮指令。不要把时长标签当作用户正文。',
+            '口吻：严师。标准严、态度也严、讲解仍耐心。对高频、可避免、直接造成失分的错误明确说“这题不该错/这一步必须纠正”，再把标准动作讲透；只批评行为，不攻击人格。禁止浮夸夸赞。草稿对了只说这一步对，并给下一次验收标准。',
             '若录音要你根据快照选定考点并出题：听完后立刻后台调用出题脚本，题量和考点以录音为准（说10道就10道；说按你刚定的考点出，就出那个考点）。不要先只回复建议再等下一轮。',
             '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
           ].join('\n')
@@ -1210,10 +1302,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3|(?:来|出|再来|各来|各出)\s*[\d\u4e00-\u9fa5]{1,3}\s*(?:\u9053|\u4e2a)(?![\u5e74\u6708\u5468])/.test(spokenText);
       const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(spokenText);
       const quizScript = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>'`;
+      const figureQuizScript = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>'`;
       const quizBlueprint = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --batch-id '<YYYYMMDD_hermes_考点_序号>' --blueprint '{"slots":[{"tag":"<规范主标签A>","count":3,"difficulty":"mid"},{"tag":"<规范主标签B>","count":3,"difficulty":"hard"},{"tag":"<规范主标签C>","count":4,"difficulty":"hard"}]}'`;
       const quizSlotHint = [
         `If the user wants several 考法/题型 in one batch, a difficulty mix, or a split like 3+3+4, use the blueprint form instead of a single --tag (they are mutually exclusive): ${quizBlueprint}`,
-        'Slots map to item order. Each slot needs tag+count; difficulty is optional (easy/mid/hard); all slots must share one module; the total still has to be 1-15. Choosing the slots, their counts and the difficulty spread is your call.',
+        'Slots map to item order. Each slot needs tag+count; difficulty is optional (easy/mid/hard); all slots must share one module; the total still has to be 1-15. Choosing the slots, their counts and the difficulty spread is your call. A mix (e.g. 4 easy + 3 mid + 3 hard, batch_id …_ladder_01) is allowed; the AI练题 card will be tagged ladder, not the first slot.',
+        `科学推理或判断推理-图形推理/空间类必须使用重型带图管线：${figureQuizScript}；不要用 quiz_lite，因为它会拒绝或剥离图片。Gemini 必须按知识点返回结构化图形规格，由程序渲染并经过视觉质检。`,
         'A slot may also carry "brief": free text (<=600 chars) that is YOUR drafting instruction for this batch. The script already injects the solver-canon 固定识别/考场步骤/禁止 for that 考法, so use brief for what the canon cannot know: this run\'s emphasis, degenerate patterns to avoid, current-exam intel you looked up, or a difficulty demand the user just voiced. brief may only tighten constraints, never relax the gate, and must never contain stems, answers or numbers.',
         '一个一级知识点下的不同考法是不同的二级标签，只传一个标签整批就只有那一个考法。最值问题有四个独立考法标签：和定最值与构造 / 最不利原则与抽屉 / 反向构造与多集合最值 / 二次函数与乘积极值，不要用一个标签笼统覆盖。',
         'quiz_lite 出稿后会跑两个独立审核：盲解官看不到答案自己重做一遍，考官查难度档、考法归属、公考风格与解析可复算。只有不合格的那几道会被退回重出，已通过的题不动，所以返回的 rounds 里可能有多轮，这是正常的。',
@@ -1254,11 +1348,17 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           }
         } catch { /* 快照失败不应阻断用户消息，Hermes skill 仍可直接查库 */ }
       }
+      const coachToneNudge = needsLearnerSnapshot && !review
+        ? [
+            '【严师驱动】公考建议只按预期得分收益排序：优先处理高频、可避免、能靠标准动作纠正的失分；学习时长、吃苦和“我很努力”不算掌握证据。指出错误时按“判定→出错起点→唯一标准动作→下一次验收证据”，重复错误要安排最短针对性复做；只批评行为，不攻击人格；没有可复现证据就不表扬。',
+          ].join('\n')
+        : '';
       const outbound = [
         reviewLead,
         voiceLead,
         submittedText,
         learnerNudge,
+        coachToneNudge,
         masteryNudge,
         quizNudge,
       ].filter(Boolean).join('\n');
@@ -1285,7 +1385,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       }
       setStatus('已发送');
     } catch (err) {
-      // 没送出去就别把气泡留在那儿冒充已发送，内容还给输入框方便重发
+      const dropped = /连接已断开|已关闭|尚未连接到/.test(err?.message || '');
+      if (dropped) {
+        sendingRef.current = false;
+        setStatus('后台继续作答');
+        return;
+      }
+      // 没送出去就别把气泡留在那儿膨胀已发送，内容还给输入框方便重发
       setBanner(`发送失败：${err.message}`);
       setWaitSec(0);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -1395,6 +1501,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       }
 
       const s = rep.session || {};
+      const auditSource = s.audit_of_session_id
+        ? await api(`/api/practice/sessions/${s.audit_of_session_id}/md`).catch(() => null)
+        : null;
       setPendingImages((prev) => [
         ...prev.filter((img) => img.contextKind !== 'practice'),
         ...images,
@@ -1409,6 +1518,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         draftCount: images.length,
         total: Number(s.total || items.length || 0),
         profileReviewed: Boolean(s.profile_reviewed_at),
+        audit: Boolean(s.audit_of_session_id),
+        auditSourcePath: auditSource?.path || null,
       });
       setShowPicker(false);
       stickToBottom.current = true;
@@ -1578,6 +1689,40 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     return true;
   };
 
+  const addAttachmentFiles = (fileList) => {
+    const files = [...(fileList || [])];
+    if (files.length === 0) {
+      setBanner('没有选中文件');
+      return false;
+    }
+    for (const file of files) {
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+      const isImage = file.type.startsWith('image/');
+      const max = isPdf ? PDF_MAX_BYTES : isImage ? IMAGE_MAX_BYTES : FILE_MAX_BYTES;
+      if (file.size > max) {
+        setBanner(`${isPdf ? 'PDF' : isImage ? '图片' : '文件'}过大（上限 ${max / 1024 / 1024}MB）`);
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPendingImages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            name: file.name || (isPdf ? 'attachment.pdf' : 'pasted.png'),
+            mime: isPdf ? 'application/pdf' : (file.type || 'application/octet-stream'),
+            dataUrl: String(reader.result),
+          },
+        ]);
+      };
+      reader.onerror = () => setBanner(`读取文件失败：${file.name || '未命名文件'}`);
+      reader.readAsDataURL(file);
+    }
+    return true;
+  };
+
+  const pickAttachment = () => filePickRef.current?.click();
+
   // 粘贴图片
   const onPaste = (e) => {
     if (addImageFiles(e.clipboardData?.files)) e.preventDefault();
@@ -1606,7 +1751,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setBanner('还没连上 Hermes，稍等一下再拖');
       return;
     }
-    if (!addImageFiles(e.dataTransfer?.files)) setBanner('只认图片文件');
+    addAttachmentFiles(e.dataTransfer?.files);
   };
 
   // Re-measure after returning from another module. display:none reports a
@@ -1652,10 +1797,100 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     });
   };
 
+  const jumpMessages = messages.filter((message) => (
+    message.role === 'user'
+      && (message.review || message.content?.trim() || message.attachments?.length || message.images?.length || message.audio || message.audioSec)
+  ));
+
+  const updateActiveMessage = () => {
+    const host = scrollRef.current;
+    if (!host) return;
+    const pivot = host.getBoundingClientRect().top + 48;
+    let active = null;
+    for (const message of jumpMessages) {
+      const node = messageRefs.current.get(message.id);
+      if (node && node.getBoundingClientRect().bottom >= pivot) {
+        active = message.id;
+        break;
+      }
+    }
+    if (active != null) setActiveMessageId(active);
+  };
+
+  const jumpToMessage = (messageId) => {
+    const node = messageRefs.current.get(messageId);
+    if (!node) return;
+    node.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActiveMessageId(messageId);
+    stickToBottom.current = false;
+  };
+
+  // 刻度的磁吸放大：离指针越近的刻度越长，做出 Codex 那种波浪。
+  // iPad 上没有 hover，所以按住轨道滑动即可预览，松手跳转。
+  const measureTicks = () => {
+    const rail = railRef.current;
+    const centers = rail
+      ? [...rail.querySelectorAll('[data-jump-tick]')].map((el) => el.offsetTop + el.offsetHeight / 2)
+      : [];
+    setTickCenters(centers);
+    return centers;
+  };
+
+  const focusRailAt = (clientY, measured = tickCenters) => {
+    const rail = railRef.current;
+    const centers = measured;
+    if (!rail || centers.length === 0) return null;
+    const y = clientY - rail.getBoundingClientRect().top;
+    let index = 0;
+    for (let i = 1; i < centers.length; i += 1) {
+      if (Math.abs(centers[i] - y) < Math.abs(centers[index] - y)) index = i;
+    }
+    setRailFocus({ y, index });
+    return index;
+  };
+
+  const tickWidth = (index) => {
+    const center = tickCenters[index];
+    if (!railFocus || center == null) return TICK_MIN_W;
+    const distance = Math.abs(center - railFocus.y);
+    return TICK_MIN_W + TICK_LIFT * Math.exp(-(distance * distance) / (2 * TICK_FALLOFF * TICK_FALLOFF));
+  };
+
+  const messagePreview = (message) => {
+    if (message.review?.label) return message.review.label;
+    const raw = message.content || '';
+    if (raw.trim()) {
+      return String(raw).replace(/[#>*_`]/g, '').replace(/\s+/g, ' ').trim();
+    }
+    const names = (message.attachments || []).map((file) => file.name).filter(Boolean);
+    return names.join('、') || (message.audio || message.audioSec ? '我的语音' : '我的消息');
+  };
+
+  // 导航卡片第二行：这条提问后 Hermes 的回答开头，方便只看一眼就认出是哪一轮
+  const replyPreview = (messageId) => {
+    const from = messages.findIndex((message) => message.id === messageId);
+    if (from < 0) return '';
+    for (let cursor = from + 1; cursor < messages.length; cursor += 1) {
+      const message = messages[cursor];
+      if (message.role === 'user') break;
+      if (message.role !== 'assistant') continue;
+      const text = visibleAssistantReply(message.content || '')
+        .replace(/```[\s\S]*?```/g, ' ')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/[#>*_`]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (text) return text;
+    }
+    return '';
+  };
+
   const onScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    updateActiveMessage();
   };
 
   const practiceSessionForMessage = (messageId) => {
@@ -1707,7 +1942,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
-        className={`flex-1 flex flex-col overflow-hidden min-w-0 ${
+        className={`relative flex-1 flex flex-col overflow-hidden min-w-0 ${
           fullscreen ? 'rounded-none border-0 bg-white' : 'rounded-3xl bg-white/70 border border-black/5'
         }`}
       >
@@ -1835,8 +2070,85 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           </div>
         )}
 
-        <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto">
-          <div className="px-5 py-4 space-y-4" style={{ zoom: fontScale / 100 }}>
+        {jumpMessages.length > 0 && (
+          <div className="hermes-jumprail">
+            <nav
+              ref={railRef}
+              className={`hermes-jumprail-ticks ${railFocus ? 'is-live' : ''} ${
+                jumpMessages.length > 30 ? 'is-dense' : ''
+              }`}
+              aria-label="消息导航"
+              onPointerEnter={(e) => {
+                if (e.pointerType !== 'mouse') return;
+                focusRailAt(e.clientY, measureTicks());
+              }}
+              onPointerMove={(e) => {
+                if (e.pointerType === 'mouse' || railScrub) focusRailAt(e.clientY);
+              }}
+              onPointerLeave={(e) => {
+                if (e.pointerType === 'mouse' && !railScrub) setRailFocus(null);
+              }}
+              onPointerDown={(e) => {
+                if (e.pointerType === 'mouse') return;
+                focusRailAt(e.clientY, measureTicks());
+                setRailScrub(true);
+                e.currentTarget.setPointerCapture?.(e.pointerId);
+              }}
+              onPointerUp={(e) => {
+                if (!railScrub) return;
+                setRailScrub(false);
+                const index = focusRailAt(e.clientY);
+                if (index != null) jumpToMessage(jumpMessages[index].id);
+                setRailFocus(null);
+              }}
+              onPointerCancel={() => {
+                setRailScrub(false);
+                setRailFocus(null);
+              }}
+              // 刻度只有 2px 高，鼠标不必精确命中：点轨道上任意位置都跳到最近那条
+              onClick={() => {
+                const target = railFocus && jumpMessages[railFocus.index];
+                if (target) jumpToMessage(target.id);
+              }}
+            >
+              {jumpMessages.map((message, index) => (
+                <button
+                  key={message.id}
+                  data-jump-tick=""
+                  type="button"
+                  onClick={() => jumpToMessage(message.id)}
+                  onFocus={() => {
+                    const center = measureTicks()[index];
+                    if (center != null) setRailFocus({ y: center, index });
+                  }}
+                  onBlur={() => { if (!railScrub) setRailFocus(null); }}
+                  style={{ width: tickWidth(index) }}
+                  className={`hermes-jump-tick ${activeMessageId === message.id ? 'is-active' : ''} ${
+                    railFocus?.index === index ? 'is-focus' : ''
+                  }`}
+                  aria-label={`跳到第 ${index + 1} 条消息：${messagePreview(message).slice(0, 40)}`}
+                />
+              ))}
+
+              {railFocus && jumpMessages[railFocus.index] ? (
+                <aside className="hermes-jump-card" style={{ top: tickCenters[railFocus.index] ?? railFocus.y }}>
+                  <p className="hermes-jump-card-title">
+                    <span className="hermes-jump-card-index">{railFocus.index + 1}</span>
+                    {messagePreview(jumpMessages[railFocus.index]).slice(0, 90) || '我的消息'}
+                  </p>
+                  {replyPreview(jumpMessages[railFocus.index].id) ? (
+                    <p className="hermes-jump-card-reply">
+                      {replyPreview(jumpMessages[railFocus.index].id).slice(0, 150)}
+                    </p>
+                  ) : null}
+                </aside>
+              ) : null}
+            </nav>
+          </div>
+        )}
+
+        <div ref={scrollRef} onScroll={onScroll} className="hermes-scroll flex-1 overflow-y-auto">
+          <div className="px-5 py-4 space-y-4" style={{ fontSize: `calc(15px * ${fontScale / 100})` }}>
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center px-6">
               <div className="w-12 h-12 rounded-2xl bg-[#1a1a1a] flex items-center justify-center text-white mb-3">
@@ -1860,14 +2172,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             </div>
           )}
 
-          {messages.map((m) => (
-            <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : ''}>
+          {messages.map((m) => {
+            const reply = m.role === 'assistant' ? visibleAssistantReply(m.content) : m.content;
+            const showUserText = Boolean(m.content) && !isAudioLabel(m.content) && !m.review;
+            if (
+              m.role === 'assistant'
+              && !m.streaming
+              && !reply
+              && !(showThinking && m.thinking)
+              && !(m.tools?.length)
+            ) return null;
+            return (
+            <div
+              key={m.id}
+              ref={(node) => {
+                if (node) messageRefs.current.set(m.id, node);
+                else messageRefs.current.delete(m.id);
+              }}
+              className={m.role === 'user' ? 'flex justify-end scroll-mt-2' : 'scroll-mt-2'}
+            >
               {m.role === 'notice' ? (
                 <BackgroundNotice notice={m.notice} />
               ) : m.role === 'user' ? (
                 <div className="max-w-[78%] flex flex-col items-end gap-1.5">
                   {m.sentAt ? (
-                    <span className="text-[10px] tabular-nums text-[#999] leading-none pr-1">
+                    <span className="text-[0.68em] tabular-nums text-[#999] leading-none pr-1">
                       {fmtBubbleTime(m.sentAt)}
                     </span>
                   ) : null}
@@ -1880,22 +2209,28 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                       )))}
                     />
                   )}
-                  {(m.images?.length > 0 || m.review || (m.content && !isAudioLabel(m.content))) && (
+                  {(m.images?.length > 0 || m.attachments?.length > 0 || m.review || showUserText) && (
                     <div className="px-4 py-2.5 rounded-2xl rounded-br-md bg-[#1a1a1a] text-white">
                       {m.images?.length > 0 && (
-                        <div className={`flex flex-wrap gap-1.5 ${m.review || (m.content && !isAudioLabel(m.content)) ? 'mb-2' : ''}`}>
+                        <div className={`flex flex-wrap gap-1.5 ${m.review || showUserText ? 'mb-2' : ''}`}>
                           {m.images.map((src, i) => (
                             <img key={i} src={src} alt="" className="w-20 h-20 object-cover rounded-lg" />
                           ))}
                         </div>
                       )}
+                      {m.attachments?.some((file) => !file.mime?.startsWith('image/')) && (
+                        <div className="mb-2 flex items-center gap-1.5 text-[0.75em] font-bold text-[#f2e4c4]">
+                          <FileText size="1em" />
+                          <span className="truncate">{m.attachments.filter((file) => !file.mime?.startsWith('image/')).map((file) => file.name).join('、')}</span>
+                        </div>
+                      )}
                       {m.review && (
-                        <div className={m.content && !isAudioLabel(m.content) ? 'mb-2' : ''}>
+                        <div className={showUserText ? 'mb-2' : ''}>
                           <ReviewChip review={m.review} onOpen={openReviewPreview} dark />
                         </div>
                       )}
-                      {m.content && !isAudioLabel(m.content) ? (
-                        <p className="text-[15px] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
+                      {showUserText ? (
+                        <p className="text-[1em] whitespace-pre-wrap break-words leading-relaxed">{m.content}</p>
                       ) : null}
                     </div>
                   )}
@@ -1903,11 +2238,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               ) : (
                 <div className="max-w-[92%]">
                   <div className="flex items-center space-x-1.5 mb-1.5">
-                    <div className="w-4 h-4 rounded-md bg-[#2c261c] flex items-center justify-center text-[9px] font-black text-white">
+                    <div className="w-[1.07em] h-[1.07em] rounded-md bg-[#2c261c] flex items-center justify-center text-[0.6em] font-black text-white">
                       ⚕
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#bbb]">Hermes</span>
-                    {m.content && (
+                    <span className="text-[0.68em] font-black uppercase tracking-widest text-[#bbb]">Hermes</span>
+                    {reply && (
                       <button
                         type="button"
                         onClick={() => setPopout((cur) => (
@@ -1915,7 +2250,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                             ? null
                             : {
                                 id: m.id,
-                                content: m.content || '',
+                                content: reply,
                                 practiceSessionId: practiceSessionForMessage(m.id),
                               }
                         ))}
@@ -1926,17 +2261,17 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                             : 'text-[#bbb] hover:bg-black/5 hover:text-[#1a1a1a]'
                         }`}
                       >
-                        <PictureInPicture2 size={12} />
+                        <PictureInPicture2 size="0.8em" />
                       </button>
                     )}
                   </div>
 
                   {showThinking && m.thinking && (
                     <details className="mb-2 rounded-xl bg-black/[0.02] border border-black/5 overflow-hidden">
-                      <summary className="px-3 py-1.5 cursor-pointer text-[10px] font-black uppercase tracking-widest text-[#999] hover:bg-black/[0.03]">
+                      <summary className="px-3 py-1.5 cursor-pointer text-[0.68em] font-black uppercase tracking-widest text-[#999] hover:bg-black/[0.03]">
                         思考过程
                       </summary>
-                      <pre className="px-3 pb-2 text-[11px] text-[#666] whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
+                      <pre className="px-3 pb-2 text-[0.75em] text-[#666] whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
                         {m.thinking}
                       </pre>
                     </details>
@@ -1946,9 +2281,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                     <ToolCard tool={m.tools?.[m.tools.length - 1]} />
                   )}
 
-                  {(m.content || !m.streaming) && (
+                  {(reply || !m.streaming) && (
                     <MarkdownMessage
-                      content={m.content}
+                      content={reply}
                       streaming={m.streaming}
                       scratchId={popout?.id === m.id ? undefined : scratchIdForMessage(m.id)}
                       practiceSessionId={practiceSessionForMessage(m.id)}
@@ -1957,7 +2292,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
           </div>
         </div>
 
@@ -1969,7 +2305,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           style={fullscreen ? { paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' } : undefined}
         >
           {pendingReview && (
-            <div className="flex flex-wrap gap-2 mb-2">
+            /* 输入区不跟随正文缩放，这里钉回 15px，em 才和 100% 时一致 */
+            <div className="flex flex-wrap gap-2 mb-2" style={{ fontSize: '15px' }}>
               <ReviewChip
                 review={pendingReview}
                 onOpen={openReviewPreview}
@@ -1986,7 +2323,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingImages.filter((img) => !img.hidden).map((img) => (
                 <div key={img.id} className="relative">
-                  <img src={img.dataUrl} alt="" className="w-14 h-14 object-cover rounded-lg border border-black/10" />
+                  {!img.mime?.startsWith('image/') ? (
+                    <div className="w-40 h-14 rounded-lg border border-black/10 bg-black/[0.04] px-2 pr-7 flex items-center gap-2 text-[11px] font-bold text-[#6b5428]">
+                      <FileText size={16} className="shrink-0" />
+                      <span className="truncate">{img.name}</span>
+                    </div>
+                  ) : (
+                    <img src={img.dataUrl} alt={img.name || ''} className="w-14 h-14 object-cover rounded-lg border border-black/10" />
+                  )}
                   <button
                     onClick={() => setPendingImages((prev) => prev.filter((p) => p.id !== img.id))}
                     className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#1a1a1a] text-white flex items-center justify-center"
@@ -1998,7 +2342,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             </div>
           )}
           {(pendingAudio || recording) && (
-            <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="flex items-center justify-center gap-2 mb-2" style={{ fontSize: '15px' }}>
               {recording ? (
                 <div className="flex items-center gap-2 rounded-full bg-[#1a1a1a] text-white px-1 py-1">
                   <button
@@ -2038,6 +2382,17 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
           <div className="flex items-end space-x-2">
             <input
+              ref={filePickRef}
+              type="file"
+              accept="*/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                addAttachmentFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+            <input
               ref={audioPickRef}
               type="file"
               accept="audio/*,.m4a,.mp3,.wav,.webm,.aac,.ogg,.mp4"
@@ -2068,8 +2423,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               placeholder={connState === 'open'
                 ? (dragOver ? '松手就把图片放进来' : 'Enter 发送 · 小键盘 . 录音')
                 : '连接中…先写，连上了再发'}
-              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
+              className="hermes-textarea flex-1 px-4 py-3 rounded-2xl bg-[#e8d5b0]/35 border border-black/10 text-[15px] resize-none outline-none focus:border-[#6b5428] transition-colors"
             />
+            <button
+              type="button"
+              onClick={pickAttachment}
+              disabled={busy || attaching || recording}
+              title="添加图片或 PDF"
+              aria-label="添加图片或 PDF"
+              className="p-3 rounded-2xl shrink-0 bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5 transition-colors disabled:opacity-30"
+            >
+              <Plus size={18} strokeWidth={2.5} />
+            </button>
             {busy ? (
               <button
                 onClick={interrupt}

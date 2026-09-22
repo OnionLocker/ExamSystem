@@ -36,7 +36,7 @@ const KnowledgeChip = ({ label }) => {
       <button
         type="button"
         onClick={() => openKnowledge(label)}
-        className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#f4e6c8] border border-[#e8d5b0] text-[13px] font-black text-[#6b5428] hover:border-[#1a1a1a]"
+        className="inline-flex items-center px-3 py-1.5 rounded-full bg-[#f4e6c8] border border-[#e8d5b0] text-[0.867em] font-black text-[#6b5428] hover:border-[#1a1a1a]"
       >
         本题考察知识点：{hit?.module ? `${hit.module} · ${hit.name}` : label}
       </button>
@@ -107,7 +107,7 @@ const CodeBlock = ({ language, code }) => {
           </span>
         </button>
       </div>
-      <pre className="px-4 py-3 overflow-x-auto text-[13px] leading-relaxed">
+      <pre className="px-4 py-3 overflow-x-auto text-[0.867em] leading-relaxed">
         {html
           ? <code dangerouslySetInnerHTML={{ __html: html }} />
           : <code>{code}</code>}
@@ -231,7 +231,7 @@ const QuestionHeading = ({
   const loading = mapLoading || (Boolean(draft) && draftLoadingNumber === questionNumber);
 
   return (
-    <h3 className="relative z-30 mt-3 mb-1.5 flex items-center gap-2 text-sm font-black tracking-tight">
+    <h3 className="relative z-30 mt-3 mb-1.5 flex items-center gap-2 text-[0.933em] font-black tracking-tight">
       <span className="min-w-0 flex-1">
         {hit ? (
           <button
@@ -292,7 +292,7 @@ const components = {
   table({ children }) {
     return (
       <div className="my-3 overflow-x-auto rounded-xl border border-black/10">
-        <table className="w-full text-sm border-collapse">{children}</table>
+        <table className="w-full text-[0.933em] border-collapse">{children}</table>
       </div>
     );
   },
@@ -321,16 +321,16 @@ const components = {
     return <p className="my-2 leading-[1.75] first:mt-0 last:mb-0">{children}</p>;
   },
   h1({ children }) {
-    return <h1 className="mt-4 mb-2 text-lg font-black tracking-tight">{children}</h1>;
+    return <h1 className="mt-4 mb-2 text-[1.2em] font-black tracking-tight">{children}</h1>;
   },
   h2({ children }) {
-    return <h2 className="mt-4 mb-2 text-base font-black tracking-tight">{children}</h2>;
+    return <h2 className="mt-4 mb-2 text-[1.067em] font-black tracking-tight">{children}</h2>;
   },
   h3({ children }) {
     return <QuestionHeading>{children}</QuestionHeading>;
   },
   h4({ children }) {
-    return <h4 className="mt-3 mb-1.5 text-sm font-bold">{children}</h4>;
+    return <h4 className="mt-3 mb-1.5 text-[0.933em] font-bold">{children}</h4>;
   },
   blockquote({ children }) {
     return (
@@ -410,7 +410,7 @@ const MarkdownMessage = memo(function MarkdownMessage({
   return (
     <>
       <ReviewScratch storageKey={scratchId} enabled={Boolean(scratchId) && !streaming}>
-        <div className="katex-inline-host text-[15px] text-[#1a1a1a] break-words">
+        <div className="katex-inline-host text-[1em] text-[#1a1a1a] break-words">
           <ReactMarkdown
             remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
             rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
