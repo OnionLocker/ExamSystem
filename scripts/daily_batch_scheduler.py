@@ -89,7 +89,17 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
     if run["module"] == "资料分析":
         ziliao_rule = (
             "Data analysis must be exactly 4 materials x 5 questions = 20. "
-            "Use ziliao_pack slot tags and the assigned answer letters. Keep 4 materials in order, 5 questions each; do not shuffle."
+            "Use ziliao_pack slot tags and the assigned answer letters. Keep 4 materials in order, 5 questions each; do not shuffle. "
+            "Vary the Q1-Q4 sequence and information structure when practical; this is a quality preference, not an import blocker. Before writing questions, "
+            "you may assign each material a different blueprint from: direct retrieval+comparison, two-period/base-period transformation, chart trend/average, "
+            "mixed multi-paragraph synthesis, and record that blueprint in the material or manifest. Across the paper, avoid repeating the same unknown, "
+            "formula, and distractor path, while allowing the model to use a suitable structure for the selected knowledge points. "
+            "Do not make every material Q1=倍数,Q2=增长量,Q3=平均,Q4=比重. Each material must use at least 3 different paragraphs/data blocks. "
+            "For each question, include the material text and any linked image in the quality-review payload; a question is not valid without its source material. "
+            "If difficulty_tier=easy, write Guangdong provincial-exam style: shorter context, one or two operations, direct wording, ordinary traps. "
+            "If difficulty_tier=hard, write national-exam style: denser statistics, more cross-paragraph or table-text joins, one extra transformation, "
+            "mixed-growth/contribution/ratio comparisons, and half-right distractors; never turn it into an arithmetic puzzle. "
+            "Vary final question forms across the four materials; do not repeat one fixed comprehensive-judgment sentence."
         )
     elif run["module"] == "判断推理":
         ziliao_rule = (
@@ -118,6 +128,8 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
             "Follow kepui_pack slot.tag exactly. 等高线 means a contour-map figure item, "
             "difficulty 3 (slope/valley/flow/simple site), not 地球自转. "
             "A missing holdout does not skip that slot. If evaluate context fails, omit it and still import after correctness passes."
+            " Gemini must return a structured figure spec for every item; use scripts/quiz_generator.py's renderer and image-specs.json, "
+            "never omit the figure or replace an unworkable science point with a simpler one."
         )
     elif run["module"] == "数量关系":
         ziliao_rule = (
@@ -166,7 +178,8 @@ def generation_prompt(run: dict, snapshot: dict, batch_dir: Path, db_path: Path 
         "all original, do not insert origin=zhenti items.\n"
         f"Use batch_id unchanged. Working directory must be {ROOT}; run every python3/node script there.\n"
         "First read hermes-skills/quiz-pipeline/SKILL.md, "
-        "hermes-skills/quiz-pipeline/references/module-hard-rules.md, and hermes-skills/gd-gongkao-coach/SKILL.md "
+        "hermes-skills/quiz-pipeline/references/module-hard-rules.md, hermes-skills/quiz-pipeline/references/ziliao-paper-styles.md, "
+        "and hermes-skills/gd-gongkao-coach/SKILL.md "
         "(or skill_view if Hermes is available), then follow the existing quiz-pipeline. "
         "Obey every 【GATE】 rule in module-hard-rules.md (脏数字≥40%、禁某省、Q5综合判断跨篇轮换、禁课纲词、"
         "加强/削弱项须对准结论、数字推理五规律不克隆、数学运算禁鸡兔/长方形周长面积/纯相遇口算)。\n"

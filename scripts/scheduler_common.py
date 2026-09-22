@@ -23,14 +23,19 @@ EXIT_ERROR = 1
 EXIT_USAGE = 2
 EXIT_LOCKED = 75
 
-# 言语已停（主题换皮/句法同构）。科学推理暂不日更，只留判断/数量/资料。
+# 日练计划已停，不再每天入库占位。
 # 恢复某模块：把它从 PAUSED 拿掉，加回 MODULE_QUOTAS。
-MODULE_QUOTAS = (
-    ("判断推理", "panduan", 20),
-    ("数量关系", "shuliang", 15),
-    ("资料分析", "ziliao", 20),
-)
-PAUSED_DAILY_MODULES = frozenset({"言语理解与表达", "科学推理"})
+#   ("判断推理", "panduan", 20),
+#   ("数量关系", "shuliang", 15),
+#   ("资料分析", "ziliao", 20),
+MODULE_QUOTAS = ()
+PAUSED_DAILY_MODULES = frozenset({
+    "言语理解与表达",
+    "科学推理",
+    "判断推理",
+    "数量关系",
+    "资料分析",
+})
 ACTIVE_DAILY_MODULES = frozenset(module for module, _slug, _count in MODULE_QUOTAS)
 
 # 日练 batch_id slug → 展示模块名。tuxing/图形题目仅用于外采包命名与导入，

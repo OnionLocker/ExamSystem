@@ -59,32 +59,47 @@ class WorkdayCalendarTest(unittest.TestCase):
 
 
 class SchedulerTest(unittest.TestCase):
-    def test_run_reservation_is_idempotent(self):
+    def test_daily_placeholder_reservation_is_stopped(self):
         conn = sqlite3.connect(":memory:")
         first = reserve_runs(conn, dt.date(2026, 9, 20))
         second = reserve_runs(conn, dt.date(2026, 9, 20))
-        self.assertEqual(len(first), 3)
-        self.assertEqual(
-            {row["module"]: row["batch_id"] for row in first},
-            {row["module"]: row["batch_id"] for row in second},
-        )
-        self.assertEqual(
-            {row["module"]: row["planned_count"] for row in first},
-            {
-                "判断推理": 20,
-                "数量关系": 15,
-                "资料分析": 20,
-            },
-        )
+        self.assertEqual(MODULE_QUOTAS, ())
+        self.assertEqual(first, [])
+        self.assertEqual(second, [])
         self.assertEqual(
             conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
-            3,
+            0,
         )
-        self.assertNotIn("言语理解与表达", {row["module"] for row in first})
-        self.assertNotIn("科学推理", {row["module"] for row in first})
-        self.assertNotIn("图形题目", {row["module"] for row in first})
         self.assertNotIn("图形题目", {module for module, _slug, _count in MODULE_QUOTAS})
         self.assertEqual(DAILY_SLUG["tuxing"], "图形题目")
+        conn.close()
+
+    def test_leftover_scheduled_runs_are_paused_not_recreated(self):
+        conn = sqlite3.connect(":memory:")
+        reserve_runs(conn, dt.date(2026, 9, 21))
+        conn.execute(
+            """
+            INSERT INTO ai_daily_batch_runs(
+              plan_date,module,batch_id,status,planned_count,source
+            ) VALUES (?,?,?,?,?,?)
+            """,
+            (
+                "2026-09-21",
+                "判断推理",
+                "daily-20260921-panduan-old",
+                "scheduled",
+                20,
+                "daily-scheduler",
+            ),
+        )
+        conn.commit()
+        rows = reserve_runs(conn, dt.date(2026, 9, 21))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["status"], "paused")
+        self.assertEqual(
+            conn.execute("SELECT COUNT(*) FROM ai_daily_batch_runs").fetchone()[0],
+            1,
+        )
         conn.close()
 
     def test_scheduled_yanyu_is_paused_not_regenerated(self):
