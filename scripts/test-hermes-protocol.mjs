@@ -4,12 +4,15 @@ import {
   appendAssistantDelta,
   coerceResumePayload,
   ensureStreamingAssistant,
+  eventMatchesSession,
   extractReview,
   finishAssistantMessage,
+  visibleAssistantReply,
   isSystemInjectedNotice,
   mergeResumedMessages,
   normalizeHermesHistory,
   parseBackgroundNotice,
+  resumeMatchesSession,
   shouldAcceptRemoteResume,
 } from '../src/hermes/hermesProtocol.js';
 import { HIDDEN_SOURCES, sessionListReachable, sessionPickerMode } from '../src/hermes/hermesLayout.js';
@@ -100,7 +103,7 @@ const review = extractReview(
   '[USER_MESSAGE]\n复盘\n[/USER_MESSAGE]\n'
   + '/home/ubuntu/ExamSystem/data/practice-reviews/82-demo.md',
 );
-assert.equal(review.content, '复盘');
+assert.equal(review.content, '');
 assert.equal(review.review.kind, 'practice');
 assert.equal(review.review.id, 82);
 
@@ -113,6 +116,27 @@ assert.equal(uploadReview.review.kind, 'upload');
 assert.equal(uploadReview.review.id, '2026.08.16/pdf/专项智能练习（言语理解与表达）.pdf');
 assert.match(uploadReview.review.path, /data\/uploads\/2026\.08\.16\/pdf\//);
 assert.equal(uploadReview.review.title, '专项智能练习（言语理解与表达）');
+
+const leakedAudit = [
+  'The user wants me to do a review audit on:',
+  '/home/ubuntu/ExamSystem/data/practice-reviews/313-demo.md',
+  '',
+  "Wait! First tool call MUST be reading the file!",
+  'And the first line of the reply MUST be `### 01 · 题型名`!',
+  '',
+  "Let's carefully check the instructions:",
+  '1. "第一件工具必须是打开上面这条路径"',
+  '',
+  'The user\'s voice message (39s):',
+  '"感觉还是不会啊"',
+].join('\n');
+assert.equal(visibleAssistantReply(leakedAudit), '');
+assert.equal(
+  visibleAssistantReply(`${leakedAudit}\n\n### 01 · 古典概型\n\n> **原题**`),
+  '### 01 · 古典概型\n\n> **原题**',
+);
+assert.equal(visibleAssistantReply('### 01 · 古典概型\n\n正文'), '### 01 · 古典概型\n\n正文');
+assert.equal(visibleAssistantReply('立刻做 mid。'), '立刻做 mid。');
 
 const history = normalizeHermesHistory([
   { role: 'user', text: '你好' },
@@ -323,3 +347,71 @@ const started = ensureStreamingAssistant(afterUser, nextId);
 assert.equal(started[started.length - 1].streaming, true);
 assert.equal(started.filter((message) => message.role === 'assistant').length, 2);
 console.log('hermes voice streaming resume: ok');
+
+assert.equal(eventMatchesSession({ type: 'message.start', session_id: 'a' }, 'a', 'stored-a'), true);
+assert.equal(eventMatchesSession({ type: 'message.start', session_id: 'b' }, 'a', 'stored-a'), false);
+assert.equal(eventMatchesSession({ type: 'message.start', session_id: 'stored-a' }, 'a', 'stored-a'), true);
+assert.equal(eventMatchesSession({ type: 'message.delta' }, 'a', 'stored-a'), true);
+assert.equal(eventMatchesSession({ type: 'gateway.ready', session_id: 'b' }, 'a', 'stored-a'), true);
+assert.equal(resumeMatchesSession({ session_id: 'live-b', session_key: 'stored-b' }, 'live-a', 'stored-a'), false);
+assert.equal(resumeMatchesSession({ session_id: 'live-a', resumed: 'stored-a' }, 'live-a', 'stored-a'), true);
+assert.equal(resumeMatchesSession({ messages: [] }, 'live-a', 'stored-a'), true);
+
+console.log('hermes session-scoped events: ok');
+
+id = 0;
+const otherSessionVoice = [
+  {
+    id: 'foreign', role: 'assistant', content: 'previous session answer about naming batches that is long enough',
+    streaming: false, tools: [], thinking: '',
+  },
+  {
+    id: 'voice-a', role: 'user', content: audioLabelOf(106), streaming: false,
+    tools: [], thinking: '', images: [], audio: 'data:audio/webm;base64,xx',
+    audioSec: 106, hadAudio: true, review: null, storedSessionId: 'session-a', sentAt: 1,
+  },
+];
+const sessionBResume = {
+  session_id: 'live-b',
+  stored_session_id: 'session-b',
+  messages: [
+    { role: 'user', text: 'how to name the batch' },
+    { role: 'assistant', text: 'lock the question grain to one 考法; this reply is long enough for the merge path' },
+  ],
+  running: false,
+};
+const switched = mergeResumedMessages(otherSessionVoice, sessionBResume, {
+  nextId, parseAudioLen, isAudioLabel, sameSession: false, storedId: 'session-b',
+});
+assert.equal(switched.some((message) => message.hadAudio || message.audio || message.audioSec === 106), false);
+
+const stampedLeak = mergeResumedMessages(otherSessionVoice, sessionBResume, {
+  nextId, parseAudioLen, isAudioLabel, storedId: 'session-b',
+});
+assert.equal(stampedLeak.some((message) => message.audio === 'data:audio/webm;base64,xx'), false);
+
+const unstampedVoice = otherSessionVoice.map((message) => ({ ...message, storedSessionId: undefined }));
+const droppedOnSwitch = mergeResumedMessages(unstampedVoice, sessionBResume, {
+  nextId, parseAudioLen, isAudioLabel, sameSession: false, storedId: 'session-b',
+});
+assert.equal(droppedOnSwitch.some((message) => message.audioSec === 106), false);
+
+const sameSessionPending = mergeResumedMessages(
+  [{
+    id: 'voice-b', role: 'user', content: audioLabelOf(8), streaming: false,
+    tools: [], thinking: '', images: [], audio: 'data:audio/webm;base64,yy',
+    audioSec: 8, hadAudio: true, review: null, storedSessionId: 'session-b',
+  }],
+  {
+    session_id: 'live-b',
+    stored_session_id: 'session-b',
+    messages: [
+      { role: 'user', text: 'hello' },
+      { role: 'assistant', text: 'hi there from hermes' },
+    ],
+    running: false,
+  },
+  { nextId, parseAudioLen, isAudioLabel, storedId: 'session-b' },
+);
+assert.equal(sameSessionPending.some((message) => message.audioSec === 8 && message.audio === 'data:audio/webm;base64,yy'), true);
+console.log('hermes cross-session voice isolation: ok');

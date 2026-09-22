@@ -67,12 +67,16 @@ export const extractReview = (text) => {
     const kind = match[1] === 'practice-reviews' ? 'practice' : 'exam';
     const name = match[3];
     const cleanTitle = name.replace(/^\d+-/, '').replace(/\.md$/i, '');
+    const audit = kind === 'practice' && /复盘审核/.test(raw);
     review = {
       id: Number(match[2]),
       kind,
       name,
       title: kind === 'practice' ? `AI 练题复盘：${cleanTitle}` : cleanTitle,
-      label: kind === 'practice' ? `AI练题复盘 #${match[2]} · ${cleanTitle}` : name,
+      label: kind === 'practice'
+        ? `${audit ? '复盘审核 · ' : ''}AI练题复盘 #${match[2]} · ${cleanTitle}`
+        : name,
+      audit,
     };
   } else if (upload) {
     const name = String(upload[4] || '').trim();
@@ -87,12 +91,31 @@ export const extractReview = (text) => {
     };
   }
   if (!review) return { content: visibleUserText(raw), review: null };
-  if (marked != null) return { content: marked.trim(), review };
+  // 复盘附件只留芯片。用户附带的那句原话仍送给模型，但不上屏，
+  // 否则复盘审核会把「感觉还是不会」这类对话画在题卡旁边。
+  if (marked != null) return { content: '', review };
   const cleaned = raw.replace(INTERNAL_NUDGE_RE, '').trim();
   const chunks = cleaned.split(/\n{2,}/);
   const last = (chunks[chunks.length - 1] || '').trim();
   const lastIsLead = REVIEW_FILE_RE.test(last) || UPLOAD_FILE_RE.test(last) || /record\(\)/.test(last) || /^\d+\.\s/.test(last);
   return { content: lastIsLead ? '' : last, review };
+};
+
+// 复盘正文必须从「### 01 · 题型名」起笔。模型有时会先把任务说明和用户原话
+// 复述出来，这段不能上屏，和练题复盘只展示题卡保持一致。
+const REVIEW_HEADING_LINE_RE = /^###\s+\d+\s*[·．.]/m;
+const REVIEW_LEAK_RE = /第一件工具必须是|The user wants me to do a review|Let's carefully check the instructions|回复的第一行必须是|The user's voice message/;
+
+export const visibleAssistantReply = (content) => {
+  const raw = String(content || '');
+  const heading = REVIEW_HEADING_LINE_RE.exec(raw);
+  if (heading) {
+    if (heading.index > 0 && REVIEW_LEAK_RE.test(raw.slice(0, heading.index))) {
+      return raw.slice(heading.index).trim();
+    }
+    return raw;
+  }
+  return REVIEW_LEAK_RE.test(raw) ? '' : raw;
 };
 
 const assistantSig = (message) => String(message?.content || '').replace(/\s+/g, ' ').trim();
@@ -271,6 +294,28 @@ export const finishAssistantMessage = (messages, finalText, nextId) => {
 
 export const eventText = (event) => event?.payload?.text || event?.payload?.rendered || '';
 
+// 官方 TUI 同款：gateway WS 广播所有会话的流式事件，必须按 session_id 丢掉别人的。
+export const eventMatchesSession = (event, liveId, storedId) => {
+  const sid = event?.session_id;
+  if (!sid) return true;
+  const type = String(event?.type || '');
+  if (type.startsWith('gateway.')) return true;
+  return sid === liveId || sid === storedId;
+};
+
+export const resumeMatchesSession = (payload, liveId, storedId) => {
+  const incoming = [
+    payload?.session_id,
+    payload?.session_key,
+    payload?.resumed,
+    payload?.stored_session_id,
+  ].filter(Boolean);
+  if (incoming.length === 0) return true;
+  const mine = new Set([liveId, storedId].filter(Boolean));
+  if (mine.size === 0) return true;
+  return incoming.some((id) => mine.has(id));
+};
+
 export const coerceResumePayload = (result) => {
   if (Array.isArray(result)) return { messages: result, running: false };
   if (!result || typeof result !== 'object') return { messages: [], running: false };
@@ -295,7 +340,10 @@ const userKey = (message, parseAudioLen, isAudioLabel) => {
 
 // 把 session.resume / session.history 的 transcript 合并进当前气泡。
 // 另一台设备后发的用户消息会出现在 resume.messages 或 inflight.user 里。
-export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAudioLabel }) => {
+export const mergeResumedMessages = (prev, resume, {
+  nextId, parseAudioLen, isAudioLabel, sameSession = true, storedId,
+} = {}) => {
+  if (!sameSession) prev = [];
   const hydrated = normalizeHermesHistory(resume?.messages, {
     nextId,
     parseAudioLen,
@@ -308,13 +356,27 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
     : inflightCandidate;
   const inflightUser = inflightRaw ? extractReview(inflightRaw) : null;
 
-  const lastLocalUser = [...prev].reverse().find((message) => message.role === 'user');
+  const resumeSessionIds = new Set([
+    storedId,
+    resume?.stored_session_id,
+    resume?.session_key,
+    resume?.resumed,
+    resume?.session_id,
+  ].filter(Boolean));
+  const localBelongs = (message) => {
+    const owned = message?.storedSessionId;
+    if (!owned || resumeSessionIds.size === 0) return true;
+    return resumeSessionIds.has(owned);
+  };
+
+  const lastLocalUser = [...prev].reverse().find((message) => message.role === 'user' && localBelongs(message));
   const keyOf = (message) => userKey(message, parseAudioLen, isAudioLabel);
   const hydratedUserKeys = new Set(
     hydrated.filter((message) => message.role === 'user').map(keyOf),
   );
   const localStillPending = Boolean(
     lastLocalUser
+    && localBelongs(lastLocalUser)
     && !hydratedUserKeys.has(keyOf(lastLocalUser))
     && (!inflightUser || keyOf({
       content: inflightUser.content,
@@ -328,9 +390,13 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
   const alreadyHydrated = pendingContent === lastHydratedUser?.content
     && pendingReview?.id === lastHydratedUser?.review?.id;
 
-  const next = hydrated.map((message, index) => {
-    const old = prev[index];
-    if (!old || old.role !== message.role) return message;
+  // 只把同一条用户消息上的本地录音/图贴回去，禁止按下标串到别的会话。
+  const unusedUsers = prev.filter((message) => message.role === 'user');
+  const next = hydrated.map((message) => {
+    if (message.role !== 'user') return message;
+    const at = unusedUsers.findIndex((old) => keyOf(old) === keyOf(message));
+    if (at < 0) return message;
+    const old = unusedUsers.splice(at, 1)[0];
     return {
       ...message,
       id: old.id,
@@ -339,6 +405,7 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
       audioSec: message.audioSec ?? old.audioSec,
       hadAudio: message.hadAudio || old.hadAudio,
       sentAt: old.sentAt ?? message.sentAt,
+      storedSessionId: old.storedSessionId || message.storedSessionId,
     };
   });
   if ((pendingContent || pendingReview) && !alreadyHydrated) {
@@ -355,6 +422,7 @@ export const mergeResumedMessages = (prev, resume, { nextId, parseAudioLen, isAu
       hadAudio: lastLocalUser?.hadAudio || isAudioLabel(pendingContent),
       review: pendingReview,
       sentAt: lastLocalUser?.sentAt,
+      storedSessionId: lastLocalUser?.storedSessionId,
     });
   }
   if (resume?.running) {
@@ -406,4 +474,3 @@ export const shouldAcceptRemoteResume = (prev, next, resume, force = false) => {
   const nextAsst = next.filter((message) => message.role === 'assistant').map((message) => message.content).join('\n');
   return nextAsst.length > prevAsst.length;
 };
-

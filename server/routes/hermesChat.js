@@ -88,6 +88,62 @@ const sendError = (ws, message, code) => {
   );
 };
 
+const hubs = new Map();
+
+const upstreamLive = (ws) =>
+  ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING);
+
+const closeClient = (ws, code, reason) => {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  const safe = code >= 1000 && code <= 4999 && code !== 1005 && code !== 1006 ? code : 1000;
+  ws.close(safe, String(reason || '').slice(0, 120));
+};
+
+const getHub = (token) => {
+  const existing = hubs.get(token);
+  if (existing && upstreamLive(existing.upstream)) return existing;
+  if (existing) {
+    for (const client of existing.clients) closeClient(client, 1000, 'upstream replaced');
+    existing.clients.clear();
+  }
+
+  const upstream = new WebSocket(upstreamUrl(), { maxPayload: WS_MAX_PAYLOAD });
+  const hub = { token, upstream, clients: new Set(), queue: [] };
+  hubs.set(token, hub);
+
+  upstream.on('open', () => {
+    for (const frame of hub.queue.splice(0)) {
+      if (upstream.readyState === WebSocket.OPEN) upstream.send(frame);
+    }
+  });
+
+  upstream.on('message', (data, isBinary) => {
+    for (const client of hub.clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
+    }
+  });
+
+  upstream.on('error', (err) => {
+    for (const client of hub.clients) {
+      sendError(
+        client,
+        `Hermes 后端未启动或连接失败（${HERMES_HOST}:${HERMES_PORT}）：${err.message}`,
+        'upstream_error',
+      );
+      closeClient(client, 1011, 'upstream error');
+    }
+  });
+
+  upstream.on('close', (code, reason) => {
+    if (hubs.get(token) === hub) hubs.delete(token);
+    const text = reason?.toString?.() || '';
+    for (const client of [...hub.clients]) closeClient(client, code, text);
+    hub.clients.clear();
+  });
+
+  return hub;
+};
+
 export function attachHermesWs(httpServer) {
   if (!HERMES_TOKEN) {
     console.warn('[hermes] ⚠️  未配置 HERMES_SESSION_TOKEN，Hermes 对话页将无法连接');
@@ -107,7 +163,7 @@ export function attachHermesWs(httpServer) {
       return;
     }
 
-    // 只接管自己的路径，其余 upgrade 留给别人（例如 Vite HMR）
+    // 只接管自己的路径，其它 upgrade 留给别人（例如 Vite HMR）
     if (pathname !== WS_PATH) return;
 
     // 鉴权失败在 upgrade 阶段就拒绝，不建立 WebSocket
@@ -117,74 +173,44 @@ export function attachHermesWs(httpServer) {
       return;
     }
 
-    wss.handleUpgrade(req, socket, head, (client) => bridge(client));
+    wss.handleUpgrade(req, socket, head, (client) => bridge(client, token));
   });
 
   console.log(`[hermes] WS 代理已挂载 ${WS_PATH} → ${HERMES_HOST}:${HERMES_PORT}`);
 }
 
-// 建立 浏览器 ⇄ Hermes 的双向桥接
-function bridge(client) {
+// 浏览器断开时绝不关掉 Hermes：手机切后台 / 关网页不能把正在跑的一轮掐死。
+// 同一 exam_token 重连接到同一条上游，事件继续流，前端 session.resume 把答完的内容捞回来。
+function bridge(client, token) {
   if (!HERMES_TOKEN) {
     sendError(client, '服务端未配置 HERMES_SESSION_TOKEN', 'no_token');
     client.close(1011, 'no token');
     return;
   }
 
-  let upstream;
+  let hub;
   try {
-    upstream = new WebSocket(upstreamUrl(), { maxPayload: WS_MAX_PAYLOAD });
+    hub = getHub(token);
   } catch (err) {
     sendError(client, `无法连接 Hermes：${err.message}`, 'upstream_error');
     client.close(1011, 'upstream error');
     return;
   }
 
-  // 上游握手完成前，浏览器可能已经在发帧，先缓存
-  const queue = [];
-  let upstreamOpen = false;
-
-  upstream.on('open', () => {
-    upstreamOpen = true;
-    for (const frame of queue.splice(0)) upstream.send(frame);
-  });
-
-  upstream.on('message', (data, isBinary) => {
-    if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
-  });
-
-  upstream.on('error', (err) => {
-    sendError(
-      client,
-      `Hermes 后端未启动或连接失败（${HERMES_HOST}:${HERMES_PORT}）：${err.message}`,
-      'upstream_error',
-    );
-    if (client.readyState === WebSocket.OPEN) client.close(1011, 'upstream error');
-  });
-
-  upstream.on('close', (code, reason) => {
-    if (client.readyState !== WebSocket.OPEN) return;
-    // 1005/1006 是"无状态码/异常关闭"，不能原样回传给浏览器，否则 close 帧非法
-    const safe = code >= 1000 && code <= 4999 && code !== 1005 && code !== 1006 ? code : 1000;
-    client.close(safe, reason?.toString?.().slice(0, 120) || '');
-  });
+  hub.clients.add(client);
 
   client.on('message', (data, isBinary) => {
-    if (upstreamOpen && upstream.readyState === WebSocket.OPEN) {
+    const { upstream } = hub;
+    if (upstream.readyState === WebSocket.OPEN) {
       upstream.send(data, { binary: isBinary });
     } else if (upstream.readyState === WebSocket.CONNECTING) {
-      queue.push(data);
+      hub.queue.push(data);
     }
   });
 
-  client.on('close', () => {
-    queue.length = 0;
-    if (upstream.readyState === WebSocket.OPEN || upstream.readyState === WebSocket.CONNECTING) {
-      upstream.close(1000, 'client gone');
-    }
-  });
-
-  client.on('error', () => {
-    if (upstream.readyState === WebSocket.OPEN) upstream.close(1011, 'client error');
-  });
+  const detach = () => {
+    hub.clients.delete(client);
+  };
+  client.on('close', detach);
+  client.on('error', detach);
 }
