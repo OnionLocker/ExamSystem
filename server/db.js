@@ -136,10 +136,8 @@ addCol('batch_id',           'TEXT');
 // 依赖新列的索引必须放在 migration 之后
 // 注意：UPSERT (ON CONFLICT) 不支持部分索引，所以这里用完整 UNIQUE
 // SQLite 对 NULL 不视为重复，老数据（external_id=NULL）安全
-// 先 DROP 再建，避免历史上可能存在的 partial index 残留
 db.exec(`
-  DROP INDEX IF EXISTS uniq_questions_external_id;
-  CREATE UNIQUE INDEX uniq_questions_external_id ON questions(external_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_questions_external_id ON questions(external_id);
   CREATE INDEX IF NOT EXISTS idx_questions_material ON questions(material_id);
   CREATE INDEX IF NOT EXISTS idx_questions_batch    ON questions(batch_id);
 `);
