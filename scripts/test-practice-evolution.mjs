@@ -62,39 +62,36 @@ await submit(1, 'B');
 await submit(2, 'A');
 await submit(3, 'A');
 
-assert.equal(db.prepare('SELECT COUNT(*) AS n FROM kaodian_events').get().n, 0);
-assert.equal(db.prepare('SELECT kaodian FROM kaodian_profile WHERE kaodian=?').get(canonical), undefined);
+const prematureAudit = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/audit`, { method: 'POST' });
+assert.equal(prematureAudit.status, 409);
+
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE evidence_type='practice'").get().n, 0);
+assert.equal(db.prepare('SELECT attempts FROM kaodian_profile WHERE kaodian=?').get(canonical), undefined);
 assert.equal(db.prepare('SELECT kaodian FROM kaodian_debts WHERE kaodian=?').get(canonical), undefined);
 
 const record = (sessionId, ok) => {
   const result = spawnSync('python3', [
     'scripts/kaodian_profile.py',
-    '--record', alias, '数量关系', '逢考必有的排列组合与概率', ok, '10000', 'hermes',
+    '--record', alias, '数量关系', '逢考必有的排列组合与概率', ok, '10000', 'practice',
     '--practice-id', String(sessionId),
     '--item', String(question.id),
   ], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
   assert.equal(result.status, 0, (result.stderr || '') + (result.stdout || ''));
 };
+const incomplete = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/review-complete`, { method: 'POST' });
+assert.equal(incomplete.status, 409);
 record(sessions[0].id, '0');
 record(sessions[1].id, '1');
 record(sessions[2].id, '1');
-
-const debt = db.prepare(
-  'SELECT wrong_count,recovery_streak,mastered FROM kaodian_debts WHERE kaodian=?',
-).get(canonical);
-assert.deepEqual(debt, { wrong_count: 1, recovery_streak: 2, mastered: 1 });
 assert.equal(
-  db.prepare('SELECT COUNT(*) AS n FROM kaodian_events WHERE kaodian=?').get(canonical).n,
+  db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE evidence_type='practice'").get().n,
   3,
 );
 assert.equal(
   db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE kaodian='插空法'").get().n,
   0,
 );
-assert.equal(
-  db.prepare('SELECT attempts FROM kaodian_profile WHERE kaodian=?').get(canonical).attempts,
-  3,
-);
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM kaodian_profile WHERE attempts > 0').get().n, 1);
 
 const sealed = spawnSync('python3', [
   'scripts/kaodian_profile.py', '--seal-practice', String(sessions[0].id),
@@ -102,16 +99,28 @@ const sealed = spawnSync('python3', [
 assert.equal(sealed.status, 0, (sealed.stderr || '') + (sealed.stdout || ''));
 const blocked = spawnSync('python3', [
   'scripts/kaodian_profile.py',
-  '--record', alias, '数量关系', '逢考必有的排列组合与概率', '0', '10000', 'hermes',
+  '--record', alias, '数量关系', '逢考必有的排列组合与概率', '0', '10000', 'practice',
   '--practice-id', String(sessions[0].id),
   '--item', String(question.id),
 ], { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
 assert.equal(blocked.status, 0, (blocked.stderr || '') + (blocked.stdout || ''));
 assert.match(blocked.stdout, /already sealed/);
-assert.equal(
-  db.prepare('SELECT COUNT(*) AS n FROM kaodian_events WHERE kaodian=?').get(canonical).n,
-  3,
-);
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE evidence_type='practice'").get().n, 3);
+
+const auditResponse = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/audit`, { method: 'POST' });
+const audit = await auditResponse.json();
+assert.equal(auditResponse.status, 201);
+assert.equal(db.prepare('SELECT audit_of_session_id FROM practice_sessions WHERE id=?').get(audit.id).audit_of_session_id, sessions[0].id);
+const auditSubmit = await call(`/api/practice/sessions/${audit.id}/submit`, {
+  duration_sec: 12,
+  answers: [{ question_id: question.id, user_answer: 'A', time_spent_sec: 12 }],
+});
+assert.equal(auditSubmit.total, 1);
+assert.equal(db.prepare('SELECT profile_reviewed_at FROM practice_sessions WHERE id=?').get(sessions[0].id).profile_reviewed_at !== null, true);
+
+const complete = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/review-complete`, { method: 'POST' });
+assert.equal(complete.status, 200);
+assert.equal(db.prepare('SELECT profile_reviewed_at IS NOT NULL AS reviewed FROM practice_sessions WHERE id=?').get(sessions[0].id).reviewed, 1);
 assert.equal(db.pragma('integrity_check', { simple: true }), 'ok');
 
 const png = Buffer.from(

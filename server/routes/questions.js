@@ -166,7 +166,7 @@ router.get('/meta/batches', (req, res) => {
      )
      SELECT b.batch_id, COALESCE(b.source, r.source) AS source, b.count, b.done_count,
             b.correct_count, b.attempt_count, b.last_answered_at,
-            (SELECT ps.id FROM practice_sessions ps WHERE ps.category = b.batch_id AND ps.ended_at IS NOT NULL AND ps.total > 0 ORDER BY ps.ended_at DESC LIMIT 1) AS last_session_id,
+            (SELECT ps.id FROM practice_sessions ps WHERE ps.category = b.batch_id AND ps.ended_at IS NOT NULL AND ps.total > 0 AND ps.audit_of_session_id IS NULL ORDER BY ps.ended_at DESC LIMIT 1) AS last_session_id,
             COALESCE(b.category, r.module) AS category, COALESCE(r.module, b.category) AS module,
             ${planDate} AS plan_date, r.plan_date AS daily_plan_date,
             COALESCE(b.created_at, r.imported_at, r.created_at) AS created_at,

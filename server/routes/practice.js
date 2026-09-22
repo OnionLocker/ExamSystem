@@ -156,6 +156,7 @@ router.get('/sessions', (req, res) => {
       `SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
          s.profile_reviewed_at,
+         s.audit_of_session_id,
          COALESCE(
            (SELECT NULLIF(q.source, '') FROM questions q
              WHERE q.batch_id = s.category LIMIT 1),
@@ -278,6 +279,61 @@ router.post('/sessions/:id/submit', (req, res) => {
   });
 });
 
+// 已完成首次 Hermes 复盘后，按原题顺序创建一次无答案审核场次。
+router.post('/sessions/:id/audit', (req, res) => {
+  const sourceId = Number(req.params.id);
+  const source = db.prepare(
+    'SELECT id, category, ended_at, profile_reviewed_at FROM practice_sessions WHERE id = ?',
+  ).get(sourceId);
+  if (!source) return res.status(404).json({ error: 'session not found' });
+  if (!source.ended_at || !source.profile_reviewed_at) {
+    return res.status(409).json({ error: '请先完成这套题的 Hermes 复盘' });
+  }
+  const existing = db.prepare(
+    `SELECT id FROM practice_sessions
+      WHERE audit_of_session_id = ? AND ended_at IS NULL
+      ORDER BY id DESC LIMIT 1`,
+  ).get(sourceId);
+  if (existing) return res.json({ id: existing.id, existing: true });
+  const created = db.prepare(
+    `INSERT INTO practice_sessions (category, started_at, audit_of_session_id)
+     VALUES (?, datetime('now'), ?)`,
+  ).run(source.category, sourceId);
+  res.status(201).json({ id: created.lastInsertRowid, source_session_id: sourceId });
+});
+
+// Hermes 逐题写入带权证据后才允许封存画像；漏记时保持“待复盘”，重开可补齐。
+router.post('/sessions/:id/review-complete', (req, res) => {
+  const sessionId = Number(req.params.id);
+  const session = db.prepare(
+    'SELECT id, ended_at, profile_reviewed_at FROM practice_sessions WHERE id = ?',
+  ).get(sessionId);
+  if (!session) return res.status(404).json({ error: 'session not found' });
+  if (!session.ended_at) return res.status(409).json({ error: '这场练习还没有交卷' });
+  if (session.profile_reviewed_at) return res.json({ ok: true, sealed: false, already: true });
+
+  const eligible = db.prepare(`
+    SELECT pa.question_id, q.tags
+      FROM practice_answers pa
+      JOIN questions q ON q.id = pa.question_id
+     WHERE pa.session_id = ?
+  `).all(sessionId).filter((row) => parseTags(row.tags).length > 0).length;
+  const recorded = db.prepare(`
+    SELECT COUNT(DISTINCT question_id) AS count
+      FROM kaodian_events
+     WHERE session_id = ? AND evidence_type = 'practice' AND question_id IS NOT NULL
+  `).get(sessionId).count;
+  if (recorded < eligible) {
+    return res.status(409).json({ ok: false, sealed: false, eligible, recorded });
+  }
+
+  const changed = db.prepare(
+    `UPDATE practice_sessions SET profile_reviewed_at = datetime('now')
+      WHERE id = ? AND profile_reviewed_at IS NULL`,
+  ).run(sessionId).changes;
+  res.json({ ok: true, sealed: Boolean(changed), already: !changed });
+});
+
 // ───────────────────────────────────────────────────────────────
 // GET /api/practice/sessions/:id/report
 //   交卷后的逐题对答案 / 事后复盘 / 喂给 Hermes 的数据源
@@ -363,7 +419,8 @@ const practiceReviewMarkdown = ({ session, items }) => {
     `- 总用时：${fmtReviewDuration(session.duration_sec)}`,
     `- 错题或空题：${wrong.length}`,
     `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
-    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场第一次 Hermes 复盘才更新画像'}`,
+    `- 场次类型：${session.audit_of_session_id ? `复盘审核（基于场次 ${session.audit_of_session_id}）` : '首次练习复盘'}`,
+    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场 Hermes 复盘完成后更新画像'}`,
     '',
     '## 逐题概览',
     '',

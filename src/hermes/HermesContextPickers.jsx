@@ -69,6 +69,10 @@ export default function HermesContextPickers({
   loadPracticeRuns,
 }) {
   const [reviewKind, setReviewKind] = useState('zhenti');
+  const [practiceKind, setPracticeKind] = useState('practice');
+  const practiceRecords = practiceRuns.filter((run) => !run.audit_of_session_id);
+  const auditRecords = practiceRuns.filter((run) => run.audit_of_session_id);
+  const shownPracticeRuns = practiceKind === 'audit' ? auditRecords : practiceRecords;
   const shownReviews = examReviews.filter((r) => (r.kind || 'zhenti') === reviewKind);
   const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
   const [timeDate, setTimeDate] = useState('');
@@ -77,14 +81,14 @@ export default function HermesContextPickers({
     () => Object.fromEntries(
       MODULES.map((module) => [
         module,
-        practiceRuns.filter((run) => moduleOf(run) === module).length,
+        shownPracticeRuns.filter((run) => moduleOf(run) === module).length,
       ]),
     ),
-    [practiceRuns],
+    [shownPracticeRuns],
   );
   const dailyRuns = useMemo(
-    () => practiceRuns.filter((run) => dailyDateOf(run)),
-    [practiceRuns],
+    () => shownPracticeRuns.filter((run) => dailyDateOf(run)),
+    [shownPracticeRuns],
   );
   const dailyDates = useMemo(
     () => [...new Set(dailyRuns.map(dailyDateOf))].sort((a, b) => b.localeCompare(a)),
@@ -99,7 +103,7 @@ export default function HermesContextPickers({
 
   const visibleRuns = useMemo(() => {
     if (activeModule === DEFAULT_TAB) {
-      return [...practiceRuns].sort(byEndedAtDesc);
+      return [...shownPracticeRuns].sort(byEndedAtDesc);
     }
     if (activeModule === TIME_TAB) {
       return dailyRuns
@@ -112,8 +116,8 @@ export default function HermesContextPickers({
           return rank(a) - rank(b) || byEndedAtDesc(a, b);
         });
     }
-    return practiceRuns.filter((run) => moduleOf(run) === activeModule).sort(byEndedAtDesc);
-  }, [activeModule, dailyRuns, practiceRuns, timeDate]);
+    return shownPracticeRuns.filter((run) => moduleOf(run) === activeModule).sort(byEndedAtDesc);
+  }, [activeModule, dailyRuns, shownPracticeRuns, timeDate]);
   const mixedModules = activeModule === DEFAULT_TAB || activeModule === TIME_TAB;
 
   return (
@@ -291,6 +295,24 @@ export default function HermesContextPickers({
               </div>
             </div>
 
+            <div className="px-4 pt-3 flex gap-2">
+              {[
+                { id: 'practice', label: '做题复盘', count: practiceRecords.length },
+                { id: 'audit', label: '复盘审核', count: auditRecords.length },
+              ].map((kind) => (
+                <button
+                  key={kind.id}
+                  type="button"
+                  onClick={() => { setPracticeKind(kind.id); setActiveModule(DEFAULT_TAB); }}
+                  className={`rounded-full px-3 py-1.5 text-[11px] font-black transition-colors ${
+                    practiceKind === kind.id ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0]/60 text-slate-500 hover:bg-[#e8d5b0]'
+                  }`}
+                >
+                  {kind.label} <span className="ml-1 opacity-60">{kind.count}</span>
+                </button>
+              ))}
+            </div>
+
             <div className="px-4 pt-3 overflow-x-auto">
               <div className="flex min-w-max gap-2 pb-1" role="tablist" aria-label="练题分类">
                 <button
@@ -302,7 +324,7 @@ export default function HermesContextPickers({
                 >
                   {DEFAULT_TAB}
                   <span className={`ml-1.5 text-[10px] ${activeModule === DEFAULT_TAB ? 'text-white/60' : 'text-slate-400'}`}>
-                    {practiceRuns.length}
+                  {shownPracticeRuns.length}
                   </span>
                 </button>
                 <button
@@ -365,15 +387,17 @@ export default function HermesContextPickers({
             )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {runsLoading && practiceRuns.length === 0 && (
+              {runsLoading && shownPracticeRuns.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
               )}
-              {!runsLoading && practiceRuns.length === 0 && (
+              {!runsLoading && shownPracticeRuns.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
-                  还没有可复盘的 AI 练题记录。<br />去「AI 练题」完成一套并交卷后，这里会自动出现。
+                  {practiceKind === 'audit'
+                    ? '还没有复盘审核记录。先在 AI 练题中完成一套题的首次复盘，再进行复盘审核。'
+                    : '还没有可复盘的 AI 练题记录。去「AI 练题」完成一套并交卷后，这里会自动出现。'}
                 </p>
               )}
-              {!runsLoading && practiceRuns.length > 0 && visibleRuns.length === 0 && (
+              {!runsLoading && shownPracticeRuns.length > 0 && visibleRuns.length === 0 && (
                 <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
                   {activeModule === TIME_TAB
                     ? (dailyDates.length ? '这一天还没有交卷的定时任务。' : '定时任务交卷后会出现在这里。非定时题组请到所属模块里找。')
@@ -401,7 +425,9 @@ export default function HermesContextPickers({
                           ? 'bg-black text-[#7dffb3]'
                           : 'bg-[#f4e6c8] text-[#6b5428]'
                       }`}>
-                        {run.profile_reviewed_at ? '画像已写' : '待复盘'}
+                        {run.audit_of_session_id
+                          ? (run.profile_reviewed_at ? '审核已写入' : '审核待复盘')
+                          : (run.profile_reviewed_at ? '画像已写' : '待复盘')}
                       </span>
                     </span>
                     <span className="block text-[10px] font-bold text-[#bbb] mt-0.5">
@@ -415,7 +441,7 @@ export default function HermesContextPickers({
             </div>
 
             <p className="px-5 py-3 border-t border-black/5 text-[10px] font-bold text-[#ccc] leading-relaxed">
-              默认按交卷时间从近到远排全部场次。定时任务交卷后进「时间」的日期子标签，也能在所属模块里找到；其余题组只在所属模块。第一次复盘才写画像并打上「画像已写」。
+              做题复盘与复盘审核分开保存。审核记录只在完成首次 Hermes 复盘后出现；选择后会把对应记录单独带入 Hermes。
             </p>
           </div>
         </ModalShell>,

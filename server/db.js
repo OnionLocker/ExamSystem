@@ -151,7 +151,8 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
   correct      INTEGER DEFAULT 0,
   duration_sec INTEGER DEFAULT 0,
   started_at   TEXT    DEFAULT CURRENT_TIMESTAMP,
-  ended_at     TEXT
+  ended_at     TEXT,
+  audit_of_session_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS practice_answers (
@@ -374,6 +375,10 @@ const psCols = new Set(db.prepare('PRAGMA table_info(practice_sessions)').all().
 if (!psCols.has('profile_reviewed_at')) {
   db.exec('ALTER TABLE practice_sessions ADD COLUMN profile_reviewed_at TEXT');
 }
+if (!psCols.has('audit_of_session_id')) {
+  db.exec('ALTER TABLE practice_sessions ADD COLUMN audit_of_session_id INTEGER');
+}
+db.exec('CREATE INDEX IF NOT EXISTS idx_practice_audit_source ON practice_sessions(audit_of_session_id)');
 
 
 const examCols = new Set(db.prepare('PRAGMA table_info(exam_analyses)').all().map((r) => r.name));

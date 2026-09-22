@@ -17,6 +17,7 @@ import AIQuizSession from './AIQuizSession.jsx';
 import { MODULES, dailyDateOf, moduleOf, nameOf } from './practiceModules.js';
 import { parseSqliteTime } from '../sqliteTime.js';
 
+const DEFAULT_TAB = '默认';
 const TIME_TAB = '时间';
 
 const STATUS_META = {
@@ -76,7 +77,7 @@ const tabClass = (selected) =>
 const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled }) => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeModule, setActiveModule] = useState(TIME_TAB);
+  const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
   const [timeDate, setTimeDate] = useState('');
   const [active, setActive] = useState(null);
   const [deleting, setDeleting] = useState(null);
@@ -167,6 +168,9 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   }, [activeModule, timeDate]);
 
   const visibleBatches = useMemo(() => {
+    if (activeModule === DEFAULT_TAB) {
+      return [...batches].sort((a, b) => createdOf(b).localeCompare(createdOf(a)));
+    }
     if (activeModule === TIME_TAB) {
       return dailyBatches
         .filter((batch) => dailyDateOf(batch) === timeDate)
@@ -272,24 +276,32 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
             || { batch_id: active.batchId },
           )}
           reviewSessionId={active.reviewSessionId}
+          auditSourceSessionId={active.auditSourceSessionId}
           onExit={() => {
             setActive(null);
             loadBatches();
           }}
           onAnalyzeWithHermes={onAnalyzeWithHermes}
+          onAuditWithHermes={(sessionId) => {
+            setActive({ batchId: active.batchId, auditSourceSessionId: sessionId });
+          }}
         />
       </div>,
       document.body,
     );
   }
 
-  const showModule = activeModule === TIME_TAB;
-  const emptyTitle = activeModule === TIME_TAB
-    ? (dailyDates.length ? '这一天还没有定时题组' : '还没有定时任务题组')
-    : '这个模块还没有题组';
-  const emptyHint = activeModule === TIME_TAB
-    ? '只有定时任务产生的题组会出现在这里。普通题组请到所属模块里找。'
-    : '题组按出题时间排列。定时任务的题也会出现在「时间」里。';
+  const showModule = activeModule === DEFAULT_TAB || activeModule === TIME_TAB;
+  const emptyTitle = activeModule === DEFAULT_TAB
+    ? '还没有题组'
+    : activeModule === TIME_TAB
+      ? (dailyDates.length ? '这一天还没有定时题组' : '还没有定时任务题组')
+      : '这个模块还没有题组';
+  const emptyHint = activeModule === DEFAULT_TAB
+    ? '全部题组按生成时间从近到远排列，不按分类。'
+    : activeModule === TIME_TAB
+      ? '只有定时任务产生的题组会出现在这里。普通题组请到所属模块里找。'
+      : '题组按出题时间排列。定时任务的题也会出现在「时间」里。';
 
   return (
     <div className="mx-auto max-w-4xl space-y-5">
@@ -300,7 +312,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-black tracking-tight">AI 练题</h3>
-            <p className="text-[11px] font-medium text-slate-400">按模块找题组，定时任务也可按日期找</p>
+            <p className="text-[11px] font-medium text-slate-400">默认按生成时间排列，也可按日期或模块找</p>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
@@ -360,6 +372,22 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
 
       <div className="overflow-x-auto pb-1">
         <div className="flex min-w-max gap-2" role="tablist" aria-label="练题分类">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeModule === DEFAULT_TAB}
+            onClick={() => setActiveModule(DEFAULT_TAB)}
+            className={tabClass(activeModule === DEFAULT_TAB)}
+          >
+            {DEFAULT_TAB}
+            <span
+              className={`ml-2 text-[10px] ${
+                activeModule === DEFAULT_TAB ? 'text-white/60' : 'text-slate-400'
+              }`}
+            >
+              {batches.length}
+            </span>
+          </button>
           <button
             type="button"
             role="tab"

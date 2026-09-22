@@ -386,7 +386,7 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
 
 // ─── 主组件 ───────────────────────────────────────────────────
 
-const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeWithHermes }) => {
+const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSessionId, onExit, onAnalyzeWithHermes, onAuditWithHermes }) => {
   // 界面上只出题组名；batchId 只用来请求接口
   const title = batchName || batchId;
   // 带着 reviewSessionId 进来就先铺复盘页（不新建会话），
@@ -470,6 +470,34 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
           return;
         }
 
+        if (auditSourceSessionId) {
+          const source = await api(`/api/practice/sessions/${auditSourceSessionId}/report`);
+          const sourceItems = (source?.items || []).map((item) => ({
+            ...item,
+            id: item.question_id,
+            tags: item.knowledge_points,
+            options: item.options || [],
+          }));
+          if (!sourceItems.length) throw new Error('原复盘没有题目');
+          const audit = await api(`/api/practice/sessions/${auditSourceSessionId}/audit`, { method: 'POST' });
+          setQuestions(sourceItems);
+          setSessionId(audit.id);
+          setIndex(0);
+          setAnswers({});
+          setTimeSpent({});
+          setDrafts({});
+          setResult(null);
+          setReport(null);
+          setOpenReview(null);
+          setErrMsg('');
+          dirtyDraftsRef.current = new Set();
+          uploadedRef.current = new Set();
+          setEnter({ qid: sourceItems[0].id, at: Date.now() });
+          setPageLive(true);
+          setPhase('running');
+          return;
+        }
+
         const params = new URLSearchParams({ batch_id: batchId, limit: '50' });
         if (!String(batchId).startsWith('daily-')) params.set('random', '1');
         const [qres, hist] = await Promise.all([
@@ -505,7 +533,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
       }
     })();
     return () => { aborted = true; };
-  }, [batchId, runKey, reviewing, reviewSessionId]);
+  }, [batchId, runKey, reviewing, reviewSessionId, auditSourceSessionId]);
 
   // 重做 / 再刷一遍：都是开全新的一场。redoing 一旦置上，上面那个 effect
   // 就不再走复盘分支。旧成绩在库里原封不动，新这一场交了卷才会取代它
@@ -812,10 +840,16 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
             className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-black px-6 py-4 rounded-2xl hover:bg-[#1a1a1a] hover:text-white transition-all tracking-widest text-sm">
             <RotateCcw size={16} /><span>{reviewing ? '重做这套' : '再刷一遍'}</span>
           </button>
-          {onAnalyzeWithHermes && hasWrong && (
+          {onAnalyzeWithHermes && hasWrong && !auditSourceSessionId && (
             <button onClick={() => { onAnalyzeWithHermes(sessionId); onExit(); }}
               className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] text-white font-black px-6 py-4 rounded-2xl hover:opacity-90 transition-all tracking-widest text-sm">
               <Send size={16} /><span>让 Hermes 复盘错题</span>
+            </button>
+          )}
+          {onAuditWithHermes && reviewing && !auditSourceSessionId && (
+            <button onClick={() => onAuditWithHermes(sessionId)}
+              className="flex-1 flex items-center justify-center gap-2 bg-[#6b5428] text-white font-black px-6 py-4 rounded-2xl hover:bg-[#1a1a1a] transition-all tracking-widest text-sm">
+              <RotateCcw size={16} /><span>复盘审核</span>
             </button>
           )}
           <button onClick={onExit}
@@ -1094,8 +1128,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, onExit, onAnalyzeW
                   )}
                 </div>
                 <div className="px-5 pb-8 sm:px-7">
-                  <div className="ziliao-material whitespace-pre-wrap break-words">
-                    <MathText text={current.material.content} />
+                  <div className="ziliao-material quiz-material whitespace-pre-wrap break-words">
+                    <MathText text={current.material.content.replace(/\r?\n(?:[\t \u3000]*\r?\n)+/g, '\n')} />
                   </div>
                   <ImageList images={current.material.images} wide />
                 </div>
