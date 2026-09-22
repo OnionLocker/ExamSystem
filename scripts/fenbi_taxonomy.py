@@ -207,9 +207,16 @@ def tags_for_canon_lookup(tag: str) -> list[str]:
     add(mapped)
     parent = fenbi_l3_of(mapped) or fenbi_l3_of(raw)
     parsed = parse_fenbi_tag(mapped) or parse_fenbi_tag(raw)
+    # 叶子改过名时（分堆分配与定序消序 → 分堆分配与消序），只有别名表反查能对上旧主标签。
+    # 它必须排在按 L3 兜底的候选前面，否则会切到同一 L3 下的另一张卡。
+    for old, new in LEGACY_TO_FENBI.items():
+        if new == mapped:
+            add(old)
     if parsed and parsed[3]:
+        # 别名表的值已经细化到四级，按 L3 归拢后再比，旧的四级写法才不会落空。
         for old, new in LEGACY_TO_FENBI.items():
-            if new == parent and (parsed[3] in old or old.endswith(parsed[3])):
+            same_family = new == parent or fenbi_l3_of(new) == parent
+            if same_family and (parsed[3] in old or old.endswith(parsed[3])):
                 add(old)
     add(parent)
     for old, new in LEGACY_TO_FENBI.items():

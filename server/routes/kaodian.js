@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import db from '../db.js';
-import { recomputeMastery } from '../mastery.js';
 
 const router = Router();
 
 function scoreOf(row) {
   if (row == null) return null;
   if (row.mastery != null) return row.mastery;
-  if (row.attempts > 0) return Math.round((row.correct * 100) / row.attempts);
   return null;
 }
 
@@ -15,9 +13,8 @@ function view(row) {
   return { ...row, score: scoreOf(row) };
 }
 
-router.get('/', (_req, res) => {
-  recomputeMastery(db);
-  const items = db.prepare(`
+function loadProfiles() {
+  return db.prepare(`
     SELECT kaodian, module, subtype, attempts, correct, total_ms,
            last_seen, streak, note, mastery, mastery_note,
            mastery_confidence, mastery_samples, mastery_source,
@@ -25,13 +22,16 @@ router.get('/', (_req, res) => {
       FROM kaodian_profile
      ORDER BY module, kaodian
   `).all();
+}
+
+router.get('/', (_req, res) => {
   let aliases = [];
   try {
     aliases = db.prepare('SELECT alias, canonical, module, subtype FROM kaodian_aliases').all();
   } catch {
     aliases = [];
   }
-  res.json({ items: items.map(view), aliases });
+  res.json({ items: loadProfiles().map(view), aliases });
 });
 
 router.post('/mastery', (req, res) => {

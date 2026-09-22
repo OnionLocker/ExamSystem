@@ -362,6 +362,13 @@ def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="her
     ensure_schema(conn)
     if practice_lock and session_id is not None and practice_session_sealed(conn, session_id):
         return False
+    if practice_lock and session_id is not None and question_id is not None:
+        already = conn.execute(
+            "SELECT 1 FROM kaodian_events WHERE session_id=? AND question_id=? LIMIT 1",
+            (int(session_id), int(question_id)),
+        ).fetchone()
+        if already:
+            return False
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     c = 1 if is_correct else 0
     source = source if source in SOURCE_WEIGHTS else "hermes"

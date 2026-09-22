@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Pencil, Plus, Target, Trash2, GitBranch, Lightbulb, ShieldAlert, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,6 +21,25 @@ import 'katex/dist/katex.min.css';
 import '../hermes/katex-fix.css';
 
 const OVERRIDE_KEY = 'knowledge_overrides_v1';
+const KAODIAN_CACHE_KEY = 'kaodian_cache_v1';
+
+function loadKaodianCache() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(KAODIAN_CACHE_KEY) || 'null');
+    if (!raw || !Array.isArray(raw.items)) return { items: [], aliases: [] };
+    return { items: raw.items, aliases: Array.isArray(raw.aliases) ? raw.aliases : [] };
+  } catch {
+    return { items: [], aliases: [] };
+  }
+}
+
+function saveKaodianCache(items, aliases) {
+  try {
+    localStorage.setItem(KAODIAN_CACHE_KEY, JSON.stringify({ items, aliases }));
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 const emptyOverrides = () => ({ cards: {}, extras: {} });
 
@@ -37,7 +56,6 @@ function scoreOf(row) {
   if (!row) return null;
   if (row.score != null) return Number(row.score);
   if (row.mastery != null) return Number(row.mastery);
-  if (row.attempts > 0) return Math.round((row.correct * 100) / row.attempts);
   return null;
 }
 
@@ -102,11 +120,17 @@ const KATEX_OPTIONS = {
 
 const MASTERY_COLORS = ['#e24b4b', '#ef7d3a', '#e6b423', '#9cc43a', '#4caf50', '#2a9d5c'];
 
-function MasteryBar({ score, hint }) {
+function MasteryBar({ score, hint, pending, kind }) {
   const known = Number.isFinite(score);
   const v = known ? Math.max(0, Math.min(100, Math.round(score))) : null;
   const lit = known ? Math.max(1, Math.round((v / 100) * MASTERY_COLORS.length)) : 0;
-  const word = !known ? '还没接触' : v < 40 ? '生疏' : v < 70 ? '半会' : v < 90 ? '较稳' : '拿手';
+  const word = pending && !known
+    ? '读取中'
+    : !known
+      ? '还没接触'
+      : kind === 'rollup'
+        ? '综合覆盖'
+        : v < 40 ? '生疏' : v < 70 ? '半会' : v < 90 ? '较稳' : '拿手';
   const label = known ? `${v}% · ${word}` : word;
   return (
     <span className="inline-flex items-end gap-1 flex-shrink-0" title={[label, hint].filter(Boolean).join(' · ')} aria-label={label}>
@@ -127,7 +151,7 @@ function MasteryBar({ score, hint }) {
         ))}
       </span>
       <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
-        {known ? `${v}%` : '未评估'}
+        {known ? `${v}%` : pending ? '…' : '未评估'}
       </span>
     </span>
   );
@@ -319,11 +343,16 @@ function StructuredKnowledgeView({ view }) {
   );
 }
 
-function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
+function localCardTitle(name, index) {
+  const body = String(name || '').replace(/^\d+\s+/, '');
+  return `${String(index + 1).padStart(2, '0')} ${body}`;
+}
+
+function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, scoresPending }) {
   const { score, hits, row } = cardRow(t, rows);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
-  const view = { ...t, ...override };
+  const view = { ...t, ...override, name: title || t.name };
 
   const startEdit = (e) => {
     e.stopPropagation();
@@ -366,6 +395,7 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
             <h4 className="text-lg font-black tracking-tight">{view.name}</h4>
             <MasteryBar
               score={score}
+              pending={scoresPending}
               hint={[row?.mastery_note, masteryHint(row), hits.length > 1 ? `${hits.length} 个相关考点` : ''].filter(Boolean).join(' · ')}
             />
             {t.custom ? (
@@ -501,14 +531,25 @@ function TypeCard({ t, open, onToggle, rows, override, onSave, onDelete }) {
   );
 }
 
-function FenbiTree({ modules, selectedTag, onSelect, filterScored }) {
+function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending }) {
   const [openL2, setOpenL2] = useState(() => new Set(modules[0]?.children?.map((g) => g.name) || []));
+  const [openL3, setOpenL3] = useState(() => new Set());
 
   const toggleL2 = (name) => {
     setOpenL2((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
+      return next;
+    });
+  };
+
+  const toggleL3 = (tag, e) => {
+    e?.stopPropagation();
+    setOpenL3((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
       return next;
     });
   };
@@ -537,38 +578,62 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored }) {
                   <div className="px-2 pb-2 space-y-1.5">
                     {leaves.map((leaf) => {
                       const selected = selectedTag === leaf.tag;
+                      const hasExt = Boolean(leaf.extensions?.length);
+                      const isL3Open = openL3.has(leaf.tag);
                       return (
                         <div key={leaf.tag}>
-                          <button
-                            type="button"
-                            onClick={() => onSelect(leaf)}
-                            className={`w-full min-h-[48px] flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left border ${
+                          <div
+                            className={`w-full min-h-[48px] flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left border cursor-pointer transition-all ${
                               selected
                                 ? 'bg-[#f6ecd4] border-[#cbb387]'
-                                : 'bg-[#fdfbf7] border-[#e8d5b0]'
+                                : 'bg-[#fdfbf7] border-[#e8d5b0] hover:border-[#cbb387]'
                             }`}
+                            onClick={() => onSelect(leaf)}
                           >
                             <span className="text-[15px] font-bold min-w-0 truncate">{leaf.name}</span>
-                            <MasteryBar
-                              score={leaf.score}
-                              hint={leaf.row ? [leaf.row.mastery_note, masteryHint(leaf.row)].filter(Boolean).join(' · ') : ''}
-                            />
-                          </button>
-                          {(leaf.extensions || []).map((ext) => (
-                            <button
-                              key={ext.tag}
-                              type="button"
-                              onClick={() => onSelect({ ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true })}
-                              className={`mt-1 ml-4 w-[calc(100%-1rem)] min-h-[44px] flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left border ${
-                                selectedTag === ext.tag
-                                  ? 'bg-[#f6ecd4] border-[#cbb387]'
-                                  : 'bg-[#f6ecd4]/70 border-[#e8d5b0]'
-                              }`}
-                            >
-                              <span className="text-sm font-bold min-w-0 truncate">{ext.name}</span>
-                              <MasteryBar score={ext.score} hint={ext.row ? masteryHint(ext.row) : ''} />
-                            </button>
-                          ))}
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <MasteryBar
+                                score={leaf.score}
+                                kind={leaf.score_kind}
+                                pending={scoresPending}
+                                hint={leaf.row ? [leaf.row.mastery_note, masteryHint(leaf.row)].filter(Boolean).join(' · ') : ''}
+                              />
+                              {hasExt && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => toggleL3(leaf.tag, e)}
+                                  className="p-1 -mr-1 text-slate-400 hover:text-[#1a1a1a] rounded-lg transition-colors"
+                                  title={isL3Open ? '收起子考点' : '展开子考点'}
+                                >
+                                  <ChevronDown
+                                    size={15}
+                                    className={`text-[#8a6d3b] transition-transform duration-200 ${
+                                      isL3Open ? 'rotate-180' : ''
+                                    }`}
+                                  />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {hasExt && isL3Open && (
+                            <div className="mt-1 space-y-1">
+                              {leaf.extensions.map((ext) => (
+                                <button
+                                  key={ext.tag}
+                                  type="button"
+                                  onClick={() => onSelect({ ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true })}
+                                  className={`ml-4 w-[calc(100%-1rem)] min-h-[44px] flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left border ${
+                                    selectedTag === ext.tag
+                                      ? 'bg-[#f6ecd4] border-[#cbb387]'
+                                      : 'bg-[#f6ecd4]/70 border-[#e8d5b0] hover:border-[#cbb387]'
+                                  }`}
+                                >
+                                  <span className="text-sm font-bold min-w-0 truncate">{ext.name}</span>
+                                  <MasteryBar score={ext.score} pending={scoresPending} hint={ext.row ? masteryHint(ext.row) : ''} />
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -588,9 +653,12 @@ export default function Knowledge() {
   const [modId, setModId] = useState('shuliang');
   const [selectedTag, setSelectedTag] = useState('数量关系-数学运算-平均数问题');
   const [openId, setOpenId] = useState('');
-  const [rows, setRows] = useState([]);
-  const [aliases, setAliases] = useState([]);
+  const [kaodian, setKaodian] = useState(loadKaodianCache);
+  const [scoresReady, setScoresReady] = useState(() => loadKaodianCache().items.length > 0);
   const [overrides, setOverrides] = useState(loadOverrides);
+  const rows = kaodian.items;
+  const aliases = kaodian.aliases;
+  const detailRef = useRef(null);
 
   const persist = (next) => {
     setOverrides(next);
@@ -615,22 +683,31 @@ export default function Knowledge() {
     const load = () => {
       api('/api/kaodian')
         .then((d) => {
-          setRows(d?.items || []);
-          setAliases(d?.aliases || []);
+          const items = d?.items || [];
+          const nextAliases = d?.aliases || [];
+          setKaodian({ items, aliases: nextAliases });
+          setScoresReady(true);
+          saveKaodianCache(items, nextAliases);
         })
-        .catch(() => {});
+        .catch(() => { setScoresReady(true); });
     };
     load();
     const onVis = () => {
       if (document.visibilityState === 'visible') load();
     };
     document.addEventListener('visibilitychange', onVis);
-    const timer = setInterval(load, 20000);
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 20000);
     return () => {
       document.removeEventListener('visibilitychange', onVis);
       clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    detailRef.current?.scrollTo({ top: 0 });
+  }, [selectedTag]);
 
   const tree = useMemo(() => mergeFenbiTree(rows, aliases), [rows, aliases]);
   const fenbiMod = tree.find((m) => m.id === modId) || tree[0];
@@ -700,8 +777,8 @@ export default function Knowledge() {
     }`;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="h-full min-h-0 flex flex-col gap-4">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-2">
         {TRACKS.map((t) => (
           <button key={t.id} type="button" onClick={() => selectTrack(t.id)} className={pill(track === t.id)}>
             {t.name}
@@ -720,15 +797,15 @@ export default function Knowledge() {
         </div>
       ) : (
         <>
-          <div className="rounded-3xl bg-[#1a1a1a] text-white p-6">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-2">粉笔广东·省市类树</p>
+          <div className="flex-shrink-0 rounded-3xl bg-[#1a1a1a] text-white px-5 py-3">
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">粉笔广东·省市类树</p>
             <p className="text-sm leading-relaxed opacity-90">
               政治 / 常识 / 言语 / 数量 / 判断按粉笔一级→二级展开。右边斜条是掌握度，旧长标签通过别名对到新节点，画像不会清零。
               Hermes 要更细的叶子，登记成 `模块-一级-二级-子题型`，刷新后挂在对应二级下面。
             </p>
           </div>
 
-          <nav className="flex gap-2 overflow-x-auto [scrollbar-width:none]">
+          <nav className="flex-shrink-0 flex gap-2 overflow-x-auto [scrollbar-width:none]">
             {tree.map((m) => (
               <button
                 key={m.id}
@@ -751,12 +828,13 @@ export default function Knowledge() {
             ))}
           </nav>
 
-          <div className="grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-6 items-start">
-            <div className="rounded-3xl border border-[#e8d5b0] bg-[#fdfbf7] p-3">
+          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-6">
+            <div className="min-h-0 max-h-[40vh] xl:max-h-none overflow-y-auto overscroll-contain rounded-3xl border border-[#e8d5b0] bg-[#fdfbf7] p-3">
               <FenbiTree
                 modules={fenbiMod ? [fenbiMod] : []}
                 selectedTag={selectedTag}
                 filterScored={track === 'mine'}
+                scoresPending={!scoresReady}
                 onSelect={(leaf) => {
                   setSelectedTag(leaf.tag);
                   setOpenId('');
@@ -764,7 +842,7 @@ export default function Knowledge() {
               />
             </div>
 
-            <div className="space-y-4 min-w-0">
+            <div ref={detailRef} className="min-h-0 overflow-y-auto overscroll-contain space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-xl font-black tracking-tight">
@@ -783,13 +861,15 @@ export default function Knowledge() {
                   <Plus size={12} /> 补一张
                 </button>
               </div>
-              {types.map((t) => (
+              {types.map((t, i) => (
                 <TypeCard
                   key={t.id}
                   t={t}
+                  title={t.custom ? t.name : localCardTitle(t.name, i)}
                   open={openId === t.id}
                   onToggle={() => setOpenId((id) => (id === t.id ? '' : t.id))}
                   rows={rows}
+                  scoresPending={!scoresReady}
                   override={overrides.cards[t.id]}
                   onSave={(patch) => saveCard(t.id, patch, t.custom)}
                   onDelete={t.custom ? () => removeExtra(t.id) : undefined}
@@ -802,7 +882,7 @@ export default function Knowledge() {
                     <article key={r.kaodian} className="rounded-3xl bg-[#faf6ec] border border-dashed border-[#e8d5b0] px-5 py-4">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-black">{r.kaodian}</p>
-                        <MasteryBar score={scoreOf(r)} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
+                        <MasteryBar score={scoreOf(r)} pending={!scoresReady} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
                       </div>
                     </article>
                   ))}

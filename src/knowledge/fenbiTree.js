@@ -1,5 +1,6 @@
 import treeData from './fenbiTree.json' with { type: 'json' };
 import { XINGCE } from './canon.js';
+import { cardRow } from './match.js';
 
 export const FENBI_MODULES = treeData.modules;
 export const LEGACY_ALIASES = treeData.legacyAliases || {};
@@ -62,21 +63,25 @@ export function fenbiL3Of(tag) {
 
 export function aliasMapFrom(aliases) {
   const map = new Map(Object.entries(LEGACY_ALIASES));
+  const apply = (alias, canonical) => {
+    if (!alias || !canonical) return;
+    const existing = map.get(alias);
+    // DB identity aliases (alias === canonical) must not clobber chalk-tree mappings.
+    if (existing && fenbiL3Of(existing) && !fenbiL3Of(canonical)) return;
+    map.set(alias, canonical);
+  };
   if (aliases instanceof Map) {
-    for (const [alias, canonical] of aliases) {
-      if (alias && canonical) map.set(alias, canonical);
-    }
+    for (const [alias, canonical] of aliases) apply(alias, canonical);
     return map;
   }
-  for (const row of aliases || []) {
-    if (row?.alias && row?.canonical) map.set(row.alias, row.canonical);
-  }
+  for (const row of aliases || []) apply(row?.alias, row?.canonical);
   return map;
 }
 
 export function resolveProfileTag(kaodian, aliases) {
   const raw = String(kaodian || '').trim();
-  const mapped = aliasMapFrom(aliases).get(raw) || raw;
+  const map = aliases instanceof Map ? aliases : aliasMapFrom(aliases);
+  const mapped = map.get(raw) || raw;
   return fenbiL3Of(mapped) || fenbiL3Of(raw) || mapped;
 }
 
@@ -84,7 +89,6 @@ function scoreOf(row) {
   if (!row) return null;
   if (row.score != null) return Number(row.score);
   if (row.mastery != null) return Number(row.mastery);
-  if (row.attempts > 0) return Math.round((row.correct * 100) / row.attempts);
   return null;
 }
 
@@ -98,6 +102,35 @@ function pickScore(rows) {
     return (scoreOf(a) ?? 101) - (scoreOf(b) ?? 101);
   });
   return { score: scoreOf(ranked[0]), row: ranked[0], hits: rows };
+}
+
+function weightOf(row) {
+  const samples = Number(row?.mastery_samples);
+  if (Number.isFinite(samples) && samples > 0) return samples;
+  const attempts = Number(row?.attempts);
+  if (Number.isFinite(attempts) && attempts > 0) return attempts;
+  return 1;
+}
+
+export function rollupScores(parts) {
+  const usable = (parts || []).filter((part) => part && Number.isFinite(part.score));
+  if (!usable.length) return { score: null, row: null, hits: [], samples: 0 };
+  let wsum = 0;
+  let ssum = 0;
+  const hits = [];
+  for (const part of usable) {
+    const w = part.weight > 0 ? part.weight : 1;
+    wsum += w;
+    ssum += Number(part.score) * w;
+    if (part.hits?.length) hits.push(...part.hits);
+    else if (part.row) hits.push(part.row);
+  }
+  return {
+    score: Math.round(ssum / wsum),
+    row: usable[0].row || hits[0] || null,
+    hits,
+    samples: Math.round(wsum * 100) / 100,
+  };
 }
 
 export function rowsForTag(tag, items, aliases) {
@@ -121,14 +154,18 @@ export function mergeFenbiTree(items, aliases) {
     const parsed = parseFenbiTag(raw) || parseFenbiTag(aliasLookup.get(raw) || '');
     if (parsed?.l4) {
       const parent = composeTag(parsed.module, parsed.l2, parsed.l3);
+      const canonicalTag = composeTag(parsed.module, parsed.l2, parsed.l3, parsed.l4);
       if (!extras.has(parent)) extras.set(parent, []);
       const list = extras.get(parent);
-      if (!list.some((item) => item.tag === raw)) {
+      const existing = list.find((item) => item.tag === canonicalTag || item.name === parsed.l4);
+      if (!existing) {
         list.push({
-          tag: raw,
+          tag: canonicalTag,
           name: parsed.l4,
-          row,
+          rows: [row],
         });
+      } else {
+        existing.rows.push(row);
       }
     }
   }
@@ -142,13 +179,31 @@ export function mergeFenbiTree(items, aliases) {
         const tag = composeTag(mod.name, group.name, leaf.name);
         const hits = rowsForTag(tag, items, aliasLookup);
         const extra = extras.get(tag) || [];
+        const cards = (leaf.cards || []).map((id) => CARD_INDEX.get(id)).filter(Boolean);
+        const cardParts = cards.map((type) => {
+          const found = cardRow(type, items, scoreOf);
+          return {
+            score: found.score,
+            weight: weightOf(found.row),
+            row: found.row,
+            hits: found.hits,
+          };
+        });
+        const extParts = extra.map((item) => {
+          const found = pickScore(item.rows || [item.row]);
+          return { score: found.score, weight: weightOf(found.row), row: found.row, hits: item.rows || [item.row] };
+        });
+        const children = [...cardParts, ...extParts];
+        const rolled = children.length > 1 ? rollupScores(children) : null;
+        const fallback = pickScore(hits);
         return {
           ...leaf,
           tag,
-          ...pickScore(hits),
+          ...(rolled?.score != null ? { ...rolled, score_kind: 'rollup' } : fallback),
           extensions: extra.map((item) => ({
-            ...item,
-            ...pickScore([item.row]),
+            tag: item.tag,
+            name: item.name,
+            ...pickScore(item.rows || [item.row]),
           })),
         };
       }),

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 
 import { cardRow, relatedRows } from '../src/knowledge/match.js';
 import { cardToMarkdown, decorateMath } from '../src/knowledge/cardMarkdown.js';
-import { findFenbiTarget, leftoverRows, mergeFenbiTree, parseFenbiTag, rowsForTag } from '../src/knowledge/fenbiTree.js';
+import { findFenbiTarget, leftoverRows, mergeFenbiTree, parseFenbiTag, rollupScores, rowsForTag } from '../src/knowledge/fenbiTree.js';
 
 assert.equal(
   decorateMath('平方差：a^2 - b^2 = (a + b)(a - b)'),
@@ -88,6 +88,27 @@ assert.equal(rowsForTag('数量关系-数学运算-排列组合问题', [
   { kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序' },
 ]).length, 1);
 
+const engineeringTree = mergeFenbiTree(
+  [
+    {
+      kaodian: '数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作',
+      mastery: 55,
+      mastery_confidence: 6,
+    },
+  ],
+  [
+    {
+      alias: '数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作',
+      canonical: '数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作',
+    },
+  ],
+);
+const engineering = engineeringTree
+  .find((mod) => mod.id === 'shuliang')
+  .children.find((g) => g.name === '数学运算')
+  .children.find((leaf) => leaf.name === '工程问题');
+assert.equal(engineering.score, 55);
+
 const staticTree = mergeFenbiTree([
   {
     kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序',
@@ -100,6 +121,46 @@ const staticPerm = staticTree
   .children.find((g) => g.name === '数学运算')
   .children.find((leaf) => leaf.name === '排列组合问题');
 assert.equal(staticPerm.score, 55);
+
+assert.equal(
+  rollupScores([
+    { score: 54, weight: 1.45 },
+    { score: 80, weight: 4 },
+  ]).score,
+  Math.round((54 * 1.45 + 80 * 4) / (1.45 + 4)),
+);
+
+const travelTree = mergeFenbiTree([
+  {
+    kaodian: '数量关系-能“七十二变”的行程问题-基础行程、平均速度与相对运动',
+    mastery: 54,
+    mastery_samples: 1.45,
+    attempts: 3,
+    mastery_confidence: 17,
+  },
+  {
+    kaodian: '数量关系-能“七十二变”的行程问题-流水行船与扶梯',
+    mastery: 80,
+    mastery_samples: 4,
+    attempts: 8,
+    mastery_confidence: 50,
+  },
+]);
+const travel = travelTree
+  .find((mod) => mod.id === 'shuliang')
+  .children.find((g) => g.name === '数学运算')
+  .children.find((leaf) => leaf.name === '行程问题');
+assert.equal(travel.score, Math.round((54 * 1.45 + 80 * 4) / (1.45 + 4)));
+
+const recurTree = mergeFenbiTree([
+  { kaodian: '数量关系-数字推理-递推数列', mastery: 54, attempts: 3, mastery_confidence: 16 },
+  { kaodian: '数量关系-数字推理-机械划分', mastery: 55, attempts: 1, mastery_confidence: 6 },
+]);
+const recur = recurTree
+  .find((mod) => mod.id === 'shuliang')
+  .children.find((g) => g.name === '数字推理')
+  .children.find((leaf) => leaf.name === '递推数列');
+assert.equal(recur.score, 54);
 
 const leftovers = leftoverRows([
   { kaodian: '数量关系-逢考必有的排列组合与概率-分堆分配与定序消序' },

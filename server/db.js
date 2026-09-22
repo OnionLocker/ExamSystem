@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
+import { recomputeMastery } from './mastery.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
@@ -423,10 +424,32 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS uniq_ke_exam_item
     ON kaodian_events(session_id, question_id, evidence_type)
     WHERE evidence_type = 'exam' AND session_id IS NOT NULL AND question_id IS NOT NULL;
-  UPDATE kaodian_profile
-     SET mastery = CAST(ROUND(correct * 100.0 / attempts) AS INTEGER)
-   WHERE mastery IS NULL AND attempts > 0
 `);
+
+// 旧版本曾把子知识点加权平均写进画像；那不是个人作答证据，清掉后由事件流水重算。
+db.exec(`
+  UPDATE kaodian_profile
+     SET mastery = NULL, mastery_confidence = NULL, mastery_samples = NULL, mastery_note = NULL
+   WHERE mastery_note = '子知识点加权' AND mastery_source != 'manual';
+  DELETE FROM kaodian_profile
+   WHERE attempts = 0 AND mastery IS NULL AND mastery_source != 'manual'
+     AND NOT EXISTS (SELECT 1 FROM kaodian_events e WHERE e.kaodian = kaodian_profile.kaodian);
+  UPDATE kaodian_profile
+     SET attempts = (SELECT COUNT(*) FROM kaodian_events e
+                      LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+                     WHERE COALESCE(a.canonical, e.kaodian) = kaodian_profile.kaodian),
+         correct = (SELECT COALESCE(SUM(e.is_correct), 0) FROM kaodian_events e
+                     LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+                    WHERE COALESCE(a.canonical, e.kaodian) = kaodian_profile.kaodian),
+         total_ms = (SELECT COALESCE(SUM(e.elapsed_ms), 0) FROM kaodian_events e
+                      LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+                     WHERE COALESCE(a.canonical, e.kaodian) = kaodian_profile.kaodian)
+   WHERE EXISTS (SELECT 1 FROM kaodian_events e
+                  LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
+                 WHERE COALESCE(a.canonical, e.kaodian) = kaodian_profile.kaodian);
+`);
+
+recomputeMastery(db);
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------
 const { count } = db.prepare('SELECT COUNT(*) AS count FROM questions').get();

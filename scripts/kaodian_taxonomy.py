@@ -74,6 +74,9 @@ KNOWN_QUANTITY_TAGS = set(fenbi_l3_by_module().get("数量关系", ()))
 KNOWN_YANYU_TAGS = set(fenbi_l3_by_module().get("言语理解与表达", ()))
 KNOWN_ZHENGZHI_TAGS = set(fenbi_l3_by_module().get("政治理论", ()))
 KNOWN_CHANGSHI_TAGS = set(fenbi_l3_by_module().get("常识判断", ()))
+SCIENCE_TAG_RE = re.compile(
+    r"^科学推理-(?:力学|压强与浮力|电学|热学与光学|化学|生物|地理)-[^-].+$"
+)
 YANYU_MAIN = "言语理解与表达-片段阅读-中心理解题"
 YANYU_DETAIL = "言语理解与表达-片段阅读-细节判断题"
 YANYU_TITLE = "言语理解与表达-片段阅读-标题填入题"
@@ -283,6 +286,10 @@ def _has_any(text: str, *needles: str) -> bool:
 
 def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
     raw = (tag or "").strip()
+    # 科学推理在题库里是独立模块；粉笔树的历史别名把它挂在判断推理下，
+    # 出题入口不能沿用那个展示归类，否则会走错 20 题判断卷规则。
+    if raw.startswith("科学推理-") and normalize_module(module) in {"", "科学推理"}:
+        return raw
     # Hermes 显式 --register 过的标签是权威的，不能再被下面的关键词兜底改写。
     # 资料分析例外：它是封闭词表，旧标签必须继续被归一到白名单上。
     if (
@@ -650,6 +657,15 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
     tag = (raw or "").strip()
     if not tag:
         raise ValueError("缺规范考点标签 tags[0]（也可用 knowledge_point）")
+    # 科学推理是独立模块；带完整前缀的标签不能因调用方省略 category
+    # （例如 CLI 未传 --module 或旧题库行缺 category）而落入粉笔旧树。
+    if normalize_module(category) == "科学推理" or tag.startswith("科学推理-"):
+        if not SCIENCE_TAG_RE.fullmatch(tag):
+            raise ValueError(
+                "科学推理标签必须写成 科学推理-学科-具体考点，"
+                f"收到: {tag}"
+            )
+        return tag
     if tag in COARSE_PRIMARY_TAGS:
         raise ValueError(
             f"标签过粗: {tag}。数量请写成粉笔三级，如 {NUM_PERM} / {NUM_AVERAGE}"
@@ -714,22 +730,6 @@ def validate_shuliang_paper(questions: list[dict]) -> None:
         raise ValueError(f"广东数量 15 题须为数字推理 5 + 数学运算 10，当前数字推理 {seq} 题")
 
 
-# ─────────────────────────────────────────────
-# 资料分析：四篇考点骨架不得同构（禁“四篇同一五连招”）
-# ─────────────────────────────────────────────
 def validate_ziliao_variety(questions: list[dict]) -> None:
-    materials: dict[str, list[str]] = {}
-    for question in questions:
-        if str(question.get("category") or "") != "资料分析":
-            continue
-        material_id = str(question.get("material_id") or "")
-        if not material_id:
-            continue
-        materials.setdefault(material_id, []).append(question_primary_tag(question))
-    if len(materials) >= 4:
-        skeletons = {tuple(tags) for tags in materials.values()}
-        if len(skeletons) == 1:
-            raise ValueError(
-                "资料分析四篇不得复制同一套五连招：Q1–Q4 考点须跨篇错开，"
-                "不能四篇按同一顺序同一家族出题"
-            )
+    """Keep as a compatibility hook; variation is a generation preference."""
+    return None
