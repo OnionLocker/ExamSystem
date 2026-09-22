@@ -641,6 +641,27 @@ def render_compact(snapshot: dict) -> str:
             for row in snapshot["recent_sessions"][:3]
         ]
         lines.append("最近练习：" + "；".join(bits))
+
+    # A4: 添加知识债详情
+    debt_families = snapshot.get("open_mistake_families") or []
+    if debt_families:
+        lines.append("知识债（连对2次才算清偿；连对为0且错次高的，优先安排同考法变式卷，不要开新考点）：")
+        for item in debt_families[:6]:
+            kaodian = item.get("kaodian", "")
+            wrong = item.get("count", 0)
+            streak = item.get("recovery_streak", 0)
+            days_info = ""
+            if "last_wrong_at" in item and item.get("last_wrong_at"):
+                try:
+                    import datetime as dt
+                    last_wrong = dt.date.fromisoformat(str(item["last_wrong_at"])[:10])
+                    today = dt.datetime.now(TZ).date()
+                    days_ago = (today - last_wrong).days
+                    days_info = f" 距上次错{days_ago}天"
+                except (ValueError, TypeError):
+                    pass
+            lines.append(f"  - {kaodian}｜累计错{wrong}次｜连对{streak}/2{days_info}")
+
     if snapshot["recommended_targets"]:
         lines.append("下一步候选：")
         for item in snapshot["recommended_targets"][:5]:

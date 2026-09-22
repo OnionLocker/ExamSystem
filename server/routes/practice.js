@@ -725,4 +725,59 @@ router.get('/heat', (_req, res) => {
   res.json(out);
 });
 
+// ───────────────────────────────────────────────────────────────
+// POST /api/quiz/lite
+//   快速出题：指定模块和考点标签，生成一套小题
+// ───────────────────────────────────────────────────────────────
+router.post('/quiz/lite', (req, res) => {
+  const { module, tag, count = 5 } = req.body || {};
+  if (!module || !tag) {
+    return res.status(400).json({ error: 'module and tag required' });
+  }
+
+  const quizCount = Math.min(20, Math.max(1, parseInt(count) || 5));
+  const category = `${tag}-变式-${Date.now()}`;
+
+  try {
+    // 调用 quiz_lite.py 生成题目
+    const result = spawnSync(
+      'python3',
+      [
+        path.join(projectRoot, 'scripts', 'quiz_lite.py'),
+        '--module', String(module),
+        '--tag', String(tag),
+        '--count', String(quizCount),
+        '--output', category
+      ],
+      {
+        cwd: projectRoot,
+        timeout: 60000,
+        encoding: 'utf8'
+      }
+    );
+
+    if (result.error || result.status !== 0) {
+      console.error('[quiz/lite] 出题失败:', result.stderr || result.error);
+      return res.status(500).json({ error: '出题失败，请稍后重试' });
+    }
+
+    // 创建练习场次
+    const session = db
+      .prepare(
+        `INSERT INTO practice_sessions (category, started_at)
+         VALUES (?, datetime('now'))`
+      )
+      .run(category);
+
+    res.json({
+      sessionId: session.lastInsertRowid,
+      category,
+      count: quizCount
+    });
+  } catch (error) {
+    console.error('[quiz/lite] 出题异常:', error);
+    res.status(500).json({ error: '出题失败' });
+  }
+});
+
 export default router;

@@ -85,4 +85,54 @@ router.post('/mastery', (req, res) => {
   res.json(view(row));
 });
 
+router.get('/debts', (_req, res) => {
+  try {
+    const debts = db.prepare(`
+      SELECT
+        d.kaodian,
+        d.wrong_count,
+        d.recovery_streak,
+        d.last_wrong_at,
+        d.last_seen_at,
+        d.mastered,
+        p.module,
+        p.mastery,
+        p.mastery_confidence,
+        julianday('now') - julianday(d.last_wrong_at) as days_since_wrong
+      FROM kaodian_debts d
+      LEFT JOIN kaodian_profile p ON d.kaodian = p.kaodian
+      WHERE d.mastered = 0
+      ORDER BY (d.wrong_count * (julianday('now') - julianday(d.last_wrong_at))) DESC
+    `).all();
+
+    const thisWeek = db.prepare(`
+      SELECT COUNT(*) as count
+      FROM kaodian_debts
+      WHERE mastered = 1
+        AND datetime(updated_at) >= datetime('now', '-7 days')
+    `).get();
+
+    res.json({
+      debts: debts.map(d => ({
+        kaodian: d.kaodian,
+        module: d.module || d.kaodian.split('-')[0] || '未分类',
+        wrongCount: d.wrong_count,
+        recoveryStreak: d.recovery_streak,
+        recoveryProgress: `${d.recovery_streak}/2`,
+        lastWrongAt: d.last_wrong_at,
+        daysSinceWrong: Math.floor(d.days_since_wrong || 0),
+        mastery: d.mastery,
+        confidence: d.mastery_confidence || 0
+      })),
+      summary: {
+        open: debts.length,
+        clearedThisWeek: thisWeek.count
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching debts:', error);
+    res.status(500).json({ error: 'Failed to fetch debts' });
+  }
+});
+
 export default router;

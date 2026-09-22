@@ -17,6 +17,7 @@ import {
   methodCardsFor,
   aliasMapFrom,
 } from './fenbiTree.js';
+import DebtDashboard from './DebtDashboard.jsx';
 import 'katex/dist/katex.min.css';
 import '../hermes/katex-fix.css';
 
@@ -650,6 +651,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
 
 export default function Knowledge() {
   const [track, setTrack] = useState('xingce');
+  const [view, setView] = useState('tree'); // 'tree' or 'debts'
   const [modId, setModId] = useState('shuliang');
   const [selectedTag, setSelectedTag] = useState('数量关系-数学运算-平均数问题');
   const [openId, setOpenId] = useState('');
@@ -791,10 +793,35 @@ export default function Knowledge() {
         </button>
       </div>
 
+      {track !== 'shenlun' && (
+        <div className="flex-shrink-0 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setView('tree')}
+            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
+              view === 'tree' ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500'
+            }`}
+          >
+            知识树
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('debts')}
+            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
+              view === 'debts' ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500'
+            }`}
+          >
+            知识债
+          </button>
+        </div>
+      )}
+
       {track === 'shenlun' ? (
         <div className="rounded-3xl bg-[#fdfbf7] border border-[#e8d5b0] p-10 text-center text-sm text-slate-500 font-medium">
           申论步骤还没写进老师口径。真题上传并要求补的时候再填。
         </div>
+      ) : view === 'debts' ? (
+        <DebtDashboard />
       ) : (
         <>
           <div className="flex-shrink-0 rounded-3xl bg-[#1a1a1a] text-white px-5 py-3">
