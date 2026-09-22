@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
@@ -20,6 +20,8 @@ import {
   Layers,
   ScanSearch,
   GraduationCap,
+  GripVertical,
+  Check,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import NumericPractice from './practice/NumericPractice.jsx';
@@ -69,6 +71,7 @@ const monthNames = [
 const weekdayShort = ['一', '二', '三', '四', '五', '六', '日'];
 const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 const EVENTS_KEY = 'exam_calendar_events';
+const NAV_ORDER_KEY = 'exam_nav_order';
 const HERMES_FS_KEY = 'hermes.fullscreen';
 const readHermesFs = () => {
   try {
@@ -80,13 +83,54 @@ const readHermesFs = () => {
   return window.matchMedia('(pointer: coarse), (max-width: 1440px)').matches;
 };
 
+const NAV_ITEMS = [
+  { id: 'dashboard', icon: LayoutDashboard, label: '仪表盘' },
+  { id: 'studyBoost', icon: Zap, label: '学习提升' },
+  { id: 'knowledge', icon: GraduationCap, label: '知识点' },
+  { id: 'copybook', icon: PenTool, label: '字帖练习' },
+  { id: 'review', icon: BookMarked, label: '复习' },
+  { id: 'flashcards', icon: Layers, label: '抽认卡' },
+  { id: 'practice', icon: BookOpen, label: '数资练习' },
+  { id: 'pomodoro', icon: TimerIcon, label: '番茄钟' },
+  { id: 'mockexam', icon: ClipboardList, label: '全卷模考' },
+  { id: 'examReview', icon: ScanSearch, label: '录屏复盘' },
+  { id: 'uploads', icon: Upload, label: '资料上传' },
+  { id: 'hermes', icon: MessageSquare, label: 'Hermes' },
+  { id: 'aiPractice', icon: Target, label: 'AI 练题' },
+  { id: 'mixer', icon: Sliders, label: '声音混音器' },
+];
+
+const mergeNavOrder = (saved) => {
+  const known = new Set(NAV_ITEMS.map((item) => item.id));
+  const ids = (Array.isArray(saved) ? saved : []).filter((id) => known.has(id));
+  for (const item of NAV_ITEMS) {
+    if (!ids.includes(item.id)) ids.push(item.id);
+  }
+  return ids;
+};
+
 // 侧边栏导航项。定义在组件外层：如果写在 AppInner 内部，每次渲染都会得到一个
 // 新的组件类型，React 会把所有导航按钮卸载重建（丢失焦点、动画重放）。
-const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
+const SidebarItem = ({
+  id, icon: Icon, label, activeTab, dragging, sorting, onSelect, onPointerDown, onPointerMove, onPointerUp,
+}) => (
   <button
+    type="button"
+    data-nav-id={id}
     onClick={() => onSelect(id)}
-    title={label}
+    onPointerDown={sorting ? onPointerDown : undefined}
+    onPointerMove={sorting ? onPointerMove : undefined}
+    onPointerUp={sorting ? onPointerUp : undefined}
+    onPointerCancel={sorting ? onPointerUp : undefined}
+    onContextMenu={sorting ? (event) => event.preventDefault() : undefined}
+    title={sorting ? `${label} · 拖动调整顺序` : label}
     className={`w-full flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 lg:py-3.5 rounded-2xl transition-all duration-300 flex-shrink-0 ${
+      sorting ? 'select-none' : ''
+    } ${
+      sorting
+        ? (dragging ? 'opacity-40 scale-[0.98] cursor-grabbing touch-none' : 'cursor-grab')
+        : 'cursor-pointer'
+    } ${
       activeTab === id
         ? 'bg-[#1a1a1a] text-white shadow-lg shadow-black/10'
         : 'text-[#666] hover:bg-black/5 hover:text-black'
@@ -100,6 +144,72 @@ const SidebarItem = ({ id, icon: Icon, label, activeTab, onSelect }) => (
 
 const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [navOrder, setNavOrder] = useState(() => mergeNavOrder(cloudGet(NAV_ORDER_KEY, null)));
+  const [navSorting, setNavSorting] = useState(false);
+  const [navDragging, setNavDragging] = useState(null);
+  const navDrag = useRef(null);
+  const onNavPointerDown = (id) => (event) => {
+    if (!navSorting) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    navDrag.current = {
+      id,
+      y: event.clientY,
+      x: event.clientX,
+      moved: false,
+      target: event.currentTarget,
+      pointerId: event.pointerId,
+    };
+  };
+  const onNavPointerMove = (event) => {
+    if (!navSorting) return;
+    const drag = navDrag.current;
+    if (!drag) return;
+    if (!drag.moved && Math.abs(event.clientY - drag.y) < 6 && Math.abs(event.clientX - drag.x) < 6) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      try { drag.target.setPointerCapture(drag.pointerId); } catch { /* already released */ }
+      setNavDragging(drag.id);
+    }
+    const scroller = drag.target.closest('nav');
+    if (scroller) {
+      const box = scroller.getBoundingClientRect();
+      if (event.clientY < box.top + 36) scroller.scrollTop -= 16;
+      else if (event.clientY > box.bottom - 36) scroller.scrollTop += 16;
+    }
+    const overId = document.elementFromPoint(event.clientX, event.clientY)
+      ?.closest('[data-nav-id]')
+      ?.getAttribute('data-nav-id');
+    if (!overId || overId === drag.id) return;
+    setNavOrder((current) => {
+      const from = current.indexOf(drag.id);
+      const to = current.indexOf(overId);
+      if (from < 0 || to < 0 || from === to) return current;
+      const next = current.slice();
+      next.splice(from, 1);
+      next.splice(to, 0, drag.id);
+      return next;
+    });
+  };
+  const onNavPointerUp = () => {
+    const drag = navDrag.current;
+    if (drag?.moved) {
+      setNavOrder((current) => {
+        cloudSet(NAV_ORDER_KEY, current);
+        return current;
+      });
+    }
+    navDrag.current = null;
+    setNavDragging(null);
+  };
+  const selectNav = (id) => {
+    if (navSorting || navDrag.current?.moved) return;
+    setActiveTab(id);
+  };
+  const toggleNavSorting = () => {
+    navDrag.current = null;
+    setNavDragging(null);
+    setNavSorting((on) => !on);
+  };
   const [taskNavigation, setTaskNavigation] = useState(null);
   const [authed, setAuthed] = useState(!!getToken());
   // 没有 token 就没什么可校验的，开局即视为"已检查完"；
@@ -150,7 +260,12 @@ const AppInner = () => {
   // Calendar heatmap mounts even on the login screen; without this bump it stays empty
   // while DashboardTodayCard (mounted after auth) looks correct.
   useEffect(() => {
-    const onHydrated = () => bumpStudy();
+    const onHydrated = () => {
+      bumpStudy();
+      const order = mergeNavOrder(cloudGet(NAV_ORDER_KEY, null));
+      setNavOrder(order);
+      cloudSet(NAV_ORDER_KEY, order);
+    };
     window.addEventListener('cloud-hydrated', onHydrated);
     return () => window.removeEventListener('cloud-hydrated', onHydrated);
   }, []);
@@ -637,20 +752,25 @@ const AppInner = () => {
         {/* 导航项比 iPad 竖屏高度多，必须能滚动 —— 否则末尾的「AI 练题」点不到。
             overscroll-contain 防止滚到底后把整页往下拽（iOS 橡皮筋）。 */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-2 lg:space-y-2.5 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <SidebarItem id="dashboard" icon={LayoutDashboard} label="仪表盘" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="studyBoost" icon={Zap} label="学习提升" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="knowledge" icon={GraduationCap} label="知识点" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="copybook" icon={PenTool} label="字帖练习" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="review" icon={BookMarked} label="复习" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="flashcards" icon={Layers} label="抽认卡" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="practice" icon={BookOpen} label="数资练习" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="pomodoro" icon={TimerIcon} label="番茄钟" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="mockexam" icon={ClipboardList} label="全卷模考" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="examReview" icon={ScanSearch} label="录屏复盘" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="uploads" icon={Upload} label="资料上传" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="hermes" icon={MessageSquare} label="Hermes" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="aiPractice" icon={Target} label="AI 练题" activeTab={activeTab} onSelect={setActiveTab} />
-          <SidebarItem id="mixer" icon={Sliders} label="声音混音器" activeTab={activeTab} onSelect={setActiveTab} />
+          {navOrder.map((id) => {
+            const item = NAV_ITEMS.find((nav) => nav.id === id);
+            if (!item) return null;
+            return (
+              <SidebarItem
+                key={item.id}
+                id={item.id}
+                icon={item.icon}
+                label={item.label}
+                activeTab={activeTab}
+                dragging={navDragging === item.id}
+                sorting={navSorting}
+                onSelect={selectNav}
+                onPointerDown={onNavPointerDown(item.id)}
+                onPointerMove={onNavPointerMove}
+                onPointerUp={onNavPointerUp}
+              />
+            );
+          })}
         </nav>
 
         <div className="pt-3 lg:pt-5 border-t border-black/5 space-y-1 flex-shrink-0">
@@ -663,6 +783,21 @@ const AppInner = () => {
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">私人练习空间</p>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={toggleNavSorting}
+            title={navSorting ? '完成调序' : '调整顺序'}
+            className={`w-full flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 rounded-2xl transition-all ${
+              navSorting
+                ? 'bg-[#1a1a1a] text-white'
+                : 'text-[#666] hover:bg-black/5 hover:text-black'
+            }`}
+          >
+            {navSorting ? <Check size={18} className="flex-shrink-0" /> : <GripVertical size={18} className="flex-shrink-0" />}
+            <span className="hidden lg:block text-xs font-black uppercase tracking-widest">
+              {navSorting ? '完成' : '调整顺序'}
+            </span>
+          </button>
           <button
             onClick={handleLogout}
             title="退出登录"
@@ -706,7 +841,9 @@ const AppInner = () => {
           className={
             activeTab === 'hermes'
               ? (hermesFs ? 'flex-1 overflow-hidden' : 'flex-1 overflow-hidden px-10 pb-6 pt-2')
-              : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
+              : activeTab === 'knowledge'
+                ? 'flex-1 min-h-0 overflow-hidden px-10 pb-6 pt-4'
+                : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
           }
         >
           {activeTab === 'dashboard' && (
@@ -725,7 +862,9 @@ const AppInner = () => {
 
           {activeTab === 'studyBoost' && <StudyBoost />}
 
-          {activeTab === 'knowledge' && <Knowledge />}
+          <div className={activeTab === 'knowledge' ? 'h-full min-h-0' : 'hidden'}>
+            <Knowledge />
+          </div>
 
           {activeTab === 'copybook' && <Copybook />}
 
