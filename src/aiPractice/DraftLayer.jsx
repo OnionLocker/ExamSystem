@@ -17,8 +17,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { scrollHost, scrollHostBy } from './scrollHost.js';
 
-const PEN_MIN_W = 1.4;
-const PEN_MAX_W = 4.2;
+const DEFAULT_PEN_MIN_W = 1.4;
+const DEFAULT_PEN_MAX_W = 4.2;
 const HL_W = 16;
 const ERASER_W = 28;
 const HL_ALPHA = 0.32;
@@ -54,14 +54,14 @@ const savePenSeen = () => {
 const FLICK_DECAY = 0.94; // 每帧衰减，甩一下有点惯性才像原生滚动
 const FLICK_MIN_V = 0.02; // px/ms，低于这个速度就停
 
-const strokeWidth = (kind, pressure) => {
+const strokeWidth = (kind, pressure, penMinW, penMaxW) => {
   if (kind === 'hl') return HL_W;
   if (kind === 'er') return ERASER_W;
-  return PEN_MIN_W + pressure * (PEN_MAX_W - PEN_MIN_W);
+  return penMinW + pressure * (penMaxW - penMinW);
 };
 
 // 画一整笔。w = canvas 的 CSS 宽度；点坐标存的是 x/w、y/w，乘回去就对位了。
-const paintStroke = (ctx, stroke, w) => {
+const paintStroke = (ctx, stroke, w, penMinW, penMaxW) => {
   const pts = stroke.pts;
   if (!pts || pts.length === 0) return;
 
@@ -81,7 +81,7 @@ const paintStroke = (ctx, stroke, w) => {
   if (pts.length === 1) {
     const [nx, ny, p] = pts[0];
     ctx.beginPath();
-    ctx.arc(nx * w, ny * w, strokeWidth(stroke.k, p ?? 0.5) / 2, 0, Math.PI * 2);
+    ctx.arc(nx * w, ny * w, strokeWidth(stroke.k, p ?? 0.5, penMinW, penMaxW) / 2, 0, Math.PI * 2);
     ctx.fillStyle = stroke.k === 'er' ? 'rgba(0,0,0,1)' : stroke.c;
     ctx.fill();
     ctx.restore();
@@ -93,14 +93,14 @@ const paintStroke = (ctx, stroke, w) => {
     for (let i = 1; i < pts.length; i += 1) {
       const [ax, ay] = pts[i - 1];
       const [bx, by, bp] = pts[i];
-      ctx.lineWidth = strokeWidth('pen', bp ?? 0.5);
+      ctx.lineWidth = strokeWidth('pen', bp ?? 0.5, penMinW, penMaxW);
       ctx.beginPath();
       ctx.moveTo(ax * w, ay * w);
       ctx.lineTo(bx * w, by * w);
       ctx.stroke();
     }
   } else {
-    ctx.lineWidth = strokeWidth(stroke.k, 0.5);
+    ctx.lineWidth = strokeWidth(stroke.k, 0.5, penMinW, penMaxW);
     ctx.beginPath();
     ctx.moveTo(pts[0][0] * w, pts[0][1] * w);
     for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0] * w, pts[i][1] * w);
@@ -109,7 +109,16 @@ const paintStroke = (ctx, stroke, w) => {
   ctx.restore();
 };
 
-const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd }) => {
+const DraftLayer = ({
+  active,
+  visible = true,
+  tool,
+  color,
+  strokes,
+  onStrokeEnd,
+  penMinW = DEFAULT_PEN_MIN_W,
+  penMaxW = DEFAULT_PEN_MAX_W,
+}) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
   const sizeRef = useRef({ w: 0, h: 0 });
@@ -194,12 +203,12 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     ctx.globalCompositeOperation = 'source-over';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
-    for (const s of strokes || []) paintStroke(ctx, s, w);
+    for (const s of strokes || []) paintStroke(ctx, s, w, penMinW, penMaxW);
     // 正在写的那一笔也要补回来：重绘是抬笔后 setState 引发的，等它真正执行时，
     // 写得快的人早就落下了下一笔 —— 少了这一句，清屏就把新笔画擦掉半截，
     // 表现成"快写就写不出，得停一下才行"。
-    if (liveRef.current) paintStroke(ctx, liveRef.current, w);
-  }, [strokes]);
+    if (liveRef.current) paintStroke(ctx, liveRef.current, w, penMinW, penMaxW);
+  }, [strokes, penMinW, penMaxW]);
 
   useEffect(() => {
     redrawRef.current = redraw;
@@ -299,7 +308,7 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     liveRef.current = { k: kind, c: kind === 'hl' ? HL_COLOR : color, pts: [pointOf(e)] };
     // 单点也要留个墨点，不然轻点一下什么都没有
     const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w);
+    if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w, penMinW, penMaxW);
   };
 
   const onPointerDown = (e) => {
@@ -348,7 +357,7 @@ const DraftLayer = ({ active, visible = true, tool, color, strokes, onStrokeEnd 
     live.pts.push(pt);
     // 只补最新那一段，整层重绘留给撤销/换题
     const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w);
+    if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w, penMinW, penMaxW);
   };
 
   const onPointerMove = (e) => {

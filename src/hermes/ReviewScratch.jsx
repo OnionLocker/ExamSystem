@@ -79,6 +79,8 @@ export default function ReviewScratch({ storageKey, enabled = true, children }) 
             visible={active != null}
             tool={tool}
             color="#1a1a1a"
+            penMinW={0.8}
+            penMaxW={2.2}
             strokes={strokes}
             onStrokeEnd={(stroke) => {
               if (active == null) return;
