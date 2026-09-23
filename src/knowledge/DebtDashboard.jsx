@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api.js';
 
 export default function DebtDashboard() {
   const [debts, setDebts] = useState([]);
@@ -13,13 +14,7 @@ export default function DebtDashboard() {
 
   async function loadDebts() {
     try {
-      const res = await fetch('/api/kaodian/debts', {
-        credentials: 'include'
-      });
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      const data = await res.json();
+      const data = await api('/api/kaodian/debts');
       setDebts(data.debts || []);
       setSummary(data.summary || { open: 0, clearedThisWeek: 0 });
     } catch (error) {

@@ -239,7 +239,7 @@ function StructuredKnowledgeView({ view }) {
               {parsedSteps.map((step, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-[#e8d5b0] bg-[#fdfbf7] p-4 transition-all hover:border-[#cbb387] shadow-sm"
+                  className="rounded-2xl border border-[#c4ae7a] bg-[#f5eed8] p-4 transition-all hover:border-[#a89968] shadow-sm"
                 >
                   <div className="flex items-center gap-2.5 mb-2 flex-wrap">
                     <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#1a1a1a] text-[#fdfbf7] tracking-wide">
@@ -276,7 +276,7 @@ function StructuredKnowledgeView({ view }) {
               核心要点与速算公式
             </h5>
           </div>
-          <div className="rounded-2xl border border-[#ebdcb9] bg-[#fdfbf6] p-4 space-y-2.5 shadow-sm">
+          <div className="rounded-2xl border border-[#c4ae7a] bg-[#f5eed8] p-4 space-y-2.5 shadow-sm">
             {knowItems.map((k, i) => (
               <div key={i} className="flex items-start gap-2.5 text-[15px] leading-7 text-slate-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c4ae7a] mt-2.5 flex-shrink-0" />
@@ -298,7 +298,7 @@ function StructuredKnowledgeView({ view }) {
               考场红线禁区（避坑避雷）
             </h5>
           </div>
-          <div className="rounded-2xl border border-[#f3d9d2] bg-[#fdf5f2] p-4 space-y-2 shadow-sm">
+          <div className="rounded-2xl border border-[#ddb896] bg-[#f8ede0] p-4 space-y-2 shadow-sm">
             {banItems.map((b, i) => (
               <div key={i} className="flex items-start gap-2.5 text-[15px] leading-7 text-[#913b28]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#a15c3a] mt-2.5 flex-shrink-0" />
@@ -385,7 +385,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
   };
 
   return (
-    <article className="rounded-3xl bg-[#fdfbf7] border border-[#e8d5b0] overflow-hidden">
+    <article className="rounded-3xl bg-[#f5eed8] border border-[#c4ae7a] overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
@@ -432,13 +432,13 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
           </div>
 
           {editing && draft ? (
-            <div className="space-y-3 rounded-2xl bg-[#faf6ec] p-4">
+            <div className="space-y-3 rounded-2xl bg-[#e8d5b0] p-4">
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
                 名称
                 <input
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm font-bold"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm font-bold"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -446,7 +446,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                 <input
                   value={draft.how}
                   onChange={(e) => setDraft({ ...draft, how: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -455,7 +455,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                   value={draft.steps}
                   onChange={(e) => setDraft({ ...draft, steps: e.target.value })}
                   rows={5}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -464,7 +464,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                   value={draft.know}
                   onChange={(e) => setDraft({ ...draft, know: e.target.value })}
                   rows={4}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -473,7 +473,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                   value={draft.ban}
                   onChange={(e) => setDraft({ ...draft, ban: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -481,7 +481,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                 <input
                   value={draft.next}
                   onChange={(e) => setDraft({ ...draft, next: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm"
                 />
               </label>
               <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -490,7 +490,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                   value={draft.mine}
                   onChange={(e) => setDraft({ ...draft, mine: e.target.value })}
                   rows={3}
-                  className="mt-1 w-full rounded-xl border border-[#e8d5b0] bg-[#fdfbf7] px-3 py-2 text-sm leading-relaxed"
+                  className="mt-1 w-full rounded-xl border border-[#c4ae7a] bg-[#f5eed8] px-3 py-2 text-sm leading-relaxed"
                 />
               </label>
               <div className="flex gap-2">
@@ -566,7 +566,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
             if (filterScored && !leaves.length) return null;
             const open = openL2.has(group.name);
             return (
-              <section key={group.name} className="rounded-2xl border border-[#e8d5b0] overflow-hidden bg-[#faf6ec]">
+              <section key={group.name} className="rounded-2xl border border-[#c4ae7a] overflow-hidden bg-[#e8d5b0]">
                 <button
                   type="button"
                   onClick={() => toggleL2(group.name)}
@@ -775,7 +775,7 @@ export default function Knowledge() {
 
   const pill = (active) =>
     `min-h-[44px] px-5 py-2.5 rounded-full text-sm font-black transition-all ${
-      active ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500 hover:border-[#1a1a1a]'
+      active ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428] hover:border-[#1a1a1a]'
     }`;
 
   return (
@@ -817,7 +817,7 @@ export default function Knowledge() {
       )}
 
       {track === 'shenlun' ? (
-        <div className="rounded-3xl bg-[#fdfbf7] border border-[#e8d5b0] p-10 text-center text-sm text-slate-500 font-medium">
+        <div className="rounded-3xl bg-[#f5eed8] border border-[#c4ae7a] p-10 text-center text-sm text-slate-600 font-medium">
           申论步骤还没写进老师口径。真题上传并要求补的时候再填。
         </div>
       ) : view === 'debts' ? (
@@ -844,7 +844,7 @@ export default function Knowledge() {
                   setOpenId('');
                 }}
                 className={`flex-shrink-0 min-h-[48px] min-w-[7.5rem] px-4 py-3 rounded-2xl text-center ${
-                  m.id === fenbiMod?.id ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0]'
+                  m.id === fenbiMod?.id ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
                 }`}
               >
                 <p className="text-sm font-black">{m.name}</p>
@@ -856,7 +856,7 @@ export default function Knowledge() {
           </nav>
 
           <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-6">
-            <div className="min-h-0 max-h-[40vh] xl:max-h-none overflow-y-auto overscroll-contain rounded-3xl border border-[#e8d5b0] bg-[#fdfbf7] p-3">
+            <div className="min-h-0 max-h-[40vh] xl:max-h-none overflow-y-auto overscroll-contain rounded-3xl border border-[#c4ae7a] bg-[#f5eed8] p-3">
               <FenbiTree
                 modules={fenbiMod ? [fenbiMod] : []}
                 selectedTag={selectedTag}
@@ -883,7 +883,7 @@ export default function Knowledge() {
                 <button
                   type="button"
                   onClick={addExtra}
-                  className="flex-shrink-0 min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#faf6ec] border border-[#e8d5b0] text-xs font-black hover:border-[#1a1a1a]"
+                  className="flex-shrink-0 min-h-[44px] inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#e8d5b0] border border-[#c4ae7a] text-xs font-black hover:border-[#1a1a1a]"
                 >
                   <Plus size={12} /> 补一张
                 </button>
@@ -906,7 +906,7 @@ export default function Knowledge() {
                 <section className="pt-2 space-y-3">
                   <h4 className="text-sm font-black text-slate-500">还对不上粉笔树的旧标签 / 资料分析</h4>
                   {leftover.map((r) => (
-                    <article key={r.kaodian} className="rounded-3xl bg-[#faf6ec] border border-dashed border-[#e8d5b0] px-5 py-4">
+                    <article key={r.kaodian} className="rounded-3xl bg-[#e8d5b0] border border-dashed border-[#c4ae7a] px-5 py-4">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-black">{r.kaodian}</p>
                         <MasteryBar score={scoreOf(r)} pending={!scoresReady} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
