@@ -222,7 +222,13 @@ const AppInner = () => {
   // 它自己去拉错题明细和草稿纸。nonce 是为了同一场连点两次也能重新触发。
   const [hermesSeed, setHermesSeed] = useState(null);
   const seedHermes = (sessionId) => {
-    setHermesSeed({ sessionId, nonce: Date.now() });
+    if (typeof sessionId === 'object' && sessionId.debtInstruction) {
+      // 从知识债页面过来的出题指令
+      setHermesSeed({ debtInstruction: sessionId.debtInstruction, nonce: Date.now() });
+    } else {
+      // 正常的复盘session
+      setHermesSeed({ sessionId, nonce: Date.now() });
+    }
     setActiveTab('hermes');
   };
   const seedHermesUpload = (file) => {
@@ -863,7 +869,7 @@ const AppInner = () => {
           {activeTab === 'studyBoost' && <StudyBoost />}
 
           <div className={activeTab === 'knowledge' ? 'h-full min-h-0' : 'hidden'}>
-            <Knowledge />
+            <Knowledge onSeedHermes={seedHermes} />
           </div>
 
           {activeTab === 'copybook' && <Copybook />}

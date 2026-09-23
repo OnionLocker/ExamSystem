@@ -649,7 +649,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
   );
 }
 
-export default function Knowledge() {
+export default function Knowledge({ onSeedHermes }) {
   const [track, setTrack] = useState('xingce');
   const [view, setView] = useState('tree'); // 'tree' or 'debts'
   const [modId, setModId] = useState('shuliang');
@@ -821,7 +821,7 @@ export default function Knowledge() {
           申论步骤还没写进老师口径。真题上传并要求补的时候再填。
         </div>
       ) : view === 'debts' ? (
-        <DebtDashboard />
+        <DebtDashboard onSeedHermes={onSeedHermes} />
       ) : (
         <>
           <div className="flex-shrink-0 rounded-3xl bg-[#1a1a1a] text-white px-5 py-3">

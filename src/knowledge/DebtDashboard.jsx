@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 
-export default function DebtDashboard() {
+export default function DebtDashboard({ onSeedHermes }) {
   const [debts, setDebts] = useState([]);
   const [summary, setSummary] = useState({ open: 0, clearedThisWeek: 0 });
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadDebts();
@@ -27,7 +25,7 @@ export default function DebtDashboard() {
   }
 
   function handleGenerateQuiz(debt) {
-    // 跳转到 Hermes 并发送出题指令
+    // 创建Hermes seed并切换到Hermes tab
     const instruction = `#出题清债#
 考点: ${debt.kaodian}
 模块: ${debt.module}
@@ -37,8 +35,10 @@ export default function DebtDashboard() {
 
 请针对该考点出5道题，难度分布：easy 2题, mid 2题, hard 1题。题目要覆盖该考点的不同变式，不要重复同一场景只换数字。`;
 
-    // 跳转到 Hermes 页面并传递指令
-    navigate('/hermes', { state: { initialMessage: instruction } });
+    // 使用App.jsx提供的seedHermes函数
+    if (onSeedHermes) {
+      onSeedHermes({ debtInstruction: instruction });
+    }
   }
 
   if (loading) {

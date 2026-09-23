@@ -901,6 +901,27 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const initialMessageHandled = useRef(false);
   useEffect(() => {
     if (initialMessageHandled.current) return;
+    if (!seed?.debtInstruction) return;
+    if (connState !== 'open') return;
+    if (busy) return;
+
+    const debtMsg = seed.debtInstruction;
+    initialMessageHandled.current = true;
+
+    // 设置input并自动发送
+    setInput(debtMsg);
+
+    // 延迟一点让input更新完成，然后触发发送
+    setTimeout(() => {
+      if (!busy && connState === 'open') {
+        send();
+      }
+    }, 300);
+  }, [seed, connState, busy, send]);
+
+  // 处理从location state来的初始消息
+  useEffect(() => {
+    if (initialMessageHandled.current) return;
     if (!location.state?.initialMessage) return;
     if (connState !== 'open') return;
     if (busy) return;
