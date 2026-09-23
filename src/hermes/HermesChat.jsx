@@ -898,36 +898,32 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, [active, pullRemoteSession]);
 
   // 处理从知识债跳转过来的初始消息
-  const initialMessageHandled = useRef(false);
   useEffect(() => {
-    if (initialMessageHandled.current) return;
     if (!seed?.debtInstruction) return;
     if (connState !== 'open') return;
     if (busy) return;
 
     const debtMsg = seed.debtInstruction;
-    initialMessageHandled.current = true;
 
     // 设置input并自动发送
     setInput(debtMsg);
 
-    // 延迟一点让input更新完成，然后触发发送
+    // 延迟一点让input更新完成，然后触发发送按钮点击
     setTimeout(() => {
       if (!busy && connState === 'open') {
-        send();
+        const sendBtn = document.querySelector('[data-hermes-send]');
+        if (sendBtn) sendBtn.click();
       }
     }, 300);
-  }, [seed, connState, busy, send]);
+  }, [seed?.debtInstruction, connState, busy]);
 
   // 处理从location state来的初始消息
   useEffect(() => {
-    if (initialMessageHandled.current) return;
     if (!location.state?.initialMessage) return;
     if (connState !== 'open') return;
     if (busy) return;
 
     const initialMsg = location.state.initialMessage;
-    initialMessageHandled.current = true;
 
     // 清除 location state 避免刷新时重复发送
     window.history.replaceState({}, document.title);
@@ -940,7 +936,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const sendBtn = document.querySelector('[data-hermes-send]');
       if (sendBtn) sendBtn.click();
     }, 100);
-  }, [location.state, connState, busy]);
+  }, [location.state?.initialMessage, connState, busy]);
 
 
   useEffect(() => {
