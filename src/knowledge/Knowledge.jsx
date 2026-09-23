@@ -799,7 +799,7 @@ export default function Knowledge() {
             type="button"
             onClick={() => setView('tree')}
             className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
-              view === 'tree' ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500'
+              view === 'tree' ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
             }`}
           >
             知识树
@@ -808,7 +808,7 @@ export default function Knowledge() {
             type="button"
             onClick={() => setView('debts')}
             className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
-              view === 'debts' ? 'bg-[#1a1a1a] text-white' : 'bg-[#faf6ec] border border-[#e8d5b0] text-slate-500'
+              view === 'debts' ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
             }`}
           >
             知识债

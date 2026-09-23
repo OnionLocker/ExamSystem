@@ -13,7 +13,9 @@ export default function DebtDashboard() {
 
   async function loadDebts() {
     try {
-      const res = await fetch('/api/kaodian/debts');
+      const res = await fetch('/api/kaodian/debts', {
+        credentials: 'include'
+      });
       if (!res.ok) {
         throw new Error(`HTTP ${res.status}`);
       }
