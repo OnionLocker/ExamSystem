@@ -4,6 +4,7 @@
 // 与官方 dashboard 的 Chat 用的是同一套协议和同一个 agent，
 // 因此这里能看到并续接微信、cron、CLI 的全部会话。
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
   ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
@@ -317,6 +318,7 @@ const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
 );
 
 const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, onToggleFullscreen, headerExtra }) => {
+  const location = useLocation();
   const gwRef = useRef(null);
   const hermesContextRef = useRef(null);
   const hermesContextPromiseRef = useRef(null);
@@ -894,6 +896,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       window.removeEventListener('pageshow', onSync);
     };
   }, [active, pullRemoteSession]);
+
+  // 处理从知识债跳转过来的初始消息
+  const initialMessageHandled = useRef(false);
+  useEffect(() => {
+    if (initialMessageHandled.current) return;
+    if (!location.state?.initialMessage) return;
+    if (connState !== 'open') return;
+    if (busy) return;
+
+    const initialMsg = location.state.initialMessage;
+    initialMessageHandled.current = true;
+
+    // 清除 location state 避免刷新时重复发送
+    window.history.replaceState({}, document.title);
+
+    // 创建新会话并发送消息
+    setInput(initialMsg);
+
+    // 延迟一点让input更新完成
+    setTimeout(() => {
+      const sendBtn = document.querySelector('[data-hermes-send]');
+      if (sendBtn) sendBtn.click();
+    }, 100);
+  }, [location.state, connState, busy]);
+
 
   useEffect(() => {
     if (!active || connState !== 'open' || !activeStoredId) return undefined;
@@ -2550,6 +2577,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               </button>
             ) : (
               <button
+                data-hermes-send
                 onClick={send}
                 disabled={connState !== 'open' || recording || (!input.trim() && pendingImages.length === 0 && !pendingReview && !pendingAudio)}
                 title="发送"
