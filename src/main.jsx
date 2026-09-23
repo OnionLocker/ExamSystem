@@ -1,5 +1,6 @@
 import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import PopupPractice from './practice/PopupPractice.jsx'
@@ -75,7 +76,9 @@ const Root = isPopup ? PopupPractice : App
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <RootErrorBoundary>
-      <Root />
+      <BrowserRouter>
+        <Root />
+      </BrowserRouter>
     </RootErrorBoundary>
   </StrictMode>,
 )

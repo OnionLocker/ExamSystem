@@ -1052,7 +1052,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const canLive = Boolean(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
     if (!canLive) {
       if (typeof window !== 'undefined' && !window.isSecureContext) {
-        const httpsUrl = `https://${location.host}${location.pathname}${location.search}`;
+        const httpsUrl = `https://${window.location.host}${window.location.pathname}${window.location.search}`;
         setBanner(
           <>
             当前是 HTTP，浏览器不允许网页开麦。
