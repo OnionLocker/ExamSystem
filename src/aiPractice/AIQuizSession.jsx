@@ -262,34 +262,91 @@ const BlankSubmitConfirm = ({ blank, grading, onCancel, onConfirm }) => createPo
   document.body,
 );
 
-const ScoreCard = ({ title, result }) => (
-  <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden">
-    <div className="absolute top-6 right-6 w-32 h-32 bg-[#2c261c] rounded-full blur-[40px] opacity-60" />
-    <div className="relative z-10">
-      <div className="w-14 h-14 rounded-2xl bg-[#2c261c] text-white flex items-center justify-center mb-5">
-        <Trophy size={26} />
+const ScoreCard = ({ title, result, sessionId, onAnalyzeWithHermes, profileReviewed }) => {
+  const [coverageInfo, setCoverageInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!sessionId || profileReviewed) return;
+
+    const checkCoverage = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`/api/practice/sessions/${sessionId}/coverage`);
+        if (response.ok) {
+          const data = await response.json();
+          setCoverageInfo(data);
+        }
+      } catch (error) {
+        console.error('Failed to check coverage:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkCoverage();
+  }, [sessionId, profileReviewed]);
+
+  const needsReview = coverageInfo && coverageInfo.missing > 0 && !profileReviewed;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-8 sm:p-10 relative overflow-hidden">
+        <div className="absolute top-6 right-6 w-32 h-32 bg-[#2c261c] rounded-full blur-[40px] opacity-60" />
+        <div className="relative z-10">
+          <div className="w-14 h-14 rounded-2xl bg-[#2c261c] text-white flex items-center justify-center mb-5">
+            <Trophy size={26} />
+          </div>
+          <p className="text-sm font-black tracking-widest opacity-60 mb-1">{title || 'AI 练题'}</p>
+          <h3 className="text-3xl font-black italic">
+            对了 {result.correct} / {result.total} 道
+          </h3>
+          <div className="mt-8 grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-4xl font-black tabular-nums">{result.accuracy}%</p>
+              <p className="text-sm font-black tracking-widest opacity-60 mt-1">正确率</p>
+            </div>
+            <div>
+              <p className="text-4xl font-black tabular-nums">{result.total - result.correct}</p>
+              <p className="text-sm font-black tracking-widest opacity-60 mt-1">错 / 空</p>
+            </div>
+            <div>
+              <p className="text-4xl font-black tabular-nums">{fmtDuration(result.duration_sec)}</p>
+              <p className="text-sm font-black tracking-widest opacity-60 mt-1">总用时</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <p className="text-sm font-black tracking-widest opacity-60 mb-1">{title || 'AI 练题'}</p>
-      <h3 className="text-3xl font-black italic">
-        对了 {result.correct} / {result.total} 道
-      </h3>
-      <div className="mt-8 grid grid-cols-3 gap-4">
-        <div>
-          <p className="text-4xl font-black tabular-nums">{result.accuracy}%</p>
-          <p className="text-sm font-black tracking-widest opacity-60 mt-1">正确率</p>
+
+      {needsReview && (
+        <div className="bg-[#fff3e0] border-2 border-[#e87924] rounded-[2rem] p-6">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-12 h-12 rounded-xl bg-[#e87924] text-white flex items-center justify-center">
+              <AlertTriangle size={24} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-lg font-black text-[#1a1a1a] mb-2">
+                这场还有 {coverageInfo.missing} 道题的证据没写
+              </h4>
+              <p className="text-sm font-medium text-[#6b5428] mb-4">
+                有作答的题需要通过 Hermes 复盘才能写入画像。不复盘的话，画像只记空题（坏消息），记不了你做对的题（好消息）。
+              </p>
+              {onAnalyzeWithHermes && (
+                <button
+                  onClick={() => onAnalyzeWithHermes(sessionId)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#1a1a1a] text-white rounded-full font-black text-sm hover:opacity-90 transition-opacity"
+                >
+                  <Send size={16} />
+                  <span>让 Hermes 复盘这场</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-4xl font-black tabular-nums">{result.total - result.correct}</p>
-          <p className="text-sm font-black tracking-widest opacity-60 mt-1">错 / 空</p>
-        </div>
-        <div>
-          <p className="text-4xl font-black tabular-nums">{fmtDuration(result.duration_sec)}</p>
-          <p className="text-sm font-black tracking-widest opacity-60 mt-1">总用时</p>
-        </div>
-      </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 const ReviewItem = ({ item, no, open, onToggle }) => {
   const opts = optionsOf(item);
@@ -833,7 +890,13 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
     return (
       <div className="h-full overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-6">
       <div className="max-w-3xl mx-auto space-y-5 pb-10">
-        <ScoreCard title={reviewing ? `${title} · 复盘` : title} result={result} />
+        <ScoreCard
+          title={reviewing ? `${title} · 复盘` : title}
+          result={result}
+          sessionId={sessionId}
+          onAnalyzeWithHermes={onAnalyzeWithHermes}
+          profileReviewed={report?.profile_reviewed_at}
+        />
 
         <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={restart}

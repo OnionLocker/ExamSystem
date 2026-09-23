@@ -780,4 +780,34 @@ router.post('/quiz/lite', (req, res) => {
   }
 });
 
+// ───────────────────────────────────────────────────────────────
+// GET /api/practice/sessions/:id/coverage
+//   检查该场次的画像覆盖率，用于交卷后提示复盘
+// ───────────────────────────────────────────────────────────────
+router.get('/sessions/:id/coverage', (req, res) => {
+  const sessionId = Number(req.params.id);
+  const session = db.prepare('SELECT id, total, ended_at FROM practice_sessions WHERE id = ?').get(sessionId);
+
+  if (!session) return res.status(404).json({ error: 'session not found' });
+  if (!session.ended_at) return res.status(400).json({ error: 'session not ended yet' });
+
+  // 统计该场次的题目中有多少已写入画像证据
+  const covered = db.prepare(`
+    SELECT COUNT(DISTINCT ke.question_id) as count
+    FROM kaodian_events ke
+    WHERE ke.session_id = ?
+  `).get(sessionId);
+
+  const coveredCount = covered?.count || 0;
+  const total = session.total || 0;
+  const missing = Math.max(0, total - coveredCount);
+
+  res.json({
+    total,
+    covered: coveredCount,
+    missing,
+    percentage: total > 0 ? Math.round((coveredCount / total) * 100) : 0
+  });
+});
+
 export default router;
