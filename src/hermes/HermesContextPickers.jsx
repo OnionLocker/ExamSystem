@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ChevronRight, Loader2, RefreshCw, ScanSearch, Target, Upload, X,
@@ -75,7 +75,7 @@ export default function HermesContextPickers({
   const shownPracticeRuns = practiceKind === 'audit' ? auditRecords : practiceRecords;
   const shownReviews = examReviews.filter((r) => (r.kind || 'zhenti') === reviewKind);
   const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
-  const [timeDate, setTimeDate] = useState('');
+  const [chosenDate, setTimeDate] = useState('');
 
   const moduleCounts = useMemo(
     () => Object.fromEntries(
@@ -95,11 +95,7 @@ export default function HermesContextPickers({
     [dailyRuns],
   );
 
-  useEffect(() => {
-    if (activeModule !== TIME_TAB) return;
-    if (timeDate && dailyDates.includes(timeDate)) return;
-    setTimeDate(dailyDates[0] || '');
-  }, [activeModule, dailyDates, timeDate]);
+  const timeDate = dailyDates.includes(chosenDate) ? chosenDate : dailyDates[0] || '';
 
   const visibleRuns = useMemo(() => {
     if (activeModule === DEFAULT_TAB) {

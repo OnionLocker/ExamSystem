@@ -3,7 +3,7 @@
 // 走 JSON-RPC over WebSocket 直连 Hermes 的 gateway（经 Express 代理），
 // 与官方 dashboard 的 Chat 用的是同一套协议和同一个 agent，
 // 因此这里能看到并续接微信、cron、CLI 的全部会话。
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
@@ -27,6 +27,8 @@ import { HIDDEN_SOURCES, sessionPickerMode } from './hermesLayout.js';
 import {
   appendAssistantDelta as appendAssistantDeltaState,
   coerceResumePayload,
+  debtReviewOf,
+  imageMimeOf,
   ensureStreamingAssistant,
   eventMatchesSession,
   eventText,
@@ -301,14 +303,22 @@ const ReviewChip = ({ review, onOpen, onRemove, dark }) => (
   <div className={`inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1.5 rounded-xl border max-w-full ${
     dark ? 'bg-white/10 border-white/20 text-white' : 'bg-[#f4f0e6] border-[#e8d5b0] text-[#1a1a1a]'
   }`}>
-    <button type="button" onClick={() => onOpen(review)} className="inline-flex items-center gap-1.5 min-w-0">
-      <FileText size="0.8em" className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
-      <span className="text-[0.75em] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
-    </button>
+    {onOpen ? (
+      <button type="button" onClick={() => onOpen(review)} className="inline-flex items-center gap-1.5 min-w-0">
+        <FileText size="0.8em" className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
+        <span className="text-[0.75em] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
+      </button>
+    ) : (
+      <span className="inline-flex items-center gap-1.5 min-w-0">
+        <FileText size="0.8em" className={`shrink-0 ${dark ? 'text-[#e8d5b0]' : 'text-[#6b5428]'}`} />
+        <span className="text-[0.75em] font-black truncate max-w-[280px]">{review.label || review.name || review.title}</span>
+      </span>
+    )}
     {onRemove ? (
       <button
         type="button"
         onClick={onRemove}
+        aria-label="移除附件"
         className="w-[1.07em] h-[1.07em] rounded-full bg-[#1a1a1a] text-white flex items-center justify-center shrink-0"
       >
         <X size="0.6em" />
@@ -329,6 +339,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [sid, setSid] = useState(null);
   const [activeStoredId, setActiveStoredId] = useState(() => readCachedActiveSession());
   const [messages, setMessages] = useState([]);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const sessionRequest = useRef(null);
+  const sessionVersion = useRef(0);
+  const sessionCache = useRef(new Map());
+  const lastSessionSync = useRef(0);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -383,15 +398,36 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   // 同理：会话过期重连时要知道当前开着哪个存档，才能 resume 回来保住上下文
   const activeStoredIdRef = useRef(null);
   useEffect(() => { activeStoredIdRef.current = activeStoredId; }, [activeStoredId]);
+  useEffect(() => {
+    if (!activeStoredId || sessionLoading || !messages.length) return;
+    const cache = sessionCache.current;
+    cache.delete(activeStoredId);
+    cache.set(activeStoredId, messages);
+    // ponytail: 仅保留最近 3 个会话；超长会话的分段缓存随历史分页一起处理。
+    while (cache.size > 3) cache.delete(cache.keys().next().value);
+  }, [activeStoredId, messages, sessionLoading]);
+
   const practiceReviewRef = useRef(null);
   // 这一轮带了录音：回合结束后要把运行时里的音频清掉，见 dropAudioFromContext
   const voiceTurnRef = useRef(false);
   // 连接是在挂载时建立的，事件回调拿不到后面定义的 dropAudioFromContext，用 ref 转一手
   const dropAudioContextRef = useRef(null);
+  const pullRemoteSessionRef = useRef(null);
+  const pullRemoteSessionOnEvent = useEffectEvent((options) => {
+    void pullRemoteSessionRef.current?.(options);
+  });
+  const setPullRemoteSession = useEffectEvent((callback) => {
+    pullRemoteSessionRef.current = callback;
+  });
 
   const openReviewPreview = useCallback((review) => {
     setReviewMd('');
     setReviewMdErr('');
+    if (review.kind === 'upload') {
+      setReviewMd(['粉笔练习卷（资料上传）', '', review.path || review.name || ''].join('\n'));
+    } else if (review.kind === 'debt') {
+      setReviewMd(review.instruction);
+    }
     setReviewPreview(review);
   }, []);
 
@@ -403,15 +439,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   useEffect(() => {
     if (!reviewPreview) return undefined;
-    if (reviewPreview.kind === 'upload') {
-      setReviewMdErr('');
-      setReviewMd([
-        '粉笔练习卷（资料上传）',
-        '',
-        reviewPreview.path || reviewPreview.name || '',
-      ].join('\n'));
-      return undefined;
-    }
+    if (reviewPreview.kind === 'upload' || reviewPreview.kind === 'debt') return undefined;
     if (!reviewPreview?.id) return undefined;
     let cancelled = false;
     const practice = reviewPreview.kind === 'practice';
@@ -472,7 +500,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   // 用来区分「第一次连上」和「断线重连」。重连后必须再 resume，
   // 否则 Hermes 的事件还绑在已经死掉的那条 WS 上，界面就会一直「思考中」。
   const openedOnceRef = useRef(false);
-  const [, setWaitSec] = useState(0);
 
   // ---------- 消息辅助 ----------
   const appendAssistantDelta = useCallback((text) => {
@@ -570,13 +597,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         if (t) appendThinking(t);
       })),
       gw.on('message.start', onActive(() => {
-        setWaitSec(0);
         setBusy(true);
         setStatus('(｡•̀ᴗ-)✧ 整理一下');
         setMessages((prev) => ensureStreamingAssistant(prev, uid));
         // 另一台设备提交的回合：事件可能先到，用 history/resume 补上对方的用户气泡
         if (!sendingRef.current) {
-          void pullRemoteSessionRef.current?.({ force: false });
+          pullRemoteSessionOnEvent({ force: false });
         }
       })),
       gw.on('message.complete', onActive((ev) => {
@@ -623,7 +649,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       gw.on('error', onActive((ev) => {
         const msg = ev.payload?.message || '未知错误';
         setBanner(msg);
-        setWaitSec(0);
         sendingRef.current = false;
         setBusy(false);
         setStatus('');
@@ -660,6 +685,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
     return () => {
       cancelled = true;
+      // 这是请求版本计数器，不是 DOM ref；卸载时使尚未返回的请求失效。
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      sessionVersion.current++;
+      sessionRequest.current = null;
       for (const off of offs) off?.();
       gw.close();
       gwRef.current = null;
@@ -668,14 +697,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!busy) {
-      return undefined;
-    }
-    const t0 = Date.now();
-    const id = setInterval(() => setWaitSec(Math.floor((Date.now() - t0) / 1000)), 1000);
-    return () => clearInterval(id);
-  }, [busy]);
 
   // ---------- 会话列表 ----------
   const deleteSession = useCallback(async (e, sessionId) => {
@@ -695,8 +716,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       await gw.request('session.delete', { session_id: sessionId }).catch((err) => {
         if (!/session not found/i.test(err?.message || '')) throw err;
       });
+      sessionCache.current.delete(sessionId);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeStoredIdRef.current === sessionId) {
+        sessionVersion.current++;
+        sessionRequest.current = null;
+        setSessionLoading(false);
         activeStoredIdRef.current = null;
         setActiveStoredId(null);
         writeCachedActiveSession(null);
@@ -749,7 +774,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       return shouldAcceptRemoteResume(prev, next, payload, force) ? next : prev;
     });
     if (payload.running) {
-      setWaitSec(0);
       setBusy(true);
       setStatus('生成中');
     } else if (force || Object.prototype.hasOwnProperty.call(payload, 'running')) {
@@ -783,15 +807,52 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     dropAudioContextRef.current = dropAudioFromContext;
   }, [dropAudioFromContext]);
 
+  const resumeSession = useCallback((stored, { stick = false } = {}) => {
+    const gw = gwRef.current;
+    if (!gw || gw.connectionState !== 'open') return Promise.resolve();
+    if (sessionRequest.current?.stored === stored) return sessionRequest.current.promise;
+    const version = ++sessionVersion.current;
+    const switching = activeStoredIdRef.current !== stored;
+    activeStoredIdRef.current = stored;
+    setActiveStoredId(stored);
+    if (switching) {
+      sidRef.current = null;
+      setSid(null);
+      setMessages(sessionCache.current.get(stored) || []);
+      setUsage(null);
+    }
+    setSessionLoading(true);
+    setStatus('载入会话');
+    setBanner('');
+    const promise = gw.request('session.resume', { session_id: stored, cols: 100 })
+      .then((res) => {
+        if (version !== sessionVersion.current) return;
+        lastSessionSync.current = Date.now();
+        applyResume(res, stored, { stick });
+      })
+      .catch((err) => {
+        if (version !== sessionVersion.current) return;
+        setBanner(`打开会话失败：${err.message}`);
+        setStatus('');
+      })
+      .finally(() => {
+        if (version !== sessionVersion.current) return;
+        sessionRequest.current = null;
+        setSessionLoading(false);
+      });
+    sessionRequest.current = { stored, promise };
+    return promise;
+  }, [applyResume]);
+
   const historySupportedRef = useRef(null);
   const syncingRef = useRef(false);
-  const pullRemoteSessionRef = useRef(null);
-
   const pullRemoteSession = useCallback(async ({ force = false } = {}) => {
     const gw = gwRef.current;
     const stored = activeStoredIdRef.current;
     if (!gw || gw.connectionState !== 'open' || !stored) return;
-    if (sendingRef.current || syncingRef.current) return;
+    if (sendingRef.current || syncingRef.current || sessionRequest.current) return;
+    if (Date.now() - lastSessionSync.current < 1000) return;
+    const version = sessionVersion.current;
     syncingRef.current = true;
     try {
       let res = null;
@@ -810,9 +871,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           }
         }
       }
+      if (version !== sessionVersion.current) return;
       if (!res || (!res.messages?.length && !res.inflight && !res.running)) {
         res = await gw.request('session.resume', { session_id: stored, cols: 100 });
       }
+      if (version !== sessionVersion.current) return;
+      lastSessionSync.current = Date.now();
       applyResume(res, stored, { force, allowSwitch: false });
     } catch {
       /* 后台同步失败不应打断正在看的对话 */
@@ -822,33 +886,20 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, [applyResume]);
 
   useEffect(() => {
-    pullRemoteSessionRef.current = pullRemoteSession;
+    setPullRemoteSession(pullRemoteSession);
   }, [pullRemoteSession]);
 
-  // WS 断过再连上：必须把当前存档 resume 回去，事件才会重新绑到这条连接。
-  // 第一次 open 由上面的 connect() 处理，这里只接重连。
+  // 首次恢复和重连共用去重/过期响应保护；种子附件会新建会话，无需先恢复旧会话。
+  const restoreConnection = useEffectEvent(() => {
+    const initial = !openedOnceRef.current;
+    openedOnceRef.current = true;
+    if (initial && (seed?.debtInstruction || seed?.knowledgeInstruction)) return;
+    const stored = activeStoredIdRef.current || readCachedActiveSession();
+    if (stored) void resumeSession(stored, { stick: initial });
+  });
   useEffect(() => {
-    if (connState !== 'open') return;
-    const gw = gwRef.current;
-    if (!gw) return;
-
-    if (!openedOnceRef.current) {
-      openedOnceRef.current = true;
-      const cachedActive = readCachedActiveSession();
-      if (!cachedActive) return;
-      gw.request('session.resume', { session_id: cachedActive, cols: 100 })
-        .then((res) => applyResume(res, cachedActive, { stick: true }))
-        .catch(() => writeCachedActiveSession(null));
-      return;
-    }
-
-    const stored = activeStoredIdRef.current;
-    if (!stored) return;
-    setStatus('重连会话');
-    gw.request('session.resume', { session_id: stored, cols: 100 })
-      .then((res) => applyResume(res, stored, { allowSwitch: false }))
-      .catch((err) => setBanner(`重连会话失败：${err.message}`));
-  }, [connState, applyResume]);
+    if (connState === 'open') restoreConnection();
+  }, [connState]);
 
   // usage 只随 message.complete 推送，打开一个老会话时先主动问一次，
   // 否则指示器要等你发完一轮才有数。
@@ -877,9 +928,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const visible = sessions.filter((session) => !HIDDEN_SOURCES.has(session.source));
     if (visible.length === 0) return;
     autoOpenedSheetRef.current = true;
-    setSidebarOpen(true);
+    const timer = setTimeout(() => setSidebarOpen(true), 0);
+    return () => clearTimeout(timer);
   }, [pickerMode, activeStoredId, messages.length, sessions, sessionsLoading]);
 
+  const initialMessageKeyRef = useRef(null);
   useEffect(() => {
     if (!active) return undefined;
     void pullRemoteSession({ force: true });
@@ -897,26 +950,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     };
   }, [active, pullRemoteSession]);
 
-  // 处理从知识债跳转过来的初始消息
-  useEffect(() => {
-    if (!seed?.debtInstruction) return;
-    if (connState !== 'open') return;
-    if (busy) return;
-
-    const debtMsg = seed.debtInstruction;
-
-    // 设置input并自动发送
-    setInput(debtMsg);
-
-    // 延迟一点让input更新完成，然后触发发送按钮点击
-    setTimeout(() => {
-      if (!busy && connState === 'open') {
-        const sendBtn = document.querySelector('[data-hermes-send]');
-        if (sendBtn) sendBtn.click();
-      }
-    }, 300);
-  }, [seed?.debtInstruction, connState, busy]);
-
   // 处理从location state来的初始消息
   useEffect(() => {
     if (!location.state?.initialMessage) return;
@@ -924,19 +957,27 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     if (busy) return;
 
     const initialMsg = location.state.initialMessage;
+    const key = `${location.key}:${initialMsg}`;
+    if (initialMessageKeyRef.current === key) return;
+    initialMessageKeyRef.current = key;
 
     // 清除 location state 避免刷新时重复发送
     window.history.replaceState({}, document.title);
 
     // 创建新会话并发送消息
-    setInput(initialMsg);
-
-    // 延迟一点让input更新完成
-    setTimeout(() => {
-      const sendBtn = document.querySelector('[data-hermes-send]');
-      if (sendBtn) sendBtn.click();
-    }, 100);
-  }, [location.state?.initialMessage, connState, busy]);
+    let sendTimer;
+    const inputTimer = setTimeout(() => {
+      setInput(initialMsg);
+      sendTimer = setTimeout(() => {
+        const sendBtn = document.querySelector('[data-hermes-send]');
+        if (sendBtn) sendBtn.click();
+      }, 100);
+    }, 0);
+    return () => {
+      clearTimeout(inputTimer);
+      clearTimeout(sendTimer);
+    };
+  }, [location.key, location.state?.initialMessage, connState, busy]);
 
 
   useEffect(() => {
@@ -949,31 +990,24 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     return () => window.clearInterval(timer);
   }, [active, connState, activeStoredId, pullRemoteSession]);
 
-  const openSession = useCallback(async (stored) => {
-    const gw = gwRef.current;
-    if (!gw || busy) return;
-    setBanner('');
-    setStatus('载入会话');
-    try {
-      setMessages([]);
-      setUsage(null);
-      const res = await gw.request('session.resume', { session_id: stored.id, cols: 100 });
-      applyResume(res, stored.id, { stick: true });
-    } catch (err) {
-      setBanner(`打开会话失败：${err.message}`);
-      setStatus('');
-    }
-  }, [busy, applyResume]);
+  const openSession = useCallback((stored) => {
+    if (busy || sendingRef.current) return;
+    return resumeSession(stored.id, { stick: true });
+  }, [busy, resumeSession]);
 
   const newSession = useCallback(async () => {
     const gw = gwRef.current;
-    if (!gw || busy) return;
+    if (!gw || busy) return false;
+    const version = ++sessionVersion.current;
+    sessionRequest.current = null;
+    setSessionLoading(true);
     setBanner('');
     try {
       if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop();
       recRef.current = null;
       setRecording(false);
       const res = await gw.request('session.create', await sessionCreateParams());
+      if (version !== sessionVersion.current) return false;
       rememberSession(res);
       setMessages([]);
       setUsage(null);
@@ -988,8 +1022,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         setSessions(list);
         writeCachedSessions(list);
       } catch { /* 列表刷新失败不影响对话 */ }
+      return version === sessionVersion.current;
     } catch (err) {
-      setBanner(`新建会话失败：${err.message}`);
+      if (version === sessionVersion.current) setBanner(`新建会话失败：${err.message}`);
+      return false;
+    } finally {
+      if (version === sessionVersion.current) setSessionLoading(false);
     }
   }, [busy, rememberSession, sessionCreateParams]);
 
@@ -1154,7 +1192,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const typed = input.trim();
     const audio = pendingAudio;
     const text = typed;
-    if (!gw || busy || sendingRef.current) return;
+    if (!gw || busy || sendingRef.current || sessionRequest.current || sessionLoading || attaching) return;
     if (!text && pendingImages.length === 0 && !pendingReview && !audio) return;
     // 断线时直接拦下，输入框里的字原封不动（读 gateway 自己的状态，
     // 不把 connState 拉进依赖，否则每次重连都要重建这个回调）
@@ -1177,7 +1215,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
       : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
-    const examReviewLead = review
+    const examReviewLead = review?.kind === 'exam'
       ? [
           `下面这个 Markdown 是我那场《${review.title}》的录屏复盘报告，请先打开。`,
           review.path,
@@ -1198,7 +1236,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '',
         ].join('\n')
       : '';
-    const practiceReviewLead = review
+    const practiceReviewLead = review?.kind === 'practice'
       ? [
           `下面这个 Markdown 是我选中的《${review.title}》，请先直接打开文件。`,
           review.path,
@@ -1257,7 +1295,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '',
         ].join('\n')
       : '';
-    const reviewLead = review?.kind === 'practice'
+    const reviewLead = review?.kind === 'debt'
+      ? `[KNOWLEDGE_DEBT]\n${review.instruction}\n[/KNOWLEDGE_DEBT]`
+      : review?.kind === 'practice'
       ? practiceReviewLead
       : review?.kind === 'upload'
         ? uploadReviewLead
@@ -1265,10 +1305,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const audioLabel = audio ? audioLabelOf(audio.sec) : '';
 
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
-    const masteryNudge = review?.kind === 'practice' && review?.profileReviewed
+    const masteryBaseNudge = review?.kind === 'practice' && review?.profileReviewed
       ? [
           'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
-          `本场 AI 练题（practice_sessions.id=${review.id}）画像已封印。禁止调用 kaodian_profile.py，禁止写入 kaodian_profile / kaodian_events，禁止改 questions.tags。本轮只做分析。`,
+          `本场 AI 练题（practice_sessions.id=${review.id}）已封存，禁止新增作答或改 questions.tags；允许用 --assess 补充或修正已有作答的过程评估，不增加样本。`,
         ].join('\n')
       : review?.kind === 'practice'
       ? [
@@ -1276,16 +1316,16 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           ...(review.audit ? ['This is a review audit. Compare this retake with the first review requirements; blank answers are explicit evidence of not knowing and must be recorded as 0.'] : []),
           ...(review.audit
             ? [
-                '审核写入画像时，1 只表示本次重做已经用独立、可复现的方法通过首次复盘要求；仅仅看过解析、记住答案、蒙对或过程不完整，一律写 0。',
+                '审核的 --record 保留报告中的客观对错；蒙对、提示、过程不完整通过 --assess 单独表达，不得把答对篡改成答错。同题重做不会提高独立新题掌握等级。',
                 '审核结论必须以本次重做证据为主，首次复盘只提供待验收的要求；不能因为首次复盘写得完整，就替本次重做判定掌握。',
               ]
             : []),
-          `本场（practice_sessions.id=${review.id}）尚未封存。必须逐题结合答案、用时、草稿实图和过程质量判断“可复现掌握”后写入画像。`,
-          '每道有作答的题都要写一次；答对但蒙对、方法不稳、步骤不可复现，结果填 0；只有答案正确且过程可靠可复现才填 1。',
+          `本场（practice_sessions.id=${review.id}）尚未封存。逐题记录客观作答，再结合用时、草稿实图写入独立的过程评估。`,
+          '每道有作答的题都要写一次；对错严格取报告判分，不能按主观掌握判断改写。答对但蒙选、答错但建模正确均由 --assess 表达。',
           '空题不用你写：交卷时系统已按停留时长自动记为不会（盯满 1 分钟算满权重证据，几秒翻过的不算）。你只写有作答的题，空题仍要在正文里讲。',
-          '权重是证据可信度，不是分数：完整答案+草稿+过程清楚用 1.0；缺草稿或过程只能部分判断用 0.5-0.8；明显猜测、绕路或证据不足用 0.3-0.5。权重必须在 0.1-1.5。',
-          `逐题使用：python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' <0或1> <用时毫秒> practice --weight <0.1-1.5> --practice-id ${review.id} --item <题目id>`,
-          '题目id、模块、一级和用时严格取报告表格；没有明确知识点或证据不足以判断时不要编造标签。命令返回 already recorded 就跳过。',
+          '作答记录使用默认权重；新掌握等级依据结构化评估，不凭感觉调权重。',
+          `逐题使用：python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' <0或1> <用时毫秒> practice --practice-id ${review.id} --item <题目id>`,
+          '题目id、模块、一级和用时严格取报告表格；没有明确知识点不要编造标签。命令返回 already recorded 仅跳过重复记录，仍需按新口径 --assess。',
           `所有可判断题写完后，且仅在写入命令均成功后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --seal-practice ${review.id}`,
           '封存有覆盖率闸门：还有题没写证据时它会打印 refused 并列出缺的题目id，这时补齐再封，不要用 --force 绕过。',
         ].join('\n')
@@ -1303,8 +1343,15 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
           '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
-          '每个有明确对错的证据记录一次；做对填 1，做错填 0。算法会自动考虑先验、近期表现、证据来源和样本置信度。新考点先 --register。',
+          '每个有明确对错的证据记录一次；做对填 1，做错填 0。未绑定场次和逐题过程的聊天记录不用于认证掌握等级。新考点先 --register。',
         ].join('\n');
+    const masteryNudge = masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
+      `先读取 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/mastery-assessment.md，按其口径逐题评估，不增加题目质量检查。`,
+      `每题记录完成或已存在后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --assess ${review.kind} ${review.id} <题目id或题号> '<评估JSON>'`,
+      'JSON 必须包含 independence、process、basis、execution、reason；未知就填 unknown/unavailable。reason 引用本题草稿或独立解题说明，不能编造独立性、结构变式或耗时目标。缺失草稿不等于不会。',
+      '目标耗时必须有 target_basis；只有未中断的有效作答时间才 timing_valid=true。原题重做不充当独立新题，复盘后跟着讲解重述不能冒充原始过程。',
+      '全部应记录题完成 --record 和 --assess 后才封存；已封存场次只补评估，禁止新增事件。',
+    ].join('\n') : '');
     const msgId = uid();
 
     // 先把界面切到"发送中"：气泡上屏、输入框清空、按钮换成停止。
@@ -1317,8 +1364,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         content: text || audioLabel || '',
         streaming: false,
         tools: [], thinking: '',
-        images: images.filter((i) => !i.hidden && i.mime?.startsWith('image/')).map((i) => i.dataUrl),
-        attachments: images.filter((i) => !i.hidden).map((i) => ({ name: i.name, mime: i.mime, dataUrl: i.dataUrl })),
+        images: images.filter((i) => !i.hidden && imageMimeOf(i)).map((i) => i.dataUrl),
+        attachments: images.filter((i) => !i.hidden).map((i) => ({ name: i.name, mime: imageMimeOf(i) || i.mime, dataUrl: i.dataUrl })),
         audio: audio?.dataUrl || null,
         audioSec: audio?.sec > 0 ? Math.round(audio.sec) : (parseAudioLen(audioLabel) || null),
         hadAudio: !!audio,
@@ -1330,6 +1377,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           name: review.name,
           title: review.title,
           label: review.label,
+          instruction: review.instruction,
           path: review.path || null,
           audit: Boolean(review.audit),
           auditSourcePath: review.auditSourcePath || null,
@@ -1342,7 +1390,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setPendingAudio(null);
     setPendingReview(null);
     setBusy(true);
-    setWaitSec(0);
     setStatus(audio ? '上传录音' : (images.length > 0 ? '上传附件' : '已发送'));
     stickToBottom.current = true;
 
@@ -1368,7 +1415,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const deliver = async (target, outbound) => {
       for (const img of images) {
         const isPdf = img.mime === 'application/pdf' || /\.pdf$/i.test(img.name || '');
-        const isImage = img.mime?.startsWith('image/');
+        const isImage = imageMimeOf(img);
         if (isPdf) {
           await gw.request('pdf.attach', {
             session_id: target,
@@ -1403,7 +1450,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     };
 
     try {
-      const spokenText = text.trim();
+      const spokenText = review?.kind === 'debt'
+        ? [review.instruction, text.trim()].filter(Boolean).join('\n')
+        : text.trim();
       const voiceLead = audio
         ? [
             '下面附了口述录音，请直接听，不要转写成文字，不要让用户改成打字。',
@@ -1419,7 +1468,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
           ].join('\n')
         : '';
-      const persistText = spokenText || audioLabel;
+      const persistText = text.trim() || audioLabel;
       const submittedText = review || persistText
         ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
         : '';
@@ -1454,7 +1503,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             ].join('\n')
           : '';
       const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
-        || /今天练什么|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
+        || /今天.*(?:学|练)|接下来.*(?:学|练)|继续学习|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
       let learnerNudge = '';
       if (needsLearnerSnapshot) {
         try {
@@ -1463,17 +1512,20 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             learnerNudge = [
               '[LEARNER_SNAPSHOT — SYSTEM FACTS]',
               snapshot.compact,
-              'Use this database snapshot as the source of truth for performance and recency. Do not infer mastery from conversational memory.',
+              'Inherit provisional historical performance from this snapshot; missing new-process evidence does not mean starting from zero. Conversational memory may locate original answers/reviews, but generic claims of having learned are activity evidence, not mastery certification. Never duplicate an existing answer to migrate memory.',
               'If the recording asks you to pick a point from this snapshot and then generate, that choice is the named knowledge point.',
               'If a target is listed under 刚练过不宜主攻, or its family was seen within 1 day, and the user did not name it (in text or in the recording), do not make it the main batch; at most mix 2 structural variants. Permutation subskills share one family; date and cycle share one family. Never regenerate the same scenario with swapped numbers.',
-              'If the user names a module such as 数量, only recommend from that module in 下一步候选, still skip 刚练过不宜主攻 unless they named that family. Recency, 到期回捞 and mastery already encode the 21-day forgetting curve; do not invent a separate memory of what is due.',
+              'Candidates are alternatives, not a mandatory daily list or a complete curriculum. Respect a named module; absence from this shortlist does not prove it was never learned. A due date warrants a short retention check, not automatic main-focus priority. Preserve recent task goals and due reviews from the snapshot.',
               '[/LEARNER_SNAPSHOT]',
             ].join('\n');
           }
-        } catch { /* 快照失败不应阻断用户消息，Hermes skill 仍可直接查库 */ }
+        } catch { learnerNudge = '当前学情快照获取失败，不得声称已读取最新进度；可以给暂定安排，不能伪造掌握度或要求直接查库绕过。'; }
       }
       const coachToneNudge = needsLearnerSnapshot && !review
         ? [
+            `按 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/exam-sprint-plan.md 驱动学习。用户问今天学什么时，你选一个主攻和一个短测，给题量、时间预算、验收动作和停止条件；不要把选择题丢回用户，也不要因画像缺新字段要求全面重测。`,
+            '知识债优先，但不禁止其他高收益常考点。连续两轮无改善要换教法或暂缓；不把做题总量、累计错数、到期天数当成考试价值。先检查常考程度和可改善性，再分配时间；缺模块基线用短测，不把没有记录说成不会。',
+            '将具体执行任务及验收条件保存到现有 daily_plan_state.py save --merge（仅在形成实际学习计划时）；沿用原任务 id 和 batch_id，不覆盖其他任务或已完成进度，复盘后记录 verdict 和 followup_date。完成题量不等于掌握。',
             '【严师驱动】公考建议只按预期得分收益排序：优先处理高频、可避免、能靠标准动作纠正的失分；学习时长、吃苦和“我很努力”不算掌握证据。指出错误时按“判定→出错起点→唯一标准动作→下一次验收证据”，重复错误要安排最短针对性复做；只批评行为，不攻击人格；没有可复现证据就不表扬。',
           ].join('\n')
         : '';
@@ -1517,7 +1569,6 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       }
       // 没送出去就别把气泡留在那儿膨胀已发送，内容还给输入框方便重发
       setBanner(`发送失败：${err.message}`);
-      setWaitSec(0);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       setInput((cur) => cur || text);
       setPendingImages((cur) => (cur.length > 0 ? cur : images));
@@ -1527,7 +1578,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setBusy(false);
       setStatus('');
     }
-  }, [busy, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
+  }, [busy, sessionLoading, attaching, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
 
   // 小键盘句点开始录音；录音时 Esc 丢弃，第一次 Enter 只完成录音。
   // 音频进入输入区后，再按一次 Enter 才发送，和点右侧勾的行为一致。
@@ -1574,21 +1625,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, [finishStreaming]);
 
   // ---------- 带上练习错题 + 当时的草稿纸 ----------
-  const loadPracticeRuns = useCallback(async () => {
+  const practiceRunsRequest = useRef(null);
+  const practiceRunsLoadedAt = useRef(0);
+  useEffect(() => { practiceRunsLoadedAt.current = 0; }, [active]);
+  const loadPracticeRuns = useCallback((force = true) => {
+    if (practiceRunsRequest.current) return practiceRunsRequest.current;
+    if (!force && Date.now() - practiceRunsLoadedAt.current < 30000) return Promise.resolve();
     setRunsLoading(true);
-    try {
-      const list = await api('/api/practice/sessions?limit=100');
-      setPracticeRuns(Array.isArray(list) ? list : []);
-    } catch (err) {
-      setBanner(`拉取练习记录失败：${err.message}`);
-    } finally {
-      setRunsLoading(false);
-    }
+    practiceRunsRequest.current = (async () => {
+      try {
+        const list = await api('/api/practice/sessions?limit=100');
+        setPracticeRuns(Array.isArray(list) ? list : []);
+        practiceRunsLoadedAt.current = Date.now();
+      } catch (err) {
+        setBanner(`拉取练习记录失败：${err.message}`);
+      } finally {
+        setRunsLoading(false);
+        practiceRunsRequest.current = null;
+      }
+    })();
+    return practiceRunsRequest.current;
   }, []);
 
   const openPicker = useCallback(() => {
     setShowPicker(true);
-    loadPracticeRuns();
+    void loadPracticeRuns(false);
   }, [loadPracticeRuns]);
 
   // 把某一场练习的错题拼成 prompt、草稿纸作为附图挂上，然后停在输入框交给用户按发送。
@@ -1597,32 +1658,36 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     setAttaching(true);
     setBanner('');
     try {
-      const [rep, info] = await Promise.all([
-        api(`/api/practice/sessions/${sessionId}/report`),
-        api(`/api/practice/sessions/${sessionId}/md`),
-      ]);
+      const info = await api(`/api/practice/sessions/${sessionId}/md?include=report`);
+      const rep = info.report;
       const items = rep?.items || [];
       const noOf = (it) => items.indexOf(it) + 1;
       // Keep every saved draft in question order. The review needs the full session,
       // not a hand-picked subset that can hide a correct-but-slow approach.
       const drafted = items.filter((it) => it.draft_url);
 
-      const images = [];
-      for (const it of drafted) {
-        try {
-          const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
-          if (r?.data_url) {
-            images.push({
-              id: uid(),
-              name: `q${noOf(it)}-draft.png`,
-              dataUrl: r.data_url,
-              contextKind: 'practice',
-              contextId: Number(sessionId),
-              hidden: true,
-            });
-          }
-        } catch { /* 单张草稿加载失败不阻塞整份复盘 */ }
-      }
+      const images = new Array(drafted.length);
+      let nextDraft = 0;
+      await Promise.all(Array.from({ length: Math.min(4, drafted.length) }, async () => {
+        while (nextDraft < drafted.length) {
+          const index = nextDraft++;
+          const it = drafted[index];
+          try {
+            const r = await api(`/api/practice/sessions/${sessionId}/drafts/${it.question_id}/base64`);
+            if (r?.data_url) {
+              images[index] = {
+                id: uid(),
+                name: `q${noOf(it)}-draft.png`,
+                mime: 'image/png',
+                dataUrl: r.data_url,
+                contextKind: 'practice',
+                contextId: Number(sessionId),
+                hidden: true,
+              };
+            }
+          } catch { /* 单张草稿加载失败不阻塞整份复盘 */ }
+        }
+      }));
 
       const s = rep.session || {};
       const auditSource = s.audit_of_session_id
@@ -1630,7 +1695,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         : null;
       setPendingImages((prev) => [
         ...prev.filter((img) => img.contextKind !== 'practice'),
-        ...images,
+        ...images.filter(Boolean),
       ]);
       setPendingReview({
         id: Number(sessionId),
@@ -1639,7 +1704,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         name: info.name,
         title: info.title || `AI 练题复盘：${s.display_title || s.category || '未命名批次'}`,
         label: `AI练题复盘 · ${fmtDateTime(s.ended_at)} · ${s.display_title || s.category || '未命名批次'} · ${s.correct}/${s.total}`,
-        draftCount: images.length,
+        draftCount: images.filter(Boolean).length,
         total: Number(s.total || items.length || 0),
         profileReviewed: Boolean(s.profile_reviewed_at),
         audit: Boolean(s.audit_of_session_id),
@@ -1761,6 +1826,31 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     loadUploads();
   }, [loadUploads]);
 
+  // 知识债与知识点讨论先建新会话并预填；发送由用户确认。
+  const debtSeededRef = useRef(null);
+  const consumeSeed = useEffectEvent(() => onSeedConsumed?.());
+  useEffect(() => {
+    if ((!seed?.debtInstruction && !seed?.knowledgeInstruction) || connState !== 'open' || busy) return;
+    const key = `d:${seed.nonce}`;
+    if (debtSeededRef.current === key) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const created = await newSession();
+      if (cancelled) return;
+      if (!created) return;
+      debtSeededRef.current = key;
+      setPendingReview(seed.debtInstruction ? debtReviewOf(seed.debtInstruction) : null);
+      setInput(seed.knowledgeInstruction || '');
+      stickToBottom.current = true;
+      setTimeout(() => taRef.current?.focus(), 0);
+      consumeSeed();
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [seed, connState, busy, newSession]);
+
   // AI 练题交卷后点「让 Hermes 复盘错题」、资料上传点「让 Hermes 复盘」会把上下文递过来
   const seededRef = useRef(null);
   useEffect(() => {
@@ -1771,14 +1861,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ? `u:${seed.upload.date}:${seed.upload.name}:${seed.nonce}`
         : null;
     if (!key || seededRef.current === key) return;
-    seededRef.current = key;
     const timer = setTimeout(() => {
-      onSeedConsumed?.();
+      seededRef.current = key;
+      consumeSeed();
       if (seed.sessionId) void attachPractice(seed.sessionId);
       else if (seed.upload) void attachUpload(seed.upload);
     }, 0);
     return () => clearTimeout(timer);
-  }, [seed, attachPractice, attachUpload, onSeedConsumed]);
+  }, [seed, attachPractice, attachUpload]);
 
   const onKeyDown = (e) => {
     if (e.defaultPrevented) return;
@@ -1805,7 +1895,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       reader.onload = () => {
         setPendingImages((prev) => [
           ...prev,
-          { id: uid(), name: f.name || 'pasted.png', dataUrl: String(reader.result) },
+          { id: uid(), name: f.name || 'pasted.png', mime: f.type, dataUrl: String(reader.result) },
         ]);
       };
       reader.readAsDataURL(f);
@@ -2017,17 +2107,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     updateActiveMessage();
   };
 
-  const practiceSessionForMessage = (messageId) => {
-    const index = messages.findIndex((message) => message.id === messageId);
-    const from = index < 0 ? messages.length - 1 : index;
-    for (let cursor = from; cursor >= 0; cursor -= 1) {
-      const message = messages[cursor];
+  const practiceSessionsByMessage = useMemo(() => {
+    const result = new Map();
+    let practiceId = null;
+    for (const message of messages) {
       if (message.role === 'user' && message.review?.kind === 'practice' && message.review.id) {
-        return Number(message.review.id);
+        practiceId = Number(message.review.id);
       }
+      result.set(message.id, practiceId);
     }
-    return null;
-  };
+    return result;
+  }, [messages]);
+  const practiceSessionForMessage = (messageId) => practiceSessionsByMessage.get(messageId) || null;
 
   // 铅笔草稿只给 AI 练题复盘：粉笔 PDF / 录屏复盘没有当时草稿，盖一层画布只会把题面错位。
   const scratchIdForMessage = (messageId) => (
@@ -2152,6 +2243,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             <QuotaBar />
             <button
               onClick={openPicker}
+              onPointerEnter={() => { void loadPracticeRuns(false); }}
+              onFocus={() => { void loadPracticeRuns(false); }}
               disabled={attaching}
               title="选择一次 AI 练题结果进行复盘"
               className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
@@ -2367,10 +2460,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                           ))}
                         </div>
                       )}
-                      {m.attachments?.some((file) => !file.mime?.startsWith('image/')) && (
+                      {m.attachments?.some((file) => !imageMimeOf(file)) && (
                         <div className="mb-2 flex items-center gap-1.5 text-[0.75em] font-bold text-[#f2e4c4]">
                           <FileText size="1em" />
-                          <span className="truncate">{m.attachments.filter((file) => !file.mime?.startsWith('image/')).map((file) => file.name).join('、')}</span>
+                          <span className="truncate">{m.attachments.filter((file) => !imageMimeOf(file)).map((file) => file.name).join('、')}</span>
                         </div>
                       )}
                       {m.review && (
@@ -2472,7 +2565,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             <div className="flex flex-wrap gap-2 mb-2">
               {pendingImages.filter((img) => !img.hidden).map((img) => (
                 <div key={img.id} className="relative">
-                  {!img.mime?.startsWith('image/') ? (
+                  {!imageMimeOf(img) ? (
                     <div className="w-40 h-14 rounded-lg border border-black/10 bg-black/[0.04] px-2 pr-7 flex items-center gap-2 text-[11px] font-bold text-[#6b5428]">
                       <FileText size={16} className="shrink-0" />
                       <span className="truncate">{img.name}</span>
@@ -2596,7 +2689,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
               <button
                 data-hermes-send
                 onClick={send}
-                disabled={connState !== 'open' || recording || (!input.trim() && pendingImages.length === 0 && !pendingReview && !pendingAudio)}
+                disabled={connState !== 'open' || sessionLoading || attaching || recording || (!input.trim() && pendingImages.length === 0 && !pendingReview && !pendingAudio)}
                 title="发送"
                 className="p-3 rounded-2xl bg-[#1a1a1a] text-white disabled:opacity-30 hover:opacity-90 transition-opacity shrink-0"
               >
@@ -2638,12 +2731,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           >
             <div className="flex items-start justify-between gap-4 mb-5">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">复盘报告</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{reviewPreview.kind === 'debt' ? '出题附件' : '复盘报告'}</p>
                 <p className="text-xl font-black italic truncate">{reviewPreview.label || reviewPreview.title || reviewPreview.name}</p>
               </div>
               <button
                 type="button"
                 onClick={closeReviewPreview}
+                aria-label="关闭附件预览"
                 className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center shrink-0"
               >
                 <X size={16} />

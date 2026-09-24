@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 import {
   appendAssistantDelta,
   coerceResumePayload,
+  debtReviewOf,
+  imageMimeOf,
   ensureStreamingAssistant,
   eventMatchesSession,
   extractReview,
@@ -25,6 +28,62 @@ const deps = {
   parseAudioLen: () => 0,
   isAudioLabel: () => false,
 };
+
+// 普通文字不能因为没挂复盘附件而被丢掉；执行页面实际的消息构造表达式。
+const chatSource = readFileSync(new URL('../src/hermes/HermesChat.jsx', import.meta.url), 'utf8');
+const submittedExpression = chatSource.match(/const submittedText = ([\s\S]*?);/)[1];
+const submittedText = new Function('review', 'persistText', `return (${submittedExpression});`);
+assert.equal(submittedText(null, '你好'), '[USER_MESSAGE]\n你好\n[/USER_MESSAGE]');
+
+const debtInstruction = '#出题清债#\n考点: 数量关系-数学运算-最值问题\n请针对该考点出5道题';
+const debtAttachment = debtReviewOf(debtInstruction);
+const debtMessage = `[KNOWLEDGE_DEBT]\n${debtInstruction}\n[/KNOWLEDGE_DEBT]\n${submittedText(debtAttachment, '这次出3道')}`;
+assert.deepEqual(extractReview(debtMessage), {content: '这次出3道', review: debtAttachment});
+const debtHistory = normalizeHermesHistory([{role: 'user', text: debtMessage}], deps);
+assert.equal(debtHistory[0].review.instruction, debtInstruction);
+assert.equal(debtHistory[0].review.kind, 'debt');
+assert.equal(debtHistory[0].content, '这次出3道');
+
+// 执行组件实际的 seed effect：新会话等待期间父组件重渲染，仍必须挂上附件。
+const seedSource = chatSource.slice(chatSource.indexOf('  const debtSeededRef'), chatSource.indexOf('  // AI 练题交卷后点'));
+const seedHook = new Function('useRef', 'useEffect', 'useEffectEvent', 'seed', 'connState', 'busy', 'newSession',
+  'setPendingReview', 'setInput', 'stickToBottom', 'taRef', 'onSeedConsumed', 'debtReviewOf', seedSource);
+const seedRef = {current: null};
+let effectDeps, cleanupSeed, currentConsume, resolveCreation, creations = 0, consumed = 0;
+const pendingDebts = [];
+const consumeEvent = () => currentConsume();
+const createSession = () => { creations++; return new Promise((resolve) => { resolveCreation = resolve; }); };
+const renderSeed = (seed) => seedHook(
+  () => seedRef,
+  (effect, deps) => {
+    if (effectDeps && deps.every((dep, i) => dep === effectDeps[i])) return;
+    cleanupSeed?.(); effectDeps = deps; cleanupSeed = effect();
+  },
+  (callback) => { currentConsume = callback; return consumeEvent; },
+  seed, 'open', false, createSession, (review) => pendingDebts.push(review), () => {}, {current: false}, {current: null},
+  () => { consumed++; }, debtReviewOf,
+);
+const seededDebt = {nonce: 1, debtInstruction};
+renderSeed(seededDebt);
+await new Promise((resolve) => setTimeout(resolve, 5));
+renderSeed(seededDebt); // 回调是新的，seed 没变，不应取消正在创建的会话。
+resolveCreation(true);
+await new Promise((resolve) => setTimeout(resolve, 5));
+assert.equal(creations, 1);
+assert.equal(consumed, 1);
+assert.deepEqual(pendingDebts, [debtAttachment]);
+
+// StrictMode 会先 cleanup 再 setup；未执行的定时器不能提前占用“已处理”标记。
+const nextDebt = {nonce: 2, debtInstruction};
+renderSeed(nextDebt);
+cleanupSeed(); effectDeps = null;
+renderSeed(nextDebt);
+await new Promise((resolve) => setTimeout(resolve, 5));
+resolveCreation(true);
+await new Promise((resolve) => setTimeout(resolve, 5));
+assert.equal(creations, 2);
+assert.equal(pendingDebts.length, 2);
+cleanupSeed?.();
 
 // 语音消息在对话里只留时长标签当正文，所以「产标签」和「认标签」必须互逆。
 // 之前正文写成「请直接听录音」，isAudioLabel 认不出，气泡就退化成一行裸文字。
@@ -415,3 +474,10 @@ const sameSessionPending = mergeResumedMessages(
 );
 assert.equal(sameSessionPending.some((message) => message.audioSec === 8 && message.audio === 'data:audio/webm;base64,yy'), true);
 console.log('hermes cross-session voice isolation: ok');
+
+// 粘贴和草稿曾缺少 MIME：预览和发送必须都走图片分支，PDF 仍是文件。
+assert.equal(imageMimeOf({dataUrl: 'data:image/png;base64,AA=='}), 'image/png');
+assert.equal(imageMimeOf({mime: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,AA=='}), 'image/jpeg');
+assert.equal(imageMimeOf({mime: 'application/octet-stream', dataUrl: 'data:image/webp;base64,AA=='}), 'image/webp');
+assert.equal(imageMimeOf({mime: 'application/pdf', dataUrl: 'data:application/pdf;base64,AA=='}), '');
+assert.equal(imageMimeOf({name: 'fake.png', dataUrl: 'data:text/plain;base64,AA=='}), '');

@@ -13,6 +13,7 @@ const BACKGROUND_NOTICE_RE = /^\s*\[(?:[A-Z]+:\s*)?Background process\b/i;
 const EXIT_CODE_RE = /\(exit code\s*(-?\d+)\)/i;
 const USER_MESSAGE_RE = /\[USER_MESSAGE\]\n?([\s\S]*?)\n?\[\/USER_MESSAGE\]/;
 const USER_NOTE_RE = /\[USER_NOTE\]\n?([\s\S]*?)\n?\[\/USER_NOTE\]/;
+const KNOWLEDGE_DEBT_RE = /\[KNOWLEDGE_DEBT\]\n?([\s\S]*?)\n?\[\/KNOWLEDGE_DEBT\]/;
 const INTERNAL_NUDGE_RE = /\n?Keep all mastery\/profile bookkeeping completely silent and internal\.[\s\S]*$/;
 
 const bump = (name) => {
@@ -57,8 +58,15 @@ const visibleUserText = (text) => {
   return marked != null ? marked.trim() : raw.replace(INTERNAL_NUDGE_RE, '').trim();
 };
 
+export const debtReviewOf = (instruction) => {
+  const title = instruction.match(/^考点:\s*(.+)$/m)?.[1]?.trim() || '知识债出题';
+  return { id: `debt:${title}`, kind: 'debt', title, label: `知识债 · ${title}`, instruction };
+};
+
 export const extractReview = (text) => {
   const raw = String(text || '');
+  const debt = raw.match(KNOWLEDGE_DEBT_RE);
+  if (debt) return { content: visibleUserText(raw), review: debtReviewOf(debt[1]) };
   const marked = raw.match(USER_MESSAGE_RE)?.[1] ?? raw.match(USER_NOTE_RE)?.[1];
   const match = raw.match(REVIEW_FILE_RE);
   const upload = raw.match(UPLOAD_FILE_RE);
@@ -473,4 +481,10 @@ export const shouldAcceptRemoteResume = (prev, next, resume, force = false) => {
   const prevAsst = prev.filter((message) => message.role === 'assistant').map((message) => message.content).join('\n');
   const nextAsst = next.filter((message) => message.role === 'assistant').map((message) => message.content).join('\n');
   return nextAsst.length > prevAsst.length;
+};
+
+// 粘贴/旧消息/复盘草稿可能没有 mime；data URL 仍保留实际媒体类型。
+export const imageMimeOf = (file) => {
+  if (file?.mime?.startsWith('image/')) return file.mime;
+  return /^data:(image\/[^;,]+)/i.exec(file?.dataUrl || '')?.[1] || '';
 };

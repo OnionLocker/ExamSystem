@@ -5,7 +5,7 @@ import { Eraser, PenTool, Trash2, Undo2 } from 'lucide-react';
 import DraftLayer from '../aiPractice/DraftLayer.jsx';
 
 const Ctx = createContext(null);
-export const useReviewScratch = () => useContext(Ctx);
+const useReviewScratch = () => useContext(Ctx);
 
 const load = (key) => {
   try {
@@ -18,15 +18,13 @@ const load = (key) => {
 
 export default function ReviewScratch({ storageKey, enabled = true, children }) {
   const storeKey = storageKey ? `hermes.scratch.${storageKey}` : '';
+  return <ScratchSession key={storeKey} storeKey={storeKey} enabled={enabled}>{children}</ScratchSession>;
+}
+
+function ScratchSession({ storeKey, enabled, children }) {
   const [active, setActive] = useState(null);
   const [tool, setTool] = useState('pen');
   const [byQ, setByQ] = useState(() => (storeKey ? load(storeKey) : {}));
-
-  useEffect(() => {
-    setByQ(storeKey ? load(storeKey) : {});
-    setActive(null);
-    setTool('pen');
-  }, [storeKey]);
 
   useEffect(() => {
     if (!storeKey) return;

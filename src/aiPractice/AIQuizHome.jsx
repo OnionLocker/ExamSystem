@@ -78,7 +78,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
-  const [timeDate, setTimeDate] = useState('');
+  const [chosenDate, setTimeDate] = useState('');
   const [active, setActive] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -157,15 +157,13 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
     [dailyBatches],
   );
 
-  useEffect(() => {
-    if (activeModule !== TIME_TAB) return;
-    if (timeDate && dailyDates.includes(timeDate)) return;
-    setTimeDate(dailyDates[0] || '');
-  }, [activeModule, dailyDates, timeDate]);
-
-  useEffect(() => {
+  const timeDate = dailyDates.includes(chosenDate) ? chosenDate : dailyDates[0] || '';
+  const selectionScope = `${activeModule}:${activeModule === TIME_TAB ? timeDate : ''}`;
+  const [previousScope, setPreviousScope] = useState(selectionScope);
+  if (previousScope !== selectionScope) {
+    setPreviousScope(selectionScope);
     setSelected(new Set());
-  }, [activeModule, timeDate]);
+  }
 
   const visibleBatches = useMemo(() => {
     if (activeModule === DEFAULT_TAB) {
@@ -205,10 +203,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   };
 
   const toggleSelectAll = () => {
-    setSelected((current) => {
-      if (allVisibleSelected) return new Set();
-      return new Set(visibleBatches.map((batch) => batch.batch_id));
-    });
+    setSelected(allVisibleSelected ? new Set() : new Set(visibleBatches.map((batch) => batch.batch_id)));
   };
 
   const exitSelect = () => {
