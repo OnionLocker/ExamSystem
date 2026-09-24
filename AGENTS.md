@@ -82,6 +82,8 @@ python3 scripts/learner_snapshot.py --compact
 
 不要直接查询数据库，不要读取 CSV，不要自己拼接数据。快照已经包含所有必要信息。
 
+以上限制针对学员状态查询。政治/常识出题所需公共资料按 `quiz-pipeline/references/politics-common-workflow.md` 执行：允许联网检索权威原文，运行 `scripts/policy_sources.py status/add/refresh/discover`，读取 `data/manual-policy-sources/` 的已核验原文及候选，写入该目录的资料登记；允许按 quiz-pipeline 调用已批准的出题脚本。执行这些脚本不等于修改系统源码。不得凭搜索摘要或模型记忆编造资料。
+
 ### 工具失败处理
 
 **同一个工具连续失败 2 次，立即停下来**，向用户说明情况，不要：
@@ -122,6 +124,8 @@ python3 scripts/learner_snapshot.py --compact
 
 遵循 `learner_snapshot.py --compact` 输出的纪律说明：
 
+用户明确指定模块、知识点、题量、题型时优先服从；推荐纪律用于用户让Hermes自行安排的情况。用户仅讨论知识点拆分时先讨论、登记，不抢先生成，也不强制跨模块混入盲盒。
+
 - 同族距上次 ≤1 天不当本批主攻
 - 优先选同族距上次 ≥2 天的高置信弱项
 - 最多盲盒混入 2 道结构变式
@@ -130,7 +134,8 @@ python3 scripts/learner_snapshot.py --compact
 有知识债时：
 
 - **连对为 0 且错次高的，优先安排同考法变式卷**
-- **不要开新考点**
+- **知识债优先，但不无限阻塞其他高收益常考点；按考频、可改善性和训练成本决定是否学习新点**
+- **单点主攻通常不超过45分钟；连续两轮新题低正确率且无改善，先换教法或暂缓，不因累计错多反复加量**
 - 连对 2 次才算清偿
 
 ## 输出上限处理

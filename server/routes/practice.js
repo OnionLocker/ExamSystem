@@ -4,8 +4,11 @@ import { execFile, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 import db from '../db.js';
 import { reconcileDailyPlanBatch } from './dailyPlans.js';
+import { mergeSegments, validSegments } from '../../src/studyLog/studyTime.js';
+import { normalizeAnswer, judgeOptions } from '../../src/answers.js';
 
 const router = Router();
 
@@ -28,11 +31,30 @@ const parseTags = (raw) => {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const draftDir = process.env.EXAM_DRAFT_DIR
   || path.join(__dirname, '..', '..', 'data', 'draft-images');
-const practiceReviewDir = path.join(__dirname, '..', '..', 'data', 'practice-reviews');
+const practiceReviewDir = process.env.EXAM_PRACTICE_REVIEW_DIR
+  || path.join(__dirname, '..', '..', 'data', 'practice-reviews');
 if (!fs.existsSync(draftDir)) fs.mkdirSync(draftDir, { recursive: true });
 if (!fs.existsSync(practiceReviewDir)) fs.mkdirSync(practiceReviewDir, { recursive: true });
 
 const projectRoot = path.join(__dirname, '..', '..');
+const execFileAsync = promisify(execFile);
+
+const assessmentBaseline = () => JSON.stringify(Object.fromEntries(
+  db.prepare('SELECT kaodian,assessment_json FROM kaodian_profile WHERE assessment_json IS NOT NULL').all()
+    .map(row => {
+      const a = JSON.parse(row.assessment_json);
+      const stale = !a.last_evidence_at || Date.now() - Date.parse(a.last_evidence_at) >= 30 * 86400000;
+      return [row.kaodian, stale || a.review_due ? 'unassessed' : a.level];
+    }),
+));
+
+// 提醒和封存复用同一套规则：只统计本场应写的练习证据。
+const practiceCoverage = async (sessionId) => {
+  const { stdout } = await execFileAsync('python3', [
+    path.join(projectRoot, 'scripts', 'kaodian_profile.py'), '--practice-coverage', String(sessionId),
+  ], { cwd: projectRoot, env: { ...process.env, EXAM_DB: db.name }, timeout: 10000 });
+  return JSON.parse(stdout);
+};
 
 // 空题证据交给脚本写：考点别名归一、知识债、熟练度重算都在 Python 那边，
 // 这里再实现一遍就是两套口径。异步跑，交卷响应不等它。
@@ -137,10 +159,10 @@ router.post('/sessions', (req, res) => {
 
   const result = db
     .prepare(
-      `INSERT INTO practice_sessions (category, started_at)
-       VALUES (?, datetime('now'))`,
+      `INSERT INTO practice_sessions (category, started_at, assessment_baseline)
+       VALUES (?, datetime('now'), ?)`,
     )
-    .run(cat);
+    .run(cat, assessmentBaseline());
   res.status(201).json({ id: result.lastInsertRowid });
 });
 
@@ -172,7 +194,13 @@ router.get('/sessions', (req, res) => {
 
   const rows = db
     .prepare(
-      `SELECT
+      `WITH recent AS MATERIALIZED (
+         SELECT * FROM practice_sessions
+          WHERE ended_at IS NOT NULL AND total > 0
+            ${category ? 'AND category = ?' : ''}
+          ORDER BY ended_at DESC LIMIT ?
+       )
+       SELECT
          s.id, s.category, s.total, s.correct, s.duration_sec, s.started_at, s.ended_at,
          s.profile_reviewed_at,
          s.audit_of_session_id,
@@ -190,12 +218,8 @@ router.get('/sessions', (req, res) => {
            WHERE pa.session_id = s.id AND pa.is_correct = 0)          AS wrong_count,
          (SELECT COUNT(*) FROM practice_drafts pd
            WHERE pd.session_id = s.id)                                AS draft_count
-       FROM practice_sessions s
-       WHERE s.ended_at IS NOT NULL
-         AND s.total > 0
-         ${category ? 'AND s.category = ?' : ''}
-       ORDER BY s.ended_at DESC
-       LIMIT ?`,
+       FROM recent s
+       ORDER BY s.ended_at DESC`,
     )
     .all(...(category ? [category, limit] : [limit]));
 
@@ -212,17 +236,23 @@ router.get('/sessions', (req, res) => {
 // ───────────────────────────────────────────────────────────────
 router.post('/sessions/:id/submit', (req, res) => {
   const sessionId = Number(req.params.id);
-  const { duration_sec = 0, answers } = req.body || {};
+  const { duration_sec = 0, answers, timeSegments } = req.body || {};
 
-  const session = db.prepare('SELECT id, ended_at, category FROM practice_sessions WHERE id = ?').get(sessionId);
+  const session = db.prepare('SELECT id, started_at, ended_at, category FROM practice_sessions WHERE id = ?').get(sessionId);
   if (!session) return res.status(404).json({ error: 'session not found' });
   if (session.ended_at) return res.status(409).json({ error: '这份卷子已经交过了' });
   if (!Array.isArray(answers) || answers.length === 0) {
     return res.status(400).json({ error: 'answers required' });
   }
+  const sessionStart = Date.parse(session.started_at.replace(' ', 'T') + 'Z');
+  if (timeSegments !== undefined && (!validSegments(timeSegments)
+      || timeSegments.some(([start]) => start < sessionStart - 60000))) {
+    return res.status(400).json({ error: 'invalid timeSegments' });
+  }
+  const timingJson = timeSegments === undefined ? null : JSON.stringify(mergeSegments(timeSegments));
 
   const getQ = db.prepare(
-    'SELECT id, correct_answer, category, sub_category, tags FROM questions WHERE id = ?',
+    'SELECT id, correct_answer, question_type, category, sub_category, tags FROM questions WHERE id = ?',
   );
   const insertAnswer = db.prepare(
     `INSERT INTO practice_answers
@@ -254,10 +284,11 @@ router.post('/sessions/:id/submit', (req, res) => {
     for (const a of list) {
       const q = getQ.get(Number(a?.question_id));
       if (!q) continue;
-      const userAnswer = String(a?.user_answer ?? '');
+      const userAnswer = normalizeAnswer(a?.user_answer, q.question_type);
+      const correctAnswer = normalizeAnswer(q.correct_answer, q.question_type);
       const timeSpent = Math.max(0, Math.round(Number(a?.time_spent_sec) || 0));
       const skipped = userAnswer === '';
-      const isCorrect = !skipped && userAnswer === q.correct_answer;
+      const isCorrect = !skipped && userAnswer === correctAnswer;
       if (isCorrect) correct += 1;
 
       insertAnswer.run(sessionId, q.id, userAnswer, isCorrect ? 1 : 0, timeSpent);
@@ -275,7 +306,7 @@ router.post('/sessions/:id/submit', (req, res) => {
       results.push({
         question_id: q.id,
         user_answer: userAnswer,
-        correct_answer: q.correct_answer,
+        correct_answer: correctAnswer,
         is_correct: isCorrect,
         skipped,
         time_spent_sec: timeSpent,
@@ -284,9 +315,9 @@ router.post('/sessions/:id/submit', (req, res) => {
 
     db.prepare(
       `UPDATE practice_sessions
-       SET total = ?, correct = ?, duration_sec = ?, ended_at = datetime('now')
+       SET total = ?, correct = ?, duration_sec = ?, timing_segments = ?, ended_at = datetime('now')
        WHERE id = ?`,
-    ).run(results.length, correct, Math.max(0, Number(duration_sec) || 0), sessionId);
+    ).run(results.length, correct, Math.max(0, Number(duration_sec) || 0), timingJson, sessionId);
 
     return { results, correct };
   });
@@ -320,14 +351,14 @@ router.post('/sessions/:id/audit', (req, res) => {
   ).get(sourceId);
   if (existing) return res.json({ id: existing.id, existing: true });
   const created = db.prepare(
-    `INSERT INTO practice_sessions (category, started_at, audit_of_session_id)
-     VALUES (?, datetime('now'), ?)`,
-  ).run(source.category, sourceId);
+    `INSERT INTO practice_sessions (category, started_at, audit_of_session_id, assessment_baseline)
+     VALUES (?, datetime('now'), ?, ?)`,
+  ).run(source.category, sourceId, assessmentBaseline());
   res.status(201).json({ id: created.lastInsertRowid, source_session_id: sourceId });
 });
 
 // Hermes 逐题写入带权证据后才允许封存画像；漏记时保持“待复盘”，重开可补齐。
-router.post('/sessions/:id/review-complete', (req, res) => {
+router.post('/sessions/:id/review-complete', async (req, res) => {
   const sessionId = Number(req.params.id);
   const session = db.prepare(
     'SELECT id, ended_at, profile_reviewed_at FROM practice_sessions WHERE id = ?',
@@ -336,18 +367,8 @@ router.post('/sessions/:id/review-complete', (req, res) => {
   if (!session.ended_at) return res.status(409).json({ error: '这场练习还没有交卷' });
   if (session.profile_reviewed_at) return res.json({ ok: true, sealed: false, already: true });
 
-  const eligible = db.prepare(`
-    SELECT pa.question_id, q.tags
-      FROM practice_answers pa
-      JOIN questions q ON q.id = pa.question_id
-     WHERE pa.session_id = ?
-  `).all(sessionId).filter((row) => parseTags(row.tags).length > 0).length;
-  const recorded = db.prepare(`
-    SELECT COUNT(DISTINCT question_id) AS count
-      FROM kaodian_events
-     WHERE session_id = ? AND evidence_type = 'practice' AND question_id IS NOT NULL
-  `).get(sessionId).count;
-  if (recorded < eligible) {
+  const { total: eligible, covered: recorded, missing } = await practiceCoverage(sessionId);
+  if (missing > 0) {
     return res.status(409).json({ ok: false, sealed: false, eligible, recorded });
   }
 
@@ -384,7 +405,9 @@ const getPracticeReport = (sessionId) => {
          q.content, q.options, q.question_type, q.sub_category, q.category,
          q.external_id,
          q.correct_answer, q.explanation, q.stem_images, q.explanation_images,
-         q.tags,
+         q.tags, q.source_evidence,
+         EXISTS(SELECT 1 FROM practice_answers earlier
+                 WHERE earlier.question_id=pa.question_id AND earlier.session_id<pa.session_id) AS is_repeat,
          pd.question_id AS has_draft
        FROM practice_answers pa
        JOIN questions q ON q.id = pa.question_id
@@ -403,19 +426,21 @@ const getPracticeReport = (sessionId) => {
     question_id: r.question_id,
     external_id: r.external_id,
     content: r.content,
-    options: parseOptions(r.options),
+    options: r.question_type === 'judge' ? judgeOptions(parseOptions(r.options)) : parseOptions(r.options),
     stem_images: parseOptions(r.stem_images),
     explanation_images: parseOptions(r.explanation_images),
     question_type: r.question_type,
     category: r.category,
     sub_category: r.sub_category,
-    correct_answer: r.correct_answer,
+    correct_answer: normalizeAnswer(r.correct_answer, r.question_type),
+    source_evidence: r.source_evidence ? JSON.parse(r.source_evidence) : null,
     explanation: r.explanation,
     knowledge_points: parseTags(r.tags),
-    user_answer: r.user_answer,
+    user_answer: normalizeAnswer(r.user_answer, r.question_type),
     is_correct: !!r.is_correct,
     skipped: r.user_answer === '',
     time_spent_sec: r.time_spent_sec,
+    is_repeat: Boolean(r.is_repeat),
     draft_url: r.has_draft ? draftUrl(sessionId, r.question_id) : null,
   }));
 
@@ -444,7 +469,9 @@ const practiceReviewMarkdown = ({ session, items }) => {
     `- 错题或空题：${wrong.length}`,
     `- 本场慢题参考线：${fmtReviewDuration(slowThreshold)}（单题均时的 1.5 倍，最低 01:00）`,
     `- 场次类型：${session.audit_of_session_id ? `复盘审核（基于场次 ${session.audit_of_session_id}）` : '首次练习复盘'}`,
-    `- 画像：${session.profile_reviewed_at ? `已封印（${session.profile_reviewed_at}），勿再写入` : '未写入；本场 Hermes 复盘完成后更新画像'}`,
+    `- 画像：${session.profile_reviewed_at ? `已封存（${session.profile_reviewed_at}），不得新增作答；可用 --assess 补充有依据的过程评估` : '本场 Hermes 复盘后记录作答、逐题 --assess，再封存'}`,
+    '- 评估口径：references/mastery-assessment.md；同题重做不计独立样本，独立性和过程不明时如实标 unknown。',
+    `- 原题重做的题目id：${items.filter(item => item.is_repeat).map(item => item.question_id).join('、') || '无'}`,
     '',
     '## 逐题概览',
     '',
@@ -492,6 +519,15 @@ const practiceReviewMarkdown = ({ session, items }) => {
     }
     if (item.draft_url) lines.push('- 草稿：本题留有草稿纸，随复盘上下文提供');
     if (item.explanation) lines.push('', '#### 解析', '', String(item.explanation));
+    if (item.source_evidence) {
+      lines.push('', '#### 命题依据', '', `资料截止日：${item.source_evidence.as_of}；政策更新不倒改本场历史判分。`);
+      for (const source of item.source_evidence.sources || []) lines.push(`- ${source.title}（${source.published_at}）：${source.url}`);
+      lines.push(`- 原文证据标识：${(item.source_evidence.claim_ids || []).join('、')}`);
+      for (const check of item.source_evidence.checks || []) {
+        lines.push(`- ${check.key}：${check.reason}`);
+        for (const cite of check.citations || []) lines.push(`  原文：${cite.quote}`);
+      }
+    }
   }
   return lines.join('\n');
 };
@@ -522,6 +558,7 @@ router.get('/sessions/:id/md', (req, res) => {
     name,
     title,
     markdown,
+    ...(req.query.include === 'report' ? { report } : {}),
     summary: {
       total: report.session.total,
       correct: report.session.correct,
@@ -642,18 +679,17 @@ router.get('/sessions/:id/drafts/:questionId/base64', (req, res) => {
 
 // ───────────────────────────────────────────────────────────────
 // GET /api/practice/heat
-//   → { '2026-08-03': { score, entries: [{ type, module, count, correct, score }] } }
-//   打卡热力图里「AI 练题」那部分的分数。
+//   → { '2026-08-03': { entries: [{ type, module, count, correct, timeSegments }] } }
+//   打卡热力图中的服务端学习记录。
 //
 //   为什么由服务端现算，而不是交卷时往学习日志里写一条：
 //   ① 练习记录本来就在库里，历史场次能直接算出来，不需要回填脚本；
-//   ② 重做去重用 SQL 一句话，写日志则要先读出来查重；
+//   ② 按历史作答区分首次和重做；
 //   ③ 学习日志是个整体 PUT 的 JSON 数组，服务端和前端同时往里写，
 //      晚写的一方会把对方的条目整个覆盖掉。
 //
-//   计分：实际作答题数 × 1.5 + 正确率 × 0.1（跟手动录入刷题同一量级，
-//   多给一点正确率加成）。跳过没答的题不计入。
-//   同一题组当天只算第一次交卷 —— 重做是复习，不该和首刷等价加热。
+//   所有已完成场次保留，首次作答和重做分别统计。只有计时区间参与热力，
+//   历史累计秒数缺少暂停区间时只展示原记录，不能反推起止时间。
 // ───────────────────────────────────────────────────────────────
 router.get('/heat', (_req, res) => {
   // ended_at 存的是 UTC，热力图按东八区分日，跨零点的场次要先挪过来
@@ -662,6 +698,10 @@ router.get('/heat', (_req, res) => {
       `SELECT
          s.id,
          s.category,
+         s.duration_sec,
+         s.timing_segments,
+         s.profile_reviewed_at,
+         s.total,
          date(s.ended_at, '+8 hours')                          AS day,
          strftime('%s', s.ended_at)                            AS ts,
          (SELECT q.source FROM questions q
@@ -669,7 +709,16 @@ router.get('/heat', (_req, res) => {
          (SELECT COUNT(*) FROM practice_answers pa
            WHERE pa.session_id = s.id AND pa.user_answer != '') AS answered,
          (SELECT COUNT(*) FROM practice_answers pa
-           WHERE pa.session_id = s.id AND pa.is_correct = 1)    AS correct
+           WHERE pa.session_id = s.id AND pa.is_correct = 1)    AS correct,
+         (SELECT COUNT(DISTINCT pa.question_id) FROM practice_answers pa
+           WHERE pa.session_id = s.id AND pa.user_answer != ''
+             AND NOT EXISTS (
+               SELECT 1 FROM practice_answers old
+               JOIN practice_sessions earlier ON earlier.id = old.session_id
+               WHERE old.question_id = pa.question_id AND old.user_answer != ''
+                 AND earlier.ended_at IS NOT NULL
+                 AND (earlier.ended_at < s.ended_at OR (earlier.ended_at = s.ended_at AND earlier.id < s.id))
+             )) AS first_count
        FROM practice_sessions s
        WHERE s.ended_at IS NOT NULL
        ORDER BY s.ended_at ASC`,
@@ -677,29 +726,36 @@ router.get('/heat', (_req, res) => {
     .all();
 
   const out = {};
-  const counted = new Set(); // `${day}|${category}`，同题组当天只认第一场
-
   for (const r of rows) {
-    if (!r.answered) continue;
-    const dedupeKey = `${r.day}|${r.category}`;
-    if (counted.has(dedupeKey)) continue;
-    counted.add(dedupeKey);
-
-    const acc = Math.round((r.correct / r.answered) * 100);
-    const score = Math.round(r.answered * 1.5 + acc * 0.1);
-    if (!out[r.day]) out[r.day] = { score: 0, entries: [] };
-    out[r.day].score += score;
+    if (!r.answered && !r.duration_sec) continue;
+    let timeSegments = [];
+    try { timeSegments = JSON.parse(r.timing_segments || '[]'); } catch { /* legacy */ }
+    if (!validSegments(timeSegments)) timeSegments = [];
+    if (!out[r.day]) out[r.day] = { entries: [] };
     out[r.day].entries.push({
+      id: `practice-${r.id}`,
       type: 'aiquiz',
       ts: Number(r.ts) * 1000,
       module: r.source || r.category,
       count: r.answered,
       correct: r.correct,
-      score,
+      firstCount: r.first_count,
+      repeatCount: r.answered - r.first_count,
+      timeSegments,
+      recordedMinutes: Math.round((r.duration_sec || 0) / 6) / 10,
     });
+    if (r.profile_reviewed_at) {
+      const reviewedAt = Date.parse(r.profile_reviewed_at.replace(' ', 'T') + 'Z');
+      if (Number.isFinite(reviewedAt)) {
+        const reviewDay = new Date(reviewedAt + 8 * 3600000).toISOString().slice(0, 10);
+        if (!out[reviewDay]) out[reviewDay] = { entries: [] };
+        out[reviewDay].entries.push({ id: `practice-review-${r.id}`, type: 'review', ts: reviewedAt,
+          module: 'AI练题复盘', count: r.total, timeSegments: [] });
+      }
+    }
   }
 
-  // 真题复盘：一场模考按实际时长折算热力，跟番茄钟同口径（1 分钟 1 分）
+  // 视频长度不是复盘时长；保留录屏活动，但不据此增加学习时间。
   const reviews = db
     .prepare(
       `SELECT id, title, kind, exam_date, duration_sec,
@@ -711,14 +767,14 @@ router.get('/heat', (_req, res) => {
   for (const r of reviews) {
     const minutes = Math.round((r.duration_sec || 0) / 60);
     if (minutes <= 0) continue;
-    if (!out[r.exam_date]) out[r.exam_date] = { score: 0, entries: [] };
-    out[r.exam_date].score += minutes;
+    if (!out[r.exam_date]) out[r.exam_date] = { entries: [] };
     out[r.exam_date].entries.push({
+      id: `exam-recording-${r.id}`,
       type: r.kind === 'taoti' ? 'setReview' : 'examReview',
       ts: Number(r.ts) * 1000,
       module: r.title,
-      minutes,
-      score: minutes,
+      videoMinutes: minutes,
+      timeSegments: [],
     });
   }
 
@@ -729,45 +785,64 @@ router.get('/heat', (_req, res) => {
 // POST /api/quiz/lite
 //   快速出题：指定模块和考点标签，生成一套小题
 // ───────────────────────────────────────────────────────────────
-router.post('/quiz/lite', (req, res) => {
-  const { module, tag, count = 5 } = req.body || {};
-  if (!module || !tag) {
-    return res.status(400).json({ error: 'module and tag required' });
+router.post('/quiz/lite', async (req, res) => {
+  const { module, tag, difficulty = 'mid', sources, as_of, question_type } = req.body || {};
+  const grounded = ['政治理论', '常识判断'].includes(module);
+  if (typeof module !== 'string' || !module.trim()
+      || (tag !== undefined && (typeof tag !== 'string' || !tag.trim())) || (!tag && !grounded)) {
+    return res.status(400).json({ error: '须指定模块；非政治/常识模块还须指定考点 tag' });
   }
 
-  const quizCount = Math.min(20, Math.max(1, parseInt(count) || 5));
-  const category = `${tag}-变式-${Date.now()}`;
+  const quizCount = Number(req.body.count ?? (module === '政治理论' && !tag ? 10 : 5));
+  if (!Number.isInteger(quizCount) || quizCount < 1 || quizCount > 15 || !['easy', 'mid', 'hard'].includes(difficulty)) {
+    return res.status(400).json({ error: 'count 须为 1–15，difficulty 须为 easy/mid/hard' });
+  }
+  if ((sources !== undefined && (!grounded || !Array.isArray(sources) || !sources.length || sources.length > 8
+      || sources.some(id => typeof id !== 'string' || !/^[a-z0-9][a-z0-9_-]{1,79}$/.test(id))))
+      || (as_of !== undefined && (!grounded || typeof as_of !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(as_of)
+        || !Number.isFinite(Date.parse(as_of)) || new Date(as_of).toISOString().slice(0, 10) !== as_of))
+      || (question_type !== undefined && (!['single', 'judge', 'multi'].includes(question_type)
+        || (module !== '政治理论' && question_type !== 'single')))) {
+    return res.status(400).json({ error: '资料、截止日期或题型参数无效；判断/多选仅适用于政治理论' });
+  }
+  const category = `hermes-lite-${crypto.randomUUID()}`;
 
   try {
     // 调用 quiz_lite.py 生成题目
-    const result = spawnSync(
+    await execFileAsync(
       'python3',
       [
         path.join(projectRoot, 'scripts', 'quiz_lite.py'),
         '--module', String(module),
-        '--tag', String(tag),
+        ...(tag ? ['--tag', tag] : []),
         '--count', String(quizCount),
-        '--output', category
+        '--difficulty', difficulty,
+        '--batch-id', category,
+        '--db', db.name,
+        ...(sources ? ['--sources', sources.join(',')] : []),
+        ...(as_of ? ['--as-of', as_of] : []),
+        ...(question_type ? ['--question-type', question_type] : [])
       ],
       {
         cwd: projectRoot,
-        timeout: 60000,
+        timeout: 30 * 60 * 1000,
+        maxBuffer: 4 * 1024 * 1024,
         encoding: 'utf8'
       }
     );
 
-    if (result.error || result.status !== 0) {
-      console.error('[quiz/lite] 出题失败:', result.stderr || result.error);
-      return res.status(500).json({ error: '出题失败，请稍后重试' });
+    const imported = db.prepare('SELECT COUNT(*) AS n FROM questions WHERE batch_id = ?').get(category).n;
+    if (imported !== quizCount) {
+      throw new Error(`出题数量不一致: ${imported}/${quizCount}`);
     }
 
     // 创建练习场次
     const session = db
       .prepare(
-        `INSERT INTO practice_sessions (category, started_at)
-         VALUES (?, datetime('now'))`
+        `INSERT INTO practice_sessions (category, started_at, assessment_baseline)
+         VALUES (?, datetime('now'), ?)`
       )
-      .run(category);
+      .run(category, assessmentBaseline());
 
     res.json({
       sessionId: session.lastInsertRowid,
@@ -784,30 +859,14 @@ router.post('/quiz/lite', (req, res) => {
 // GET /api/practice/sessions/:id/coverage
 //   检查该场次的画像覆盖率，用于交卷后提示复盘
 // ───────────────────────────────────────────────────────────────
-router.get('/sessions/:id/coverage', (req, res) => {
+router.get('/sessions/:id/coverage', async (req, res) => {
   const sessionId = Number(req.params.id);
   const session = db.prepare('SELECT id, total, ended_at FROM practice_sessions WHERE id = ?').get(sessionId);
 
   if (!session) return res.status(404).json({ error: 'session not found' });
   if (!session.ended_at) return res.status(400).json({ error: 'session not ended yet' });
 
-  // 统计该场次的题目中有多少已写入画像证据
-  const covered = db.prepare(`
-    SELECT COUNT(DISTINCT ke.question_id) as count
-    FROM kaodian_events ke
-    WHERE ke.session_id = ?
-  `).get(sessionId);
-
-  const coveredCount = covered?.count || 0;
-  const total = session.total || 0;
-  const missing = Math.max(0, total - coveredCount);
-
-  res.json({
-    total,
-    covered: coveredCount,
-    missing,
-    percentage: total > 0 ? Math.round((coveredCount / total) * 100) : 0
-  });
+  res.json(await practiceCoverage(sessionId));
 });
 
 export default router;

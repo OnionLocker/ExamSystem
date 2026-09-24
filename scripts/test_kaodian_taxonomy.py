@@ -38,6 +38,7 @@ OLD_GROUP = "数量关系-逢考必有的排列组合与概率-分堆分配与�
 OLD_DRAWER = "数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉"
 OLD_SUPPORT = "判断推理-逻辑判断-逻辑论证-支持与前提假设"
 L4_AVG = "数量关系-数学运算-平均数问题-加权平均数"
+L4_GROUP = NUM_PERM + "-分堆分配与消序"
 
 
 class FenbiTreeTest(unittest.TestCase):
@@ -58,7 +59,7 @@ class FenbiTreeTest(unittest.TestCase):
         self.assertTrue(is_fenbi_l4("数量关系-数学运算-平均数问题-加权平均数"))
 
     def test_shared_json_aliases(self):
-        self.assertEqual(LEGACY_TO_FENBI[OLD_GROUP], NUM_PERM)
+        self.assertEqual(LEGACY_TO_FENBI[OLD_GROUP], L4_GROUP)
         self.assertEqual(
             LEGACY_TO_FENBI["判断推理-逻辑判断-逻辑论证-支持与前提假设"],
             "判断推理-逻辑判断-加强题型",
@@ -67,11 +68,11 @@ class FenbiTreeTest(unittest.TestCase):
 
 class CanonicalizeOldToNewTest(unittest.TestCase):
     def test_old_quantity_tags(self):
-        self.assertEqual(canonicalize(OLD_GROUP), NUM_PERM)
+        self.assertEqual(canonicalize(OLD_GROUP), L4_GROUP)
         self.assertEqual(canonicalize(OLD_DRAWER), NUM_EXTREME)
         self.assertEqual(
             canonicalize("数量关系-逢考必有的排列组合与概率-古典概型与定位秒杀"),
-            NUM_PROB,
+            NUM_PROB + "-定位法与同组概率",
         )
         self.assertEqual(
             canonicalize("数量关系-熟练掌握可“轻松拿下”的工程问题-工程效率与分段合作"),
@@ -135,7 +136,7 @@ class AliasSeedTest(unittest.TestCase):
         conn = sqlite3.connect(":memory:")
         ensure_schema(conn)
         mappings = seed_aliases(conn)
-        self.assertEqual(mappings[OLD_GROUP], NUM_PERM)
+        self.assertEqual(mappings[OLD_GROUP], L4_GROUP)
         self.assertEqual(kaodian_family(OLD_GROUP), NUM_PERM)
         self.assertEqual(kaodian_family(L4_AVG), NUM_AVERAGE)
         conn.close()

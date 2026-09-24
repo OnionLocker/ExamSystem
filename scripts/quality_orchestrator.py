@@ -89,6 +89,9 @@ A 20-item 判断推理 paper must be 图形推理 5 + 逻辑判断 15 (multiple 
 no 定义判断/类比推理/科学推理). 科学推理 is a separate 5-item module: one subject each from
 力学/压强浮力/电学/生物/地理 (physics 2-3 + biology 1 + geography 1), every item with a figure.
 For targeted_drill batches, do not require the 5-subject quota; every science item still needs a real figure and the declared knowledge point.
+For all targeted_drill batches, slot_plan controls the requested topics, counts, difficulty and brief.
+Check every brief, including batch-wide quotas, against the actual questions and kaofa_canon.
+A data-analysis targeted drill may contain 1-20 questions and 1-4 materials; do not impose a comprehensive Q5 when slots request a specific method.
 type_distribution_ok is false if that layout is missing."""
 
 REFERENCE_SYSTEM = """You are a strict reference-relevance auditor. For every generated question,
@@ -909,6 +912,7 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
             }
     payload = {
         "batch_constraints": (manifest.get("generation") or {}).get("batch_constraints") or {},
+        "kaofa_canon": (manifest.get("generation") or {}).get("kaofa_canon") or {},
         "questions": [public_question(q, include_answer=True) | {"difficulty": q.get("difficulty")} for q in questions],
         "evaluation_references_by_question": evaluation_references(manifest),
     }

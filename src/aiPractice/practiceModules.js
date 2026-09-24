@@ -2,6 +2,8 @@
 // 「图形题目」是外采带图包（slug: tuxing），不是 Gemini 日更科目。
 
 export const MODULES = [
+  '政治理论',
+  '常识判断',
   '言语理解与表达',
   '判断推理',
   '科学推理',
@@ -63,6 +65,8 @@ export function moduleOf(item = {}) {
   const fromId = moduleFromBatchId(item.batch_id || item.category);
   if (fromId) return fromId;
   const lower = text.toLowerCase();
+  if (lower.includes('政治理论')) return '政治理论';
+  if (lower.includes('常识判断') || lower.includes('常识应用')) return '常识判断';
   if (lower.includes('言语理解与表达') || lower.includes('yanyu') || lower.includes('verbal')) {
     return '言语理解与表达';
   }

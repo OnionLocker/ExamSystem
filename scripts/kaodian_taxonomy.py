@@ -290,6 +290,12 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
     # 出题入口不能沿用那个展示归类，否则会走错 20 题判断卷规则。
     if raw.startswith("科学推理-") and normalize_module(module) in {"", "科学推理"}:
         return raw
+    # 已确认的旧名映射优先；历史画像中存在旧行不应阻止归一。
+    mapped = static_alias(raw)
+    if mapped:
+        return mapped
+    if is_fenbi_primary(raw):
+        return raw
     # Hermes 显式 --register 过的标签是权威的，不能再被下面的关键词兜底改写。
     # 资料分析例外：它是封闭词表，旧标签必须继续被归一到白名单上。
     if (
@@ -298,11 +304,6 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
         and normalize_module(module) != "资料分析"
         and raw in registered_canonical_tags()
     ):
-        return raw
-    mapped = static_alias(raw)
-    if mapped:
-        return mapped
-    if is_fenbi_primary(raw):
         return raw
     short = lookup_fenbi_short(raw)
     if short:
@@ -606,35 +607,30 @@ def question_primary_tag(question: dict) -> str:
     return ""
 
 
-_REGISTERED_CACHE: dict[str, tuple[float, set[str]]] = {}
-
-
-def registered_canonical_tags() -> set[str]:
-    """已 --register 进画像的三级标签，允许作为新补录考点出题。
-
-    canonicalize 每次都要问，所以按库文件 mtime 缓存；新登记会立刻失效重读。
-    """
+def registered_knowledge_points() -> dict[str, dict]:
+    """只读登记定义；不按主库 mtime 缓存，WAL 提交也必须立即可见。"""
     path = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "data" / "exam.db")
     if not path.is_file():
-        return set()
-    key = str(path)
-    stamp = path.stat().st_mtime
-    hit = _REGISTERED_CACHE.get(key)
-    if hit and hit[0] == stamp:
-        return hit[1]
+        return {}
     try:
         conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
-        rows = conn.execute("SELECT kaodian FROM kaodian_profile").fetchall()
-        conn.close()
+        try:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(kaodian_profile)")}
+            definition = "COALESCE(definition, note, '')" if "definition" in columns else "COALESCE(note, '')"
+            rows = conn.execute(f"SELECT kaodian, {definition} FROM kaodian_profile").fetchall()
+        finally:
+            conn.close()
     except sqlite3.Error:
-        return set()
-    found = {
-        str(row[0])
+        return {}
+    return {
+        str(row[0]): {"definition": str(row[1] or "")}
         for row in rows
         if row[0] and str(row[0]).count("-") >= 2 and not str(row[0]).startswith("未分类")
     }
-    _REGISTERED_CACHE[key] = (stamp, found)
-    return found
+
+
+def registered_canonical_tags() -> set[str]:
+    return set(registered_knowledge_points())
 
 
 def assert_registerable_tag(kaodian: str, module: str = "") -> str:
@@ -691,6 +687,10 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
             hint = f"应写成 {canonical}" if canonical in KNOWN_ZILIAO_TAGS else "词表见 solver-canon/07-ziliao.md"
             raise ValueError(f"资料分析 tags[0] 必须是知识库主标签，收到: {tag}。{hint}")
         return tag
+    if is_fenbi_l4(canonical) and canonical not in registered_canonical_tags():
+        documented = {canonicalize(t) for card in canon_index() for t in card["tags"]}
+        if canonical not in documented:
+            raise ValueError(f"新子考点须先 --register 登记定义与边界：{canonical}")
     if is_fenbi_primary(canonical) or canonical in registered_canonical_tags():
         return canonical
     raise ValueError(

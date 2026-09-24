@@ -9,12 +9,14 @@ import express from 'express';
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'practice-evolution-'));
 process.env.EXAM_DB = path.join(temp, 'exam.db');
 process.env.EXAM_DRAFT_DIR = path.join(temp, 'drafts');
+process.env.EXAM_PRACTICE_REVIEW_DIR = path.join(temp, 'reviews');
 
 const { default: db } = await import('../server/db.js');
 const { default: practiceRouter } = await import('../server/routes/practice.js');
+const { default: kaodianRouter } = await import('../server/routes/kaodian.js');
 
 const alias = '数量关系-数学运算-排列组合';
-const canonical = '数量关系-逢考必有的排列组合与概率-基础原理与几何概型';
+const canonical = '数量关系-数学运算-排列组合问题';
 const question = db.prepare('SELECT id FROM questions ORDER BY id LIMIT 1').get();
 db.prepare(
   `UPDATE questions
@@ -30,6 +32,7 @@ db.prepare(
 const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use('/api/practice', practiceRouter);
+app.use('/api/kaodian', kaodianRouter);
 const server = app.listen(0, '127.0.0.1');
 await new Promise((resolve) => server.once('listening', resolve));
 const { port } = server.address();
@@ -107,9 +110,35 @@ assert.equal(blocked.status, 0, (blocked.stderr || '') + (blocked.stdout || ''))
 assert.match(blocked.stdout, /already sealed/);
 assert.equal(db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE evidence_type='practice'").get().n, 3);
 
+const review = {
+  independence: 'independent', process: 'correct', basis: 'draft', execution: 'hesitant',
+  reason: 'The draft establishes the right model but has an arithmetic slip.',
+  template: 'first-model', timing_valid: true, target_seconds: 60, target_basis: 'Test exam budget',
+};
+for (let i = 0; i < 2; i += 1) {
+  const assessed = spawnSync('python3', ['scripts/kaodian_profile.py', '--assess', 'practice',
+    String(sessions[0].id), String(question.id), JSON.stringify(review)],
+  { cwd: path.resolve('scripts/..'), env: process.env, encoding: 'utf8' });
+  assert.equal(assessed.status, 0, assessed.stderr);
+  assert.equal(JSON.parse(assessed.stdout).updated, i === 0);
+}
+assert.equal(db.prepare('SELECT COUNT(*) AS n FROM kaodian_assessment_history').get().n, 1);
+const profileResponse = await fetch(`http://127.0.0.1:${port}/api/kaodian`);
+assert.equal(profileResponse.status, 200);
+const returnedProfiles = (await profileResponse.json()).items;
+const profile = returnedProfiles.find(row => row.kaodian === canonical);
+assert.ok(profile, JSON.stringify(returnedProfiles));
+assert.equal(profile.assessment.level, 'initial');
+assert.equal(profile.assessment.independent_samples, 1);
+assert.equal(profile.assessment.repeats_excluded, 2);
+assert.equal(profile.assessment.evidence[0].correct, false);
+assert.equal(profile.assessment.fluency, 'unassessed');
+assert.equal(db.prepare("SELECT COUNT(*) AS n FROM kaodian_events WHERE evidence_type='practice'").get().n, 3);
+
 const auditResponse = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/audit`, { method: 'POST' });
 const audit = await auditResponse.json();
 assert.equal(auditResponse.status, 201);
+assert.equal(JSON.parse(db.prepare('SELECT assessment_baseline FROM practice_sessions WHERE id=?').get(audit.id).assessment_baseline)[canonical], 'initial');
 assert.equal(db.prepare('SELECT audit_of_session_id FROM practice_sessions WHERE id=?').get(audit.id).audit_of_session_id, sessions[0].id);
 const auditSubmit = await call(`/api/practice/sessions/${audit.id}/submit`, {
   duration_sec: 12,
@@ -161,6 +190,19 @@ assert.equal(written[0].evidence_weight, 1, '停留 120 秒是满权重证据');
 assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(longBlank.id).n, 1);
 assert.equal(db.prepare('SELECT COUNT(*) AS n FROM mistakes WHERE question_id=?').get(shortBlank.id).n, 0);
 
+const coverage = async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${blankSession.id}/coverage`);
+  assert.equal(response.status, 200);
+  return response.json();
+};
+assert.deepEqual(await coverage(), {total: 2, covered: 1, missing: 1, percentage: 50});
+// 录屏和练习的编号会重叠，录屏证据既不能抵扣漏记，也不能挡住后续练习写入。
+db.prepare(`INSERT INTO kaodian_events(kaodian,session_id,question_id,is_correct,evidence_type)
+  VALUES (?,?,?,1,'exam')`).run(canonical, blankSession.id, question.id);
+assert.deepEqual(await coverage(), {total: 2, covered: 1, missing: 1, percentage: 50});
+const incompleteBlank = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${blankSession.id}/review-complete`, {method:'POST'});
+assert.equal(incompleteBlank.status, 409);
+
 // 有作答的那道还没写证据，封存必须被拒绝
 const seal = () => spawnSync('python3', [
   'scripts/kaodian_profile.py', '--seal-practice', String(blankSession.id),
@@ -177,6 +219,7 @@ assert.equal(
 
 // 补上那道，封存就该通过——秒过的空题不会把这一场永远卡住
 record(blankSession.id, '0');
+assert.deepEqual(await coverage(), {total: 2, covered: 2, missing: 0, percentage: 100});
 const accepted = seal();
 assert.equal(accepted.status, 0, (accepted.stderr || '') + (accepted.stdout || ''));
 assert.match(accepted.stdout, /^sealed/);
@@ -184,6 +227,11 @@ assert.notEqual(
   db.prepare('SELECT profile_reviewed_at FROM practice_sessions WHERE id=?').get(blankSession.id).profile_reviewed_at,
   null,
 );
+// 在临时库里重新打开此场，验证 API 封存与 Python 封存使用同一分母。
+db.prepare('UPDATE practice_sessions SET profile_reviewed_at=NULL WHERE id=?').run(blankSession.id);
+const sealedBlank = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${blankSession.id}/review-complete`, {method:'POST'});
+assert.equal(sealedBlank.status, 200);
+assert.equal((await sealedBlank.json()).sealed, true);
 
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
@@ -209,6 +257,22 @@ const putJson = await fetch(
 );
 const putJsonBody = await putJson.json();
 assert.ok(putJson.ok, JSON.stringify(putJsonBody));
+
+// Picker query must retain category filters, counts and the most recent limit.
+const list = await (await fetch(`http://127.0.0.1:${port}/api/practice/sessions?limit=2`)).json();
+assert.equal(list.length, 2);
+assert.ok(list.every((row) => row.ended_at && row.total > 0));
+const filtered = await (await fetch(`http://127.0.0.1:${port}/api/practice/sessions?category=test-1&limit=100`)).json();
+assert.ok(filtered.length > 0);
+assert.ok(filtered.every((row) => row.category === 'test-1'));
+assert.equal(filtered.find((row) => row.id === sessions[0].id).wrong_count, 1);
+const report = await (await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/report`)).json();
+const combined = await (await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/md?include=report`)).json();
+assert.deepEqual(combined.report, report);
+assert.equal(fs.readFileSync(combined.path, 'utf8'), combined.markdown);
+const original = await (await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/md`)).json();
+assert.equal(original.report, undefined);
+assert.equal(original.markdown, combined.markdown);
 
 await new Promise((resolve) => server.close(resolve));
 db.close();

@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { normalizeAnswer } from '../src/answers.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -288,8 +289,8 @@ function validateQuestions(dir, manifest, materialMap, rep) {
 
     // options & answer
     if (qt === 'judge') {
-      if (!['T', 'F', '对', '错'].includes(q.answer))
-        rep.err(loc, `judge 题 answer 必须是 T/F（或 对/错），收到: ${q.answer}`);
+      if (!['A', 'B'].includes(normalizeAnswer(q.answer, 'judge')))
+        rep.err(loc, `judge 题 answer 必须是 A/B（兼容 T/F、对/错），收到: ${q.answer}`);
     } else {
       if (!Array.isArray(q.options) || q.options.length < 2) {
         rep.err(loc, 'options 至少要 2 项');
@@ -327,6 +328,7 @@ function validateQuestions(dir, manifest, materialMap, rep) {
           }
           if (keysAns.length < 2)
             rep.err(loc, `multi 题 answer 至少 2 个 key，收到: ${JSON.stringify(q.answer)}`);
+          if (new Set(keysAns).size !== keysAns.length) rep.err(loc, 'multi 题答案不得包含重复选项');
           for (const k of keysAns) {
             if (!/^[A-E]$/.test(k))
               rep.err(loc, `multi 题 answer 包含非法 key: ${k}`);

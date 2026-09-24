@@ -1,7 +1,7 @@
 ---
 title: hermes 公考能力总览（能力地图 + 调度规则）
 purpose: 把散在多个 skill 里的公考能力收成一张图，让 hermes 知道「什么场景该动哪个能力、读哪个文件、写哪张表」。
-last_updated: 2026-08-22
+last_updated: 2026-09-24
 ---
 
 # hermes 公考能力总览
@@ -17,7 +17,8 @@ last_updated: 2026-08-22
 | 用户长短板 | `exam.db` 的 `kaodian_profile` / `kaodian_events` |
 | 出题必须过什么关 | `kaogong/quiz-pipeline/SKILL.md` |
 | 解析怎么排版 | `gd-gongkao-coach/references/answer-parse-template.md` |
-| 解析里本题考察知识点怎么命名 | `solver-canon/01-zhengzhi.md` / `02-changshi.md` 的固定词表；输出与题库 `tags`、画像 `kaodian` 逐字一致 |
+| 解析里本题考察知识点怎么命名 | `scripts/kaodian_taxonomy.py` 规范标签与已登记 L4；solver-canon 用于解法，旧标签先走别名归一 |
+| 政治/常识事实与日期口径 | `quiz-pipeline/references/politics-common-workflow.md`；权威原文快照，真题只作风格参考 |
 | 固定词表没有的新考点怎么补 | `references/knowledge-point-extension.md` + `scripts/kaodian_profile.py register_knowledge_point()`；先登记再复用 |
 | 用户偏好、禁忌叫法 | `~/.hermes/memories/USER.md` |
 
@@ -29,8 +30,9 @@ last_updated: 2026-08-22
 
 ### A. 出题 —— `kaogong/quiz-pipeline`
 触发：出题、考考我、来几题、模拟题、刷题、练一练。
-流程：定考点（读画像）→ **取 GONGKAO-STYLE generate 真题包** → 写草稿 → 正确性闸门 → **取独立 evaluate 留出包做质量闸门** → 交付 → 落库 → **复盘后写画像**。
-硬约束：不出定义判断、不出类比推理；带图题仅在必要时走 quiz-pipeline D 路，生成后必须通过命题人/考生双视角视觉盲审。验证过程一律后台静默，禁 LaTeX。
+流程：服从用户指定模块/考点 → 规范标签（细分先登记）→ 后台调用 quiz-pipeline 指定入口 → 脚本出题、独立审核、入库 → 复盘后写画像。Hermes 不在会话里手写题或手工绕过闸门。
+政治理论支持判断/单选/多选，常识支持单选；先找足够的权威原文，再交 `quiz_lite.py`。没有相关资料时先补源，不用当前种子文件硬凑无关知识点。
+硬约束：不出定义判断、不出类比推理；图形、空间、科学推理正式 AI 出题暂不开放。资料图表走确定性渲染和视觉审核。验证过程后台执行，能力边界以 quiz-pipeline 为准。
 
 ### B. 解析复盘 —— `gd-gongkao-coach` + `software-development/exam-coaching-gd-provincial`
 触发：用户上传做题 PDF、说"讲解一下"、"复盘"、"看我的草稿"。
@@ -82,7 +84,7 @@ reference_questions ──reference_style.py──> GONGKAO-STYLE 提纲 + gener
 
 **两个必做写入**，漏掉任何一个闭环就断：
 1. 出完题 → `npm run import:batch`（否则网页端看不到，错题数据永远空）
-2. 作答证据入库 → AI练题在交卷时自动写入，其后复盘只读；录屏/真题复盘在 Hermes 带上报告时按题 `record(..., exam --exam-id --item)` 写一次；资料上传/独立讲题仅在尚未落库时调用一次 `kaodian_profile.record()`。同一证据不重复计样本。
+2. 作答证据入库 → AI练题空题交卷自动记录，有答案题首次复盘按报告客观对错记录一次，过程判断用 `--assess` 补充并封存（见 `mastery-assessment.md`）；录屏/真题复盘在 Hermes 带上报告时按题 `record(..., exam --exam-id --item)` 写一次；资料上传/独立讲题仅在尚未落库时调用一次 `kaodian_profile.record()`。同一证据不重复计样本。
 
 ---
 
@@ -90,11 +92,13 @@ reference_questions ──reference_style.py──> GONGKAO-STYLE 提纲 + gener
 
 | 缺口 | 影响 | 何时能补 |
 |---|---|---|
-| 2025 省考卷无答案版 | 该卷不能用于评测与干扰项反查 | 用户补传 |
+| 政治/常识原文覆盖仍按需扩展 | 种子资料不是全科完整题库 | 用户点名知识点后先检索权威原文并登记 |
 | 真题无官方解析 | 知道正确项，不知道命题人的干扰逻辑 | 需要带解析版，或自己反推 |
-| 带图题已可出但成本更高 | 图形推理与科推需逐图生成和双视角盲审 | 仅在图片确有必要时启用 D 路 |
+| 图形、空间与科学推理暂不开放正式 AI 出题 | 使用外采真题；实验图题不能入库 | 后续单独验收绘图与读图能力；资料表格/柱图已支持确定性渲染 |
 | 申论无真题库 | 申论只有题型名称，无考情数据 | 用户上传申论真题后同流程处理 |
 | 科学推理题量已砍到 5 题 | 原"重点补短板"定位需降级 | 已在权威档 §5 调整 |
+
+2025 回忆版结构化答案已按本地解析 PDF 定向补齐；来源仍是回忆版，不冒充官方答案。2025、2026政治题型的4判断+4单选+2多选已核对，未来年度仍以新公告和可靠试卷为准。
 
 ---
 

@@ -35,7 +35,7 @@ from yanyu_variety import recent_yanyu_avoid, validate_yanyu_fills
 from quiz_generator import (
     BASE_URL,
     api_key,
-    canon_card,
+    run_canon_card,
     infer_subcategory,
     parse_json,
     reject_unsupported,
@@ -44,6 +44,7 @@ from quiz_generator import (
 )
 from scheduler_common import DB, ROOT, local_today
 from spoken_quiz_intent import slug_of
+from policy_sources import SOURCE_MODULES, source_pack
 
 MODEL = os.environ.get("QUIZ_LITE_MODEL", "gemini-3.8-flash-high")
 HTTP_RETRIES = 3
@@ -79,9 +80,10 @@ EXAMINER_SYSTEM = (
     "style_ok：题干情境、设问方式、选项设置、篇幅是否像广东省考真题，"
     "不是奥数题、不是教材例题、不是脑筋急转弯。\n"
     "analysis_ok：解析每一步是否可复算，最后结论是否确实等于键定选项；算式与数值必须自洽。\n"
+    "brief_ok：逐题满足 declared_brief 的额外命题要求；跨题配额按 batch_slots 和整批题核对。无额外要求则为 true。\n"
     '只输出 JSON：{"questions":[{"id":"...","verdict":"PASS","difficulty_ok":true,'
-    '"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"issues":[]}]}\n'
-    "四项全 true 才给 PASS；任一为 false 必须 REJECT，并在 issues 里写明具体哪一步错、怎么错的。"
+    '"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"brief_ok":true,"issues":[]}]}\n'
+    "五项全 true 才给 PASS；任一为 false 必须 REJECT，并在 issues 里写明具体哪一步错、怎么错的。"
 )
 
 
@@ -160,11 +162,12 @@ def public(question: dict, with_answer: bool) -> dict:
         "category": question.get("category"),
         "sub_category": question.get("sub_category"),
         "tags": question.get("tags") or [],
-        "kaodian_signal": question.get("kaodian_signal"),
         "stem": question.get("stem"),
+        "question_type": question.get("question_type", "single"),
         "options": options,
     }
     if with_answer:
+        out["kaodian_signal"] = question.get("kaodian_signal")
         out["answer"] = question.get("answer")
         out["analysis"] = question.get("analysis")
     return out
@@ -175,7 +178,10 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
     for ask in asks:
         tag = str(ask["tag"])
         if tag not in cards:
-            cards[tag] = canon_card(run["module"], tag)
+            cards[tag] = run_canon_card(run, tag)
+    if run['module'] in SOURCE_MODULES:
+        from policy_quiz import writer_prompt as grounded_prompt
+        return grounded_prompt(run, asks, kept)
     lines = [
         "严格按下面每一条 item 出题，一条一道，数量不多不少。",
         json.dumps(
@@ -208,6 +214,10 @@ def writer_prompt(run: dict, asks: list[dict], kept: list[str]) -> str:
         "四个选项按大小排好，A→D 升序（或统一降序），不许乱序。",
         "- 纯文字题，不带图、不引用图；禁止照搬真题；主体用某单位/某企业/某科室这类中性称谓。",
         "- 题干与设问要像广东省考真题：情境简洁、设问明确、篇幅不超过真题常见长度。",
+        "- 可适量用科技创新、AI应用、广东产业等场景，但用户指定考点/难度优先，不强塞热点。"
+        "数量和资料模拟数据要在题面明确给足，不冒充真实统计；言语答案只凭给定文段；"
+        "逻辑题不能要求题干以外的专业知识。涉及真实政策原话或具体时事数据时，"
+        "必须有已核验原文，否则用不声称真实事件的中性场景。",
     ]
     if run["module"] == "言语理解与表达":
         lines += [
@@ -262,8 +272,12 @@ def local_issues(question: dict) -> list[str]:
     issues = []
     options = question.get("options") or []
     keys = [str(option.get("key") or "") if isinstance(option, dict) else "" for option in options]
-    if keys != ["A", "B", "C", "D"]:
-        issues.append("选项必须是 A/B/C/D 四项")
+    kind = question.get('question_type', 'single')
+    expected = ['A', 'B'] if kind == 'judge' else ['A', 'B', 'C', 'D']
+    if keys != expected:
+        issues.append("判断题必须 A/B 两项" if kind == 'judge' else "选项必须是 A/B/C/D 四项")
+    if kind not in {'single', 'multi', 'judge'}:
+        issues.append('题型非法')
     texts = [str(option.get("text") or "").strip() if isinstance(option, dict) else str(option).strip() for option in options]
     if any(not text for text in texts):
         issues.append("存在空选项")
@@ -271,8 +285,14 @@ def local_issues(question: dict) -> list[str]:
         issues.append("选项文本重复")
     elif unordered_numbers(question, texts):
         issues.append("数值选项没按大小排，A→D 要么升序要么降序")
-    if str(question.get("answer") or "") not in set(keys):
+    answer = str(question.get('answer') or '')
+    valid_answer = (2 <= len(answer) <= 4 and answer == ''.join(sorted(set(answer))) and set(answer) <= set(keys)) if kind == 'multi' else answer in set(keys)
+    if not valid_answer:
         issues.append("answer 不在选项内")
+    if kind == 'judge' and texts != ['正确', '错误']:
+        issues.append('判断题 A=正确、B=错误')
+    if question.get('unsuitable'):
+        issues.append('模型无法满足此槽位')
     if len(str(question.get("stem") or "").strip()) < 15:
         issues.append("题干过短")
     analysis = str(question.get("analysis") or "").strip()
@@ -294,26 +314,29 @@ def duplicate_stem(stem: str, others: list[str]) -> bool:
 
 
 def tier_of(run: dict, slot: dict) -> str:
-    return str(slot.get("difficulty") or run.get("difficulty") or "mid")
+    value = slot.get("difficulty") or run.get("difficulty")
+    return value if value in TIER_TO_LEVEL else "mid"
 
 
 def source_difficulty_label(batch_id: str, cli_diff, slots: list) -> str | None:
     """卡片标题用的难度后缀。混档给 ladder，不拿第一槽当整批名字。"""
-    slot_diffs = [str(slot.get("difficulty")) for slot in slots if slot.get("difficulty")]
+    inferred = next((token for token in ("easy", "mid", "hard")
+                     if f"_{token}_" in batch_id or batch_id.endswith(f"_{token}")), "mid")
+    slot_diffs = [str(slot.get("difficulty") or cli_diff or inferred) for slot in slots]
     uniq = list(dict.fromkeys(slot_diffs))
     if len(uniq) > 1:
         return "ladder"
     bid = str(batch_id or "")
     if "_ladder_" in bid or bid.endswith("_ladder"):
         return "ladder"
-    if cli_diff:
-        return str(cli_diff)
     if uniq:
         return uniq[0]
+    if cli_diff:
+        return str(cli_diff)
     for token in ("easy", "mid", "hard"):
         if f"_{token}_" in bid or bid.endswith(f"_{token}"):
             return token
-    return None
+    return "mid"
 
 
 def packed_options(text: str) -> list[dict]:
@@ -349,10 +372,19 @@ def stamp(run: dict, raw: dict, index: int, slot: dict, source: str) -> dict:
     row["difficulty"] = TIER_TO_LEVEL.get(tier_of(run, slot), 3)
     row["external_id"] = f"{run['batch_id']}_{index + 1:02d}"
     row["category"] = run["module"]
-    # 言语标签自身已包含一级/二级，数据库校验要求该模块 sub_category 为空。
-    row["sub_category"] = None if run["module"] == "言语理解与表达" else infer_subcategory(tag, run["module"])
+    # 言语与资料分析标签自身已包含分类，数据库校验要求该模块 sub_category 为空。
+    row["sub_category"] = None if run["module"] in {"言语理解与表达", "资料分析", *SOURCE_MODULES} else infer_subcategory(tag, run["module"])
     row["tags"] = [tag]
-    row["question_type"] = "single"
+    row["question_type"] = slot.get('question_type', 'single')
+    if raw.get('question_type') and raw['question_type'] != row['question_type']:
+        row['unsuitable'] = True
+    if row['question_type'] == 'judge':
+        row['options'] = [{'key': 'A', 'text': '正确'}, {'key': 'B', 'text': '错误'}]
+        row['answer'] = {'T': 'A', 'F': 'B', '对': 'A', '错': 'B'}.get(str(row.get('answer')), row.get('answer'))
+    elif row['question_type'] == 'multi':
+        value = row.get('answer') or ''
+        if isinstance(value, (str, list)):
+            row['answer'] = ''.join(sorted(value))
     row["source"] = source
     row["year"] = 2026
     row["region"] = "广东-省直"
@@ -368,10 +400,14 @@ def stamp(run: dict, raw: dict, index: int, slot: dict, source: str) -> dict:
     return row
 
 
-def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, dict]:
+def review(run: dict, questions: list[dict], per_item: list[dict], batch_questions=None) -> dict[str, dict]:
     """盲解官与考官并行各跑一次，返回逐题结论。"""
     if not questions:
         return {}
+    if run['module'] in SOURCE_MODULES:
+        from policy_quiz import review as grounded_review
+        return grounded_review(run, questions, per_item, batch_questions or questions,
+                               call, public, local_issues, tier_of)
     blind_payload = json.dumps(
         {"questions": [public(q, with_answer=False) for q in questions]}, ensure_ascii=False
     )
@@ -382,18 +418,21 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
         slot = per_item[index]
         tag = str(slot["tag"])
         if tag not in cards:
-            cards[tag] = canon_card(run["module"], tag)
+            cards[tag] = run_canon_card(run, tag)
         examiner_items.append(
             {
                 "question": public(question, with_answer=True),
                 "declared_kaofa": tag,
                 "declared_difficulty": tier_of(run, slot),
+                "declared_brief": slot.get("brief", ""),
             }
         )
     examiner_payload = json.dumps(
         {
             "items": examiner_items,
             "kaofa_canon": {tag: card for tag, card in cards.items() if card},
+            "batch_slots": run.get("slots", []),
+            "batch_questions": [public(q, with_answer=True) for q in (batch_questions or questions)],
         },
         ensure_ascii=False,
     )
@@ -417,6 +456,13 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
         if not blind_item:
             issues.append("盲解官无结论")
         else:
+            if not isinstance(blind_item.get("unsolvable"), bool):
+                issues.append("盲解官缺少有效 unsolvable 判定")
+            alternatives = blind_item.get("also_valid")
+            if not isinstance(alternatives, list) or any(key not in ("A", "B", "C", "D") for key in alternatives):
+                issues.append("盲解官缺少有效 also_valid 唯一性检查")
+            if not isinstance(blind_item.get("steps"), str) or not blind_item["steps"].strip():
+                issues.append("盲解官缺少独立解题步骤")
             if blind_item.get("unsolvable") is True:
                 issues.append(f"盲解官认为此题无解：{str(blind_item.get('reason') or '')[:300]}")
             blind_answer = str(blind_item.get("answer") or "").strip().upper()
@@ -425,7 +471,7 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
                     f"盲解官独立解出 {blind_answer or '空'}，题面键定 {answer}："
                     f"{str(blind_item.get('steps') or '')[:400]}"
                 )
-            extra = [str(key).strip().upper() for key in blind_item.get("also_valid") or []]
+            extra = [str(key).strip().upper() for key in alternatives] if isinstance(alternatives, list) else []
             extra = [key for key in extra if key and key != answer]
             if extra:
                 issues.append(f"盲解官认为 {'/'.join(extra)} 同样成立，答案不唯一")
@@ -437,12 +483,15 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
                 "没落在指定考法上": examiner_item.get("kaodian_ok"),
                 "不像广东省考真题": examiner_item.get("style_ok"),
                 "解析无法复算或与答案不自洽": examiner_item.get("analysis_ok"),
+                "未满足额外命题要求": examiner_item.get("brief_ok"),
             }
             for label, ok in flags.items():
                 if ok is not True:
                     issues.append(label)
             if str(examiner_item.get("verdict") or "").upper() != "PASS":
-                issues.extend(str(item)[:300] for item in examiner_item.get("issues") or [])
+                issues.append("考官未明确通过")
+                if isinstance(examiner_item.get("issues"), list):
+                    issues.extend(str(item)[:300] for item in examiner_item["issues"])
         out[qid] = {
             "question_id": qid,
             "answer": answer,
@@ -452,11 +501,11 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
                 "also_valid": [
                     key
                     for key in (
-                        str(k).strip().upper() for k in (blind_item or {}).get("also_valid") or []
+                        str(k).strip().upper() for k in ((blind_item or {}).get("also_valid") if isinstance((blind_item or {}).get("also_valid"), list) else [])
                     )
                     if key and key != answer
                 ],
-                "unsolvable": bool((blind_item or {}).get("unsolvable")),
+                "unsolvable": (blind_item or {}).get("unsolvable"),
                 "steps": str((blind_item or {}).get("steps") or "")[:1500],
             },
             "examiner": {
@@ -465,6 +514,7 @@ def review(run: dict, questions: list[dict], per_item: list[dict]) -> dict[str, 
                 "kaodian_ok": (examiner_item or {}).get("kaodian_ok"),
                 "style_ok": (examiner_item or {}).get("style_ok"),
                 "analysis_ok": (examiner_item or {}).get("analysis_ok"),
+                "brief_ok": (examiner_item or {}).get("brief_ok"),
                 "issues": [str(item)[:300] for item in (examiner_item or {}).get("issues") or []],
             },
             "issues": issues,
@@ -492,6 +542,7 @@ def build_batch(run: dict, rounds: int, source: str) -> tuple[list[dict], dict, 
                 "index": index + 1,
                 "tag": str(slot["tag"]),
                 "difficulty": tier_of(run, slot),
+                "question_type": slot.get('question_type', 'single'),
             }
             if slot.get("brief"):
                 ask["brief"] = str(slot["brief"])
@@ -538,9 +589,12 @@ def build_batch(run: dict, rounds: int, source: str) -> tuple[list[dict], dict, 
                     rejected.append({"question_id": str(question["external_id"]), "issues": [reason]})
                 fresh = []
 
-        round_results = review(run, fresh, per_item)
+        current = [value for value in slots if value]
+        # 批次要求可能依赖别题；换题后同时重审保留题，避免沿用旧组合的结论。
+        reviewed = current if fresh and any(slot.get("brief") for slot in per_item) else fresh
+        round_results = review(run, reviewed, per_item, current)
         results.update(round_results)
-        for question in fresh:
+        for question in reviewed:
             qid = str(question["external_id"])
             if round_results[qid]["verdict"] == "PASS":
                 continue
@@ -590,6 +644,7 @@ def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) 
         "generation": {
             "style_marker": "GONGKAO-STYLE-v1",
             "pipeline": "quiz_lite",
+            "kaofa_canon": run.get("kaofa_canon", {}),
             "batch_constraints": {
                 "all_original": True,
                 "question_count": len(questions),
@@ -614,6 +669,10 @@ def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) 
             "evaluation_contexts": [],
         },
     }
+    if run['module'] in SOURCE_MODULES:
+        (batch_dir / 'sources.json').write_text(json.dumps(run['source_pack'], ensure_ascii=False, indent=2), encoding='utf-8')
+        manifest['generation'].update(source_grounded=True, source_as_of=run['source_pack']['as_of'],
+                                      sources_sha256=digest(batch_dir / 'sources.json'))
     (batch_dir / "questions.json").write_text(
         json.dumps(questions, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -686,7 +745,7 @@ def import_batch(batch_dir: Path, db_path: Path) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Hermes 轻量专项出题（盲解官 + 考官双审）")
-    parser.add_argument("--module", default="", help="判断推理 / 数量关系 / 言语理解与表达")
+    parser.add_argument("--module", default="", help="政治理论 / 常识判断 / 判断推理 / 数量关系 / 言语理解与表达 / 资料分析")
     parser.add_argument("--tag", help="规范主标签，如 判断推理-逻辑判断-翻译推理")
     parser.add_argument("--count", type=int)
     parser.add_argument(
@@ -699,14 +758,40 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
     parser.add_argument("--db", type=Path, default=DB)
     parser.add_argument("--no-import", action="store_true", help="只出题签收据，不写库")
+    parser.add_argument('--sources', help='政治/常识权威资料 ID，逗号分隔；默认按标签匹配')
+    parser.add_argument('--as-of', help='资料截止日期 YYYY-MM-DD，默认今天')
+    parser.add_argument('--question-type', choices=['single', 'multi', 'judge'], help='政治单考点可指定题型')
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    os.environ["EXAM_DB"] = str(args.db)
     started = time.monotonic()
     try:
-        module, slots = resolve_slots(args)
+        if args.module in SOURCE_MODULES and not args.tag and not args.blueprint:
+            from policy_quiz import module_slots
+            module = args.module
+            count = args.count if args.count is not None else (10 if module == '政治理论' else 5)
+            if not 1 <= count <= MAX_COUNT:
+                raise ValueError('题量须为1–15')
+            slots = module_slots(module, count, args.difficulty)
+        else:
+            module, slots = resolve_slots(args)
+        if args.question_type:
+            if module != '政治理论' and args.question_type != 'single':
+                raise ValueError('仅政治理论支持判断/多选专项')
+            for slot in slots:
+                slot.setdefault('question_type', args.question_type)
+        if module == '政治理论':
+            from policy_quiz import default_question_types
+            layout = default_question_types(sum(slot['count'] for slot in slots))
+            expanded, cursor = [], 0
+            for slot in slots:
+                for _ in range(slot['count']):
+                    expanded.append({**slot, 'count': 1, 'question_type': slot.get('question_type') or layout[cursor]})
+                    cursor += 1
+            slots = expanded
         total = sum(int(slot["count"]) for slot in slots)
         if total < 1 or total > MAX_COUNT:
             raise SystemExit(f"专项题量必须是 1–{MAX_COUNT}；成套卷走日练")
@@ -720,6 +805,8 @@ def main() -> int:
             "slots": slots,
             "difficulty": args.difficulty,
         }
+        if module in SOURCE_MODULES:
+            run['source_pack'] = source_pack(slots, args.sources.split(',') if args.sources else None, args.as_of)
         if module == "言语理解与表达":
             run["yanyu_avoid"] = recent_yanyu_avoid(args.db)
         conn = sqlite3.connect(args.db, timeout=30)
@@ -744,7 +831,7 @@ def main() -> int:
             if topic == "专项":
                 topic = tag_str.split("-")[-1]
         diff = source_difficulty_label(args.batch_id, getattr(args, "difficulty", None), slots)
-        if diff:
+        if diff in TIER_TO_LEVEL:
             run["difficulty"] = diff
         diff_suffix = f"-{diff}" if diff else ""
         source = f"广东省考行测-{module}-{topic}{diff_suffix}-{today:%Y%m%d}"
@@ -754,6 +841,8 @@ def main() -> int:
         # 复核与签发之间不许有任何东西再动 questions.json，否则证据对不上题面。
         write_batch(run, batch_dir, questions, source)
         sign(batch_dir, run, results, log)
+        from generation_gate import verify
+        verify(batch_dir)
         imported = 0 if args.no_import else import_batch(batch_dir, args.db)
         print(
             json.dumps(

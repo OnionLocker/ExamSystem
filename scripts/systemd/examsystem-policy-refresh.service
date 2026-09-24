@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh ExamSystem official policy sources and discover candidates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/ExamSystem
+ExecStart=/usr/bin/python3 scripts/policy_sources.py refresh
+TimeoutStartSec=10min
+UMask=0077

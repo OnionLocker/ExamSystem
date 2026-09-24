@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily official-source refresh for ExamSystem
+
+[Timer]
+OnCalendar=*-*-* 06:15:00 Asia/Shanghai
+Persistent=true
+Unit=examsystem-policy-refresh.service
+
+[Install]
+WantedBy=timers.target

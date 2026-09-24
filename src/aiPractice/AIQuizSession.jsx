@@ -20,6 +20,7 @@ import { api, getToken } from '../api.js';
 import { openKnowledge } from '../knowledge/nav.js';
 import DraftLayer from './DraftLayer.jsx';
 import MathText from './MathText.jsx';
+import { normalizeAnswer, judgeOptions } from '../answers.js';
 import { scrollHost } from './scrollHost.js';
 import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
 
@@ -87,10 +88,7 @@ const ZhentiMark = ({ compact = false }) => (
   </span>
 );
 
-const normalizeJudgeOptions = (options) =>
-  options && options.length >= 2
-    ? options
-    : [{ key: 'A', text: '正确', images: [] }, { key: 'B', text: '错误', images: [] }];
+const normalizeJudgeOptions = judgeOptions;
 
 const optionsOf = (q) =>
   q?.question_type === 'judge' ? normalizeJudgeOptions(q.options) : q?.options || [];
@@ -265,29 +263,31 @@ const BlankSubmitConfirm = ({ blank, grading, onCancel, onConfirm }) => createPo
 const ScoreCard = ({ title, result, sessionId, onAnalyzeWithHermes, profileReviewed }) => {
   const [coverageInfo, setCoverageInfo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [coverageError, setCoverageError] = useState('');
+  const [coverageReload, setCoverageReload] = useState(0);
 
   useEffect(() => {
     if (!sessionId || profileReviewed) return;
+    let cancelled = false;
 
     const checkCoverage = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/practice/sessions/${sessionId}/coverage`);
-        if (response.ok) {
-          const data = await response.json();
-          setCoverageInfo(data);
-        }
+        setCoverageError('');
+        const data = await api(`/api/practice/sessions/${sessionId}/coverage`);
+        if (!cancelled) setCoverageInfo(data);
       } catch (error) {
-        console.error('Failed to check coverage:', error);
+        if (!cancelled) setCoverageError(error.message || '检查失败');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    checkCoverage();
-  }, [sessionId, profileReviewed]);
+    const timer = setTimeout(checkCoverage, 0);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [sessionId, profileReviewed, coverageReload]);
 
-  const needsReview = coverageInfo && coverageInfo.missing > 0 && !profileReviewed;
+  const needsReview = coverageInfo && coverageInfo.missing > 0 && !profileReviewed && !coverageError;
 
   return (
     <div className="space-y-4">
@@ -318,6 +318,13 @@ const ScoreCard = ({ title, result, sessionId, onAnalyzeWithHermes, profileRevie
         </div>
       </div>
 
+      {!profileReviewed && loading && <p role="status" className="text-sm text-[#6b5428]">正在检查复盘进度…</p>}
+      {!profileReviewed && coverageError && (
+        <div role="alert" className="rounded-2xl border border-[#e87924] p-4 text-sm text-[#6b5428]">
+          无法检查复盘进度：{coverageError}
+          <button type="button" onClick={() => setCoverageReload((n) => n + 1)} className="ml-3 underline">重试</button>
+        </div>
+      )}
       {needsReview && (
         <div className="bg-[#fff3e0] border-2 border-[#e87924] rounded-[2rem] p-6">
           <div className="flex items-start gap-4">
@@ -350,8 +357,8 @@ const ScoreCard = ({ title, result, sessionId, onAnalyzeWithHermes, profileRevie
 
 const ReviewItem = ({ item, no, open, onToggle }) => {
   const opts = optionsOf(item);
-  const mine = new Set((item.user_answer || '').split(''));
-  const right = new Set((item.correct_answer || '').split(''));
+  const mine = new Set(normalizeAnswer(item.user_answer, item.question_type).split(''));
+  const right = new Set(normalizeAnswer(item.correct_answer, item.question_type).split(''));
   const stateOf = (key) => {
     if (mine.has(key) && right.has(key)) return 'correct';
     if (mine.has(key)) return 'wrong';
@@ -422,6 +429,19 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
               <p className="text-sm text-[#bbb] italic">（本题暂无解析）</p>
             )}
             <ImageList images={item.explanation_images} />
+            {item.source_evidence?.sources?.length > 0 && <details className="mt-4 text-sm leading-6">
+              <summary className="cursor-pointer font-semibold">命题依据 · 截至 {item.source_evidence.as_of}</summary>
+              <ul className="mt-2 space-y-2">{item.source_evidence.sources.map(source => <li key={source.id}>
+                <a className="underline" href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                <span> · 发布于 {source.published_at}</span>
+              </li>)}</ul>
+              {item.source_evidence.checks?.map(check => <div key={check.key} className="mt-3">
+                <p>{check.key === 'statement' ? '判断句' : check.key}：{check.reason}</p>
+                {check.citations?.map((citation, i) => <blockquote key={i} className="mt-1 border-l-2 border-[#a8935a] pl-3 text-[#6b5428]">
+                  {citation.quote}
+                </blockquote>)}
+              </div>)}
+            </details>}
           </div>
 
           {item.draft_url && (
@@ -473,6 +493,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
   // enter = 「当前停留的这道题」和「这一次进来的时刻」，离开时把差值累加进 timeSpent
   const [enter, setEnter] = useState({ qid: null, at: 0 });
   const enterRef = useRef(enter);
+  const timeSegmentsRef = useRef([]);
   useEffect(() => { enterRef.current = enter; }, [enter]);
   const [pageLive, setPageLive] = useState(() => typeof document === 'undefined' || !document.hidden);
 
@@ -542,6 +563,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
           setIndex(0);
           setAnswers({});
           setTimeSpent({});
+          timeSegmentsRef.current = [];
           setDrafts({});
           setResult(null);
           setReport(null);
@@ -549,8 +571,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
           setErrMsg('');
           dirtyDraftsRef.current = new Set();
           uploadedRef.current = new Set();
-          setEnter({ qid: sourceItems[0].id, at: Date.now() });
-          setPageLive(true);
+          setEnter({ qid: sourceItems[0].id, at: document.hidden ? 0 : Date.now() });
+          setPageLive(!document.hidden);
           setPhase('running');
           return;
         }
@@ -573,6 +595,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
         setIndex(0);
         setAnswers({});
         setTimeSpent({});
+        timeSegmentsRef.current = [];
         setDrafts({});
         setResult(null);
         setReport(null);
@@ -580,8 +603,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
         setErrMsg('');
         dirtyDraftsRef.current = new Set();
         uploadedRef.current = new Set();
-        setEnter({ qid: items[0].id, at: Date.now() });
-        setPageLive(true);
+        setEnter({ qid: items[0].id, at: document.hidden ? 0 : Date.now() });
+        setPageLive(!document.hidden);
         setPhase('running');
       } catch (e) {
         if (aborted) return;
@@ -600,7 +623,9 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
   // 把某一段停留结算进 timeSpent。只从事件处理器 / 回调里调，不在 render 里调。
   const settle = useCallback((slot) => {
     if (!slot?.qid || !slot?.at) return;
-    const delta = Math.round((Date.now() - slot.at) / 1000);
+    const end = Date.now();
+    if (end > slot.at) timeSegmentsRef.current.push([slot.at, end]);
+    const delta = Math.round((end - slot.at) / 1000);
     if (delta <= 0) return;
     setTimeSpent((prev) => ({ ...prev, [slot.qid]: (prev[slot.qid] || 0) + delta }));
   }, []);
@@ -785,9 +810,15 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
     setBlankSubmitCount(0);
 
     // 当前题最后这一段停留还没进 timeSpent（setState 是异步的），
-    // 所以先取出来在 payload 里手动补上，别走 settle
+    // 先取出这段秒数补入 payload，再结算计时区间，排除草稿上传等待。
     const pendingQid = enter.qid;
-    const pendingSec = enter.at ? Math.max(0, Math.round((Date.now() - enter.at) / 1000)) : 0;
+    const submittedAt = Date.now();
+    const pendingSec = enter.at ? Math.max(0, Math.round((submittedAt - enter.at) / 1000)) : 0;
+    const durationSec = sessionSeconds(timeSpent, enter, submittedAt);
+    settle(enter);
+    const submittedSegments = [...timeSegmentsRef.current];
+    enterRef.current = { qid: pendingQid, at: 0 };
+    setEnter(enterRef.current);
 
     setDraftMode(false);
     persistDraft(current?.id);
@@ -806,7 +837,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
       const res = await api(`/api/practice/sessions/${sessionId}/submit`, {
         method: 'POST',
         body: {
-          duration_sec: sessionSeconds(timeSpent, enter, Date.now()),
+          duration_sec: durationSec,
+          timeSegments: submittedSegments,
           answers: payload,
         },
       });
@@ -817,6 +849,8 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
       scrollToTop(paperRef.current);
     } catch (e) {
       setErrMsg(e?.message || '交卷失败');
+      enterRef.current = { qid: pendingQid, at: document.hidden ? 0 : Date.now() };
+      setEnter(enterRef.current);
       setPhase('running');
     }
   };
@@ -891,6 +925,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
       <div className="h-full overflow-y-auto overscroll-y-contain px-4 sm:px-6 py-6">
       <div className="max-w-3xl mx-auto space-y-5 pb-10">
         <ScoreCard
+          key={sessionId}
           title={reviewing ? `${title} · 复盘` : title}
           result={result}
           sessionId={sessionId}
@@ -1149,7 +1184,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
 
               {current?.question_type === 'multi' && (
                 <p className="mt-4 text-sm font-black tracking-widest text-[#6b5428]">
-                  多选题 · 至少选两项，答错不得分
+                  多选题 · 至少选两项，少选、错选不得分
                 </p>
               )}
 

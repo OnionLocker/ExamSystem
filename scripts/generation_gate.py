@@ -218,6 +218,8 @@ def reference_context_digests(batch_dir: Path, manifest: dict) -> dict[str, str]
 
 
 def validate_batch_constraints(manifest: dict, questions: list[dict]) -> None:
+    if (manifest.get("generation") or {}).get("experimental_images"):
+        raise ValueError("实验图题不得签发或入库，须先完成独立验收")
     constraints = (manifest.get("generation") or {}).get("batch_constraints")
     if not isinstance(constraints, dict) or not constraints:
         raise ValueError("v3 批次必须有 generation.batch_constraints 固化用户要求")
@@ -370,16 +372,33 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
     }
     if set(results) != set(ids):
         raise ValueError("轻量复核未覆盖全部生成题")
+    answers = {str(q["external_id"]): q["answer"] for q in read_json(batch_dir / "questions.json")}
     for qid, item in results.items():
         if str(item.get("verdict") or "").upper() != "PASS":
             raise ValueError(f"轻量复核未通过：{qid}")
         blind = item.get("blind") or {}
-        if str(blind.get("answer") or "") != str(item.get("answer") or ""):
+        if item.get("answer") != answers.get(qid) or blind.get("answer") != answers.get(qid):
             raise ValueError(f"盲解官答案与题面不一致：{qid}")
+        if blind.get("unsolvable") is not False or not isinstance(blind.get("also_valid"), list):
+            raise ValueError(f"盲解官缺少有效无解或唯一性判定：{qid}")
+        if not isinstance(blind.get("steps"), str) or not blind["steps"].strip():
+            raise ValueError(f"盲解官缺少独立解题步骤：{qid}")
         if blind.get("also_valid"):
             raise ValueError(f"盲解官发现第二个可成立选项：{qid}")
         if str((item.get("examiner") or {}).get("verdict") or "").upper() != "PASS":
             raise ValueError(f"考官未通过：{qid}")
+        if any((item.get("examiner") or {}).get(key) is not True
+               for key in ("difficulty_ok", "kaodian_ok", "style_ok", "analysis_ok", "brief_ok")):
+            raise ValueError(f"考官检查字段缺失或未通过：{qid}")
+    questions = read_json(batch_dir / 'questions.json')
+    if any(q.get('category') in {'政治理论', '常识判断'} for q in questions):
+        from policy_quiz import validate_receipt
+        if manifest.get('generation', {}).get('source_grounded') is not True:
+            raise ValueError('政治/常识必须经过权威原文审核')
+        source_path = batch_dir / 'sources.json'
+        if not source_path.is_file() or digest(source_path) != manifest['generation'].get('sources_sha256'):
+            raise ValueError('权威原文快照缺失或被修改')
+        validate_receipt(batch_dir, manifest, questions, results)
 
 
 def run_system_quality_gate(batch_dir: Path, ids: list[str]) -> Path:
@@ -591,10 +610,10 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
             form = _judge_form(str(q.get("stem") or ""))
             if form:
                 forms_by_material.setdefault(str(q.get("material_id") or ""), []).append(form)
-        if sum(1 for m in materials if forms_by_material.get(m)) < 4:
+        if not _is_targeted_drill(manifest) and sum(1 for m in materials if forms_by_material.get(m)) < 4:
             raise ValueError("资料分析每篇必须有 1 道综合判断（Q5）")
         all_forms = [f for forms in forms_by_material.values() for f in forms]
-        if len(set(all_forms)) < 2:
+        if not _is_targeted_drill(manifest) and len(set(all_forms)) < 2:
             raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
     # 7) 判断推理 20 题 = 图形 5 + 逻辑 15；日练不得再走「后 5 科学」压缩模型
     panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
@@ -665,9 +684,13 @@ def issue(
     manifest = read_json(manifest_path)
     if not isinstance(manifest, dict) or manifest.get("kind") != "ai-generated":
         raise ValueError("只有 kind=ai-generated 的批次需要签发")
+    if (manifest.get("generation") or {}).get("experimental_images"):
+        raise ValueError("实验图题不得签发或入库")
     normalize_batch(batch_dir)
     manifest = read_json(manifest_path)
     ids = question_ids(batch_dir)
+    if (manifest.get("generation") or {}).get("experimental_images"):
+        raise ValueError("实验图题不得签发或入库")
     questions = read_json(questions_path)
     validate_batch_constraints(manifest, questions)
     validate_paper_hard_rules(manifest, questions, batch_dir)
@@ -722,6 +745,18 @@ def verify(batch_dir: Path) -> dict:
     if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION, LITE_VERSION}:
         raise ValueError("闸门回执版本不支持")
     manifest = read_json(manifest_path)
+    if manifest.get('generation', {}).get('experimental_images'):
+        raise ValueError('实验图题不得签发或入库')
+    questions = read_json(questions_path)
+    if any(q.get('category') in {'政治理论', '常识判断'} for q in questions):
+        if receipt.get('version') != LITE_VERSION:
+            raise ValueError('政治/常识须使用原文核验的轻量出题流程')
+        validate_batch_constraints(manifest, questions)
+        from quiz_lite import local_issues
+        for question in questions:
+            errors = local_issues(question)
+            if errors:
+                raise ValueError('政治/常识题面结构不合格：' + '；'.join(errors))
     ids = question_ids(batch_dir)
     if receipt.get("batch_id") != manifest.get("batch_id"):
         raise ValueError("闸门回执 batch_id 不一致")

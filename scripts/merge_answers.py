@@ -22,7 +22,7 @@ ANS_DIRS = [ROOT / "data" / "uploads" / "真题" / "省考答案",
             ROOT / "data" / "uploads" / "真题" / "国考答案"]
 ZHENTI = ROOT / "data" / "zhenti"
 
-RE_ANS = re.compile(r"正确答案[：:]\s*([A-D](?:\s+[A-D])*)")
+RE_ANS = re.compile(r"正确答案[：:]\s*([A-D]+(?:[ \t]+[A-D]+)*)")
 
 
 def extract(pdf: Path) -> list[str]:
@@ -36,7 +36,7 @@ def extract(pdf: Path) -> list[str]:
                     continue
                 m = RE_ANS.search(b[4])
                 if m:
-                    items.append((pno, b[1], m.group(1).replace(" ", "")))
+                    items.append((pno, b[1], re.sub(r'\s+', '', m.group(1))))
     finally:
         doc.close()
     items.sort(key=lambda t: (t[0], t[1]))
@@ -46,20 +46,26 @@ def extract(pdf: Path) -> list[str]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="只报告，不写回")
+    ap.add_argument('--pdf', type=Path, help='只处理指定答案 PDF')
+    ap.add_argument('--target', type=Path, help='--pdf 对应的题目 JSON')
     args = ap.parse_args()
 
     # 同一份卷子可能有 "(1)" 重复上传，取答案多的
     best: dict[str, tuple[Path, list[str]]] = {}
-    for d in ANS_DIRS:
-        for pdf in sorted(d.glob("*.pdf")):
+    if bool(args.pdf) != bool(args.target):
+        ap.error('--pdf 与 --target 须一起传入')
+    groups = [[args.pdf]] if args.pdf else [sorted(d.glob('*.pdf')) for d in ANS_DIRS]
+    for files in groups:
+        for pdf in files:
             stem = re.sub(r"\(\d+\)$", "", pdf.stem).strip()
+            pdf = pdf.resolve()
             ans = extract(pdf)
             if stem not in best or len(ans) > len(best[stem][1]):
                 best[stem] = (pdf, ans)
 
     total = 0
     for stem, (pdf, ans) in sorted(best.items()):
-        tgt = ZHENTI / f"{stem}.json"
+        tgt = args.target or ZHENTI / f"{stem}.json"
         if not tgt.exists():
             print(f"[无对应题库] {stem}  (抽到 {len(ans)} 个答案)")
             continue

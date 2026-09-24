@@ -15,6 +15,13 @@ import {
 
 assert.equal(DAILY_SLUG.tuxing, '图形题目');
 assert.ok(MODULES.includes('图形题目'));
+for (const module of ['政治理论', '常识判断']) {
+  assert.ok(MODULES.includes(module));
+  assert.equal(moduleOf({ module }), module);
+  assert.equal(moduleOf({ category: module }), module);
+  assert.equal(moduleOf({ source: `广东省考行测-${module}-专项-20260924` }), module);
+}
+assert.equal(moduleOf({ source: '广东省考常识应用练习' }), '常识判断');
 assert.equal(moduleFromBatchId('daily-20260910-tuxing-abc123def'), '图形题目');
 assert.equal(
   dailySourceFromBatchId('daily-20260910-tuxing-abc123def'),

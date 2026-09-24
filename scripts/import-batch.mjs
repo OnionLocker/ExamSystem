@@ -4,6 +4,7 @@
 // 会先跑校验，通过后把题目写入 SQLite、把图片复制到 public/q-images/<batch_id>/
 
 import fs from 'node:fs';
+import { normalizeAnswer, judgeOptions } from '../src/answers.js';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -161,12 +162,12 @@ function importToDB(manifest, questions, materials) {
       external_id, category, sub_category, question_type,
       content, stem_images, options, correct_answer,
       explanation, explanation_images, difficulty, tags,
-      source, year, region, material_id, batch_id
+      source, year, region, material_id, batch_id, source_evidence
     ) VALUES (
       @external_id, @category, @sub_category, @question_type,
       @content, @stem_images, @options, @correct_answer,
       @explanation, @explanation_images, @difficulty, @tags,
-      @source, @year, @region, @material_id, @batch_id
+      @source, @year, @region, @material_id, @batch_id, @source_evidence
     )
     ON CONFLICT(external_id) DO UPDATE SET
       category           = excluded.category,
@@ -184,7 +185,8 @@ function importToDB(manifest, questions, materials) {
       year               = excluded.year,
       region             = excluded.region,
       material_id        = excluded.material_id,
-      batch_id           = excluded.batch_id
+      batch_id           = excluded.batch_id,
+      source_evidence    = excluded.source_evidence
   `);
 
   const stats = { materials: 0, questions: 0 };
@@ -216,11 +218,10 @@ function importToDB(manifest, questions, materials) {
       }
 
       // 规范化 answer
-      let answer = q.answer;
-      if (Array.isArray(answer)) answer = [...answer].sort().join('');
+      const answer = normalizeAnswer(q.answer, q.question_type);
 
       // options 路径改写
-      const opts = Array.isArray(q.options)
+      const opts = q.question_type === 'judge' ? judgeOptions(q.options) : Array.isArray(q.options)
         ? q.options.map((o) => ({
             key: o.key,
             text: o.text ?? '',
@@ -246,6 +247,7 @@ function importToDB(manifest, questions, materials) {
         region: q.region ?? manifest.region ?? null,
         material_id: materialId,
         batch_id: batchId,
+        source_evidence: q.source_evidence ? JSON.stringify(q.source_evidence) : null,
       });
       stats.questions++;
     }

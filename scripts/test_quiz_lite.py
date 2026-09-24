@@ -61,6 +61,7 @@ def examiner_ok():
         "kaodian_ok": True,
         "style_ok": True,
         "analysis_ok": True,
+        "brief_ok": True,
         "issues": [],
     }
 
@@ -214,6 +215,13 @@ class LocalChecks(unittest.TestCase):
         row = quiz_lite.stamp({"module": "数量关系", "batch_id": "b"}, raw, 0, SLOT, "源")
         self.assertEqual(row["difficulty"], quiz_lite.TIER_TO_LEVEL["hard"])
 
+    def test_partial_ladder_defaults_missing_slot_to_mid(self):
+        slots = [{"tag": TAG, "count": 1, "difficulty": "hard"}, {"tag": TAG, "count": 1}]
+        self.assertEqual(quiz_lite.source_difficulty_label("b", None, slots), "ladder")
+        self.assertEqual(quiz_lite.tier_of({"difficulty": "ladder"}, slots[1]), "mid")
+        self.assertEqual(quiz_lite.source_difficulty_label("b", None, [slots[1]]), "mid")
+        self.assertEqual(quiz_lite.source_difficulty_label("b", "mid", [slots[0]]), "hard")
+
     def test_scratchpad_leak_in_analysis_is_caught(self):
         row = stamped("b", 1)
         row["analysis"] = (
@@ -246,6 +254,35 @@ class ReviewDecisions(unittest.TestCase):
 
     def test_agreeing_reviewers_pass(self):
         self.assertEqual(self.review_with(blind_ok(), examiner_ok())["verdict"], "PASS")
+
+    def test_incomplete_or_wrong_type_blind_evidence_rejects(self):
+        for field, bad in (("unsolvable", "false"), ("also_valid", ""), ("steps", [])):
+            for missing in (True, False):
+                with self.subTest(field=field, missing=missing):
+                    blind = blind_ok()
+                    if missing:
+                        blind.pop(field)
+                    else:
+                        blind[field] = bad
+                    self.assertEqual(self.review_with(blind, examiner_ok())["verdict"], "REJECT")
+
+    def test_reject_without_explanation_and_failed_brief_reject(self):
+        for override in ({"verdict": "REJECT", "issues": []}, {"brief_ok": False}):
+            self.assertEqual(self.review_with(blind_ok(), {**examiner_ok(), **override})["verdict"], "REJECT")
+
+    def test_brief_reaches_examiner_but_blind_gets_no_writer_hint(self):
+        self.per_item[0]["brief"] = "至少一道比较不同年份"
+        self.questions[0]["kaodian_signal"] = "writer-secret-hint"
+        prompts = {}
+        def fake(system, prompt, temperature, timeout):
+            prompts[system] = prompt
+            row = blind_ok() if system == quiz_lite.BLIND_SYSTEM else examiner_ok()
+            return {"questions": [dict(row, id="b_01")]}
+        quiz_lite.call = fake
+        quiz_lite.review(self.run, self.questions, self.per_item)
+        self.assertIn(self.per_item[0]["brief"], prompts[quiz_lite.EXAMINER_SYSTEM])
+        self.assertIn('"batch_questions"', prompts[quiz_lite.EXAMINER_SYSTEM])
+        self.assertNotIn("writer-secret-hint", prompts[quiz_lite.BLIND_SYSTEM])
 
     def test_blind_answering_differently_rejects(self):
         result = self.review_with(blind_ok("B"), examiner_ok())
@@ -342,6 +379,27 @@ class PartialReissue(unittest.TestCase):
             quiz_lite.build_batch(run, 2, "源")
         self.assertIn("盲解官独立解出 D", str(caught.exception))
 
+    def test_brief_rechecks_kept_items_after_replacement(self):
+        self.run["slots"][0]["brief"] = "至少一题用不同场景"
+        fake = FakeModel([[question(1), question(2, stem="某企业7名骨干总分590分，问排名第四者最少得多少分？")],
+                          [question(2, stem="某机关8个科室共620件督办任务，问第二名最少完成多少件？")]],
+                         {"b_01": blind_ok(), "b_02": blind_ok()}, {"b_01": examiner_ok(), "b_02": examiner_ok()})
+        prompts = []
+        rounds = 0
+        def call(system, prompt, temperature, timeout):
+            nonlocal rounds
+            if system == quiz_lite.BLIND_SYSTEM:
+                rounds += 1
+                if rounds == 1:
+                    return {"questions": [dict(blind_ok(), id="b_01"), dict(blind_ok("D"), id="b_02")]}
+            if system == quiz_lite.EXAMINER_SYSTEM:
+                prompts.append(json.loads(prompt.split("\n", 1)[1]))
+            return fake(system, prompt, temperature, timeout)
+        quiz_lite.call = call
+        quiz_lite.build_batch(self.run, 3, "源")
+        self.assertEqual(len(prompts), 2)
+        self.assertEqual(len(prompts[1]["items"]), 2)
+
 
 class LiteReceipt(unittest.TestCase):
     def setUp(self):
@@ -369,8 +427,8 @@ class LiteReceipt(unittest.TestCase):
                     "question_id": "b_01",
                     "answer": "A",
                     "verdict": "PASS",
-                    "blind": {"answer": "A", "also_valid": [], "unsolvable": False},
-                    "examiner": {"verdict": "PASS"},
+                    "blind": blind_ok(),
+                    "examiner": examiner_ok(),
                 }
             ],
         }
@@ -379,6 +437,13 @@ class LiteReceipt(unittest.TestCase):
 
     def test_consistent_evidence_passes(self):
         validate_lite_review(self.dir, self.evidence(), ["b_01"])
+
+    def test_consistent_but_forged_answers_do_not_override_question(self):
+        evidence = self.evidence()
+        evidence["results"][0]["answer"] = "B"
+        evidence["results"][0]["blind"]["answer"] = "B"
+        with self.assertRaises(ValueError):
+            validate_lite_review(self.dir, evidence, ["b_01"])
 
     def test_edited_questions_file_fails(self):
         evidence = self.evidence()

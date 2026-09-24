@@ -21,9 +21,9 @@ from PIL import ImageChops
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, tags_for_canon_lookup, validate_ai_primary_tag
+from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, registered_knowledge_points, tags_for_canon_lookup, validate_ai_primary_tag
 from normalize_ai_batch import generation_payload_extras
-from scheduler_common import DB, ROOT, difficulty_tier, load_snapshot, local_today
+from scheduler_common import DB, ROOT, load_snapshot, local_today
 from spoken_quiz_intent import slug_of
 
 
@@ -35,16 +35,21 @@ FIGURE_HINT = re.compile(r"图形推理|科学推理|空间类")
 HARD_RULES = ROOT / "hermes-skills" / "quiz-pipeline" / "references" / "module-hard-rules.md"
 CANON_DIR = ROOT / "hermes-skills" / "gd-gongkao-coach" / "references" / "solver-canon"
 CANON_FILES = {
+    "政治理论": "01-zhengzhi.md",
+    "常识判断": "02-changshi.md",
     "判断推理": "05-panduan.md",
     "数量关系": "04-shuliang.md",
     "言语理解与表达": "03-yanyu.md",
     "科学推理": "06-kepui.md",
+    "资料分析": "07-ziliao.md",
 }
 SECTION = re.compile(r"^\*\*([^*：\n]+?)(?:（[^）\n]*）)?：\*\*", re.M)
 BRIEF_LIMIT = 600
 CANON_LIMIT = 1400
 
 MODULES = {
+    "政治理论",
+    "常识判断",
     "判断推理",
     "数量关系",
     "言语理解与表达",
@@ -120,11 +125,11 @@ def module_of(tag: str, fallback: str) -> str:
     raise ValueError(f"无法识别模块：module={fallback!r} tag={tag!r}")
 
 
-def reject_unsupported(module: str, tag: str, *, allow_images: bool = False) -> None:
+def reject_unsupported(module: str, tag: str, *, allow_images: bool = False, experimental: bool = False) -> None:
     blob = f"{module} {tag}"
-    if module == "资料分析" or (FIGURE_HINT.search(blob) and not allow_images):
+    if (FIGURE_HINT.search(blob) or allow_images) and not (allow_images and experimental):
         raise ValueError(
-            f"{module or tag} 带图/成套卷请走 quiz_generator.py 重型管线。"
+            f"{module or tag} 暂未开放可靠出题；请用外采真题。实验须显式 --experimental-images，并且不入库。"
         )
 
 
@@ -365,6 +370,8 @@ def infer_subcategory(tag: str, module: str) -> str:
         if "语句表达" in tag:
             return "语句表达"
         return "片段阅读"
+    if module in {"政治理论", "常识判断"}:
+        return text
     if module == "科学推理":
         return "科学推理"
     parts = [p for p in (tag or "").split("-") if p]
@@ -510,7 +517,7 @@ def bullet_blocks(steps: str) -> list[str]:
     return ["\n".join(block).strip() for block in blocks]
 
 
-def canon_card(module: str, tag: str) -> str:
+def _static_canon_card(module: str, tag: str) -> str:
     """取 solver-canon 里该考法的固定识别/考场步骤/禁止，当生成器的考法底座。
 
     标签挂在某条考法 bullet 上时只取那一条，否则退回整张卡的考场步骤。
@@ -555,13 +562,30 @@ def canon_card(module: str, tag: str) -> str:
     return "\n".join(parts)[:CANON_LIMIT]
 
 
+def canon_card(module: str, tag: str) -> str:
+    canonical = canonicalize(tag, module)
+    definition = registered_knowledge_points().get(canonical, {}).get("definition", "")
+    static = _static_canon_card(module, tag)
+    if not definition:
+        return static
+    return f"已登记考点：{canonical}\n定义与边界（本子考点优先于父级泛化口径）：\n{definition}\n\n{static}"
+
+
+def run_canon_card(run: dict, tag: str) -> str:
+    # 一批只读取一次，补题和审核沿用同一版本；快照随 manifest 留存。
+    cards = run.setdefault("kaofa_canon", {})
+    if tag not in cards:
+        cards[tag] = canon_card(run["module"], tag)
+    return cards[tag]
+
+
 def slot_briefs(run: dict) -> str:
     """考法底座 + Hermes 本批次的命题指令。只能加约束，不能松约束。"""
     chunks = []
     for index, slot in enumerate(run_slots(run), start=1):
         tag = str(slot["tag"])
         body = [f"[slot {index}] {tag}"]
-        card = canon_card(run["module"], tag)
+        card = run_canon_card(run, tag)
         if card:
             body.append(card)
         if slot.get("brief"):
@@ -608,7 +632,7 @@ def build_prompt(run: dict, snapshot: dict, extras: dict, error: str | None = No
         "question_count": n,
         "batch_id": run["batch_id"],
         "all_original": True,
-        "difficulty_tier": run.get("difficulty") or difficulty_tier(run["plan_date"]),
+        "difficulty_tier": run.get("difficulty") or "mid",
         "learner_snapshot": {
             "as_of": snapshot.get("as_of"),
             "compact": snapshot.get("compact"),
@@ -756,17 +780,19 @@ def attach_evaluate(run: dict, questions: list[dict], batch_dir: Path) -> list[d
 
 def write_batch(run: dict, batch_dir: Path, questions: list[dict], extras: dict, source: str) -> None:
     batch_dir.mkdir(parents=True, exist_ok=True)
-    eval_contexts = attach_evaluate(run, questions, batch_dir)
+    eval_contexts = [] if run.get("experimental_images") else attach_evaluate(run, questions, batch_dir)
     manifest = {
         "batch_id": run["batch_id"],
         "source": source,
         "region": "广东-省直",
         "year": 2026,
         "kind": "ai-generated",
-        "difficulty_tier": run.get("difficulty") or difficulty_tier(run["plan_date"]),
+        "difficulty_tier": run.get("difficulty") or "mid",
         "generation": {
             "style_marker": "GONGKAO-STYLE-v1",
             "batch_constraints": extras["batch_constraints"],
+            "kaofa_canon": run.get("kaofa_canon", {}),
+            "experimental_images": bool(run.get("experimental_images")),
             "generation_contexts": [],
             "evaluation_contexts": eval_contexts,
         },
@@ -804,8 +830,10 @@ def run_cmd(command: list[str], env: dict[str, str]) -> None:
 
 
 def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int, snapshot: dict) -> int:
+    if run["module"] in {"政治理论", "常识判断"}:
+        raise ValueError("政治理论/常识须使用 quiz_lite.py 的原文核验流程")
     for slot in run_slots(run):
-        reject_unsupported(run["module"], str(slot["tag"]), allow_images=needs_figure(run))
+        reject_unsupported(run["module"], str(slot["tag"]), allow_images=needs_figure(run), experimental=run.get("experimental_images", False))
     extras = generation_payload_extras(run["module"], int(run["planned_count"]), str(run["batch_id"]), db_path)
     extras["batch_constraints"]["targeted_drill"] = True
     if needs_figure(run):
@@ -819,10 +847,9 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
     for slot in run_slots(run):
         tag_counts[str(slot["tag"])] = tag_counts.get(str(slot["tag"]), 0) + int(slot["count"])
     extras["batch_constraints"]["tag_counts"] = tag_counts
-    if len(run_slots(run)) > 1:
-        extras["batch_constraints"]["slot_plan"] = [
-            {k: v for k, v in slot.items() if v not in (None, "")} for slot in run_slots(run)
-        ]
+    extras["batch_constraints"]["slot_plan"] = [
+        {k: v for k, v in slot.items() if v not in (None, "")} for slot in run_slots(run)
+    ]
     extras["batch_constraints"].pop("shuliang_layout", None)
     extras["batch_constraints"].pop("panduan_layout", None)
     run["answer_plan"] = extras["answer_plan"]
@@ -860,6 +887,8 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
             validate_question_contract(run, questions)
             render_question_figures(questions, batch_dir, required=needs_figure(run))
             write_batch(run, batch_dir, questions, extras, source)
+            if run.get("experimental_images"):
+                return 0
             run_cmd([sys.executable, str(ROOT / "scripts" / "generation_gate.py"), "issue", str(batch_dir)], env)
             run_cmd(["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], env)
             conn = sqlite3.connect(db_path, timeout=30)
@@ -919,10 +948,21 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
         head = tag.split("-", 1)[0]
         modules.add(head if head in MODULES else module_of(tag, args.module))
         slot = {"tag": tag, "count": count}
+        if raw.get("question_type"):
+            if raw["question_type"] not in {"single", "multi", "judge"}:
+                raise ValueError("question_type 须为 single/multi/judge")
+            if head != "政治理论" and raw["question_type"] != "single":
+                raise ValueError("目前仅政治理论支持判断/多选专项")
+            slot["question_type"] = raw["question_type"]
         if raw.get("difficulty"):
+            if raw["difficulty"] not in {"easy", "mid", "hard"}:
+                raise ValueError("difficulty 须为 easy / mid / hard")
             slot["difficulty"] = str(raw["difficulty"])
         if raw.get("brief"):
-            slot["brief"] = str(raw["brief"]).strip()[:BRIEF_LIMIT]
+            brief = str(raw["brief"]).strip()
+            if len(brief) > BRIEF_LIMIT:
+                raise ValueError(f"brief 超过 {BRIEF_LIMIT} 字，请精简，不会静默截断")
+            slot["brief"] = brief
         slots.append(slot)
     if len(modules) > 1:
         raise SystemExit(f"一个批次只能一个模块，收到: {sorted(modules)}")
@@ -939,8 +979,9 @@ def parse_args() -> argparse.Namespace:
         help='多考法编排，内联 JSON 或 @路径：{"slots":[{"tag":"...","count":3,"difficulty":"hard"}]}',
     )
     parser.add_argument("--batch-id", required=True)
-    parser.add_argument("--difficulty", choices=["easy", "hard"])
+    parser.add_argument("--difficulty", choices=["easy", "mid", "hard"])
     parser.add_argument("--images", choices=["yes", "no"], default="no", help="要求每题生成程序渲染的题干图")
+    parser.add_argument("--experimental-images", action="store_true", help="仅生成实验图题文件，不审核入库")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
     parser.add_argument("--timeout", type=int, default=2400)
     parser.add_argument("--db", type=Path, default=DB)
@@ -950,6 +991,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    os.environ["EXAM_DB"] = str(args.db)
     module, slots = resolve_slots(args)
     total = sum(int(slot["count"]) for slot in slots)
     if total < 1 or total > 15:
@@ -964,12 +1006,14 @@ def main() -> int:
         "slots": slots,
         "difficulty": args.difficulty,
         "images": args.images == "yes",
+        "experimental_images": args.experimental_images,
     }
     for slot in slots:
         reject_unsupported(
             module,
             str(slot["tag"]),
             allow_images=(args.images == "yes" or module == "科学推理" or "图形推理" in str(slot["tag"])),
+            experimental=args.experimental_images,
         )
     conn = sqlite3.connect(args.db, timeout=30)
     try:
@@ -985,13 +1029,13 @@ def main() -> int:
     try:
         imported = generate_and_import(run, batch_dir, args.db, args.timeout, snapshot)
         result = {
-            "status": "success",
+            "status": "experimental" if args.experimental_images else "success",
             "batch_id": args.batch_id,
             "imported": imported,
             "batch_dir": str(batch_dir),
             "tag": run["focus_tag"],
             "slots": slots,
-            "message": f"已入库 {imported} 题，批次 {args.batch_id}",
+            "message": "实验题文件已生成，未审核、未入库，不用于正式训练" if args.experimental_images else f"已入库 {imported} 题，批次 {args.batch_id}",
         }
         print(json.dumps(result, ensure_ascii=False))
         return 0

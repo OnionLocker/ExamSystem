@@ -2,11 +2,12 @@ import { Router } from 'express';
 import db from '../db.js';
 import { unlinkDraftsOfSessions } from './practice.js';
 import { sqliteTimeIso } from '../../src/sqliteTime.js';
+import { normalizeAnswer, judgeOptions } from '../../src/answers.js';
 
 const router = Router();
 
 // JSON 字段列表：需要从字符串反序列化的列
-const JSON_COLS = ['options', 'stem_images', 'explanation_images', 'tags'];
+const JSON_COLS = ['options', 'stem_images', 'explanation_images', 'tags', 'source_evidence'];
 
 const parseQuestion = (row) => {
   if (!row) return row;
@@ -16,6 +17,8 @@ const parseQuestion = (row) => {
       try { out[col] = JSON.parse(out[col]); } catch { out[col] = []; }
     }
   }
+  out.correct_answer = normalizeAnswer(out.correct_answer, out.question_type);
+  if (out.question_type === 'judge') out.options = judgeOptions(out.options);
   return out;
 };
 
@@ -101,7 +104,7 @@ router.get('/', (req, res) => {
       `SELECT id, external_id, category, sub_category, question_type,
               content, stem_images, options, correct_answer, explanation,
               explanation_images, difficulty, tags, source, year, region,
-              material_id, batch_id
+              material_id, batch_id, source_evidence
        FROM questions ${clause} ${order} LIMIT ?`,
     )
     .all(...params, lim);

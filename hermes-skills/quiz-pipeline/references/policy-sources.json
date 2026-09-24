@@ -1,0 +1,40 @@
+{
+  "watch_pages": ["https://www.gov.cn/zhengce/", "https://www.gd.gov.cn/zwgk/wjk/", "https://www.gd.gov.cn/"],
+  "watch_terms": ["新质生产力", "人工智能", "科学素质", "科普", "高质量发展", "政府工作报告", "科技", "十五五", "百千万", "粤港澳", "法律", "改革", "法治", "国家安全", "乡村振兴", "民生", "就业", "文化", "教育", "全会"],
+  "sources": [
+    {
+      "id": "gd-science-literacy-2026", "title": "广东省全民科学素质行动规划纲要实施方案（2026—2030年）",
+      "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/yf/content/post_4959566.html",
+      "published_at": "2026-09-23", "kind": "policy", "scope": "as_published",
+      "tags": ["政治理论-时事政治-重要文件", "政治理论-新思想-五位一体建设", "常识判断-科技常识-科技理论与成就"],
+      "focus": ["领导干部和公务员科学素质", "青少年科学素质", "农民科学素质", "产业工人科学素质", "老年人科学素质", "科普数智化", "科技资源科普化", "科普基础设施", "基层科普能力", "科普+", "科学素质国际", "为深入贯彻", "扎实推进科学素质"]
+    },
+    {
+      "id": "national-work-report-2026", "title": "2026年政府工作报告（3月5日报告、中国政府网3月13日发布）",
+      "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062625.htm",
+      "published_at": "2026-03-13", "kind": "policy", "scope": "as_published",
+      "tags": ["政治理论-时事政治-重要文件", "政治理论-时事政治-重要会议讲话", "政治理论-新思想-五位一体建设", "常识判断-经济常识-宏观经济与调控政策", "常识判断-科技常识-科技理论与成就"],
+      "focus": ["新质生产力", "人工智能", "科技创新", "现代化产业", "主要预期目标", "发展新动能", "财政政策", "货币政策"]
+    },
+    {
+      "id": "gd-work-report-2026", "title": "2026年广东省政府工作报告（1月26日报告、广东省委金融办2月2日转载）",
+      "url": "https://www.gdjr.gov.cn/gdjr/jrzx/gzdt/content/post_40867.html",
+      "published_at": "2026-02-02", "kind": "policy", "scope": "as_published",
+      "tags": ["政治理论-时事政治-重要文件", "政治理论-时事政治-重要会议讲话", "政治理论-时事政治-重要事件", "政治理论-新思想-五位一体建设", "常识判断-经济常识-宏观经济与调控政策", "常识判断-科技常识-科技理论与成就", "常识判断-地理国情-其他"],
+      "focus": ["百千万", "百县千镇万村", "粤港澳", "绿美广东", "新质生产力", "现代化产业", "高质量发展", "人工智能", "科技创新", "民生", "主要预期目标"]
+    },
+    {
+      "id": "marxist-principles-qiushi-2020", "title": "马克思主义的本质特性和当代价值（求是）",
+      "url": "https://www.qstheory.cn/dukan/qs/2020-02/01/c_1125497399.htm",
+      "published_at": "2020-02-01", "kind": "foundation", "scope": "as_published",
+      "tags": ["政治理论-马克思主义-马克思主义哲学", "政治理论-马克思主义-马克思主义政治经济学", "政治理论-马克思主义-科学社会主义"],
+      "focus": ["马克思", "唯物", "人民群众", "生产力", "实践"]
+    },
+    {
+      "id": "science-popularization-law-2024", "title": "中华人民共和国科学技术普及法（2024年修订）",
+      "url": "https://www.most.gov.cn/xxgk/xinxifenlei/fdzdgknr/fgzc/flfg/202412/t20241226_192778.html",
+      "published_at": "2024-12-25", "effective_at": "2024-12-25", "kind": "law", "scope": "as_published",
+      "tags": ["常识判断-法律常识-其他法律法规", "常识判断-科技常识-科技理论与成就"]
+    }
+  ]
+}
