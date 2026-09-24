@@ -1,11 +1,7 @@
 import { useCallback, useState, useMemo } from 'react';
-import { BookOpen, Search, CheckCircle2, Zap, ArrowRight, Trophy, Sparkles, ShieldAlert, Lightbulb, XCircle, RotateCcw, Target } from 'lucide-react';
+import { BookOpen, Search, CheckCircle2, ArrowRight, ChevronDown, Trophy, XCircle, Target } from 'lucide-react';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
-import {
-  addEntryOncePerDay,
-  bumpDailyCount,
-  QUALITATIVE,
-} from '../studyLog/studyLog.js';
+import { addEntry } from '../studyLog/studyLog.js';
 import {
   ALL_WORDS,
   QUIZ_POOL,
@@ -18,34 +14,51 @@ import {
   pickNextTarget,
   summarizeProgress,
 } from './vocabQuiz.js';
+import { IDIOM_GROUPS } from './idiomGroups.js';
+import { LEARNING_KEY, groupQuestion, groupProgress, learningState, recordAnswer, mergeLegacyStats } from './idiomLearning.js';
+import idiomEvidence from './idiomEvidence.json';
+import './idiomStudy.css';
 
 const MASTERED_KEY = 'vocab_mastered_ids_v1';
 
-// 真题包里的词带着「真题N次」标签，这是它们区别于书本词表的价值所在：
-// 不是编者觉得该背，而是近 6 年真题选项里真的反复出现过。
+// Only count appearances with a traceable paper and question number.
 const ZHENTI_CAT = '__zhenti';
-const zhentiHits = (w) => {
-  const t = (w.tags || []).find((x) => /^真题\d+次$/.test(x));
-  return t ? Number(t.match(/\d+/)[0]) : 0;
-};
+const GD_CAT = '__gd';
+const CURATED_CAT = '__curated';
+const GROUPED_WORDS = new Set(IDIOM_GROUPS.flatMap(g => g.members.map(m => m[0])));
+const zhentiHits = (w) => w.references?.length || 0;
 const STATS_KEY = 'vocab_stats_v1';
 const KINDS_KEY = 'vocab_enabled_kinds_v1';
 
+function WordSources({ word }) {
+  if (!word?.references?.length && !word?.publicSources?.length) return null;
+  return <details className="idiom-source">
+    <summary className="cursor-pointer">查看来源{word.references?.length ? ` · ${word.references.length} 条选项记录` : ''}</summary>
+    <ul className="mt-2 space-y-1 leading-relaxed">
+      {word.references?.map((r, i) => <li key={i}>{r.paper} · 第 {r.number} 题{r.recalled && !r.paper.includes('回忆') ? '（回忆版）' : ''}</li>)}
+      {word.publicSources?.map(s => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer" className="underline hover:text-slate-900">{s.title}</a>（选词参考）</li>)}
+    </ul>
+  </details>;
+}
+
 export default function StudyBoost() {
-  const [activeSubTab, setActiveSubTab] = useState('vocab'); // 'vocab'
+  const [learningMode, setLearningMode] = useState('groups');
+  const [learning, setLearning] = useState(() => learningState(cloudGet(LEARNING_KEY, null), cloudGet(MASTERED_KEY, []), ALL_WORDS));
   const [masteredIds, setMasteredIds] = useState(() => cloudGet(MASTERED_KEY, []));
-  // { [id]: { right, wrong, streak } } —— 答对才算掌握的依据
-  const [stats, setStats] = useState(() => cloudGet(STATS_KEY, {}));
+  // Practice history is not a validated estimate of exam mastery.
+  const [stats, setStats] = useState(() => mergeLegacyStats(cloudGet(STATS_KEY, {}), ALL_WORDS));
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCat, setSelectedCat] = useState('all');
+  const [selectedCat, setSelectedCat] = useState(CURATED_CAT);
+  const [groupFilter, setGroupFilter] = useState('all');
+  const [groupScope, setGroupScope] = useState(null);
   const [testMode, setTestMode] = useState(false);
   const [userChoice, setUserChoice] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [expandedWordId, setExpandedWordId] = useState(null);
   // 本轮统计
   const [round, setRound] = useState({ asked: 0, right: 0 });
   const [recentIds, setRecentIds] = useState([]);
   const [question, setQuestion] = useState(null);
+  const saveLearning = useCallback((next) => { setLearning(next); cloudSet(LEARNING_KEY, next); }, []);
 
   // 题型列表来自注册表，且只显示当前词库真能出的那些。
   // 后续 pack 补上 usage/trap/examples 等字段，对应题型会自动出现。
@@ -63,8 +76,11 @@ export default function StudyBoost() {
     for (const w of ALL_WORDS) counts.set(w.category, (counts.get(w.category) || 0) + 1);
     const zhentiCount = ALL_WORDS.filter((w) => zhentiHits(w) > 0).length;
     return [
+      { id: CURATED_CAT, name: '重点整理', count: ALL_WORDS.filter(w => w.curated).length },
       { id: 'all', name: '全部积累', count: ALL_WORDS.length },
-      ...(zhentiCount ? [{ id: ZHENTI_CAT, name: '真题高频', count: zhentiCount }] : []),
+      { id: '__standalone', name: '未分组词语', count: ALL_WORDS.filter(w => !GROUPED_WORDS.has(w.word)).length },
+      { id: GD_CAT, name: '广东近年选项词', count: ALL_WORDS.filter(w => w.references.some(r => r.region === '广东')).length },
+      ...(zhentiCount ? [{ id: ZHENTI_CAT, name: '近年真题选项词', count: zhentiCount }] : []),
       ...[...counts.entries()]
         .filter(([name]) => name)
         .sort((a, b) => b[1] - a[1])
@@ -76,56 +92,81 @@ export default function StudyBoost() {
   const filteredWords = useMemo(() => {
     const list = ALL_WORDS.filter(w => {
       const matchCat = selectedCat === 'all'
-        || (selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
+        || (selectedCat === CURATED_CAT ? w.curated : selectedCat === '__standalone' ? !GROUPED_WORDS.has(w.word) : selectedCat === GD_CAT ? w.references.some(r => r.region === '广东')
+          : selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
       const q = searchQuery.trim();
-      const matchSearch = !q || w.word.includes(q) || (w.explanation || '').includes(q);
+      const matchSearch = !q || [w.word, w.explanation, w.usage, ...(w.rivals || [])].some(text => text?.includes(q));
       return matchCat && matchSearch;
     });
     // 真题视图按考频降序，先背考得最多的
-    return selectedCat === ZHENTI_CAT
+    return [GD_CAT, ZHENTI_CAT].includes(selectedCat)
       ? [...list].sort((a, b) => zhentiHits(b) - zhentiHits(a))
       : list;
   }, [selectedCat, searchQuery]);
 
   // 出题池：只用可出题的词条，并跟随分类筛选
-  const quizPool = useMemo(() => {
-    const p = selectedCat === 'all'
-      ? QUIZ_POOL
-      : QUIZ_POOL.filter(w =>
-          selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
-    // 某个分类词太少凑不出 4 个选项时，回落到全库
-    return p.length >= 4 ? p : QUIZ_POOL;
-  }, [selectedCat]);
+  const quizPool = filteredWords;
 
   const progress = useMemo(() => summarizeProgress(stats, QUIZ_POOL), [stats]);
+  const filteredGroups = useMemo(() => IDIOM_GROUPS.filter(g => {
+    const match = [g.title, g.axis, ...g.members.flat()].some(text => text.includes(searchQuery.trim()));
+    const p = groupProgress(learning, g.id);
+    return match && (groupFilter === 'all'
+      || groupFilter === 'gd' && g.members.some(([word]) => lookupWord(word)?.references.some(r => r.region === '广东'))
+      || groupFilter === 'new' && p.right + p.wrong === 0
+      || groupFilter === 'wrong' && p.wrong > 0);
+  }), [searchQuery, groupFilter, learning]);
 
   // 抽下一题：按掌握权重选词，题型由引擎在该词支持的范围内加权挑选
   const drawQuestion = useCallback((recent) => {
     for (let i = 0; i < 12; i++) {
       const target = pickNextTarget(quizPool, stats, recent);
       if (!target) break;
-      const q = buildQuestion(target, enabledKinds, quizPool);
+      const q = buildQuestion(target, enabledKinds, QUIZ_POOL);
       if (q) return q;
     }
     return null;
   }, [enabledKinds, quizPool, stats]);
 
+  const nextGroupQuestion = useCallback(() => {
+    if (groupScope) {
+      const group = IDIOM_GROUPS.find(g => g.id === groupScope);
+      setQuestion(groupQuestion(group, lookupWord, Math.random, question?.id));
+      setUserChoice(null); setShowExplanation(false);
+      return;
+    }
+    const candidates = filteredGroups.filter(g => g.id !== question?.groupId);
+    const available = candidates.length ? candidates : filteredGroups;
+    const q = available.length ? groupQuestion(available[Math.floor(Math.random() * available.length)], lookupWord) : null;
+    setQuestion(q); setUserChoice(null); setShowExplanation(false);
+  }, [question?.groupId, question?.id, groupScope, filteredGroups]);
+
   const nextQuestion = useCallback(() => {
+    if (learningMode === 'groups') return nextGroupQuestion();
     const q = drawQuestion(recentIds);
-    setQuestion(q);
-    setUserChoice(null);
-    setShowExplanation(false);
+    setQuestion(q); setUserChoice(null); setShowExplanation(false);
     if (q) setRecentIds(prev => [q.target.id, ...prev].slice(0, 20));
-  }, [drawQuestion, recentIds]);
+  }, [drawQuestion, recentIds, learningMode, nextGroupQuestion]);
 
   const startTest = () => {
-    setTestMode(true);
-    setRound({ asked: 0, right: 0 });
-    setUserChoice(null);
-    setShowExplanation(false);
-    const q = drawQuestion([]);
+    setGroupScope(null);
+    setTestMode(true); setRound({ asked: 0, right: 0 }); setUserChoice(null); setShowExplanation(false);
+    const q = learningMode === 'groups'
+      ? (filteredGroups.length ? groupQuestion(filteredGroups[Math.floor(Math.random() * filteredGroups.length)], lookupWord) : null)
+      : drawQuestion([]);
     setQuestion(q);
-    setRecentIds(q ? [q.target.id] : []);
+    setRecentIds(q && !q.groupId ? [q.target.id] : []);
+  };
+
+  const practiceGroup = group => {
+    setGroupScope(group.id); setTestMode(true); setRound({ asked: 0, right: 0 });
+    setQuestion(groupQuestion(group, lookupWord)); setUserChoice(null); setShowExplanation(false);
+  };
+  const practiceWord = item => {
+    setLearningMode('single');
+    const q = buildQuestion(item, ['reverse'], QUIZ_POOL);
+    setQuestion(q); setTestMode(true); setUserChoice(null); setShowExplanation(false);
+    setRound({ asked: 0, right: 0 }); setRecentIds(q ? [item.id] : []);
   };
 
   const handleChoice = (option) => {
@@ -133,18 +174,15 @@ export default function StudyBoost() {
     setUserChoice(option);
     setShowExplanation(true);
     const correct = option.correct;
-    const id = question.target.id;
     setRound(r => ({ asked: r.asked + 1, right: r.right + (correct ? 1 : 0) }));
 
-    // 当天累计答满门槛题数，给一次定性热力（同一天只记一次）
-    const answeredToday = bumpDailyCount('vocab');
-    if (answeredToday >= QUALITATIVE.vocab.minCount) {
-      addEntryOncePerDay('vocab', {
-        module: QUALITATIVE.vocab.label,
-        count: answeredToday,
-        score: QUALITATIVE.vocab.score,
-      });
+    addEntry({ type: 'vocab', module: '词汇练习', count: 1, correct: correct ? 1 : 0 });
+    if (question.groupId) {
+      const next = recordAnswer(learning, question, question.options.find(o => o.id === option.id)?.text);
+      saveLearning(next);
+      return;
     }
+    const id = question.target.id;
     setStats(prev => {
       const cur = prev[id] || { right: 0, wrong: 0, streak: 0 };
       const next = {
@@ -158,10 +196,11 @@ export default function StudyBoost() {
     });
   };
 
-  const toggleMastered = (id) => {
-    const next = masteredIds.includes(id)
-      ? masteredIds.filter(i => i !== id)
-      : [...masteredIds, id];
+  const toggleMastered = (item) => {
+    const ids = new Set((item.legacyIds || [item.id]).map(String));
+    const next = masteredIds.some(id => ids.has(String(id)))
+      ? masteredIds.filter(id => !ids.has(String(id)))
+      : [...masteredIds, item.id];
     setMasteredIds(next);
     cloudSet(MASTERED_KEY, next);
   };
@@ -177,34 +216,9 @@ export default function StudyBoost() {
     });
   };
 
-  const resetStats = () => {
-    setStats({});
-    cloudSet(STATS_KEY, {});
-    setRound({ asked: 0, right: 0 });
-  };
-
-  // 掌握度以「答对才算」为准，不再用手动打勾的数量
-  const masteredRate = progress.total
-    ? Math.round((progress.mastered / progress.total) * 100)
-    : 0;
-
   return (
-    <div className="space-y-8 pb-12">
-      {/* 子模块切换导航 */}
-      <div className="flex items-center space-x-2 bg-white p-2 rounded-2xl border border-[#e8d5b0] w-fit">
-        <button
-          onClick={() => setActiveSubTab('vocab')}
-          className={`px-6 py-3 rounded-xl text-xs font-black transition-all flex items-center space-x-2 ${
-            activeSubTab === 'vocab' ? 'bg-[#1a1a1a] text-white shadow-md' : 'text-slate-500 hover:bg-[#e8d5b0]'
-          }`}
-        >
-          <BookOpen size={16} />
-          <span>言语理解词语高频考点库 ({QUIZ_POOL.length} 可考词条)</span>
-        </button>
-      </div>
-
-      {activeSubTab === 'vocab' && (
-        <div className="space-y-8">
+    <div className="idiom-study space-y-8 pb-12">
+      <div className="space-y-6">
           {/* 扩展包装载诊断：生成的 pack 有问题时立刻可见，避免静默失败 */}
           {(PACK_DIAGNOSTICS.errors.length > 0 || PACK_DIAGNOSTICS.warnings.length > 0) && (
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-1.5">
@@ -225,73 +239,37 @@ export default function StudyBoost() {
             </div>
           )}
 
-          {/* 顶部 Header Banner */}
-          <div className="bg-gradient-to-r from-[#1a1a1a] via-[#2a2a2a] to-[#3a2e0a] text-white p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-              <div>
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="px-3 py-1 rounded-full bg-[#2c261c]/10 text-[#6b5428] text-xs font-black uppercase tracking-widest flex items-center gap-1.5">
-                    <Zap size={14} /> {availability.length} 种考法 · 形近词强干扰
-                  </span>
-                  {/* 考法是数据驱动的：词条补齐 usage/trap/examples 后会自动解锁，
-                      这里跟着 availability 走，别写死数字 */}
-                  <span className="text-xs font-bold text-white/50">
-                    {availability.map((k) => k.label).join(' / ')}
-                  </span>
-                </div>
-                <h2 className="text-3xl font-black italic tracking-tight">言语理解 · 词语高频考点库</h2>
-                <p className="text-sm font-medium text-white/60 mt-2 max-w-2xl">
-                  干扰项一律取<strong>同字数的形近易混词</strong>（度过／渡过、情投意合／臭味相投），数字数猜不出答案；
-                  <strong>连续答对 2 次</strong>才算真掌握，错过的词会加权重现。
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 flex items-center gap-4">
-                  <div className="text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">真掌握</p>
-                    <p className="text-2xl font-black italic text-[#6b5428] tabular-nums">{progress.mastered}</p>
-                  </div>
-                  <div className="w-px h-8 bg-white/15" />
-                  <div className="text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">待巩固</p>
-                    <p className="text-2xl font-black italic text-rose-300 tabular-nums">{progress.shaky}</p>
-                  </div>
-                  <div className="w-px h-8 bg-white/15" />
-                  <div className="text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60">未接触</p>
-                    <p className="text-2xl font-black italic text-white/70 tabular-nums">{progress.untouched}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => (testMode ? setTestMode(false) : startTest())}
-                  className={`px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center space-x-2 shadow-lg ${
-                    testMode ? 'bg-white text-black hover:bg-slate-200' : 'bg-[#2c261c] text-white hover:brightness-110 shadow-black/10'
-                  }`}
-                >
-                  {testMode ? <BookOpen size={16} /> : <Trophy size={16} />}
-                  <span>{testMode ? '返回考场卡片' : '开启秒杀考场刷题'}</span>
-                </button>
-              </div>
+          <div className="idiom-toolbar">
+            <div role="group" aria-label="学习方式" className="idiom-switch">
+              {[['groups', '成组辨析'], ['single', '单词学习']].map(([mode, label]) => (
+                <button key={mode} aria-pressed={learningMode === mode}
+                  onClick={() => { setLearningMode(mode); setTestMode(false); setSearchQuery(''); }}
+                  >{label}</button>
+              ))}
             </div>
+            <button onClick={() => testMode ? setTestMode(false) : startTest()}
+              className="idiom-action">
+              {testMode ? <BookOpen size={16} /> : <Trophy size={16} />}
+              {testMode ? '返回词库' : learningMode === 'groups' ? '开始成组练习' : '开始单词练习'}
+            </button>
           </div>
 
           {/* 模式一：考场真题秒杀模式 */}
           {testMode ? (
-            <div className="bg-white rounded-[2.5rem] border border-[#e8d5b0] p-8 space-y-6 shadow-sm">
+            <div className="idiom-quiz space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e8d5b0] pb-4">
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="w-3 h-3 rounded-full bg-[#2c261c]" />
-                  <h3 className="text-lg font-black italic">考场黑魔法速练 · 第 {round.asked + (showExplanation ? 0 : 1)} 题</h3>
+                  <h3 className="text-lg font-black">{learningMode === 'groups' ? '成组语境辨析' : '单词回忆练习'} · 第 {round.asked + (showExplanation ? 0 : 1)} 题</h3>
                   {question && (
                     <span className="text-[10px] font-black px-2 py-1 rounded-md bg-[#1a1a1a] text-white">
                       {question.kindLabel}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {/* 题型开关：来自注册表，词库补了新字段就会自动多出选项 */}
-                  <div className="flex items-center gap-1 bg-[#f9f8f6] p-1 rounded-xl border border-[#e8d5b0]">
+                  {learningMode === 'single' && <div className="flex flex-wrap items-center gap-1 bg-[#e8cf9f] p-1 rounded-xl border border-[#e8d5b0]">
                     {availability.map(({ id, label, count }) => (
                       <button
                         key={id}
@@ -306,7 +284,7 @@ export default function StudyBoost() {
                         {label}
                       </button>
                     ))}
-                  </div>
+                  </div>}
                   <span className="text-xs font-black px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full tabular-nums">
                     本轮 {round.right} / {round.asked}
                   </span>
@@ -317,30 +295,30 @@ export default function StudyBoost() {
                 <div className="py-16 text-center space-y-3">
                   <p className="text-sm font-black text-slate-400">当前筛选下没有足够的词条出题</p>
                   <button
-                    onClick={() => { setSelectedCat('all'); startTest(); }}
+                    onClick={() => { setSelectedCat('all'); setSearchQuery(''); setTestMode(false); }}
                     className="px-5 py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-black"
                   >
-                    切回全部词条
+                    返回全部词条
                   </button>
                 </div>
               ) : (
               <>
               {/* 题目展示 */}
               <div className="space-y-4">
-                <div className="bg-[#f9f8f6] p-6 rounded-2xl border border-[#e8d5b0]">
+                <div className="idiom-prompt p-5 rounded-2xl">
                   <span className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                     {question.promptLabel}
                   </span>
                   <p className={`font-bold text-[#1a1a1a] leading-relaxed ${
                     question.bigPrompt ? 'text-3xl font-black tracking-tight' : 'text-base'
                   }`}>
-                    {question.quotePrompt ? `“${question.prompt}”` : question.prompt}
+                    {question.groupId ? question.stem : (question.quotePrompt ? `“${question.prompt}”` : question.prompt)}
                   </p>
                   <div className="mt-3 flex items-center space-x-2">
                     <span className="text-[10px] font-black px-2.5 py-1 rounded-md bg-[#1a1a1a] text-white">
-                      陷阱归类：{question.target.category}
+                      {question.groupId ? '成语辨析组' : `陷阱归类：${question.target.category}`}
                     </span>
-                    {question.target.page && (
+                    {question.target?.page && (
                       <span className="text-[10px] font-bold text-slate-400">原书 P{question.target.page}</span>
                     )}
                   </div>
@@ -366,7 +344,8 @@ export default function StudyBoost() {
                         key={`${opt.id}-${i}`}
                         disabled={showExplanation}
                         onClick={() => handleChoice(opt)}
-                        className={`p-5 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 ${btnStyle}`}
+                        data-result={showExplanation ? (isCorrect ? 'correct' : isSelected ? 'wrong' : 'other') : undefined}
+                        className={`idiom-option p-5 rounded-2xl border text-left transition-all flex items-start justify-between gap-3 ${btnStyle}`}
                       >
                         <span className="flex items-start gap-3">
                           <span className="text-xs font-black text-slate-400 mt-0.5">{'ABCD'[i]}</span>
@@ -388,7 +367,7 @@ export default function StudyBoost() {
                   原来这里展示 misunderstanding/correct_usage/hot_topic_link，
                   但 523/527 条都是同一套模板文字，看了学不到东西，故不再展示。 */}
               {showExplanation && question && (
-                <div className="bg-emerald-50/60 border border-emerald-200/80 p-6 rounded-2xl space-y-4 animate-fadeIn">
+                <div className="idiom-explanation p-5 rounded-2xl space-y-4 animate-fadeIn">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <h4 className="text-sm font-black flex items-center gap-2">
                       {userChoice?.correct ? (
@@ -413,17 +392,19 @@ export default function StudyBoost() {
                     <button
                       onClick={nextQuestion}
                       autoFocus
-                      className="px-5 py-2.5 bg-[#1a1a1a] text-white rounded-xl text-xs font-black hover:bg-[#2c261c] hover:text-white transition-colors flex items-center space-x-1.5"
+                      className="idiom-action"
                     >
-                      <span>下一题</span>
+                      <span>{groupScope && !IDIOM_GROUPS.find(g => g.id === groupScope)?.quizzes?.length ? '再练一次' : '下一题'}</span>
                       <ArrowRight size={14} />
                     </button>
                   </div>
 
+                  {question.reason && <p className="text-sm leading-relaxed text-slate-700">{question.reason}</p>}
+
                   {/* 逐项辨析：这才是真正能学到词的地方 */}
-                  <div className="space-y-2 bg-white p-4 rounded-xl border border-emerald-100">
+                  <div className="space-y-2 bg-[#efddba] p-4 rounded-xl border border-emerald-100">
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                      <Target size={12} /> 四个选项逐一辨析
+                      <Target size={12} /> {question.options.length} 个选项逐一辨析
                     </p>
                     {question.options.map((opt, i) => {
                       const w = opt.word;
@@ -435,7 +416,7 @@ export default function StudyBoost() {
                               ? 'border-emerald-200 bg-emerald-50/70'
                               : userChoice?.id === opt.id
                                 ? 'border-rose-200 bg-rose-50/70'
-                                : 'border-[#e8d5b0] bg-[#f9f8f6]'
+                                : 'border-[#e8d5b0] bg-[#e8cf9f]'
                           }`}
                         >
                           <span className="font-black text-[#1a1a1a]">{w.word}</span>
@@ -470,7 +451,7 @@ export default function StudyBoost() {
                     ].filter(Boolean);
                     if (!extras.length) return null;
                     return (
-                      <div className="space-y-1.5 bg-white p-3 rounded-xl border border-emerald-100">
+                      <div className="space-y-1.5 bg-[#efddba] p-3 rounded-xl border border-emerald-100">
                         {extras.map((x) => (
                           <p key={x.key} className="text-xs text-slate-700 leading-relaxed">
                             <strong className="text-slate-800">【{x.label}】</strong>
@@ -483,247 +464,106 @@ export default function StudyBoost() {
                 </div>
               )}
             </div>
-          ) : (
-            /* 模式二：分类浏览与富化卡片 */
-            <div className="space-y-6">
-              {/* 分类 Tabs & 搜索框 */}
-              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-                {/* 搜索框 */}
-                <div className="relative flex-1 max-w-md">
-                  <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="搜索词语或释义..."
-                    className="w-full bg-white border border-[#e8d5b0] rounded-2xl pl-11 pr-4 py-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
-                  />
-                </div>
-
-                {/* 掌握度进度：以「答对才算」的真掌握为准 */}
-                <div className="flex items-center space-x-3 bg-white px-5 py-3 rounded-2xl border border-[#e8d5b0]">
-                  <span className="text-xs font-black text-slate-400">真掌握进度:</span>
-                  <div className="w-32 h-2.5 bg-[#e8d5b0] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#8d7348] to-[#ff6b6b] transition-all duration-500"
-                      style={{ width: `${masteredRate}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-black tabular-nums text-[#1a1a1a]">{masteredRate}%</span>
-                  {round.asked === 0 && progress.mastered + progress.shaky > 0 && (
-                    <button
-                      onClick={resetStats}
-                      title="清空答题记录，重新统计掌握度"
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors"
-                    >
-                      <RotateCcw size={13} />
-                    </button>
-                  )}
-                </div>
+          ) : learningMode === 'groups' ? (
+            <div className="space-y-4">
+              <div className="idiom-toolbar">
+                <label className="idiom-search">
+                  <Search size={16} />
+                  <input aria-label="搜索辨析组" placeholder="搜索成语或辨析重点…" value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)} />
+                </label>
+                <p className="idiom-muted">{IDIOM_GROUPS.length} 组 · {GROUPED_WORDS.size} 个词 · 按辨析关系分组，不固定词数</p>
               </div>
-
-              {/* 分类选择 Button Grid */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                {categories.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedCat(c.id)}
-                    className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all flex items-center space-x-1.5 ${
-                      selectedCat === c.id
-                        ? 'bg-[#1a1a1a] text-white shadow-md'
-                        : 'bg-white border border-[#e8d5b0] text-slate-600 hover:border-slate-300'
-                    }`}
-                  >
-                    <span>{c.name}</span>
-                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${selectedCat === c.id ? 'bg-white/20 text-white' : 'bg-[#e8d5b0] text-slate-500'}`}>
-                      {c.count}
-                    </span>
-                  </button>
-                ))}
+              <div className="idiom-filters" role="group" aria-label="辨析组筛选">
+                {[['all', '全部辨析'], ['gd', '含广东真题词'], ['new', '尚未练习'], ['wrong', '有过错题']].map(([id, label]) =>
+                  <button key={id} className="idiom-filter" aria-pressed={groupFilter === id} onClick={() => setGroupFilter(id)}>{label}</button>)}
+                <span className="idiom-muted">显示 {filteredGroups.length} 组 · 点击卡片展开对照</span>
               </div>
-
-              {/* 词语列表 Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-                {filteredWords.map((item) => {
-                  const isMastered = masteredIds.includes(item.id);
-                  const isExpanded = expandedWordId === item.id;
-                  const st = stats[item.id];
-                  const trulyMastered = (st?.streak || 0) >= MASTERY_STREAK;
-                  const rivals = [...(item.rivals || []), ...(item.rivals_weak || [])];
-                  return (
-                    <div
-                      key={item.id}
-                      className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-3 bg-white hover:border-slate-300 ${
-                        trulyMastered || isMastered ? 'border-emerald-200 bg-emerald-50/20' : 'border-[#e8d5b0]'
-                      } ${isExpanded ? 'ring-2 ring-[#6b5428]/40 shadow-lg shadow-black/[0.04]' : ''}`}
-                    >
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-[#1a1a1a]/5 text-slate-500">
-                            {item.category}
-                          </span>
-                          {zhentiHits(item) > 0 && (
-                            <span
-                              className="ml-1.5 text-[11px] font-black px-1.5 py-0.5 rounded-md bg-[#2c261c]/10 text-[#8a6000]"
-                              title="近 6 年国考/省考真题逻辑填空选项中出现的次数"
-                            >
-                              真题 {zhentiHits(item)} 次
-                            </span>
-                          )}
-                          <div className="flex items-center gap-1">
-                            {st && (st.right > 0 || st.wrong > 0) && (
-                              <span
-                                className="text-[10px] font-black tabular-nums px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500"
-                                title={`答对 ${st.right} 次 / 答错 ${st.wrong} 次`}
-                              >
-                                {st.right}✓ {st.wrong}✗
-                              </span>
-                            )}
-                            <button
-                              onClick={() => toggleMastered(item.id)}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                isMastered ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-500'
-                              }`}
-                              title={isMastered ? '取消手动标记' : '手动标记为已记住'}
-                            >
-                              <CheckCircle2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-
-                        <h4 className="text-2xl font-black text-[#1a1a1a] tracking-tight">
-                          {item.word}
-                          {item.variants && item.variants.length > 0 && (
-                            <span className="ml-1.5 text-xs font-bold text-slate-400">[{item.variants.join('/')}]</span>
-                          )}
-                        </h4>
-                        <p className="text-sm font-semibold text-slate-700 mt-2 leading-relaxed bg-[#f9f8f6] p-3 rounded-xl border border-[#e8d5b0]">
-                          <strong>【释义】：</strong>{item.explanation}
-                        </p>
-
-                        {/* 坑点直接摆在正面：翻词库的时候要一眼看到这词会怎么坑你，
-                            而不是逐个点开才发现。展开后是完整版。 */}
-                        {item.trap && (
-                          <p
-                            className={`text-[13px] font-semibold leading-relaxed mt-2 px-3 py-2 rounded-xl bg-rose-50/70 border border-rose-100 text-rose-900 ${
-                              isExpanded ? '' : 'line-clamp-2'
-                            }`}
-                          >
-                            <ShieldAlert size={11} className="inline mr-1 -mt-0.5" />
-                            <strong className="font-black">坑点：</strong>
-                            {item.trap}
-                          </p>
-                        )}
-
-                        {/* 展开：词条上有的信息都展示。
-                            pack 补的 trap/usage/examples 会自动出现在这里，无需改 UI。 */}
-                        {(rivals.length > 0 || item.cloze || item.trap || item.usage
-                          || item.examples?.length || item.antonyms?.length || item.usable === false) && (
-                          <div className="mt-3 space-y-2">
-                            <button
-                              onClick={() => setExpandedWordId(isExpanded ? null : item.id)}
-                              className="w-full flex items-center justify-between text-[13px] font-black text-amber-700 bg-amber-50 px-3 py-2 rounded-xl hover:bg-amber-100 transition-colors"
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <Sparkles size={13} /> 易混辨析与例句
-                              </span>
-                              <span>{isExpanded ? '收起 ▲' : '展开 ▼'}</span>
-                            </button>
-
-                            {isExpanded && (
-                              <div className="space-y-2.5 p-3 rounded-xl bg-amber-50/40 border border-amber-200/60 text-[13px] font-medium leading-relaxed animate-fadeIn">
-                                {rivals.length > 0 && (
-                                  <div className="space-y-1">
-                                    <p className="font-black text-rose-600 flex items-center gap-1">
-                                      <ShieldAlert size={12} /> 【易混词 · 考场最爱挖的坑】
-                                    </p>
-                                    <div className="space-y-1">
-                                      {rivals.map((r) => {
-                                        const rw = lookupWord(r);
-                                        return (
-                                          <div key={r} className="px-2 py-1.5 rounded-lg bg-white border border-rose-200">
-                                            <span className="font-black text-[#1a1a1a]">{r}</span>
-                                            {rw?.explanation
-                                              ? <span className="text-slate-600">：{rw.explanation}</span>
-                                              : <span className="text-slate-400">（库内暂无释义）</span>}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {item.trap && (
-                                  <div className="space-y-1">
-                                    <p className="font-black text-rose-600 flex items-center gap-1">
-                                      <ShieldAlert size={12} /> 【典型误用陷阱】
-                                    </p>
-                                    <p className="text-slate-700">{item.trap}</p>
-                                  </div>
-                                )}
-
-                                {item.usage && (
-                                  <div className="space-y-1">
-                                    <p className="font-black text-sky-700 flex items-center gap-1">
-                                      <Target size={12} /> 【用法要点】
-                                    </p>
-                                    <p className="text-slate-700">{item.usage}</p>
-                                  </div>
-                                )}
-
-                                {(item.cloze?.length || item.examples?.length) && (
-                                  <div className="space-y-1">
-                                    <p className="font-black text-emerald-700 flex items-center gap-1">
-                                      <Lightbulb size={12} /> 【例句 · 〔〕内即本词】
-                                    </p>
-                                    {(item.cloze || []).map((c, ci) => (
-                                      <p key={`c${ci}`} className="text-slate-700 italic">
-                                        {c.replace(/____/g, `〔${item.word}〕`)}
-                                      </p>
-                                    ))}
-                                    {(item.examples || []).map((e, ei) => (
-                                      <p key={`e${ei}`} className="text-slate-700 italic">{e}</p>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {item.antonyms?.length > 0 && (
-                                  <p className="text-slate-700">
-                                    <strong className="text-slate-800">【反义】</strong>{item.antonyms.join('、')}
-                                  </p>
-                                )}
-
-                                {item.enriched_by?.length > 0 && (
-                                  <p className="text-[10px] text-slate-400 pt-1 border-t border-amber-200/50">
-                                    内容补充来源：{item.enriched_by.join('、')}
-                                  </p>
-                                )}
-
-                                {item.usable === false && (
-                                  <p className="text-[10px] text-slate-400 pt-1 border-t border-amber-200/50">
-                                    该条目在原始 PDF 中解析不完整，已排除出题范围。
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
+              <div className="idiom-catalog">
+                {filteredGroups.map(group => {
+                  const p = groupProgress(learning, group.id);
+                  const gd = group.members.some(([word]) => lookupWord(word)?.references.some(r => r.region === '广东'));
+                  return <article key={group.id} className="idiom-group">
+                    <details name="idiom-group-detail">
+                      <summary>
+                        <div className="idiom-overline"><span>{gd ? '广东真题选项词 · 辨析整理' : '易混词辨析'}</span><span>{group.members.length} 词</span></div>
+                        <h3>{group.title}</h3>
+                        <div className="idiom-chips">{group.members.map(([word]) => <span key={word}>{word}</span>)}</div>
+                        <p className="idiom-axis">{group.axis}</p>
+                        <div className="idiom-detail-hint"><span>展开词义、搭配与例句</span><ChevronDown className="idiom-chevron" size={16} /></div>
+                      </summary>
+                      <div className="idiom-comparison" data-count={group.members.length}>
+                        {group.members.map(([word, explanation, usage, example]) => <section key={word} className="idiom-member">
+                          <h4>{word}</h4><p>{explanation}</p><p className="idiom-key">{usage}</p>
+                          <p className="idiom-example">例：{example}</p>
+                          <WordSources word={lookupWord(word)} />
+                          <button className="idiom-link mt-3" onClick={() => practiceWord(lookupWord(word))}>单独练这个词</button>
+                        </section>)}
                       </div>
-
-                      <div className="pt-2 border-t border-[#e8d5b0] flex items-center justify-between text-[10px] font-bold text-slate-400">
-                        <span>原书 P{item.page}</span>
-                        <span className="italic">
-                          {trulyMastered ? `✓ 真掌握（连对${MASTERY_STREAK}次）` : st ? '待巩固' : '未接触'}
-                        </span>
-                      </div>
+                    </details>
+                    <div className="idiom-footer">
+                      <span className="idiom-muted">{p.right + p.wrong ? `答对 ${p.right} · 答错 ${p.wrong}` : '尚未练习'} · {1 + (group.quizzes?.length || 0)} 道小测</span>
+                      <button className="idiom-action" onClick={() => practiceGroup(group)}>练这一组 <ArrowRight size={14} /></button>
                     </div>
-                  );
+                  </article>;
                 })}
               </div>
+              {!filteredGroups.length && <p className="py-12 text-center idiom-muted">没有找到相应辨析组，试试单词学习或其他关键词。</p>}
+              <p className="idiom-muted">小测为原创学习练习，按实际词数出题；少选项练习和重复答题不代表考试掌握度。</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="idiom-toolbar">
+                <label className="idiom-search">
+                  <Search size={16} />
+                  <input aria-label="搜索单词" placeholder="搜索词语或释义..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                </label>
+                <p className="idiom-muted">已练 {progress.total - progress.untouched} / {progress.total} 词<br />仅为本页练习记录，不代表考试掌握度</p>
+              </div>
+              <div className="idiom-filters" role="group" aria-label="词库筛选">
+                {categories.map(c => <button key={c.id} className="idiom-filter" aria-pressed={selectedCat === c.id} onClick={() => setSelectedCat(c.id)}>{c.name} <span className="opacity-70">{c.count}</span></button>)}
+              </div>
+              <details className="idiom-source">
+                <summary>收录与来源说明 · 当前显示 {filteredWords.length} 个词</summary>
+                <p>{idiomEvidence.scope}。重点整理包含成组词与单独补充词；不是完整考纲清单。</p>
+                <p>已收集广东卷的 {idiomEvidence.gdCoverage?.candidates} 个四字及以上选项词、完整联句已收录；此统计不代表覆盖全部公考词汇。</p>
+              </details>
+              <div className="idiom-catalog">
+                {filteredWords.map(item => {
+                  const isMarked = (item.legacyIds || [item.id]).some(id => masteredIds.map(String).includes(String(id)));
+                  const st = stats[item.id];
+                  const rivals = [...new Set([...(item.rivals || []), ...(item.rivals_weak || [])])];
+                  return <article key={item.id} className="idiom-word-card">
+                    <div className="idiom-overline">
+                      <span>{item.references.some(r => r.region === '广东') ? '广东真题选项词' : item.curated ? '重点整理' : '扩展积累'}{zhentiHits(item) > 0 ? ` · ${zhentiHits(item)} 条记录` : ''}</span>
+                      <button onClick={() => toggleMastered(item)} aria-pressed={isMarked} title={isMarked ? '取消已读标记' : '标记已读（不计入掌握度）'}><CheckCircle2 size={17} className={isMarked ? 'text-[#5d7138]' : 'text-[#947b58]'} /></button>
+                    </div>
+                    <h3>{item.word}</h3>
+                    {item.variants?.length > 0 && <p className="idiom-muted">又作：{item.variants.join('、')}</p>}
+                    <p className="idiom-definition">{item.explanation}</p>
+                    {item.usage && <p className="idiom-key text-sm leading-relaxed mt-3">{item.usage}</p>}
+                    <details>
+                      <summary>例句、易混词与出处</summary>
+                      <div className="space-y-3 mt-3 text-sm leading-relaxed">
+                        {item.trap && <p className="idiom-key">注意：{item.trap}</p>}
+                        {item.examples?.map((e, i) => <p className="idiom-example" key={i}>例：{e}</p>)}
+                        {!item.examples?.length && item.cloze?.map((e, i) => <p key={i}>例：{e.replace(/____/g, item.word)}</p>)}
+                        {rivals.length > 0 && <div><p className="idiom-muted mb-1">相关易混词</p>{rivals.map(r => <p key={r}><strong>{r}</strong>{lookupWord(r)?.explanation ? `：${lookupWord(r).explanation}` : '（待补释义）'}</p>)}</div>}
+                        <WordSources word={item} />
+                        {item.page && <p className="idiom-muted">原书 P{item.page}</p>}
+                      </div>
+                    </details>
+                    <div className="idiom-footer">
+                      <span className="idiom-muted">{st ? `答对 ${st.right} · 答错 ${st.wrong}` : isMarked ? '已读 · 未练' : '未练习'}</span>
+                      <button className="idiom-action" onClick={() => practiceWord(item)}>练这个词 <ArrowRight size={14} /></button>
+                    </div>
+                  </article>;
+                })}
+              </div>
+              {!filteredWords.length && <p className="py-12 text-center idiom-muted">没有找到词语，可切换到全部积累或调整关键词。</p>}
             </div>
           )}
         </div>
-      )}
     </div>
   );
 }

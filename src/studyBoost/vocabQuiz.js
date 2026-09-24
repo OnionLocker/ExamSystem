@@ -10,6 +10,8 @@
 import baseWords from '../copybook/words_data_clean.json';
 import { QUESTION_KINDS, KIND_BY_ID, OPTION_SOURCE, entrySupports, availableKinds } from './questionKinds.js';
 import { MERGE_UNION_FIELDS, ENRICHABLE_FIELDS, validatePack } from './vocabSchema.js';
+import { CURATED_WORDS } from './idiomGroups.js';
+import idiomEvidence from './idiomEvidence.json';
 
 // Vite 的 glob 导入：把 vocab-packs/ 下所有 *.json 当作扩展包自动装载。
 // 后续用 Gemini 生成的内容丢进那个目录即可生效，无需改代码。
@@ -86,9 +88,9 @@ function applyPack(entries, pack, diagnostics) {
 // 在这里统一归一化，下游（questionKinds / UI / pack）都按同一套字段名走。
 const normalizeEntry = (w) => {
   const out = { ...w };
-  if (!out.trap && w.misunderstanding) out.trap = w.misunderstanding;
-  if (!out.usage && w.correct_usage) out.usage = w.correct_usage;
-  if (!out.examples?.length && w.example) {
+  if (!out.trap && w.misunderstanding && !w.tpl?.misunderstanding) out.trap = w.misunderstanding;
+  if (!out.usage && w.correct_usage && !w.tpl?.correct_usage) out.usage = w.correct_usage.replace(/【[^】]*破局】/g, '');
+  if (!out.examples?.length && w.example && !w.tpl?.example) {
     out.examples = Array.isArray(w.example) ? w.example : [w.example];
   }
   return out;
@@ -102,6 +104,25 @@ function loadWords() {
     const mod = packModules[path];
     entries = applyPack(entries, mod.default ?? mod, diagnostics);
   }
+  const unique = new Map();
+  const editorialWords = new Set(CURATED_WORDS);
+  for (const entry of [...entries, ...CURATED_WORDS]) {
+    if (entry.usable === false || !entry.word?.trim() || !entry.explanation?.trim()) continue;
+    const old = unique.get(entry.word);
+    const merged = { ...old, ...entry, id: old?.id ?? entry.id,
+      legacyIds: [...new Set([...(old?.legacyIds || []), entry.id])],
+      references: idiomEvidence.words[entry.word] || [] };
+    for (const field of MERGE_UNION_FIELDS) merged[field] = [...new Set([...(old?.[field] || []), ...(entry[field] || [])])];
+    if (editorialWords.has(entry)) {
+      // Curated definitions must not retain contradictory legacy traps/examples.
+      merged.trap = '';
+      merged.cloze = [];
+      merged.examples = entry.examples;
+      merged.curated = true;
+    }
+    unique.set(entry.word, merged);
+  }
+  entries = [...unique.values()];
   return { entries, diagnostics };
 }
 
@@ -215,6 +236,10 @@ export function pickDistractors(
 
   // 6. 最后兜底：字数相差 1（几乎用不到，仅防选项凑不满）
   take(shuffle(pool.filter((w) => Math.abs(w.word.length - len) <= 1), rand));
+
+  // Definition-choice options do not display word lengths; long expressions
+  // can safely use other definitions when same-length entries are scarce.
+  if (needExplanation && out.length < count) take(shuffle(pool, rand));
 
   return out.slice(0, count);
 }
