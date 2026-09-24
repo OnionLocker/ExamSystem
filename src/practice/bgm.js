@@ -282,24 +282,6 @@ export const subscribeBgm = (fn) => getEngine()?.subscribe(fn) || (() => {});
 // 暴露 ctx 给 sfx.js 共用（避免多 AudioContext）
 export const _getAudioContext = () => getEngine()?.ctx || null;
 
-// 启动期预热：在用户首次手势后异步 fetch + decode 三条 BGM,
-// 这样真正 playBgm(trackId) 时 buffer 已经就位,无加载延迟。
-// 调用时机:用户首次任意点击/键盘事件触发(必须有手势,否则 AudioContext 被限制)
-let _prewarmStarted = false;
-export const prewarmAllBgm = async () => {
-  if (_prewarmStarted) return;
-  _prewarmStarted = true;
-  const eng = getEngine();
-  if (!eng) return;
-  // 即使没启用 BGM 也提前 decode,以便用户开启后立刻能播
-  if (!eng._ensureCtx()) return;
-  const urls = Object.values(BGM_TRACKS).map((t) => t.url);
-  // 顺序加载,避免一次三个并发把弱网带宽吃满
-  for (const url of urls) {
-    try {
-      await eng._loadBuffer(url);
-    } catch {
-      /* 单条失败不影响其他 */
-    }
-  }
-};
+
+// 进入训练的点击中解锁音频；不下载任何曲目，播放时才加载所选轨道。
+export const unlockBgmAudio = () => getEngine()?._ensureCtx();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   BookOpen,
@@ -24,29 +24,32 @@ import {
   Check,
 } from 'lucide-react';
 import Login from './Login.jsx';
-import NumericPractice from './practice/NumericPractice.jsx';
-import Pomodoro from './pomodoro/Pomodoro.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
 import { PomodoroProvider } from './pomodoro/PomodoroContext.jsx';
 import StudyLogPanel from './studyLog/StudyLogPanel.jsx';
-import { useStudyHeatmap, useServerHeat, LEVEL_COLORS } from './studyLog/heatmap.js';
+import { useStudyHeatmap, useServerHeat, HEAT_LEVELS, UNKNOWN_HEAT } from './studyLog/heatmap.js';
+import { studyOutputs } from './studyLog/studyTime.js';
 import { loadLog, summarize, ENTRY_TYPES, digestDay, loadDigest } from './studyLog/studyLog.js';
-import Mixer from './mixer/Mixer.jsx';
-import MockExam from './mockExam/MockExam.jsx';
-import Cheatsheet from './cheatsheet/Cheatsheet.jsx';
-import Flashcards from './flashcards/Flashcards.jsx';
-import Review from './review/Review.jsx';
-import Copybook from './copybook/Copybook.jsx';
-import StudyBoost from './studyBoost/StudyBoost.jsx';
-import Uploads from './uploads/Uploads.jsx';
-import HermesChat from './hermes/HermesChat.jsx';
-import AIQuizHome from './aiPractice/AIQuizHome.jsx';
-import ExamReview from './examReview/ExamReview.jsx';
-import Knowledge from './knowledge/Knowledge.jsx';
 import { KNOWLEDGE_OPEN_EVENT } from './knowledge/nav.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
-import { prewarmAllBgm } from './practice/bgm.js';
+import { unlockBgmAudio } from './practice/bgm.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
+import LoadingState from './LoadingState.jsx';
+
+const NumericPractice = lazy(() => import('./practice/NumericPractice.jsx'));
+const Pomodoro = lazy(() => import('./pomodoro/Pomodoro.jsx'));
+const Mixer = lazy(() => import('./mixer/Mixer.jsx'));
+const MockExam = lazy(() => import('./mockExam/MockExam.jsx'));
+const Cheatsheet = lazy(() => import('./cheatsheet/Cheatsheet.jsx'));
+const Flashcards = lazy(() => import('./flashcards/Flashcards.jsx'));
+const Review = lazy(() => import('./review/Review.jsx'));
+const Copybook = lazy(() => import('./copybook/Copybook.jsx'));
+const StudyBoost = lazy(() => import('./studyBoost/StudyBoost.jsx'));
+const Uploads = lazy(() => import('./uploads/Uploads.jsx'));
+const HermesChat = lazy(() => import('./hermes/HermesChat.jsx'));
+const AIQuizHome = lazy(() => import('./aiPractice/AIQuizHome.jsx'));
+const ExamReview = lazy(() => import('./examReview/ExamReview.jsx'));
+const Knowledge = lazy(() => import('./knowledge/Knowledge.jsx'));
 
 // ---------------- date utils ----------------
 const pad = (n) => String(n).padStart(2, '0');
@@ -85,7 +88,7 @@ const readHermesFs = () => {
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: '仪表盘' },
-  { id: 'studyBoost', icon: Zap, label: '学习提升' },
+  { id: 'studyBoost', icon: Zap, label: '成语学习' },
   { id: 'knowledge', icon: GraduationCap, label: '知识点' },
   { id: 'copybook', icon: PenTool, label: '字帖练习' },
   { id: 'review', icon: BookMarked, label: '复习' },
@@ -141,6 +144,16 @@ const SidebarItem = ({
     <span className="hidden lg:block font-bold tracking-tight">{label}</span>
   </button>
 );
+
+const PageLoading = () => <LoadingState compact />;
+
+// 首次打开才挂载，之后保留会话、附件和页面位置。
+const RetainedPage = ({ active, children }) => {
+  const [visited, setVisited] = useState(active);
+  if (active && !visited) setVisited(true);
+  if (!active && !visited) return null;
+  return <Suspense fallback={<PageLoading />}>{children}</Suspense>;
+};
 
 const AppInner = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -203,6 +216,7 @@ const AppInner = () => {
   };
   const selectNav = (id) => {
     if (navSorting || navDrag.current?.moved) return;
+    if (id === 'practice') unlockBgmAudio();
     setActiveTab(id);
   };
   const toggleNavSorting = () => {
@@ -222,7 +236,9 @@ const AppInner = () => {
   // 它自己去拉错题明细和草稿纸。nonce 是为了同一场连点两次也能重新触发。
   const [hermesSeed, setHermesSeed] = useState(null);
   const seedHermes = (sessionId) => {
-    if (typeof sessionId === 'object' && sessionId.debtInstruction) {
+    if (typeof sessionId === 'object' && sessionId.knowledgeInstruction) {
+      setHermesSeed({ knowledgeInstruction: sessionId.knowledgeInstruction, nonce: Date.now() });
+    } else if (typeof sessionId === 'object' && sessionId.debtInstruction) {
       // 从知识债页面过来的出题指令
       setHermesSeed({ debtInstruction: sessionId.debtInstruction, nonce: Date.now() });
     } else {
@@ -238,6 +254,7 @@ const AppInner = () => {
   const [hermesFullscreen, setHermesFullscreen] = useState(readHermesFs);
   const hermesFs = activeTab === 'hermes' && hermesFullscreen;
   const openTodayTask = (task) => {
+    if (task.taskType !== 'ai_batch') unlockBgmAudio();
     setTaskNavigation({ ...task, nonce: Date.now() });
     setActiveTab(task.taskType === 'ai_batch' ? 'aiPractice' : 'practice');
   };
@@ -286,26 +303,6 @@ const AppInner = () => {
 
   useEffect(() => {
     setOnUnauthorized(() => setAuthed(false));
-  }, []);
-
-  // BGM 预热:首次任意手势触发(浏览器策略要求 user gesture 才允许 AudioContext)
-  // 一次性,把 games / training / ranked 三条都 fetch + decode 好,
-  // 后续 playBgm() 立刻有声,不需要等加载。
-  useEffect(() => {
-    let done = false;
-    const trigger = () => {
-      if (done) return;
-      done = true;
-      prewarmAllBgm();
-      window.removeEventListener('pointerdown', trigger, true);
-      window.removeEventListener('keydown', trigger, true);
-    };
-    window.addEventListener('pointerdown', trigger, true);
-    window.addEventListener('keydown', trigger, true);
-    return () => {
-      window.removeEventListener('pointerdown', trigger, true);
-      window.removeEventListener('keydown', trigger, true);
-    };
   }, []);
 
   useEffect(() => {
@@ -407,11 +404,7 @@ const AppInner = () => {
   }, [events, todayKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!bootChecked) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#e8d5b0] text-sm font-bold text-slate-400">
-        正在加载...
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!authed) {
@@ -445,10 +438,10 @@ const AppInner = () => {
     const hasEvents = Object.keys(events).length > 0;
 
     return (
-      <div className="bg-[#1a1a1a] rounded-[2.5rem] p-8 text-white">
-        <div className="flex justify-between items-center mb-6">
+      <div aria-label="打卡记录" className="bg-[#1a1a1a] rounded-2xl sm:rounded-[2.5rem] p-3 sm:p-8 text-white">
+        <div className="flex flex-wrap gap-2 justify-between items-center mb-6">
           <h3 className="font-bold">打卡记录</h3>
-          <div className="flex items-center space-x-1">
+          <div className="flex flex-wrap items-center gap-1 max-w-full">
             <button
               onClick={prevMonth}
               className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors"
@@ -458,7 +451,7 @@ const AppInner = () => {
             </button>
             <button
               onClick={goToday}
-              className="px-3 py-1 rounded-full text-xs font-bold bg-[#2c261c] text-white hover:brightness-110 transition-all"
+              className="px-2 py-1 rounded-full text-xs whitespace-nowrap font-bold bg-[#2c261c] text-white hover:brightness-110 transition-all"
               title="回到今天"
             >
               {year}年 {monthNames[month]}
@@ -482,13 +475,13 @@ const AppInner = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 text-center text-[10px] font-bold text-white/30 mb-3">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[10px] font-bold text-white/60 mb-3">
           {weekdayShort.map((d, i) => (
             <div key={`wd-${i}`}>{d}</div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1.5 text-center">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
           {cells.map((day, i) => {
             if (day === null) return <div key={`cell-${i}`} className="aspect-square" />;
             const key = toKey(year, month, day);
@@ -497,77 +490,54 @@ const AppInner = () => {
             const label = events[key];
             const study = getStudyDay(key); // { score, minutes, level, color } | null
 
-            // GitHub 风：小圆角方块，数字做次要信息
+            const intensity = study?.unknownCount && !study.minutes ? UNKNOWN_HEAT : HEAT_LEVELS[study?.level || 0];
+            const dayTitle = [key, hasEvent && label,
+              `${intensity.label} · 已计时 ${study?.minutes || 0} 分钟`,
+              study?.unknownCount > 0 && `${study.unknownCount} 条记录时长未知`,
+            ].filter(Boolean).join(' · ');
             let cls =
-              'relative aspect-square flex items-center justify-center rounded-md text-sm transition-all duration-200 cursor-pointer group ';
-            let style = {};
-            let numberCls = 'tabular-nums ';
-
-            if (isToday) {
-              // 今日：细琥珀描边 + 背景根据是否学习分两种
-              cls += 'ring-1 ring-[#6b5428] ';
-              if (study) {
-                style.backgroundColor = study.color;
-                numberCls += study.level >= 6 ? 'text-[#1a1a1a] font-black' : 'text-white font-black';
-              } else {
-                cls += 'bg-white/[0.04] ';
-                numberCls += 'text-[#6b5428] font-black';
-              }
-            } else if (study) {
-              style.backgroundColor = study.color;
-              // 文字色：高档位用暗色保证可读，低档位用白色半透明当作点缀
-              if (study.level >= 6) {
-                numberCls += 'text-[#1a1a1a] font-black';
-              } else if (study.level >= 3) {
-                numberCls += 'text-white font-black';
-              } else {
-                numberCls += 'text-white/70 font-bold';
-              }
-            } else {
-              cls += 'bg-white/[0.04] hover:bg-white/[0.08] ';
-              numberCls += 'text-white/50 font-bold';
-            }
+              'relative min-w-0 min-h-0 aspect-square flex items-center justify-center rounded-md text-xs sm:text-sm leading-none font-bold tabular-nums transition-colors cursor-pointer hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ';
+            const style = { backgroundColor: intensity.color, color: intensity.text };
+            if (isToday) cls += 'ring-1 ring-white/80 ';
             if (editingKey === key) cls += 'ring-2 ring-white z-[1] ';
 
             return (
-              <div
+              <button
+                type="button"
                 key={`cell-${i}`}
-                className={cls + numberCls}
+                className={cls}
                 style={style}
                 onClick={() => openDay(key)}
-                title={
-                  (hasEvent ? `${label}` : '') +
-                  (study ? ` · 学习 ${study.score} 分 / ${study.minutes} 分钟` : '')
-                }
+                title={dayTitle}
+                aria-label={dayTitle}
+                aria-current={isToday ? 'date' : undefined}
               >
                 <span className="relative z-10">{day}</span>
                 {/* 事件标签：右上角小点 */}
                 {hasEvent && (
-                  <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-[#2c261c]" />
+                  <span className="absolute top-0.5 right-0.5 w-1 h-1 rounded-full bg-current" />
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
 
         {/* 图例 */}
-        <div className="mt-6 pt-4 border-t border-white/[0.06] flex items-center justify-between">
-          <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
-            学习强度
-          </span>
-          <div className="flex items-center space-x-1.5 text-[10px] font-bold text-white/30">
-            <span>少</span>
-            <div className="flex items-center space-x-[3px]">
-              <span className="w-2.5 h-2.5 rounded-[3px] bg-white/[0.04]" />
-              {LEVEL_COLORS.slice(1).map((c, i) => (
-                <span
-                  key={i}
-                  className="w-2.5 h-2.5 rounded-[3px]"
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-            <span>多</span>
+        <div className="mt-6 pt-4 border-t border-white/10">
+          <div className="flex justify-between gap-2 mb-3 text-xs font-bold text-white/70">
+            <span className="shrink-0">学习强度</span>
+            <span>低 → 高 · 去重时长</span>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,1fr))] gap-x-2 gap-y-3">
+            {[...HEAT_LEVELS, UNKNOWN_HEAT].map((level) => (
+              <div key={level.label} className="flex items-start gap-2 min-w-0" title={`${level.label}：${level.range}`}>
+                <span className="mt-0.5 w-3.5 h-3.5 shrink-0 rounded-[3px] border border-white/20" style={{ backgroundColor: level.color }} />
+                <div className="min-w-0 text-xs leading-4">
+                  <div className="font-bold text-white/90">{level.label}</div>
+                  <div className="text-white/60 tabular-nums">{level.range}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -647,13 +617,13 @@ const AppInner = () => {
         onClick={closeEditor}
       >
         <div
-          className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl max-h-[80vh] overflow-y-auto"
+          className="bg-white rounded-[2rem] p-5 sm:p-8 w-full max-w-md shadow-2xl max-h-[80vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">当日学习</p>
-              <p className="text-xl font-black italic">
+              <p className="text-base sm:text-xl font-black italic">
                 {editingKey} · {weekdayCN}
               </p>
             </div>
@@ -678,12 +648,15 @@ const AppInner = () => {
             </ol>
           )}
 
-          {study?.score > 0 && (
+          {study && (
             <p className="text-xs font-bold text-slate-400 mb-6 tabular-nums">
-              {study.score} 分
-              {study.minutes ? ` · ${study.minutes} 分钟` : ''}
+              已计时 {study.minutes} 分钟（重叠已合并）
+              {study.unknownCount > 0 && ` · ${study.unknownCount} 条记录时长未知`}
             </p>
           )}
+          {study && <p className="text-xs mb-5">
+            作答 {studyOutputs(study.entries).answered} 题 · 复盘 {studyOutputs(study.entries).reviewed} 题 · 申论 {studyOutputs(study.entries).writing} 篇
+          </p>}
 
           <details className="group border-t border-[#e8d5b0] pt-4">
             <summary className="text-xs font-black uppercase tracking-widest text-slate-400 cursor-pointer list-none flex items-center justify-between [&::-webkit-details-marker]:hidden">
@@ -820,12 +793,11 @@ const AppInner = () => {
           ? 'bg-white'
           : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
       }`}>
-        <header className={`${hermesFs ? 'hidden' : ''} h-24 flex items-center justify-between px-10`}>
+        <header className={`${hermesFs || activeTab === 'knowledge' ? 'hidden' : ''} h-24 flex items-center justify-between ${activeTab === 'studyBoost' ? 'px-4 sm:px-10' : 'px-10'}`}>
           <div>
-            <h2 className="text-2xl font-black tracking-tight">
+            <h2 className={`text-2xl font-black tracking-tight ${activeTab === 'studyBoost' ? 'whitespace-nowrap' : ''}`}>
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
-              {activeTab === 'studyBoost' && '学习提升 · 言语高频考点库'}
-              {activeTab === 'knowledge' && '知识点 · 广东省考老师口径'}
+              {activeTab === 'studyBoost' && '成语学习'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
               {activeTab === 'flashcards' && '抽认卡'}
@@ -839,7 +811,7 @@ const AppInner = () => {
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
           </div>
-          <TopBarTimer onOpen={() => setActiveTab('pomodoro')} />
+          <div className={activeTab === 'studyBoost' ? 'hidden sm:block' : ''}><TopBarTimer onOpen={() => setActiveTab('pomodoro')} /></div>
         </header>
 
         {/* Hermes 对话页要占满高度且自己管滚动，故单独用 overflow-hidden 容器 */}
@@ -848,10 +820,13 @@ const AppInner = () => {
             activeTab === 'hermes'
               ? (hermesFs ? 'flex-1 overflow-hidden' : 'flex-1 overflow-hidden px-10 pb-6 pt-2')
               : activeTab === 'knowledge'
-                ? 'flex-1 min-h-0 overflow-hidden px-10 pb-6 pt-4'
-                : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
+                ? 'flex-1 min-h-0 overflow-hidden px-5 pb-2 pt-1 xl:px-8'
+                : activeTab === 'dashboard' || activeTab === 'studyBoost'
+                  ? 'flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-10 pt-4 space-y-10'
+                  : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
           }
         >
+          <Suspense fallback={<PageLoading />}>
           {activeTab === 'dashboard' && (
             <div className="space-y-10">
               {renderCountdowns()}
@@ -869,13 +844,17 @@ const AppInner = () => {
           {activeTab === 'studyBoost' && <StudyBoost />}
 
           <div className={activeTab === 'knowledge' ? 'h-full min-h-0' : 'hidden'}>
-            <Knowledge onSeedHermes={seedHermes} />
+            <RetainedPage active={activeTab === 'knowledge'}>
+              <Knowledge onSeedHermes={seedHermes} active={activeTab === 'knowledge'} />
+            </RetainedPage>
           </div>
 
           {activeTab === 'copybook' && <Copybook />}
 
           <div className={activeTab === 'review' ? '' : 'hidden'}>
-            <Review />
+            <RetainedPage active={activeTab === 'review'}>
+              <Review active={activeTab === 'review'} />
+            </RetainedPage>
           </div>
 
           {activeTab === 'practice' && (
@@ -899,14 +878,16 @@ const AppInner = () => {
           {/* Keep Hermes mounted while other modules are open so its WebSocket,
               active response, attachments, and scroll state continue in background. */}
           <div className={activeTab === 'hermes' ? 'h-full' : 'hidden'}>
-            <HermesChat
-              active={activeTab === 'hermes'}
-              seed={hermesSeed}
-              onSeedConsumed={() => setHermesSeed(null)}
-              fullscreen={hermesFs}
-              onToggleFullscreen={() => setHermesFullscreen((v) => !v)}
-              headerExtra={<TopBarTimer onOpen={() => setActiveTab('pomodoro')} />}
-            />
+            <RetainedPage active={activeTab === 'hermes'}>
+              <HermesChat
+                active={activeTab === 'hermes'}
+                seed={hermesSeed}
+                onSeedConsumed={() => setHermesSeed(null)}
+                fullscreen={hermesFs}
+                onToggleFullscreen={() => setHermesFullscreen((v) => !v)}
+                headerExtra={<TopBarTimer onOpen={() => setActiveTab('pomodoro')} />}
+              />
+            </RetainedPage>
           </div>
 
           {activeTab === 'aiPractice' && (
@@ -918,11 +899,12 @@ const AppInner = () => {
           )}
 
           {activeTab === 'mixer' && <Mixer />}
+          </Suspense>
         </div>
       </main>
 
       {renderEditor()}
-      {activeTab !== 'hermes' && <Cheatsheet />}
+      <Suspense fallback={null}>{activeTab !== 'hermes' && <Cheatsheet />}</Suspense>
     </div>
   );
 };
@@ -948,19 +930,17 @@ const DashboardTodayCard = ({ studyVersion }) => {
     for (const e of today.entries) {
       const meta = ENTRY_TYPES[e.type];
       if (!meta) continue;
-      if (!acc[e.type]) acc[e.type] = { ...meta, minutes: 0, count: 0, score: 0 };
+      if (!acc[e.type]) acc[e.type] = { ...meta, count: 0 };
       acc[e.type].count += 1;
-      acc[e.type].minutes += e.minutes || 0;
-      acc[e.type].score += e.score || 0;
     }
     return acc;
   }, [today]);
 
-  const totalScore = today.score;
   const totalMin = today.minutes;
+  const outputs = studyOutputs(today.entries);
 
   return (
-    <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-10 relative overflow-hidden flex flex-col justify-between">
+    <div className="lg:col-span-2 bg-[#dfdbcc] rounded-[2.5rem] p-6 sm:p-10 relative overflow-hidden flex flex-col justify-between">
       <div className="relative z-10">
         <h3 className="text-xl font-bold mb-1">今日概览</h3>
         <p className="text-sm font-bold opacity-60">
@@ -971,13 +951,15 @@ const DashboardTodayCard = ({ studyVersion }) => {
       <div className="absolute top-10 right-10 w-48 h-48 bg-[#2c261c] rounded-full blur-[40px] opacity-60 animate-pulse" />
       <div className="absolute bottom-10 right-40 w-32 h-32 bg-[#ff6b6b] rounded-full blur-[35px] opacity-40" />
 
-      <div className="relative z-10 mt-10 flex items-center space-x-12">
+      <div className="relative z-10 mt-10 flex flex-wrap gap-6">
         <div className="text-center">
-          <p className="text-5xl font-black italic tabular-nums">{totalScore}</p>
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50 mt-1">今日得分</p>
+          <p className="text-4xl font-black tabular-nums">{totalMin}</p>
+          <p className="text-xs font-bold opacity-50 mt-1">已计时分钟 · 重叠已合并</p>
           <p className="text-xs font-bold opacity-60 mt-3 tabular-nums">
-            {totalMin > 0 ? `${totalMin} 分钟` : '暂无专注'}
+            {today.unknownCount > 0 ? `${today.unknownCount} 条记录时长未知` : today.entries.length ? '已记录计时区间' : '暂无学习记录'}
           </p>
+          <p className="text-xs mt-3">作答 {outputs.answered} 题 · 复盘 {outputs.reviewed} 题 · 申论 {outputs.writing} 篇</p>
+          {(outputs.first + outputs.repeat > 0) && <p className="text-xs mt-2">AI 新题 {outputs.first} · 重做 {outputs.repeat}</p>}
         </div>
         <div className="flex-1 space-y-3">
           {Object.entries(byType).map(([k, v]) => {
@@ -997,7 +979,7 @@ const DashboardTodayCard = ({ studyVersion }) => {
                 </span>
                 {active && (
                   <span className="text-[10px] font-black tabular-nums ml-auto opacity-60">
-                    {v.count} 次 · +{v.score}
+                    {v.count} 条记录
                   </span>
                 )}
               </div>

@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import katex from 'katex';
-import 'katex/dist/katex.min.css';
-import '../hermes/katex-fix.css';
 
 const KATEX = {
   throwOnError: false,

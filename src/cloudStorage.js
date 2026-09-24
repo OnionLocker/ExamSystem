@@ -32,6 +32,8 @@ export const SYNCED_KEYS = new Set([
   'mockexam_blocks_v2',              // 模考块次设置
   'pomodoro_history_v1',             // 番茄钟完成历史(学习数据,跨设备)
   'vocab_mastered_ids_v1',           // 言语词汇掌握进度
+  'vocab_stats_v1',                  // 保留旧版练习记录
+  'idiom_learning_v2',              // 成语已学、收藏与逐题练习记录
   'study_digest_v1',                 // 每日学习明细（AI 总结写入）
   'knowledge_overrides_v1',           // 知识点口径覆盖与自补卡片
   'exam_nav_order',                   // 侧栏导航顺序

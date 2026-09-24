@@ -4,6 +4,8 @@ import http from 'http';
 import https from 'https';
 import net from 'net';
 import fs from 'fs';
+import { createGzip } from 'node:zlib';
+import { pipeline } from 'node:stream';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -70,22 +72,48 @@ function serveStatic(req, res) {
       filePath = path.join(DIST, 'index.html');
     }
 
-    const ext = path.extname(filePath);
-    const mime = MIME[ext] || 'application/octet-stream';
-    const isHtml = ext === '.html';
-
-    fs.readFile(filePath, (readErr, data) => {
-      if (readErr) {
-        res.writeHead(500);
-        res.end('Internal Server Error');
+    const send = (fileStat) => {
+      const ext = path.extname(filePath);
+      const isHtml = ext === '.html';
+      const compressible = ['.html', '.js', '.css', '.json', '.svg'].includes(ext);
+      const encodings = String(req.headers['accept-encoding'] || '').split(',').map((entry) => {
+        const [name, ...params] = entry.trim().toLowerCase().split(';');
+        const q = params.find((param) => param.trim().startsWith('q='));
+        return [name, q ? Number(q.trim().slice(2)) : 1];
+      });
+      const gzipQuality = encodings.find(([name]) => name === 'gzip')
+        ?? encodings.find(([name]) => name === '*');
+      const zipped = compressible && fileStat.size > 1024 && gzipQuality?.[1] > 0;
+      const etag = `W/"${fileStat.size.toString(16)}-${fileStat.mtimeMs.toString(16)}"`;
+      const hashedAsset = cleanUrl.startsWith('/assets/') && /-[\w-]{8,}\.[^/]+$/.test(cleanUrl);
+      const headers = {
+        'Content-Type': MIME[ext] || 'application/octet-stream',
+        'Cache-Control': isHtml ? 'no-cache, no-store, must-revalidate'
+          : hashedAsset ? 'public, max-age=31536000, immutable' : 'public, max-age=86400',
+        ETag: etag,
+        'Last-Modified': fileStat.mtime.toUTCString(),
+        ...(compressible ? { Vary: 'Accept-Encoding' } : {}),
+        ...(zipped ? { 'Content-Encoding': 'gzip' } : { 'Content-Length': fileStat.size }),
+      };
+      if (!isHtml && String(req.headers['if-none-match'] || '').split(/\s*,\s*/).includes(etag)) {
+        delete headers['Content-Length'];
+        res.writeHead(304, headers);
+        res.end();
         return;
       }
-      res.writeHead(200, {
-        'Content-Type': mime,
-        // index.html 不缓存，资源带 hash 可长期缓存
-        'Cache-Control': isHtml ? 'no-cache, no-store, must-revalidate' : 'public, max-age=86400',
-      });
-      res.end(data);
+      res.writeHead(200, headers);
+      if (req.method === 'HEAD') { res.end(); return; }
+      const stream = fs.createReadStream(filePath);
+      const onError = (error) => { if (error) res.destroy(error); };
+      if (zipped) pipeline(stream, createGzip(), res, onError);
+      else pipeline(stream, res, onError);
+    };
+    if (!err && stat.isFile()) send(stat);
+    else fs.stat(filePath, (fallbackErr, fallbackStat) => {
+      if (fallbackErr || !fallbackStat.isFile()) {
+        res.writeHead(404);
+        res.end('Not Found');
+      } else send(fallbackStat);
     });
   });
 }

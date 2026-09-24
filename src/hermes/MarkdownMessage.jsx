@@ -16,9 +16,6 @@ import { api } from '../api.js';
 import DraftFloater from './DraftFloater.jsx';
 import ReviewScratch, { ScratchTools } from './ReviewScratch.jsx';
 
-import 'katex/dist/katex.min.css';
-import 'highlight.js/styles/github.css';
-import './katex-fix.css';
 import { findKnowledgeTarget, openKnowledge } from '../knowledge/nav.js';
 
 const textOf = (node) => {

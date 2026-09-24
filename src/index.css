@@ -43,6 +43,14 @@ body,
   animation: fadeIn 180ms ease-out;
 }
 
+@keyframes appLoadingSpin {
+  to { transform: rotate(360deg); }
+}
+
+.app-loading-spinner {
+  animation: appLoadingSpin 900ms linear infinite;
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(16px);
@@ -367,6 +375,8 @@ body.draft-annotating * {
 
 /* Debt Dashboard */
 .debt-dashboard {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -382,47 +392,104 @@ body.draft-annotating * {
   justify-content: center;
   min-height: 200px;
   font-size: 14px;
-  color: #6b5428;
+  color: #574b35;
   font-weight: 600;
+  background: #f0e3c5;
+  border: 1px solid #d1c09a;
+  border-radius: 12px;
 }
 
 .debt-summary {
   display: flex;
+  flex-wrap: wrap;
   gap: 2rem;
   padding: 1rem 1.5rem;
-  background: #faf6ec;
-  border: 1px solid #e8d5b0;
-  border-radius: 1.5rem;
+  background: #f0e3c5;
+  border: 1px solid #d1c09a;
+  border-radius: 12px;
   font-weight: 700;
 }
 
 .debt-summary .open-count {
-  color: #e24b4b;
+  color: #b5523d;
   font-size: 16px;
 }
 
 .debt-summary .cleared-count {
-  color: #4caf50;
+  color: #55764b;
   font-size: 16px;
 }
+
+.debt-summary .reinforce-count { color: #8d6c25; font-size: 16px; }
+.debt-summary .learning-count { color: #746b5b; font-size: 16px; }
 
 .debt-list {
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+.debt-group {
+  border: 1px solid #d1c09a;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #eadbb9;
+}
+
+.debt-group-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  color: #2a2418;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.debt-group-title::-webkit-details-marker {
+  display: none;
+}
+
+.debt-group-title::after {
+  content: '+';
+  color: #8a6d3b;
+  font-size: 18px;
+}
+
+.debt-group[open] > .debt-group-title::after {
+  content: '−';
+}
+
+.debt-group-count {
+  margin-left: auto;
+  color: #8a6d3b;
+  font-size: 12px;
+}
+
+.debt-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 0.75rem 0.75rem;
 }
 
 .debt-card {
-  padding: 1.5rem;
-  background: #fdfbf7;
-  border: 1px solid #e8d5b0;
-  border-radius: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: #f0e3c5;
+  border-top: 1px solid #d1c09a;
+  border-radius: 0;
   transition: border-color 0.2s;
 }
 
 .debt-card:hover {
-  border-color: #c4ae7a;
+  border-top-color: #a8905d;
 }
+.debt-card-learning, .debt-card-reinforce { background: #eadfca; }
+.debt-card-cleared { opacity: .72; }
 
 .debt-header {
   display: flex;
@@ -434,16 +501,16 @@ body.draft-annotating * {
 .debt-kaodian {
   font-size: 16px;
   font-weight: 900;
-  color: #1a1a1a;
+  color: #343127;
   margin: 0;
 }
 
 .debt-module {
   font-size: 12px;
   font-weight: 700;
-  color: #9ca3af;
+  color: #746b5b;
   padding: 0.25rem 0.75rem;
-  background: #f2e4c4;
+  background: #e9dcc0;
   border-radius: 9999px;
 }
 
@@ -463,7 +530,7 @@ body.draft-annotating * {
 .stat-label {
   font-size: 11px;
   font-weight: 700;
-  color: #9ca3af;
+  color: #81755f;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -471,11 +538,11 @@ body.draft-annotating * {
 .stat-value {
   font-size: 14px;
   font-weight: 800;
-  color: #1a1a1a;
+  color: #343127;
 }
 
 .stat-value.error-count {
-  color: #e24b4b;
+  color: #b5523d;
   font-size: 18px;
 }
 
@@ -503,7 +570,7 @@ body.draft-annotating * {
 
 .confidence {
   font-size: 12px;
-  color: #9ca3af;
+  color: #81755f;
   font-weight: 600;
 }
 
@@ -533,7 +600,10 @@ body.draft-annotating * {
 .empty-state {
   padding: 3rem;
   text-align: center;
-  color: #9ca3af;
+  color: #746b5b;
   font-size: 14px;
   font-weight: 600;
+  background: #f0e3c5;
+  border: 1px solid #d1c09a;
+  border-radius: 12px;
 }
