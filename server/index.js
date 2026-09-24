@@ -16,6 +16,7 @@ import examTestRouter from './routes/examTest.js';
 import { resumePending } from './examWorker.js';
 import { attachHermesWs, hermesRouter } from './routes/hermesChat.js';
 import kaodianRouter from './routes/kaodian.js';
+import knowledgeContentRouter from './routes/knowledgeContent.js';
 import dailyPlansRouter from './routes/dailyPlans.js';
 
 const app = express();
@@ -45,6 +46,7 @@ app.use('/api/exam-analyses',   examAnalysesRouter);
 app.use('/api/exam-test',       examTestRouter);
 app.use('/api/hermes',          hermesRouter);
 app.use('/api/kaodian',         kaodianRouter);
+app.use('/api/knowledge-content', knowledgeContentRouter);
 app.use('/api/daily-plans',     dailyPlansRouter);
 
 app.use((err, _req, res, _next) => {

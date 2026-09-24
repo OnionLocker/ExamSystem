@@ -11,6 +11,7 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
+from mastery_assessment import assess, decode_review, validate_review
 
 from kaodian_taxonomy import (
     assert_registerable_tag,
@@ -19,6 +20,7 @@ from kaodian_taxonomy import (
     normalize_module,
     parse_fenbi_tag,
     static_alias,
+    fenbi_l3_of,
 )
 
 DB = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parent.parent / "data" / "exam.db")
@@ -81,6 +83,14 @@ CREATE TABLE IF NOT EXISTS kaodian_debts (
     mastered         INTEGER NOT NULL DEFAULT 0,
     updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS kaodian_learning (
+    kaodian TEXT PRIMARY KEY,
+    status TEXT NOT NULL CHECK(status IN ('learning','learned')),
+    learned_at TEXT,
+    baseline_event_id INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 """
 
 RECORD = """
@@ -139,47 +149,100 @@ def calculate_mastery(events, now=None):
 
 
 def recompute_mastery(conn, kaodian=None):
-    """按事件流水重算画像；手工估计不会覆盖自动值。"""
+    """Preserve legacy scheduling scores; derive public levels from reviewed evidence."""
     ensure_schema(conn)
     profiles = conn.execute(
-        "SELECT kaodian FROM kaodian_profile WHERE mastery_source != 'manual'"
+        "SELECT kaodian FROM kaodian_profile WHERE 1=1"
         + (" AND kaodian=?" if kaodian else ""),
         ((kaodian,) if kaodian else ()),
     ).fetchall()
     for (tag,) in profiles:
-        events = conn.execute(
-            """SELECT MAX(e.is_correct), MIN(e.answered_at),
-                      MAX(e.evidence_type), MAX(e.evidence_weight)
+        cursor = conn.execute(
+            """SELECT e.*
                  FROM kaodian_events e
                  LEFT JOIN kaodian_aliases a ON a.alias=e.kaodian
                 WHERE COALESCE(a.canonical, e.kaodian)=?
-                GROUP BY CASE
-                  WHEN e.session_id IS NOT NULL
-                    THEN 's:' || e.session_id || ':' || COALESCE(e.question_id, 0) || ':' || e.evidence_type
-                  WHEN e.question_id IS NOT NULL
-                    THEN 'q:' || e.question_id || ':' || e.answered_at || ':' || e.evidence_type
-                  ELSE 'e:' || e.id
-                END
-                ORDER BY MIN(e.answered_at), MIN(e.id)""",
+                ORDER BY e.answered_at, e.id""",
             (tag,),
-        ).fetchall()
-        score = calculate_mastery([
-            {
-                "is_correct": row[0],
-                "answered_at": row[1],
-                "evidence_type": row[2],
-                "evidence_weight": row[3],
-            }
-            for row in events
-        ])
+        )
+        names = [col[0] for col in cursor.description]
+        events = [dict(zip(names, row)) for row in cursor.fetchall()]
+        has_answers = conn.execute("SELECT 1 FROM sqlite_master WHERE name='practice_answers'").fetchone()
+        session_cols = {r[1] for r in conn.execute("PRAGMA table_info(practice_sessions)")}
+        question_cols = {r[1] for r in conn.execute('PRAGMA table_info(questions)')}
+        for event in events:
+            if event["evidence_type"] != "practice" or not has_answers:
+                continue
+            answer = conn.execute(
+                """SELECT is_correct,time_spent_sec,answered_at,user_answer FROM practice_answers
+                     WHERE session_id=? AND question_id=? ORDER BY id DESC LIMIT 1""",
+                (event["session_id"], event["question_id"]),
+            ).fetchone()
+            if answer:
+                event.update(is_correct=answer[0], elapsed_ms=(answer[1] or 0) * 1000, answered_at=answer[2],
+                             objective_result=bool(answer[3]) or (answer[1] or 0) >= 60)
+            if 'source_evidence' in question_cols:
+                question = conn.execute('SELECT question_type,source_evidence FROM questions WHERE id=?', (event['question_id'],)).fetchone()
+                if question:
+                    event['question_type'] = question[0]
+                    if question[1]:
+                        from policy_sources import evidence_status
+                        evidence = json.loads(question[1])
+                        event['claim_ids'] = evidence.get('claim_ids', [])
+                        event['source_outdated'] = bool(evidence_status(evidence)['outdated'])
+            event["is_repeat"] = bool(conn.execute(
+                """SELECT 1 FROM practice_answers WHERE question_id=? AND session_id<? LIMIT 1""",
+                (event["question_id"], event["session_id"]),
+            ).fetchone())
+            if "assessment_baseline" in session_cols:
+                baseline = conn.execute("SELECT assessment_baseline FROM practice_sessions WHERE id=?",
+                                        (event["session_id"],)).fetchone()
+                event["prior_level"] = json.loads(baseline[0] or "{}").get(tag) if baseline else None
+        independent, seen = [], set()
+        for event in events:
+            key = (event["evidence_type"], event["session_id"] if event["evidence_type"] == "exam" else None,
+                   event["question_id"] if event["question_id"] is not None else f"event:{event['id']}")
+            repeated = key in seen or event.get("is_repeat")
+            seen.add(key)
+            review = decode_review(event.get("assessment_json"))
+            if not repeated and (not review or review["independence"] == "independent"):
+                independent.append(event)
+        score = calculate_mastery(independent)
+        assessment = assess(events)
+        conn.execute("UPDATE kaodian_profile SET assessment_json=? WHERE kaodian=?",
+                     (json.dumps(assessment, ensure_ascii=False), tag))
         if score:
             conn.execute(
                 """UPDATE kaodian_profile
                    SET mastery=?, mastery_confidence=?, mastery_samples=?,
                        mastery_source='auto', mastery_updated_at=datetime('now'),
-                       updated_at=datetime('now') WHERE kaodian=?""",
+                       updated_at=datetime('now') WHERE kaodian=? AND mastery_source != 'manual'""",
                 (score["mastery"], score["mastery_confidence"], score["mastery_samples"], tag),
             )
+        else:
+            conn.execute("""UPDATE kaodian_profile SET mastery=NULL,mastery_confidence=0,mastery_samples=0
+                              WHERE kaodian=? AND mastery_source != 'manual'""", (tag,))
+
+
+def assess_event(conn, session_id, question_id, review, source="practice"):
+    """Annotate an existing answer, including sealed reviews, without adding samples."""
+    review = validate_review(review)
+    ensure_schema(conn)
+    rows = conn.execute(
+        "SELECT id,kaodian,assessment_json FROM kaodian_events WHERE session_id=? AND question_id=? AND evidence_type=?",
+        (session_id, question_id, source),
+    ).fetchall()
+    if len(rows) != 1:
+        raise ValueError("expected exactly one recorded answer; record it first with its canonical tag")
+    event_id, tag, previous = rows[0]
+    serialized = json.dumps(review, ensure_ascii=False, sort_keys=True)
+    if previous == serialized:
+        return False
+    conn.execute("""INSERT INTO kaodian_assessment_history(event_id,assessment_json)
+                      VALUES (?,?)""", (event_id, serialized))
+    conn.execute("UPDATE kaodian_events SET assessment_json=? WHERE id=?", (serialized, event_id))
+    recompute_mastery(conn, resolve_kaodian(conn, tag)[0])
+    return True
 
 
 def wellformed_kaodian(kaodian: str) -> bool:
@@ -252,7 +315,7 @@ def practice_coverage(conn, session_id):
     written = {
         row[0] for row in conn.execute(
             """SELECT DISTINCT question_id FROM kaodian_events
-                WHERE session_id=? AND question_id IS NOT NULL""",
+                WHERE session_id=? AND evidence_type='practice' AND question_id IS NOT NULL""",
             (int(session_id),),
         )
     }
@@ -282,36 +345,97 @@ def seal_practice(conn, session_id, force=False):
         return {"sealed": False, "eligible": eligible, "recorded": written, "missing": missing}
 
 
-def apply_debt(conn, kaodian, is_correct):
-    if is_correct:
-        conn.execute(
-            """UPDATE kaodian_debts
-                  SET recovery_streak = recovery_streak + 1,
-                      last_seen_at = datetime('now'),
-                      mastered = CASE WHEN recovery_streak + 1 >= ? THEN 1 ELSE 0 END,
-                      updated_at = datetime('now')
-                WHERE kaodian = ? AND mastered = 0""",
-            (DEBT_CLEAR, kaodian),
-        )
+def rebuild_debt(conn, kaodian):
+    # A confirmed parent covers its methods; each method must repay its own errors.
+    learning = conn.execute(
+        """SELECT kaodian,status,baseline_event_id,learned_at FROM kaodian_learning
+             WHERE kaodian=? OR substr(?,1,length(kaodian)+1)=kaodian || '-'
+             ORDER BY length(kaodian) DESC LIMIT 1""",
+        (kaodian, kaodian),
+    ).fetchone()
+    if not learning or learning[1] != "learned":
         return
+    if learning[0] != kaodian:
+        conn.execute(
+            """INSERT INTO kaodian_learning(kaodian,status,baseline_event_id,learned_at)
+                 VALUES (?,'learned',?,?)""", (kaodian, learning[2], learning[3]),
+        )
+    rows = conn.execute(
+        """SELECT e.is_correct,e.answered_at FROM kaodian_events e
+             LEFT JOIN kaodian_aliases a ON a.alias=e.kaodian
+            WHERE COALESCE(a.canonical,e.kaodian)=? AND e.id>?
+            ORDER BY e.id""", (kaodian, learning[2]),
+    ).fetchall()
+    wrong_count, recovery, mastered, last_wrong = 0, 0, 1, None
+    for ok, when in rows:
+        if not int(ok):
+            wrong_count += 1
+            recovery, mastered, last_wrong = 0, 0, when
+        elif not mastered:
+            recovery += 1
+            mastered = int(recovery >= DEBT_CLEAR)
     conn.execute(
         """INSERT INTO kaodian_debts
-             (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
-           VALUES (?, 1, 0, datetime('now'), datetime('now'), 0)
-           ON CONFLICT(kaodian) DO UPDATE SET
-             wrong_count = wrong_count + 1,
-             recovery_streak = 0,
-             last_wrong_at = datetime('now'),
-             last_seen_at = datetime('now'),
-             mastered = 0,
-             updated_at = datetime('now')""",
-        (kaodian,),
+             (kaodian,wrong_count,recovery_streak,last_wrong_at,last_seen_at,mastered)
+           VALUES (?,?,?,?,?,?)
+           ON CONFLICT(kaodian) DO UPDATE SET wrong_count=excluded.wrong_count,
+             recovery_streak=excluded.recovery_streak,last_wrong_at=excluded.last_wrong_at,
+             last_seen_at=excluded.last_seen_at,mastered=excluded.mastered,
+             updated_at=datetime('now')""",
+        (kaodian, wrong_count, recovery, last_wrong, rows[-1][1] if rows else None, mastered),
     )
+
+
+def set_learning_state(conn, kaodian, status):
+    """Explicitly gate future debts on confirmed study; never infer study from old attempts."""
+    if status not in {"learning", "learned"}:
+        raise ValueError("status must be learning or learned")
+    ensure_schema(conn)
+    conn.execute("BEGIN IMMEDIATE")
+    kaodian, module, subtype = resolve_kaodian(conn, kaodian)
+    rebuild_debt(conn, kaodian)
+    current = conn.execute(
+        "SELECT status FROM kaodian_learning WHERE kaodian=?", (kaodian,)
+    ).fetchone()
+    if current and current[0] == "learned" and status == "learning":
+        raise ValueError("已确认学过的考点不能降回学习中")
+    if current and current[0] == "learned":
+        conn.commit()
+        return {"kaodian": kaodian, "status": "learned", "changed": False}
+    if status == "learning":
+        conn.execute(
+            """INSERT INTO kaodian_learning(kaodian,status)
+                 VALUES (?, 'learning')
+                 ON CONFLICT(kaodian) DO UPDATE SET status='learning', learned_at=NULL,
+                   updated_at=datetime('now')""",
+            (kaodian,),
+        )
+    else:
+        baseline = conn.execute("SELECT COALESCE(MAX(id),0) FROM kaodian_events").fetchone()[0]
+        conn.execute(
+            """INSERT INTO kaodian_learning(kaodian,status,learned_at,baseline_event_id)
+                 VALUES (?, 'learned', datetime('now'), ?)
+                 ON CONFLICT(kaodian) DO UPDATE SET status='learned',
+                   learned_at=datetime('now'), baseline_event_id=excluded.baseline_event_id,
+                   updated_at=datetime('now')""",
+            (kaodian, baseline),
+        )
+        # Close the legacy error aggregate as the new learning baseline; keep all events.
+        conn.execute(
+            """INSERT INTO kaodian_debts
+                 (kaodian,wrong_count,recovery_streak,last_wrong_at,last_seen_at,mastered)
+                 VALUES (?,0,0,NULL,NULL,1)
+                 ON CONFLICT(kaodian) DO UPDATE SET wrong_count=0,recovery_streak=0,
+                   last_wrong_at=NULL,last_seen_at=NULL,mastered=1,updated_at=datetime('now')""",
+            (kaodian,),
+        )
+    conn.commit()
+    return {"kaodian": kaodian, "status": status, "changed": True}
 
 
 def rebuild_kaodian(conn, kaodian):
     rows = conn.execute(
-        """SELECT e.is_correct, e.elapsed_ms, e.answered_at
+        """SELECT e.id,e.is_correct,e.elapsed_ms,e.answered_at
              FROM kaodian_events e
              LEFT JOIN kaodian_aliases a ON a.alias = e.kaodian
             WHERE COALESCE(a.canonical, e.kaodian)=?
@@ -319,27 +443,13 @@ def rebuild_kaodian(conn, kaodian):
         (kaodian,),
     ).fetchall()
     attempts = len(rows)
-    correct = sum(int(row[0]) for row in rows)
-    total_ms = sum(int(row[1] or 0) for row in rows)
+    correct = sum(int(row[1]) for row in rows)
+    total_ms = sum(int(row[2] or 0) for row in rows)
     streak = 0
-    wrong_count = 0
-    recovery = 0
-    mastered = 0
-    last_wrong = None
     last_seen_at = None
-    for ok, _ms, when in rows:
+    for _event_id, ok, _ms, when in rows:
         last_seen_at = when
-        if int(ok):
-            streak = streak + 1 if streak >= 0 else 1
-            recovery += 1
-            if recovery >= DEBT_CLEAR:
-                mastered = 1
-        else:
-            streak = streak - 1 if streak <= 0 else -1
-            wrong_count += 1
-            recovery = 0
-            mastered = 0
-            last_wrong = when
+        streak = (max(streak, 0) + 1) if int(ok) else (min(streak, 0) - 1)
     last_seen = str(last_seen_at)[:10] if last_seen_at else None
     conn.execute(
         """UPDATE kaodian_profile
@@ -348,22 +458,7 @@ def rebuild_kaodian(conn, kaodian):
             WHERE kaodian=?""",
         (attempts, correct, total_ms, last_seen, streak, kaodian),
     )
-    if attempts == 0:
-        conn.execute("DELETE FROM kaodian_debts WHERE kaodian=?", (kaodian,))
-    else:
-        conn.execute(
-            """INSERT INTO kaodian_debts
-                 (kaodian, wrong_count, recovery_streak, last_wrong_at, last_seen_at, mastered)
-               VALUES (?,?,?,?,?,?)
-               ON CONFLICT(kaodian) DO UPDATE SET
-                 wrong_count=excluded.wrong_count,
-                 recovery_streak=excluded.recovery_streak,
-                 last_wrong_at=excluded.last_wrong_at,
-                 last_seen_at=excluded.last_seen_at,
-                 mastered=excluded.mastered,
-                 updated_at=datetime('now')""",
-            (kaodian, wrong_count, recovery, last_wrong, last_seen_at, mastered),
-        )
+    rebuild_debt(conn, kaodian)
     recompute_mastery(conn, kaodian)
 
 
@@ -524,16 +619,23 @@ def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="her
         return False
     if practice_lock and session_id is not None and question_id is not None:
         already = conn.execute(
-            "SELECT 1 FROM kaodian_events WHERE session_id=? AND question_id=? LIMIT 1",
+            "SELECT 1 FROM kaodian_events WHERE session_id=? AND question_id=? AND evidence_type='practice' LIMIT 1",
             (int(session_id), int(question_id)),
         ).fetchone()
         if already:
             return False
+        answer = conn.execute(
+            """SELECT is_correct,time_spent_sec FROM practice_answers
+                 WHERE session_id=? AND question_id=? ORDER BY id DESC LIMIT 1""",
+            (session_id, question_id),
+        ).fetchone()
+        if not answer:
+            raise ValueError("practice answer not found")
+        is_correct, elapsed_ms, source = answer[0], (answer[1] or 0) * 1000, "practice"
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
     c = 1 if is_correct else 0
     source = source if source in SOURCE_WEIGHTS else "hermes"
     if session_id is not None:
-
         cur = conn.execute(
             """INSERT OR IGNORE INTO kaodian_events
                (kaodian, question_id, session_id, is_correct, elapsed_ms, evidence_type, evidence_weight)
@@ -543,14 +645,14 @@ def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="her
         if cur.rowcount == 0:
             return False
     else:
-        conn.execute(
+        cur = conn.execute(
             """INSERT INTO kaodian_events
                (kaodian, is_correct, elapsed_ms, evidence_type, evidence_weight)
                VALUES (?,?,?,?,?)""",
             (kaodian, c, elapsed_ms, source, weight),
         )
     conn.execute(RECORD, (kaodian, module, subtype, c, elapsed_ms, 1 if c else -1))
-    apply_debt(conn, kaodian, c)
+    rebuild_debt(conn, kaodian)
     recompute_mastery(conn, kaodian)
     return True
 
@@ -563,14 +665,19 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
     """
     ensure_schema(conn)
     kaodian = assert_registerable_tag(kaodian, module)
+    if len(note.strip()) > 4000:
+        raise ValueError("考点定义不得超过 4000 字")
+    if parse_fenbi_tag(kaodian)[3] and not note.strip():
+        raise ValueError("登记子考点须说明定义、解题动作及与相邻考点的区别")
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype, verbatim=True)
     conn.execute("""
         INSERT INTO kaodian_profile
-          (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak, note)
-        VALUES (?, ?, ?, 0, 0, 0, NULL, 0, ?)
+          (kaodian, module, subtype, attempts, correct, total_ms, last_seen, streak, note, definition)
+        VALUES (?, ?, ?, 0, 0, 0, NULL, 0, ?, ?)
         ON CONFLICT(kaodian) DO UPDATE SET
           module = excluded.module,
           subtype = excluded.subtype,
+          definition = CASE WHEN excluded.definition = '' THEN kaodian_profile.definition ELSE excluded.definition END,
           note = CASE
                    WHEN excluded.note = '' THEN kaodian_profile.note
                    WHEN kaodian_profile.note IS NULL OR kaodian_profile.note = ''
@@ -578,7 +685,7 @@ def register_knowledge_point(conn, kaodian, module, subtype, note=""):
                    ELSE kaodian_profile.note || '；' || excluded.note
                  END,
           updated_at = datetime('now')
-    """, (kaodian, module, subtype, note.strip()))
+    """, (kaodian, module, subtype, note.strip(), note.strip()))
 
 
 def weak_points(conn, limit=20, min_attempts=3):
@@ -601,6 +708,8 @@ def weak_points(conn, limit=20, min_attempts=3):
 def ensure_schema(conn):
     conn.executescript(SCHEMA)
     cols = {r[1] for r in conn.execute("PRAGMA table_info(kaodian_profile)")}
+    if "definition" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN definition TEXT")
     if "mastery" not in cols:
         conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery INTEGER")
     if "mastery_note" not in cols:
@@ -613,6 +722,8 @@ def ensure_schema(conn):
         conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_source TEXT NOT NULL DEFAULT 'auto'")
     if "mastery_updated_at" not in cols:
         conn.execute("ALTER TABLE kaodian_profile ADD COLUMN mastery_updated_at TEXT")
+    if "assessment_json" not in cols:
+        conn.execute("ALTER TABLE kaodian_profile ADD COLUMN assessment_json TEXT")
     event_cols = {r[1] for r in conn.execute("PRAGMA table_info(kaodian_events)")}
     if "evidence_type" not in event_cols:
         conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'hermes'")
@@ -620,6 +731,12 @@ def ensure_schema(conn):
         conn.execute("ALTER TABLE kaodian_events ADD COLUMN evidence_weight REAL NOT NULL DEFAULT 1.0")
     if "session_id" not in event_cols:
         conn.execute("ALTER TABLE kaodian_events ADD COLUMN session_id INTEGER")
+    if "assessment_json" not in event_cols:
+        conn.execute("ALTER TABLE kaodian_events ADD COLUMN assessment_json TEXT")
+    conn.execute("""CREATE TABLE IF NOT EXISTS kaodian_assessment_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL,
+        assessment_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )""")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS kaodian_aliases (
           alias TEXT PRIMARY KEY,
@@ -772,6 +889,17 @@ def _demo():
     assert conn.execute(
         "SELECT COUNT(*) FROM kaodian_events WHERE session_id=12 AND evidence_type='exam'"
     ).fetchone()[0] == 1
+    debt_root = "数量关系-数学运算-概率问题"
+    debt_child = f"{debt_root}-古典概型"
+    record(conn, debt_child, "数量关系", "数学运算", False)
+    set_learning_state(conn, debt_root, "learning")
+    set_learning_state(conn, debt_root, "learned")
+    assert conn.execute("SELECT wrong_count,mastered FROM kaodian_debts WHERE kaodian=?", (debt_root,)).fetchone() == (0, 1)
+    record(conn, debt_child, "数量关系", "数学运算", False)
+    assert conn.execute("SELECT wrong_count,mastered FROM kaodian_debts WHERE kaodian=?", (debt_child,)).fetchone() == (1, 0)
+    record(conn, debt_child, "数量关系", "数学运算", True)
+    record(conn, debt_child, "数量关系", "数学运算", True)
+    assert conn.execute("SELECT recovery_streak,mastered FROM kaodian_debts WHERE kaodian=?", (debt_child,)).fetchone() == (2, 1)
     print("demo ok")
 
 
@@ -795,32 +923,40 @@ def coverage_report(conn, keyword=""):
             first = json.loads(tag)[0]
         except (ValueError, IndexError, TypeError):
             continue
+        first = canonicalize(first)
         stock[first] = stock.get(first, 0) + n
     for row in conn.execute(
         "SELECT kaodian, attempts, mastery, mastery_confidence FROM kaodian_profile"
     ):
         seen[row[0]] = row[1:]
 
+    registered = {
+        canonicalize(row[0]): row[1] or ""
+        for row in conn.execute("SELECT kaodian, COALESCE(definition, note, '') FROM kaodian_profile")
+        if parse_fenbi_tag(row[0]) and row[0].split('-', 1)[0] in {"数量关系", "言语理解与表达", "判断推理"}
+        and not any(word in row[0] for word in ("图形推理", "空间类", "科学推理"))
+    }
+
+    def profile_row(tag):
+        attempts, mastery, conf = seen.get(tag, (0, None, 0))
+        return {"tag": tag, "stock": stock.get(tag, 0), "attempts": attempts or 0,
+                "mastery": mastery, "confidence": conf or 0, "definition": registered.get(tag, "")}
+
     out = []
+    covered = set()
     for card in canon_index():
-        # 图形推理/科学推理/资料分析走日练，专项出不了，列出来只是噪音
+        # 此处覆盖文字专项的考点卡；资料分析使用独立的材料入口。
         if any("图形推理" in t for t in card["tags"]) or not card["tags"]:
             continue
         family = card["tags"][0].rsplit("-", 1)[0]
-        if keyword and keyword not in family and keyword not in card["title"]:
-            continue
         # canon 里写的可能是旧名，先归一到实际在用的标签，库存/练习才对得上
         usable = {canonicalize(t, card["module"]) for t in card["tags"]}
-        rows = []
-        for tag in sorted(usable):
-            attempts, mastery, conf = seen.get(tag, (0, None, 0))
-            rows.append({
-                "tag": tag,
-                "stock": stock.get(tag, 0),
-                "attempts": attempts or 0,
-                "mastery": mastery,
-                "confidence": conf or 0,
-            })
+        parents = {fenbi_l3_of(t) for t in usable} - {""}
+        usable.update(t for t in registered if fenbi_l3_of(t) in parents)
+        covered.update(usable)
+        if keyword and not any(keyword in value for value in [family, card["title"], *usable]):
+            continue
+        rows = [profile_row(tag) for tag in sorted(usable)]
         # 一张卡只有一个标签时，卡内条目既可能是并列步骤也可能是可拆的考法，
         # 不替 Hermes 下结论，如实列出让它自己判断。
         untagged = [b["text"] for b in card["bullets"] if not b["tag"]] if len(rows) <= 1 else []
@@ -832,6 +968,12 @@ def coverage_report(conn, keyword=""):
             "rows": rows,
             "untagged": untagged,
         })
+    for parent in sorted({fenbi_l3_of(t) for t in registered.keys() - covered}):
+        tags = sorted(t for t in registered if fenbi_l3_of(t) == parent and t not in covered)
+        if keyword and not any(keyword in tag for tag in tags):
+            continue
+        out.append({"module": parent.split('-', 1)[0], "title": parent, "family": parent,
+                    "methods": len(tags), "rows": [profile_row(t) for t in tags], "untagged": []})
     return out
 
 
@@ -854,6 +996,8 @@ def print_coverage(conn, keyword=""):
                 f"      题{row['stock']:<4}练{row['attempts']:<4}掌握{m:<5}"
                 f"{row['tag'].rsplit('-', 1)[-1]}"
             )
+            if row.get("definition"):
+                print(f"        定义：{row['definition']}")
         if card["untagged"]:
             print("      卡内条目（并列步骤还是可拆考法，自行判断）：" + "｜".join(card["untagged"]))
 
@@ -863,7 +1007,11 @@ def plan_blueprint(conn, keyword, count):
     cards = coverage_report(conn, keyword)
     from kaodian_taxonomy import LEGACY_TAGS
 
-    pool = [row for card in cards for row in card["rows"] if row["tag"] not in LEGACY_TAGS]
+    if not 1 <= count <= 15:
+        raise ValueError("专项配题数量须为 1–15")
+    candidates = {row["tag"]: row for card in cards for row in card["rows"] if row["tag"] not in LEGACY_TAGS}
+    parents_with_children = {fenbi_l3_of(t) for t in candidates if fenbi_l3_of(t) != t}
+    pool = [row for tag, row in candidates.items() if tag not in parents_with_children]
     if not pool:
         raise SystemExit(f"没有匹配 '{keyword}' 的考点；先 --coverage 看有哪些")
     pool.sort(key=lambda r: (r["mastery"] if r["mastery"] is not None else 50, r["stock"]))
@@ -890,6 +1038,24 @@ if __name__ == "__main__":
         register_knowledge_point(conn, tag, module, subtype, " ".join(note))
         conn.commit()
         print(f"registered -> {tag}")
+    elif "--learning" in sys.argv:
+        args = sys.argv[sys.argv.index("--learning") + 1:]
+        if len(args) != 2 or args[1] not in {"learning", "learned"}:
+            raise SystemExit("用法：--learning <标签> learning|learned")
+        conn = sqlite3.connect(DB)
+        print(json.dumps(set_learning_state(conn, args[0], args[1]), ensure_ascii=False))
+    elif "--assess" in sys.argv:
+        args = sys.argv[sys.argv.index("--assess") + 1:]
+        if len(args) != 4 or args[0] not in {"practice", "exam"}:
+            raise SystemExit("usage: --assess practice|exam <session-id> <question-id> '<assessment JSON>'")
+        conn = sqlite3.connect(DB)
+        try:
+            changed = assess_event(conn, int(args[1]), int(args[2]), json.loads(args[3]), args[0])
+            conn.commit()
+        except (ValueError, TypeError) as error:
+            conn.rollback()
+            raise SystemExit(str(error)) from error
+        print(json.dumps({"updated": changed}))
     elif "--record" in sys.argv:
         args = sys.argv[sys.argv.index("--record") + 1:]
         exam_id = practice_id = item = None
@@ -1008,6 +1174,14 @@ if __name__ == "__main__":
                     total[key] += stats[key]
         conn.commit()
         print(json.dumps(total, ensure_ascii=False))
+    elif "--practice-coverage" in sys.argv:
+        args = sys.argv[sys.argv.index("--practice-coverage") + 1:]
+        if not args:
+            raise SystemExit("用法：--practice-coverage <practice_sessions.id>")
+        with sqlite3.connect(Path(DB).resolve().as_uri() + "?mode=ro", uri=True) as conn:
+            total, covered, missing = practice_coverage(conn, int(args[0]))
+        print(json.dumps({"total": total, "covered": covered, "missing": len(missing),
+                          "percentage": round(covered / total * 100) if total else 0}))
     elif "--record-blanks" in sys.argv:
         args = sys.argv[sys.argv.index("--record-blanks") + 1:]
         if not args:

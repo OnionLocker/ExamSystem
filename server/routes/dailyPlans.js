@@ -32,7 +32,8 @@ const parseItems = (raw) => {
 };
 
 const itemKey = (item, index = 0) =>
-  String(item?.batch_id || item?.id || `${item?.module || ''}|${item?.target || ''}|${index}`);
+  item?.task_type === 'manual' ? `manual:${item.id || index}`
+    : String(item?.batch_id || item?.id || `${item?.module || ''}|${item?.target || ''}|${index}`);
 
 const itemStatus = (done, count) =>
   done >= count ? 'done' : done > 0 ? 'partial' : 'pending';
@@ -164,7 +165,7 @@ const syncRuns = (date, items, source) => {
       updated_at = datetime('now')
   `);
   for (const item of items) {
-    if (!item.batch_id) continue;
+    if (!item.batch_id || item.task_type === 'manual') continue;
     const imported = countQuestions.get(item.batch_id).count > 0;
     const status = item.done >= item.count ? 'completed' : imported ? 'imported' : 'scheduled';
     upsert.run({
@@ -233,6 +234,7 @@ const reconcilePlan = (date, onlyBatchId = null) => {
   });
 
   const items = plan.items.map((item) => {
+    if (item.task_type === 'manual') return item;
     if (onlyBatchId && item.batch_id !== onlyBatchId) return item;
     let measured = 0;
     if (item.batch_id) {
@@ -260,7 +262,7 @@ export const reconcileDailyPlanBatch = (batchId) => {
   const date = run?.plan_date || east8Today();
   const plan = reconcilePlan(date, String(batchId));
   if (!plan) return null;
-  const item = plan.items.find((candidate) => candidate.batch_id === String(batchId));
+  const item = plan.items.find((candidate) => candidate.task_type !== 'manual' && candidate.batch_id === String(batchId));
   if (item?.done >= item?.count) {
     db.prepare(`
       UPDATE ai_daily_batch_runs

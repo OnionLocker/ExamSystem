@@ -18,11 +18,12 @@ import {
   aliasMapFrom,
 } from './fenbiTree.js';
 import DebtDashboard from './DebtDashboard.jsx';
-import 'katex/dist/katex.min.css';
-import '../hermes/katex-fix.css';
+import ContentPanel from './ContentPanel.jsx';
+import Assessment, { MasteryStatus as MasteryBar } from './Assessment.jsx';
+import { withContentTree, contentTag, contentTrail, findContentNode } from './contentTree.js';
 
 const OVERRIDE_KEY = 'knowledge_overrides_v1';
-const KAODIAN_CACHE_KEY = 'kaodian_cache_v1';
+const KAODIAN_CACHE_KEY = 'kaodian_cache_v2';
 
 function loadKaodianCache() {
   try {
@@ -63,10 +64,8 @@ function scoreOf(row) {
 function masteryHint(row) {
   if (!row) return '';
   const parts = [];
-  if (row.attempts > 0) parts.push(`${row.correct || 0}/${row.attempts} 次`);
-  if (row.mastery_confidence != null) parts.push(`置信度 ${row.mastery_confidence}%`);
-  if (row.mastery_samples != null) parts.push(`有效样本 ${row.mastery_samples}`);
-  if (row.mastery_source === 'manual') parts.push('人工覆盖');
+  if (row.attempts > 0) parts.push(`历史作答 ${row.attempts} 次`);
+  if (row.assessment) parts.push(`独立证据 ${row.assessment.independent_samples} 次`, `熟练度 ${row.assessment.fluency_label}`);
   return parts.join(' · ');
 }
 
@@ -118,45 +117,6 @@ const KATEX_OPTIONS = {
   macros: { '\\frac': '\\dfrac' },
   minRuleThickness: 0.07,
 };
-
-const MASTERY_COLORS = ['#e24b4b', '#ef7d3a', '#e6b423', '#9cc43a', '#4caf50', '#2a9d5c'];
-
-function MasteryBar({ score, hint, pending, kind }) {
-  const known = Number.isFinite(score);
-  const v = known ? Math.max(0, Math.min(100, Math.round(score))) : null;
-  const lit = known ? Math.max(1, Math.round((v / 100) * MASTERY_COLORS.length)) : 0;
-  const word = pending && !known
-    ? '读取中'
-    : !known
-      ? '还没接触'
-      : kind === 'rollup'
-        ? '综合覆盖'
-        : v < 40 ? '生疏' : v < 70 ? '半会' : v < 90 ? '较稳' : '拿手';
-  const label = known ? `${v}% · ${word}` : word;
-  return (
-    <span className="inline-flex items-end gap-1 flex-shrink-0" title={[label, hint].filter(Boolean).join(' · ')} aria-label={label}>
-      <span
-        className="inline-flex items-end gap-[2px]"
-        style={{ transform: 'skewX(-18deg) translateY(1px)' }}
-      >
-        {MASTERY_COLORS.map((c, i) => (
-          <span
-            key={i}
-            className="block rounded-[1px]"
-            style={{
-              width: 4,
-              height: 13,
-              background: i < lit ? c : '#d5d0c6',
-            }}
-          />
-        ))}
-      </span>
-      <span className="text-xs font-bold text-slate-400 whitespace-nowrap">
-        {known ? `${v}%` : pending ? '…' : '未评估'}
-      </span>
-    </span>
-  );
-}
 
 function joinLines(list) {
   return Array.isArray(list) ? list.join('\n') : '';
@@ -350,7 +310,7 @@ function localCardTitle(name, index) {
 }
 
 function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, scoresPending }) {
-  const { score, hits, row } = cardRow(t, rows);
+  const { hits, row } = cardRow(t, rows);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const view = { ...t, ...override, name: title || t.name };
@@ -395,7 +355,8 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
           <div className="flex items-center gap-3 min-w-0">
             <h4 className="text-lg font-black tracking-tight">{view.name}</h4>
             <MasteryBar
-              score={score}
+              row={row}
+              kind={hits.length > 1 ? 'rollup' : undefined}
               pending={scoresPending}
               hint={[row?.mastery_note, masteryHint(row), hits.length > 1 ? `${hits.length} 个相关考点` : ''].filter(Boolean).join(' · ')}
             />
@@ -515,7 +476,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <p className="text-base font-bold truncate">{h.kaodian}</p>
-                        <MasteryBar score={scoreOf(h)} hint={[h.mastery_note, masteryHint(h)].filter(Boolean).join(' · ')} />
+                        <MasteryBar row={h} hint={masteryHint(h)} />
                       </div>
                       <p className="text-[10px] text-slate-400 font-bold flex-shrink-0">
                         {h.attempts ? `${h.correct}/${h.attempts}` : '对话'}
@@ -534,7 +495,8 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
 
 function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending }) {
   const [openL2, setOpenL2] = useState(() => new Set(modules[0]?.children?.map((g) => g.name) || []));
-  const [openL3, setOpenL3] = useState(() => new Set());
+  const [openL3, setOpenL3] = useState({});
+  const containsSelection = item => item.tag === selectedTag || item.children?.some(containsSelection);
 
   const toggleL2 = (name) => {
     setOpenL2((prev) => {
@@ -545,15 +507,44 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
     });
   };
 
-  const toggleL3 = (tag, e) => {
+  const toggleL3 = (tag, expanded, e) => {
     e?.stopPropagation();
-    setOpenL3((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag);
-      else next.add(tag);
-      return next;
-    });
+    setOpenL3(prev => ({ ...prev, [tag]: !expanded }));
   };
+
+  const renderExtensions = (items, depth = 0) => items.map((ext) => {
+    const expanded = openL3[ext.tag] ?? containsSelection(ext);
+    return (
+      <div key={ext.tag}>
+        <div
+          className={`min-h-[40px] flex items-center gap-1.5 rounded-xl px-3 border transition-colors ${
+            selectedTag === ext.tag ? 'bg-[#f6ecd4] border-[#cbb387]' : 'bg-[#f6ecd4]/70 border-[#e8d5b0] hover:border-[#cbb387]'
+          }`}
+          style={{ marginLeft: `${Math.min(depth + 1, 4) * 0.8}rem` }}
+        >
+          <button
+            type="button"
+            onClick={() => onSelect({ tag: ext.tag })}
+            className="min-h-[40px] min-w-0 flex-1 flex items-center justify-between gap-3 py-2 text-left"
+          >
+            <span className="text-sm font-bold min-w-0 truncate">{ext.name}</span>
+            {(!ext.contentNode || ext.row) && <MasteryBar row={ext.row} pending={scoresPending} hint={ext.row ? masteryHint(ext.row) : ''} />}
+          </button>
+          {ext.children?.length > 0 && <button
+            type="button"
+            aria-expanded={expanded}
+            aria-label={`${expanded ? '收起' : '展开'}${ext.name}，${ext.children.length} 个细分考法`}
+            title={`${expanded ? '收起' : '展开'} ${ext.children.length} 个细分考法`}
+            onClick={(e) => toggleL3(ext.tag, expanded, e)}
+            className="shrink-0 p-1 -mr-1 text-[#8a6d3b] hover:text-[#1a1a1a] rounded-lg transition-colors"
+          >
+            <ChevronDown size={15} className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+          </button>}
+        </div>
+        {expanded && ext.children?.length > 0 && <div className="mt-1 space-y-1">{renderExtensions(ext.children, depth + 1)}</div>}
+      </div>
+    );
+  });
 
   return (
     <div className="space-y-3">
@@ -561,7 +552,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
         <div key={mod.id} className="space-y-2">
           {(mod.children || []).map((group) => {
             const leaves = filterScored
-              ? (group.children || []).filter((leaf) => leaf.score != null || leaf.extensions?.length)
+              ? (group.children || []).filter((leaf) => leaf.hits?.length || leaf.extensions?.length)
               : (group.children || []);
             if (filterScored && !leaves.length) return null;
             const open = openL2.has(group.name);
@@ -570,6 +561,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
                 <button
                   type="button"
                   onClick={() => toggleL2(group.name)}
+                  aria-expanded={open}
                   className="w-full min-h-[48px] flex items-center justify-between gap-3 px-4 py-3 text-left"
                 >
                   <span className="text-[15px] font-black tracking-tight">{group.name}</span>
@@ -580,29 +572,34 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
                     {leaves.map((leaf) => {
                       const selected = selectedTag === leaf.tag;
                       const hasExt = Boolean(leaf.extensions?.length);
-                      const isL3Open = openL3.has(leaf.tag);
+                      const isL3Open = openL3[leaf.tag] ?? leaf.extensions?.some(containsSelection);
                       return (
                         <div key={leaf.tag}>
                           <div
                             className={`w-full min-h-[48px] flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left border cursor-pointer transition-all ${
                               selected
                                 ? 'bg-[#f6ecd4] border-[#cbb387]'
-                                : 'bg-[#fdfbf7] border-[#e8d5b0] hover:border-[#cbb387]'
+                                : 'bg-[#f2e4c4] border-[#e8d5b0] hover:border-[#cbb387]'
                             }`}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={e => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(leaf); } }}
                             onClick={() => onSelect(leaf)}
                           >
                             <span className="text-[15px] font-bold min-w-0 truncate">{leaf.name}</span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
                               <MasteryBar
-                                score={leaf.score}
+                                row={leaf.row}
                                 kind={leaf.score_kind}
                                 pending={scoresPending}
-                                hint={leaf.row ? [leaf.row.mastery_note, masteryHint(leaf.row)].filter(Boolean).join(' · ') : ''}
+                                hint={leaf.row ? masteryHint(leaf.row) : ''}
                               />
                               {hasExt && (
                                 <button
                                   type="button"
-                                  onClick={(e) => toggleL3(leaf.tag, e)}
+                                  onClick={(e) => toggleL3(leaf.tag, isL3Open, e)}
+                                  aria-expanded={Boolean(isL3Open)}
+                                  aria-label={`${isL3Open ? '收起' : '展开'}${leaf.name}的子考法`}
                                   className="p-1 -mr-1 text-slate-400 hover:text-[#1a1a1a] rounded-lg transition-colors"
                                   title={isL3Open ? '收起子考点' : '展开子考点'}
                                 >
@@ -618,21 +615,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
                           </div>
                           {hasExt && isL3Open && (
                             <div className="mt-1 space-y-1">
-                              {leaf.extensions.map((ext) => (
-                                <button
-                                  key={ext.tag}
-                                  type="button"
-                                  onClick={() => onSelect({ ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true })}
-                                  className={`ml-4 w-[calc(100%-1rem)] min-h-[44px] flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left border ${
-                                    selectedTag === ext.tag
-                                      ? 'bg-[#f6ecd4] border-[#cbb387]'
-                                      : 'bg-[#f6ecd4]/70 border-[#e8d5b0] hover:border-[#cbb387]'
-                                  }`}
-                                >
-                                  <span className="text-sm font-bold min-w-0 truncate">{ext.name}</span>
-                                  <MasteryBar score={ext.score} pending={scoresPending} hint={ext.row ? masteryHint(ext.row) : ''} />
-                                </button>
-                              ))}
+                              {renderExtensions(leaf.extensions)}
                             </div>
                           )}
                         </div>
@@ -649,7 +632,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
   );
 }
 
-export default function Knowledge({ onSeedHermes }) {
+export default function Knowledge({ onSeedHermes, active = true }) {
   const [track, setTrack] = useState('xingce');
   const [view, setView] = useState('tree'); // 'tree' or 'debts'
   const [modId, setModId] = useState('shuliang');
@@ -657,7 +640,9 @@ export default function Knowledge({ onSeedHermes }) {
   const [openId, setOpenId] = useState('');
   const [kaodian, setKaodian] = useState(loadKaodianCache);
   const [scoresReady, setScoresReady] = useState(() => loadKaodianCache().items.length > 0);
+  const [scoresError, setScoresError] = useState(false);
   const [overrides, setOverrides] = useState(loadOverrides);
+  const [contentTopics, setContentTopics] = useState([]);
   const rows = kaodian.items;
   const aliases = kaodian.aliases;
   const detailRef = useRef(null);
@@ -671,6 +656,7 @@ export default function Knowledge({ onSeedHermes }) {
     const apply = (detail) => {
       if (!detail) return;
       setTrack(detail.track || 'xingce');
+      setView('tree');
       if (detail.moduleId) setModId(detail.moduleId);
       if (detail.tag) setSelectedTag(detail.tag);
       if (detail.typeId) setOpenId(detail.typeId);
@@ -682,16 +668,20 @@ export default function Knowledge({ onSeedHermes }) {
   }, []);
 
   useEffect(() => {
+    if (!active) return undefined;
+    let cancelled = false;
     const load = () => {
       api('/api/kaodian')
         .then((d) => {
+          if (cancelled) return;
           const items = d?.items || [];
           const nextAliases = d?.aliases || [];
           setKaodian({ items, aliases: nextAliases });
           setScoresReady(true);
+          setScoresError(false);
           saveKaodianCache(items, nextAliases);
         })
-        .catch(() => { setScoresReady(true); });
+        .catch(() => { if (!cancelled) { setScoresReady(true); setScoresError(true); } });
     };
     load();
     const onVis = () => {
@@ -702,31 +692,61 @@ export default function Knowledge({ onSeedHermes }) {
       if (document.visibilityState === 'visible') load();
     }, 20000);
     return () => {
+      cancelled = true;
       document.removeEventListener('visibilitychange', onVis);
       clearInterval(timer);
     };
-  }, []);
+  }, [active]);
+
+  useEffect(() => {
+    if (!active) return;
+    let cancelled = false;
+    let loading = false;
+    const load = async () => {
+      if (loading || document.visibilityState === 'hidden') return;
+      loading = true;
+      try {
+        const result = await api('/api/knowledge-content');
+        if (!cancelled) setContentTopics(result.topics);
+      } catch { /* The selected content panel provides a visible retry on failure. */ }
+      finally { loading = false; }
+    };
+    load();
+    const timer = setInterval(load, 15000);
+    window.addEventListener('knowledge-content-changed', load);
+    window.addEventListener('focus', load);
+    return () => { cancelled = true; clearInterval(timer); window.removeEventListener('knowledge-content-changed', load); window.removeEventListener('focus', load); };
+  }, [active]);
 
   useEffect(() => {
     detailRef.current?.scrollTo({ top: 0 });
   }, [selectedTag]);
 
-  const tree = useMemo(() => mergeFenbiTree(rows, aliases), [rows, aliases]);
+  const tree = useMemo(() => withContentTree(mergeFenbiTree(rows, aliases), contentTopics), [rows, aliases, contentTopics]);
   const fenbiMod = tree.find((m) => m.id === modId) || tree[0];
   const aliasLookup = useMemo(() => aliasMapFrom(aliases), [aliases]);
   const leftover = useMemo(() => leftoverRows(rows, aliasLookup), [rows, aliasLookup]);
 
-  const selectedLeaf = useMemo(() => {
-    if (!fenbiMod || !selectedTag) return null;
-    for (const group of fenbiMod.children || []) {
-      for (const leaf of group.children || []) {
-        if (leaf.tag === selectedTag) return leaf;
-        const ext = (leaf.extensions || []).find((item) => item.tag === selectedTag);
-        if (ext) return { ...leaf, ...ext, name: ext.name, tag: ext.tag, isL4: true };
-      }
-    }
-    return null;
-  }, [fenbiMod, selectedTag]);
+  const selectedRoot = fenbiMod?.children.flatMap(g => g.children).find(leaf =>
+    selectedTag === leaf.tag || selectedTag.startsWith(`${leaf.tag}-`));
+  const contentTopic = contentTopics.find(t => t.tag === selectedRoot?.tag);
+  const contentNode = findContentNode(contentTopic, selectedTag);
+  const learningTag = (contentNode ? contentTrail(contentTopic, contentNode).reverse() : [])
+    .flatMap(n => n.aliases || []).map(tag => aliases.find(a => a.alias === tag)?.canonical || tag)
+    .find(tag => rows.some(r => r.kaodian === tag)) || selectedRoot?.tag;
+  const assessmentTags = new Set([selectedTag, ...(contentNode?.aliases || [])].map(tag => aliasLookup.get(tag) || tag));
+  const assessmentRows = rows.filter(r => assessmentTags.has(r.kaodian));
+  const shownAssessments = assessmentRows.length || selectedTag !== selectedRoot?.tag
+    ? assessmentRows : [...new Map((selectedRoot?.hits || []).map(r => [r.kaodian, r])).values()];
+  const selectedLeaf = selectedRoot ? { ...selectedRoot,
+    name: contentNode?.title || (selectedTag === selectedRoot.tag ? selectedRoot.name : selectedTag.slice(selectedRoot.tag.length + 1)),
+    tag: selectedTag,
+  } : null;
+  const sidebarTag = contentNode && contentTopic ? contentTag(contentTopic.tag, contentNode) : selectedTag;
+  const discussContent = (tag, title) => onSeedHermes?.({ knowledgeInstruction:
+    `我想和你讨论知识点「${title || tag}」。内容定位：${tag}；所属知识点：${selectedRoot?.tag || tag}。` +
+    '先围绕这个知识点交流；只有我明确要求修改时，再更新这一页的内容或细分考法。'
+  });
 
   const extras = overrides.extras[modId] || [];
   const mappedCards = selectedLeaf ? cardsForNode(selectedLeaf, fenbiMod) : methodCardsFor(fenbiMod);
@@ -774,31 +794,29 @@ export default function Knowledge({ onSeedHermes }) {
   };
 
   const pill = (active) =>
-    `min-h-[44px] px-5 py-2.5 rounded-full text-sm font-black transition-all ${
+    `min-h-[34px] px-4 py-1.5 rounded-full text-xs font-black transition-all ${
       active ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428] hover:border-[#1a1a1a]'
     }`;
 
   return (
-    <div className="h-full min-h-0 flex flex-col gap-4">
-      <div className="flex-shrink-0 flex flex-wrap items-center gap-2">
+    <div className="h-full min-h-0 flex flex-col gap-2">
+      <div className="flex-shrink-0 flex flex-wrap items-center gap-1.5">
         {TRACKS.map((t) => (
           <button key={t.id} type="button" onClick={() => selectTrack(t.id)} className={pill(track === t.id)}>
             {t.name}
-            <span className="ml-2 text-[10px] font-bold opacity-60">{t.hint}</span>
+            <span className="ml-1.5 text-[10px] font-bold opacity-60">{t.hint}</span>
           </button>
         ))}
         <button type="button" onClick={() => selectTrack('mine')} className={pill(track === 'mine')}>
           我的考点
           <span className="ml-2 text-[10px] font-bold opacity-60">{rows.length}</span>
         </button>
-      </div>
-
       {track !== 'shenlun' && (
-        <div className="flex-shrink-0 flex gap-2">
+        <div className="flex-shrink-0 flex gap-1.5">
           <button
             type="button"
             onClick={() => setView('tree')}
-            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
+            className={`min-h-[32px] px-3 py-1 rounded-full text-xs font-bold ${
               view === 'tree' ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
             }`}
           >
@@ -807,7 +825,7 @@ export default function Knowledge({ onSeedHermes }) {
           <button
             type="button"
             onClick={() => setView('debts')}
-            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-bold ${
+            className={`min-h-[32px] px-3 py-1 rounded-full text-xs font-bold ${
               view === 'debts' ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
             }`}
           >
@@ -815,24 +833,17 @@ export default function Knowledge({ onSeedHermes }) {
           </button>
         </div>
       )}
+      </div>
 
       {track === 'shenlun' ? (
         <div className="rounded-3xl bg-[#f5eed8] border border-[#c4ae7a] p-10 text-center text-sm text-slate-600 font-medium">
           申论步骤还没写进老师口径。真题上传并要求补的时候再填。
         </div>
       ) : view === 'debts' ? (
-        <DebtDashboard onSeedHermes={onSeedHermes} />
+        <DebtDashboard onSeedHermes={onSeedHermes} active={active} />
       ) : (
         <>
-          <div className="flex-shrink-0 rounded-3xl bg-[#1a1a1a] text-white px-5 py-3">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">粉笔广东·省市类树</p>
-            <p className="text-sm leading-relaxed opacity-90">
-              政治 / 常识 / 言语 / 数量 / 判断按粉笔一级→二级展开。右边斜条是掌握度，旧长标签通过别名对到新节点，画像不会清零。
-              Hermes 要更细的叶子，登记成 `模块-一级-二级-子题型`，刷新后挂在对应二级下面。
-            </p>
-          </div>
-
-          <nav className="flex-shrink-0 flex gap-2 overflow-x-auto [scrollbar-width:none]">
+          <nav className="flex-shrink-0 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
             {tree.map((m) => (
               <button
                 key={m.id}
@@ -843,23 +854,23 @@ export default function Knowledge({ onSeedHermes }) {
                   setSelectedTag(first?.tag || '');
                   setOpenId('');
                 }}
-                className={`flex-shrink-0 min-h-[48px] min-w-[7.5rem] px-4 py-3 rounded-2xl text-center ${
+                className={`flex-shrink-0 min-h-[34px] px-3 py-1 rounded-lg flex items-center gap-2 text-center ${
                   m.id === fenbiMod?.id ? 'bg-[#1a1a1a] text-white' : 'bg-[#e8d5b0] border border-[#c4ae7a] text-[#6b5428]'
                 }`}
               >
-                <p className="text-sm font-black">{m.name}</p>
-                <p className={`text-[10px] font-bold mt-0.5 ${m.id === fenbiMod?.id ? 'opacity-60' : 'text-slate-400'}`}>
+                <span className="text-xs font-black">{m.name}</span>
+                <span className={`text-[10px] font-bold ${m.id === fenbiMod?.id ? 'opacity-60' : 'text-slate-400'}`}>
                   {m.qty}
-                </p>
+                </span>
               </button>
             ))}
           </nav>
 
-          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-6">
-            <div className="min-h-0 max-h-[40vh] xl:max-h-none overflow-y-auto overscroll-contain rounded-3xl border border-[#c4ae7a] bg-[#f5eed8] p-3">
-              <FenbiTree
+          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[18rem_minmax(0,1fr)] gap-3">
+            <div className="min-h-0 max-h-[30vh] xl:max-h-none overflow-y-auto overscroll-contain rounded-2xl border border-[#c4ae7a] bg-[#f5eed8] p-2">
+              <FenbiTree key={fenbiMod?.id}
                 modules={fenbiMod ? [fenbiMod] : []}
-                selectedTag={selectedTag}
+                selectedTag={sidebarTag}
                 filterScored={track === 'mine'}
                 scoresPending={!scoresReady}
                 onSelect={(leaf) => {
@@ -869,7 +880,11 @@ export default function Knowledge({ onSeedHermes }) {
               />
             </div>
 
-            <div ref={detailRef} className="min-h-0 overflow-y-auto overscroll-contain space-y-4">
+            <div ref={detailRef} className="min-h-0 min-w-0 overflow-y-auto overscroll-contain space-y-3 pr-1">
+              <Assessment rows={shownAssessments} pending={!scoresReady} error={scoresError} />
+              {selectedRoot ? <ContentPanel key={`${selectedRoot.tag}:${learningTag}`} rootTag={selectedRoot.tag} learningTag={learningTag} selectedTag={selectedTag} onSelect={setSelectedTag} active={active && view === 'tree'} onDiscuss={discussContent}
+                legacy={types.some(t => t.custom || overrides.cards[t.id]) ? <details className="mt-5"><summary className="cursor-pointer text-sm text-slate-500 py-3">原有自定义卡片与笔记（已保留）</summary>{types.filter(t => t.custom || overrides.cards[t.id]).map(t => <TypeCard key={t.id} t={t} open={openId === t.id} onToggle={() => setOpenId(openId === t.id ? '' : t.id)} rows={rows} override={overrides.cards[t.id]} onSave={patch => saveCard(t.id, patch, t.custom)} onDelete={t.custom ? () => removeExtra(t.id) : undefined} scoresPending={!scoresReady} />)}</details> : null}
+              /> : <>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-xl font-black tracking-tight">
@@ -902,6 +917,7 @@ export default function Knowledge({ onSeedHermes }) {
                   onDelete={t.custom ? () => removeExtra(t.id) : undefined}
                 />
               ))}
+              </>}
               {track === 'mine' && leftover.length > 0 && (
                 <section className="pt-2 space-y-3">
                   <h4 className="text-sm font-black text-slate-500">还对不上粉笔树的旧标签 / 资料分析</h4>
@@ -909,7 +925,7 @@ export default function Knowledge({ onSeedHermes }) {
                     <article key={r.kaodian} className="rounded-3xl bg-[#e8d5b0] border border-dashed border-[#c4ae7a] px-5 py-4">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-black">{r.kaodian}</p>
-                        <MasteryBar score={scoreOf(r)} pending={!scoresReady} hint={[r.mastery_note, r.note, masteryHint(r)].filter(Boolean).join(' · ')} />
+                        <MasteryBar row={r} pending={!scoresReady} hint={masteryHint(r)} />
                       </div>
                     </article>
                   ))}

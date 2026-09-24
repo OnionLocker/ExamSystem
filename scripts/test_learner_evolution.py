@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import datetime as dt
 import os
 import sqlite3
 import subprocess
@@ -12,10 +13,28 @@ from pathlib import Path
 
 from daily_plan_state import reconcile, save_plan, today
 from kaodian_taxonomy import NUM_DATE
-from learner_snapshot import build_snapshot
+from learner_snapshot import build_snapshot, recommend_targets, recommendation
+from kaodian_profile import record, set_learning_state
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+def candidate(tag, module, history_status, attempts=5, plateau=False):
+    return {"kaodian": tag, "family": tag, "module": module, "attempts": attempts,
+            "family_days_since": 3, "assessment": {"level": "unassessed", "history": {
+                "status": history_status, "recent_samples": 5, "plateau": plateau}}}
+
+pool = [candidate(f"quantity-{i}", "数量关系", "weak", 200) for i in range(6)]
+pool += [candidate("language", "言语理解与表达", "mixed"), candidate("data", "资料分析", "weak")]
+pool += [candidate("legacy-unknown", "未分类", "weak")]
+targets, _ = recommend_targets(pool)
+assert len([r for r in targets if r["module"] == "数量关系"]) <= 2
+assert {r["module"] for r in targets} == {"数量关系", "言语理解与表达", "资料分析"}
+assert recommendation(candidate("stuck", "数量关系", "weak", plateau=True))["action"] == "change_method"
+assert recommendation(candidate("strong", "判断推理", "strong"))["minutes"] == 10
+assert recommendation(candidate("unknown", "判断推理", "limited"))["action"] == "diagnose"
+assert not recommend_targets([{**pool[0], "family_days_since": 1}])[0]
+assert not recommend_targets([candidate("legacy-only", "未分类", "limited")])[0]
 
 
 with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
@@ -36,7 +55,7 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     conn.execute(
         """
         UPDATE questions
-           SET category='数量关系', sub_category='数学运算', tags=?
+           SET category='数量关系', sub_category='数学运算', tags=?, batch_id='test-batch'
          WHERE id=?
         """,
         (json.dumps([NUM_DATE], ensure_ascii=False), question_id),
@@ -105,12 +124,21 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
 
     conn = sqlite3.connect(db_path)
     snapshot = build_snapshot(conn)
+    assert snapshot["summary"]["open_debt_families"] == 0, "旧错题不能自动变成知识债"
+    assert snapshot["open_mistake_families"] == []
+    assert snapshot["historical_mistakes"], "legacy mistakes must remain visible, separately from debt"
+    set_learning_state(conn, NUM_DATE, "learned")
+    record(conn, NUM_DATE, "数量关系", "数学运算", False)
+    conn.commit()
+    snapshot = build_snapshot(conn)
     assert snapshot["summary"]["open_debt_families"] == 1
+    assert snapshot["open_mistake_families"][0]["last_wrong_at"]
+    assert "距上次错" in snapshot["compact"]
     plan_date = today()
     save_plan(
         conn,
         plan_date,
-        [{"id": "date", "module": "数量关系", "target": NUM_DATE, "count": 1}],
+        [{"id": "date", "module": "数量关系", "target": NUM_DATE, "batch_id": "test-batch", "count": 1}],
         source="test",
     )
     session_id = conn.execute(
@@ -130,6 +158,19 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     plan = reconcile(conn, plan_date)
     assert plan["items"][0]["done"] == 1
     assert plan["items"][0]["status"] == "done"
+    save_plan(conn, plan_date, [{"id": "manual-review", "module": "数量关系", "task_type": "manual",
+                               "batch_id": "test-batch", "count": 1, "minutes": 15, "exit_criterion": "复现关键关系"}], merge=True)
+    plan = reconcile(conn, plan_date)
+    assert len(plan["items"]) == 2 and plan["items"][1]["done"] == 0, "practice must not auto-complete review"
+    save_plan(conn, plan_date, [{"id": "date", "done": 0, "verdict": "needs followup", "followup_date": plan_date}], merge=True)
+    snapshot = build_snapshot(conn)
+    assert snapshot["plan_continuity"]["items"][0]["done"] == 1
+    assert snapshot["plan_continuity"]["due_reviews"][0]["id"] == "date"
+    assert snapshot["plan_continuity"]["items"][1]["exit_criterion"] == "复现关键关系"
+    week_ago = str(dt.date.fromisoformat(plan_date) - dt.timedelta(days=7))
+    save_plan(conn, week_ago, [{"id": "week-check", "module": "数量关系", "count": 1,
+                               "followup_date": plan_date}])
+    assert any(item["id"] == "week-check" for item in build_snapshot(conn)["plan_continuity"]["due_reviews"])
     assert conn.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     conn.close()
 

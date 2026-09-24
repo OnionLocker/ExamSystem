@@ -98,6 +98,24 @@ try {
   assert.equal(todayPayload.plan.items[0].done, 3);
   assert.equal(todayPayload.runs[0].status, 'imported');
 
+  saveDailyPlan({
+    planDate: date,
+    source: 'test',
+    items: [...getDailyPlan(date).items.map((item) => item.id === 'ai' ? { ...item, count: 69 } : item), {
+      id: 'review', module: '判断推理', task_type: 'manual',
+      batch_id: '20260901_logic_01', count: 1,
+    }],
+  });
+  const withReview = await fetch(`${base}/daily-plans/reconcile`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ date }),
+  })
+    .then((response) => response.json());
+  assert.equal(withReview.plan.items.find((item) => item.id === 'review').done, 0,
+    'answering questions must not complete a manual review task');
+  assert.equal(withReview.plan.items.find((item) => item.id === 'ai').done, 3);
+  assert.equal(withReview.runs[0].planned_count, 69, 'review must not overwrite the practice batch');
+
   const importedBatches = await fetch(
     `${base}/questions/meta/batches?date=${date}&module=${encodeURIComponent('判断推理')}`,
   ).then((response) => response.json());

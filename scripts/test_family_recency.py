@@ -74,6 +74,8 @@ blocked = next(row for row in snapshot["recently_practiced"] if row["kaodian"] =
 assert blocked["reason"] == "刚练过不宜主攻", blocked
 assert blocked["family_days_since"] <= 1, blocked
 geo = next(row for row in snapshot["recommended_targets"] if row["kaodian"] == NUM_GEOMETRY)
-assert geo["reason"] == "高置信弱项", geo
+assert geo["action"] == "diagnose", geo
+assert geo["mastery"] is None and geo["confidence"] == 0, geo
+assert "先做2—3道新题短测" in geo["reason"], geo
 assert "刚练过不宜主攻" in snapshot["compact"]
 print("family recency: ok")

@@ -93,6 +93,8 @@ def _status(done: int, count: int) -> str:
 
 
 def _key(item: dict, index: int) -> str:
+    if item.get("task_type") == "manual":
+        return f"manual:{item.get('id') or index}"
     return str(
         item.get("batch_id")
         or item.get("id")
@@ -223,7 +225,7 @@ def sync_runs(
 ) -> None:
     for item in items:
         batch_id = item.get("batch_id")
-        if not batch_id:
+        if not batch_id or item.get("task_type") == "manual":
             continue
         imported = (
             conn.execute(
@@ -283,10 +285,19 @@ def save_plan(
     items: list[dict],
     source: str = "hermes",
     snapshot_at: str | None = None,
+    merge: bool = False,
 ) -> dict:
     ensure_schema(conn)
-    normalized = normalize_items(items)
     previous = load_plan(conn, date)
+    if merge and previous:
+        combined = {str(item["id"]): item for item in previous["items"]}
+        for item in items:
+            if not isinstance(item, dict) or not item.get("id"):
+                raise ValueError("merged plan updates require an explicit task id")
+            key = str(item["id"])
+            combined[key] = {**combined.get(key, {}), **item}
+        items = list(combined.values())
+    normalized = normalize_items(items)
     if previous:
         normalized = preserve_progress(normalized, previous["items"])
     conn.execute(
@@ -346,7 +357,7 @@ def reconcile(conn: sqlite3.Connection, date: str) -> dict | None:
 
     items = []
     for item in plan["items"]:
-        if item.get("groups"):
+        if item.get("groups") or item.get("task_type") == "manual":
             matched = 0
         elif item.get("batch_id"):
             matched = conn.execute(
@@ -435,6 +446,7 @@ def main() -> int:
     save_parser.add_argument("--date", default=today())
     save_parser.add_argument("--items-json", required=True)
     save_parser.add_argument("--source", default="hermes")
+    save_parser.add_argument("--merge", action="store_true", help="update named tasks without dropping existing tasks")
     status_parser = sub.add_parser("status")
     status_parser.add_argument("--date", default=today())
     complete_parser = sub.add_parser("complete")
@@ -462,6 +474,7 @@ def main() -> int:
                 json.loads(args.items_json),
                 source=args.source,
                 snapshot_at=snapshot["as_of"],
+                merge=args.merge,
             )
             print(json.dumps(result, ensure_ascii=False, indent=2))
         elif args.command == "status":

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
-import { recomputeMastery } from './mastery.js';
+import { execFileSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(__dirname, '..', 'data');
@@ -128,6 +128,7 @@ const addCol = (name, decl) => {
 };
 addCol('external_id',        'TEXT');
 addCol('question_type',      "TEXT DEFAULT 'single'");
+addCol('source_evidence', 'TEXT');
 addCol('stem_images',        'TEXT');
 addCol('explanation_images', 'TEXT');
 addCol('year',               'INTEGER');
@@ -337,6 +338,15 @@ CREATE TABLE IF NOT EXISTS kaodian_debts (
 CREATE INDEX IF NOT EXISTS idx_kaodian_debts_open
   ON kaodian_debts(mastered, last_wrong_at);
 
+-- 明确区分开始学习与答题债务；旧流水不会自动推断成已学。
+CREATE TABLE IF NOT EXISTS kaodian_learning (
+  kaodian TEXT PRIMARY KEY,
+  status TEXT NOT NULL CHECK(status IN ('learning','learned')),
+  learned_at TEXT,
+  baseline_event_id INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- 真题复盘：一次模考的录屏 + 答案 PDF，后台跑完存下行为画像。
 -- 录屏原件几个 GB，磁盘存不下也没必要留：转码成小样本后原件立刻删，
 -- 小样本用完也能手动删，库里只留分析结果。
@@ -388,6 +398,7 @@ if (!examCols.has('kind')) {
 }
 
 const kpCols = new Set(db.prepare('PRAGMA table_info(kaodian_profile)').all().map((r) => r.name));
+if (!kpCols.has('definition')) db.exec('ALTER TABLE kaodian_profile ADD COLUMN definition TEXT');
 if (!kpCols.has('mastery')) {
   db.exec('ALTER TABLE kaodian_profile ADD COLUMN mastery INTEGER');
 }
@@ -408,6 +419,14 @@ if (!kpCols.has('mastery_updated_at')) {
 }
 
 const keCols = new Set(db.prepare('PRAGMA table_info(kaodian_events)').all().map((r) => r.name));
+if (!kpCols.has('assessment_json')) db.exec('ALTER TABLE kaodian_profile ADD COLUMN assessment_json TEXT');
+if (!keCols.has('assessment_json')) db.exec('ALTER TABLE kaodian_events ADD COLUMN assessment_json TEXT');
+if (!psCols.has('assessment_baseline')) db.exec('ALTER TABLE practice_sessions ADD COLUMN assessment_baseline TEXT');
+if (!psCols.has('timing_segments')) db.exec('ALTER TABLE practice_sessions ADD COLUMN timing_segments TEXT');
+db.exec(`CREATE TABLE IF NOT EXISTS kaodian_assessment_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, event_id INTEGER NOT NULL,
+  assessment_json TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
 if (!keCols.has('evidence_type')) {
   db.exec("ALTER TABLE kaodian_events ADD COLUMN evidence_type TEXT NOT NULL DEFAULT 'hermes'");
 }
@@ -449,7 +468,9 @@ db.exec(`
                  WHERE COALESCE(a.canonical, e.kaodian) = kaodian_profile.kaodian);
 `);
 
-recomputeMastery(db);
+execFileSync('python3', [path.join(__dirname, '..', 'scripts', 'kaodian_profile.py'), '--recompute'], {
+  env: { ...process.env, EXAM_DB: dbPath }, timeout: 30000,
+});
 
 // ---------- Seed（仅在库为空时注入示例数据） ----------
 const { count } = db.prepare('SELECT COUNT(*) AS count FROM questions').get();

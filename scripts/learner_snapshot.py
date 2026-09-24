@@ -73,6 +73,7 @@ def compact_profile(row: sqlite3.Row, today: dt.date, family_last: dict[str, str
         "accuracy": round(row["correct"] * 100 / row["attempts"]) if row["attempts"] else None,
         "mastery": row["mastery"],
         "confidence": row["mastery_confidence"] or 0,
+        "assessment": json.loads(row["assessment_json"] or "{}") if "assessment_json" in row.keys() else {},
         "streak": row["streak"],
         "avg_sec": round(row["total_ms"] / row["attempts"] / 1000) if row["attempts"] else 0,
         "days_since": days_since(row["last_seen"], today),
@@ -137,6 +138,72 @@ def family_too_recent(row: dict) -> bool:
     return gap is not None and gap <= FAMILY_MAIN_COOLDOWN_DAYS
 
 
+def recommendation(row):
+    """Candidate actions, not a fabricated estimate of exam points per hour."""
+    a = row.get("assessment") or {}
+    h = a.get("history") or {}
+    level = a.get("level", "unassessed")
+    if h.get("plateau"):
+        rank, action, minutes, reason = 4, "change_method", 15, "两轮新题未改善：先换方法或暂缓"
+    elif row.get("open_debt") or level == "developing" or (level == "unassessed" and h.get("status") == "weak"):
+        rank, action, minutes, reason = 0, "train", 45, "有失分依据：限时主攻候选"
+    elif a.get("fluency") == "slow" or level == "initial" or (level == "unassessed" and h.get("status") == "mixed"):
+        rank, action, minutes, reason = 1, "train", 35, "巩固或提速候选"
+    elif a.get("review_due") or level in {"mastered", "stable"} or h.get("status") == "strong":
+        rank, action, minutes, reason = 3, "maintain", 10, "短测保温，不因到期占用整段主攻"
+    else:
+        rank, action, minutes, reason = 2, "diagnose", 15, "继承学习记录，先做2—3道新题短测"
+    return {**row, "rank": rank, "action": action, "minutes": minutes, "reason": reason}
+
+
+def recommend_targets(profiles):
+    ranked = sorted((recommendation(row) for row in profiles if row["module"] in ZILIAO_FOREIGN_MODULES | {"资料分析"}), key=lambda r: (
+        r["rank"], -(r.get("assessment", {}).get("history", {}).get("recent_samples") or 0), r["kaodian"]))
+    available = [r for r in ranked if not family_too_recent(r)]
+    blocked = [{**r, "reason": "刚练过不宜主攻"} for r in ranked if family_too_recent(r)]
+    selected, families, modules = [], set(), Counter()
+    # Offer each available module once before filling a second slot from any module.
+    for maximum in (1, 2):
+        for row in available:
+            if len(selected) >= 5:
+                break
+            if row["family"] in families or modules[row["module"]] >= maximum:
+                continue
+            selected.append(row)
+            families.add(row["family"])
+            modules[row["module"]] += 1
+    return selected, blocked[:5]
+
+
+def plan_continuity(conn, today):
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name='daily_plans'").fetchone():
+        return {"date": None, "items": [], "due_reviews": []}
+    plans = conn.execute("SELECT plan_date,items FROM daily_plans WHERE plan_date BETWEEN ? AND ? ORDER BY plan_date DESC",
+                         (str(today - dt.timedelta(days=45)), str(today))).fetchall()
+    latest, due = [], []
+    for index, row in enumerate(plans):
+        try:
+            items = json.loads(row["items"])
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(items, list):
+            continue
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            compact = {key: item.get(key) for key in ("id", "module", "target", "batch_id", "count", "done", "minutes",
+                       "reason", "exit_criterion", "verdict", "followup_date")}
+            if index == 0:
+                latest.append(compact)
+            try:
+                followup = dt.date.fromisoformat(item.get("followup_date") or "")
+            except (ValueError, TypeError):
+                followup = None
+            if followup and followup <= today and not item.get("followup_done"):
+                due.append({**compact, "plan_date": row["plan_date"]})
+    return {"date": plans[0]["plan_date"] if plans else None, "items": latest[:8], "due_reviews": due[:5]}
+
+
 def build_snapshot(conn: sqlite3.Connection) -> dict:
     conn.row_factory = sqlite3.Row
     recompute_mastery(conn)
@@ -154,24 +221,26 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
         for row in conn.execute(
             """
             SELECT kaodian,module,subtype,attempts,correct,total_ms,last_seen,
-                   streak,mastery,mastery_confidence,mastery_samples
+                   streak,mastery,mastery_confidence,mastery_samples,assessment_json
               FROM kaodian_profile
              WHERE attempts > 0
             """
         )
     ]
-    reliable = [row for row in profiles if row["confidence"] >= 40]
+    reliable = [row for row in profiles if row["assessment"].get("recent_samples", 0) >= 3
+                and row["assessment"].get("level") != "unassessed"
+                and row["assessment"].get("days", 0) >= 2 and not row["assessment"].get("review_due")]
     weaknesses = sorted(
-        (row for row in reliable if (row["mastery"] or 50) < 60 or row["streak"] <= -2),
+        (row for row in reliable if row["assessment"].get("level") in {"developing", "initial"}),
         key=lambda row: (row["mastery"] or 50, row["streak"], -row["confidence"]),
     )
     strengths = sorted(
-        (row for row in reliable if (row["mastery"] or 0) >= 70 and row["streak"] >= 2),
+        (row for row in reliable if row["assessment"].get("level") == "stable"),
         key=lambda row: (-(row["mastery"] or 0), -row["confidence"]),
     )
     needs_measurement = sorted(
-        (row for row in profiles if row["confidence"] < 40),
-        key=lambda row: (-row["attempts"], row["mastery"] or 50),
+        (row for row in profiles if row not in reliable),
+        key=lambda row: (recommendation(row)["rank"], row["kaodian"]),
     )
     overdue = sorted(
         (
@@ -221,9 +290,10 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
         dict(row)
         for row in conn.execute(
             """
-            SELECT kaodian,wrong_count,recovery_streak,last_wrong_at,last_seen_at
-              FROM kaodian_debts
-             WHERE mastered=0
+            SELECT d.kaodian,d.wrong_count,d.recovery_streak,d.last_wrong_at,d.last_seen_at
+              FROM kaodian_debts d
+              JOIN kaodian_learning l ON l.kaodian=d.kaodian AND l.status='learned'
+             WHERE d.mastered=0
              ORDER BY wrong_count DESC,last_wrong_at DESC
             """
         )
@@ -243,28 +313,15 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
         except (TypeError, json.JSONDecodeError):
             pass
 
-    recommended: list[dict] = []
-    recent_blocked: list[dict] = []
-    seen_kaodian: set[str] = set()
-    for reason, rows in (
-        ("高置信弱项", weaknesses),
-        ("到期回捞", overdue),
-        ("低置信待测", needs_measurement),
-    ):
-        for row in rows:
-            if row["kaodian"] in seen_kaodian:
-                continue
-            seen_kaodian.add(row["kaodian"])
-            if family_too_recent(row):
-                recent_blocked.append({**row, "reason": "刚练过不宜主攻"})
-            elif len(recommended) < 5:
-                recommended.append({**row, "reason": reason})
+    open_tags = {row["kaodian"] for row in debt_rows}
+    recommended, recent_blocked = recommend_targets([{**row, "open_debt": row["kaodian"] in open_tags} for row in profiles])
 
     snapshot = {
         "as_of": now.isoformat(timespec="seconds"),
         "summary": {
             "profiles": len(profiles),
             "reliable_profiles": len(reliable),
+            "history_profiles": sum(row["assessment"].get("history", {}).get("recent_samples", 0) > 0 for row in profiles),
             "high_confidence_weaknesses": len(weaknesses),
             "open_mistakes": sum(mistake_counts.values()),
             "open_debt_families": len(debt_rows),
@@ -283,12 +340,15 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
                 "kaodian": row["kaodian"],
                 "count": row["wrong_count"],
                 "recovery_streak": row["recovery_streak"],
+                "last_wrong_at": row["last_wrong_at"],
             }
             for row in debt_rows[:8]
-        ] if debt_rows else [
-            {"kaodian": tag, "count": count, "recovery_streak": 0}
+        ],
+        "historical_mistakes": [
+            {"kaodian": tag, "count": count}
             for tag, count in mistake_counts.most_common(8)
         ],
+        "plan_continuity": plan_continuity(conn, today),
         "recent_sessions": recent_sessions,
         "recent_digest": recent_digest,
     }
@@ -303,8 +363,11 @@ def _compact_target_line(item: dict) -> str:
     if item.get("family_days_since") is not None:
         recency += f" 同族{item['family_days_since']}天"
     return (
-        f"- {item['reason']}｜{item['kaodian']}｜掌握{item['mastery']} "
-        f"置信{item['confidence']} 样本{item['attempts']} 连续{item['streak']}"
+        f"- {item['reason']}｜{item['kaodian']}｜掌握：{item.get('assessment', {}).get('label', '待评估')} "
+        f"熟练度：{item.get('assessment', {}).get('fluency_label', '待评估')} "
+        f"独立证据{item.get('assessment', {}).get('independent_samples', 0)} "
+        f"可追溯首次作答{item.get('assessment', {}).get('history', {}).get('samples', 0)}"
+        f" 本次上限{item.get('minutes', 15)}分钟"
         f"{recency}"
     )
 
@@ -475,7 +538,7 @@ def collect_ziliao_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
             by_tag[tag] = compact
 
     mistakes: dict[str, int] = Counter()
-    for row in conn.execute("SELECT kaodian, wrong_count FROM kaodian_debts WHERE mastered=0"):
+    for row in conn.execute("SELECT d.kaodian, d.wrong_count FROM kaodian_debts d JOIN kaodian_learning l ON l.kaodian=d.kaodian AND l.status='learned' WHERE d.mastered=0"):
         tag = canonicalize(alias_map.get(row["kaodian"]) or row["kaodian"] or "", "资料分析")
         if tag in ZILIAO_QUESTION_TAGS:
             mistakes[tag] += int(row["wrong_count"] or 0)
@@ -520,7 +583,7 @@ def collect_panduan_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
         if prev is None or (compact.get("attempts") or 0) > (prev.get("attempts") or 0):
             by_tag[tag] = compact
     mistakes: dict[str, int] = Counter()
-    for row in conn.execute("SELECT kaodian, wrong_count FROM kaodian_debts WHERE mastered=0"):
+    for row in conn.execute("SELECT d.kaodian, d.wrong_count FROM kaodian_debts d JOIN kaodian_learning l ON l.kaodian=d.kaodian AND l.status='learned' WHERE d.mastered=0"):
         tag = row["kaodian"] or ""
         if tag:
             mistakes[tag] += int(row["wrong_count"] or 0)
@@ -549,7 +612,7 @@ def collect_kepui_state(conn: sqlite3.Connection) -> tuple[dict, dict]:
         if prev is None or (compact.get("attempts") or 0) > (prev.get("attempts") or 0):
             by_tag[tag] = compact
     mistakes: dict[str, int] = Counter()
-    for row in conn.execute("SELECT kaodian, wrong_count FROM kaodian_debts WHERE mastered=0"):
+    for row in conn.execute("SELECT d.kaodian, d.wrong_count FROM kaodian_debts d JOIN kaodian_learning l ON l.kaodian=d.kaodian AND l.status='learned' WHERE d.mastered=0"):
         tag = row["kaodian"] or ""
         if tag and "科学推理" in tag:
             mistakes[tag] += int(row["wrong_count"] or 0)
@@ -631,8 +694,9 @@ def render_compact(snapshot: dict) -> str:
         f"学员快照 {snapshot['as_of']}",
         (
             f"已完成{summary['completed_sessions']}场；规范画像{summary['profiles']}个，"
-            f"其中可信{summary['reliable_profiles']}个；未清知识债"
-            f"{summary['open_debt_families']}类/{summary['open_mistakes']}题。"
+            f"历史首次作答可用{summary.get('history_profiles', 0)}个，"
+            f"新口径过程核验充分{summary['reliable_profiles']}个；"
+            f"未清知识债{summary['open_debt_families']}类，历史错题库存{summary['open_mistakes']}题（两者不等同）。"
         ),
     ]
     if snapshot["recent_sessions"]:
@@ -645,7 +709,7 @@ def render_compact(snapshot: dict) -> str:
     # A4: 添加知识债详情
     debt_families = snapshot.get("open_mistake_families") or []
     if debt_families:
-        lines.append("知识债（连对2次才算清偿；连对为0且错次高的，优先安排同考法变式卷，不要开新考点）：")
+        lines.append("已确认学过后的知识债（连对2次清偿；优先处理，但不无限阻塞其他高收益常考点）：")
         for item in debt_families[:6]:
             kaodian = item.get("kaodian", "")
             wrong = item.get("count", 0)
@@ -653,17 +717,26 @@ def render_compact(snapshot: dict) -> str:
             days_info = ""
             if "last_wrong_at" in item and item.get("last_wrong_at"):
                 try:
-                    import datetime as dt
                     last_wrong = dt.date.fromisoformat(str(item["last_wrong_at"])[:10])
-                    today = dt.datetime.now(TZ).date()
-                    days_ago = (today - last_wrong).days
+                    today = dt.date.fromisoformat(snapshot["as_of"][:10])
+                    days_ago = max(0, (today - last_wrong).days)
                     days_info = f" 距上次错{days_ago}天"
                 except (ValueError, TypeError):
                     pass
             lines.append(f"  - {kaodian}｜累计错{wrong}次｜连对{streak}/2{days_info}")
 
+    continuity = snapshot.get("plan_continuity") or {}
+    if continuity.get("items"):
+        lines.append(f"最近学习任务（{continuity['date']}；完成题量不等于掌握）：")
+        for item in continuity["items"][:5]:
+            lines.append(f"- id={item['id']} {item['target'] or item['module']} {item['done'] or 0}/{item['count']}｜验收：{item.get('exit_criterion') or '未记录'}｜结论：{item.get('verdict') or '尚未复盘'}")
+    if continuity.get("due_reviews"):
+        lines.append("已约定的到期短测（先兑现，每点不超过10—15分钟）：")
+        for item in continuity["due_reviews"]:
+            lines.append(f"- id={item['id']} {item['target'] or item['module']}｜原计划{item['plan_date']}｜复测日{item['followup_date']}")
+
     if snapshot["recommended_targets"]:
-        lines.append("下一步候选：")
+        lines.append("下一步候选（跨模块备选，不是全部必做；考频和提分成本须结合目标考试判断）：")
         for item in snapshot["recommended_targets"][:5]:
             lines.append(_compact_target_line(item))
     blocked = snapshot.get("recently_practiced") or []
@@ -676,8 +749,10 @@ def render_compact(snapshot: dict) -> str:
             "出题纪律：用户没点名时，同族距上次≤1天不当本批主攻"
             "（排列组合三个子点算同一族，日期与周期算同一族）；"
             "最多盲盒混入2道结构变式；禁止同场景换数字。"
-            "优先选同族距上次≥2天的高置信弱项。"
+            "继承历史表现；证据不足先2—3题短测，不重测全部知识点。"
+            "主攻上限45分钟；两轮低正确率且无改善就换教法或暂缓，禁止因累计错多无限刷。"
         )
+        lines.append("Hermes 执行口径：references/exam-sprint-plan.md；每天给一个主攻、一个短测，按考试常考程度与可改善性选择；每周用限时整卷校准。")
     if snapshot["strengths"]:
         lines.append(
             "已稳定：" + "；".join(item["kaodian"] for item in snapshot["strengths"][:3])
