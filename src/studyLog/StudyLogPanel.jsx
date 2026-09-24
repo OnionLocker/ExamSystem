@@ -13,13 +13,12 @@ import {
   MODULES,
   addEntry,
   removeEntry,
-  scoreImport,
-  scoreReview,
   loadLog,
   summarize,
   ENTRY_TYPES,
 } from './studyLog.js';
 import { useServerHeat } from './heatmap.js';
+import { studyOutputs } from './studyTime.js';
 
 // ============================================================
 // 学习打卡主面板：顶部汇总 + 快速录入（可折叠）+ 今日明细
@@ -47,14 +46,14 @@ const StudyLogPanel = ({ version, onChange }) => {
         <SummaryCard
           icon={Trophy}
           accent="#8d7348"
-          label="今日得分"
-          value={stats.today.score}
-          unit="分"
+          label="今日作答"
+          value={studyOutputs(stats.today.entries).answered}
+          unit="题"
         />
         <SummaryCard
           icon={ClockIcon}
           accent="#1a1a1a"
-          label="今日专注"
+          label="已计时（去重）"
           value={stats.today.minutes}
           unit="分钟"
         />
@@ -146,7 +145,6 @@ const ImportGrid = ({ onAdded }) => (
             module: m.name,
             count,
             correct,
-            score: scoreImport(m.id, count),
           });
           onAdded?.();
         }}
@@ -158,7 +156,6 @@ const ImportGrid = ({ onAdded }) => (
           type: 'review',
           module: '错题复盘',
           count,
-          score: scoreReview(count),
         });
         onAdded?.();
       }}
@@ -296,7 +293,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
           return (
             <div
               key={e.id}
-              className="group flex items-center justify-between py-2.5 px-4 rounded-xl bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]"
+              className="group flex flex-wrap gap-2 items-center justify-between py-2.5 px-4 rounded-xl bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]"
             >
               <div className="flex items-center space-x-3 min-w-0">
                 <span
@@ -306,13 +303,13 @@ const TodayDetailBlock = ({ today, onRemove }) => {
                 <span className="text-xs font-black uppercase tracking-widest text-slate-500 w-20">
                   {meta.label}
                 </span>
-                <span className="text-sm font-bold text-[#1a1a1a] truncate">
+                <span className="text-sm font-bold text-[#1a1a1a] break-words min-w-0" title={formatEntry(e)}>
                   {formatEntry(e)}
                 </span>
               </div>
               <div className="flex items-center space-x-3 flex-shrink-0">
                 <span className="text-sm font-black tabular-nums text-[#6b5428]">
-                  +{e.score}
+                  {e.timingKnown ? `${e.measuredMinutes} 分钟` : '时长未知'}
                 </span>
                 <span className="text-[10px] font-black text-slate-400 tabular-nums">
                   {new Date(e.ts).toLocaleTimeString('zh-CN', {
@@ -342,7 +339,7 @@ const TodayDetailBlock = ({ today, onRemove }) => {
 };
 
 const formatEntry = (e) => {
-  if (e.type === 'pomodoro') return `专注 ${e.minutes} 分钟`;
+  if (e.type === 'pomodoro') return e.timingKnown ? '番茄钟计时' : `历史计时 ${e.minutes || 0} 分钟（区间缺失）`;
   if (e.type === 'numeric') {
     if (e.correct != null && e.count)
       return `${e.module} · ${e.correct}/${e.count} (${Math.round((e.correct / e.count) * 100)}%)`;
@@ -356,10 +353,11 @@ const formatEntry = (e) => {
   if (e.type === 'chat') return e.module || '导师辅导';
   if (e.type === 'aiquiz') {
     const acc = e.count ? Math.round((e.correct / e.count) * 100) : 0;
-    return `${e.module} · ${e.correct}/${e.count} (${acc}%)`;
+    return `${e.module} · ${e.correct}/${e.count} (${acc}%) · 新题 ${e.firstCount || 0} / 重做 ${e.repeatCount || 0}${!e.timingKnown && e.recordedMinutes ? ` · 原记录 ${e.recordedMinutes} 分钟（区间缺失）` : ''}`;
   }
-  if (e.type === 'mock') return `模考 ${e.minutes} 分钟`;
-  if (e.type === 'reviewBrowse') return `翻复习资料 ${e.minutes} 分钟`;
+  if (e.type === 'mock') return e.timingKnown ? '模考计时' : `历史计时 ${e.minutes || 0} 分钟（区间缺失）`;
+  if (e.type === 'examReview' || e.type === 'setReview') return `${e.module} · 视频 ${e.videoMinutes || 0} 分钟`;
+  if (e.type === 'reviewBrowse') return '复习资料浏览';
   if (e.type === 'vocab') return `词汇 ${e.count} 题`;
   if (e.type === 'copybook') return e.module || '字帖临摹';
   return '';

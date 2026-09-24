@@ -135,7 +135,7 @@ def query_gemini_evaluation(messages, activity_text=""):
 
     prompt = f"""
 你是广东省考备考的「学习有效性裁判」，同时兼任严厉导师。
-任务：判断今天学员与 Hermes 导师的对话里，是否存在**真实公考学习内容**；只有有效学习才给热力分。
+任务：判断今天学员与 Hermes 导师的对话里，是否存在**真实公考学习内容**，只记录学习内容与依据，不估算学习时长或热力分。
 另外根据对话 + 系统活动，列出当天学了什么（日历点开那天要展示这份清单）。
 
 --- 对话日志开始 ---
@@ -160,13 +160,9 @@ def query_gemini_evaluation(messages, activity_text=""):
 - 讨论 ExamSystem/Hermes/代码/打卡机制本身、修 bug、加功能
 - 空泛说“要加油/明天开始学”，没有任何题目或知识点内容
 - 自动化脚本、工具调用日志、与备考无关的技术话题
-注意：对话无效只影响热力分；系统活动里的刷题仍要写入 study_items。
+注意：对话无效只影响是否记录导师辅导活动；系统活动里的刷题仍要写入 study_items。
 
-【给分（仅当 valid_study=true）】
-- 12–22：有少量实质学习（1–2 题/一小段知识点），互动浅
-- 23–35：多题或成块知识点辅导，有明确产出
-- 36–50：深度批改/复杂推理/系统复盘，改进计划具体
-分数只能是整数；无效学习必须 score=0、minutes=0。
+score 和 minutes 均固定为0，包括有效学习。对话长度、题量和讲解复杂度都不能推算实际分钟数；计时由系统计时区间负责。valid_study 与 evidence 负责保留真实学习活动。
 
 只输出纯 JSON（不要 markdown 代码块），字段如下：
 {{
@@ -298,10 +294,9 @@ def update_study_log(date_str, summary, score, minutes, topics=None):
         print(f"Exam db not found at {EXAM_DB}", file=sys.stderr)
         return False
 
-    score = int(score or 0)
-    minutes = int(minutes or 0)
-    if score <= 0:
-        return clear_today_chat_heat(date_str)
+    # Activity is retained without inventing a duration or an effort score.
+    score = 0
+    minutes = 0
 
     conn = sqlite3.connect(EXAM_DB)
     try:
@@ -328,12 +323,13 @@ def update_study_log(date_str, summary, score, minutes, topics=None):
             "score": score,
             "minutes": max(0, minutes),
             "valid_study": True,
+            "timeSegments": [],
         }
         new_log_list.insert(0, new_entry)
         _save_log(cursor, new_log_list)
         conn.commit()
         print(
-            f"Wrote valid chat heat. Score: +{score}, Minutes: {minutes}",
+            "Recorded study activity; duration remains unknown.",
             file=sys.stderr,
         )
         return True
@@ -355,7 +351,7 @@ TYPE_LABELS = {
     "numeric": "数资练习",
     "aiquiz": "AI 练题",
     "mock": "全卷模考",
-    "examReview": "真题复盘",
+    "examReview": "真题录屏",
     "import": "导入套题",
     "review": "错题复盘",
     "reviewBrowse": "复习浏览",
@@ -394,7 +390,7 @@ def group_activity_items(rows: list[dict]) -> list[str]:
         if g["count"]:
             s += f" · {g['correct']}/{g['count']}题" if g["has_c"] else f" · {g['count']}题"
         elif g["minutes"]:
-            s += f" · {g['minutes']}分钟"
+            s += f" · 原记录{g['minutes']}分钟（未作时段去重）"
         lines.append(s)
     return lines
 
@@ -475,10 +471,10 @@ def fetch_activity_rows(date_str: str) -> list[dict]:
             rows.append(
                 {
                     "type": "examReview",
-                    "module": title,
+                    "module": f"{title}（录屏{minutes}分钟，非复盘时长）",
                     "count": 0,
                     "correct": None,
-                    "minutes": minutes,
+                    "minutes": 0,
                 }
             )
     finally:
@@ -629,39 +625,12 @@ def backfill_digest() -> int:
 
 
 def normalize_eval(result: dict) -> dict:
-    """强制无效学习归零，防止模型嘴上 false 手里仍给分。"""
-    valid = bool(result.get("valid_study"))
-    try:
-        score = int(result.get("score") or 0)
-    except Exception:
-        score = 0
-    try:
-        minutes = int(result.get("minutes") or 0)
-    except Exception:
-        minutes = 0
-
-    if not valid:
-        score = 0
-        minutes = 0
-        summary = result.get("summary") or "今日无有效学习"
-    else:
-        # 有效学习也设下限，避免 1 分噪声；但允许裁判给较低分
-        if score < 12:
-            # 模型标了有效却给超低分：当作无效，宁缺毋滥
-            valid = False
-            score = 0
-            minutes = 0
-            summary = "今日学习证据不足，不计入热力"
-            result["reason"] = (result.get("reason") or "") + "（有效性不足，已降为不计分）"
-        else:
-            score = max(12, min(50, score))
-            minutes = max(5, min(180, minutes))
-            summary = result.get("summary") or "公考辅导互动"
-
+    """保留学习内容，禁止模型估算投入时间或学习分数。"""
+    valid = result.get("valid_study") is True
     result["valid_study"] = valid
-    result["score"] = score
-    result["minutes"] = minutes
-    result["summary"] = summary
+    result["score"] = 0
+    result["minutes"] = 0
+    result["summary"] = result.get("summary") or ("公考辅导互动" if valid else "今日无有效学习")
     if not isinstance(result.get("study_topics"), list):
         result["study_topics"] = []
     if not isinstance(result.get("study_items"), list):
@@ -769,9 +738,9 @@ def main(argv: list[str] | None = None):
     )
     save_report(date_str, report_full)
 
-    if valid and score > 0:
+    if valid:
         ok = update_study_log(date_str, summary, score, minutes, topics)
-        heat_line = f"🔥 今日学习得分：+{score} 分 (预估有效学习 {minutes} 分钟)"
+        heat_line = "已记录学习内容；对话不估算分钟数，学习强度以实际计时为准。"
     else:
         ok = clear_today_chat_heat(date_str)
         heat_line = f"❄️ 未计入热力图（无效/闲聊）\n原因：{reason or '无实质公考学习内容'}"
@@ -791,72 +760,6 @@ def main(argv: list[str] | None = None):
 {report}"""
     print(user_facing_msg)
     return 0
-
-    user_msgs = [m for m in messages if m["role"] == "user"]
-    print(
-        f"Found {len(messages)} messages ({len(user_msgs)} from user). Evaluating...",
-        file=sys.stderr,
-    )
-
-    eval_result = query_gemini_evaluation(messages)
-    if not eval_result:
-        # 评委叫不通时也要留下痕迹：之前这里直接 return 1，报告不写、热力不动，
-        # 结果连着三天没人发现评委的 key 已经废了。
-        save_report(
-            date_str,
-            f"# {date_str} 导师评估\n\n"
-            "- 评估失败：评委模型没能给出结果（看 cron 日志里的具体报错）\n"
-            "- 今日热力未改动，既没加也没清\n",
-        )
-        print("Failed to get evaluation from the judge model.", file=sys.stderr)
-        return 1
-
-    eval_result = normalize_eval(eval_result)
-    valid = eval_result["valid_study"]
-    summary = eval_result["summary"]
-    score = eval_result["score"]
-    minutes = eval_result["minutes"]
-    report = eval_result.get("report") or ""
-    reason = eval_result.get("reason") or ""
-    topics = eval_result.get("study_topics") or []
-
-    print(f"valid_study={valid} reason={reason}", file=sys.stderr)
-    print(f"Summary: {summary}", file=sys.stderr)
-    print(f"Score: {score}", file=sys.stderr)
-    print(f"Minutes: {minutes}", file=sys.stderr)
-
-    # 无论有效无效都写报告；只有有效才写入热力
-    report_full = (
-        f"# {date_str} 导师评估\n\n"
-        f"- valid_study: {valid}\n"
-        f"- reason: {reason}\n"
-        f"- score: {score}\n"
-        f"- minutes: {minutes}\n"
-        f"- topics: {', '.join(topics) if topics else '—'}\n\n"
-        f"{report}\n"
-    )
-    save_report(date_str, report_full)
-
-    if valid and score > 0:
-        ok = update_study_log(date_str, summary, score, minutes, topics)
-        heat_line = f"🔥 今日学习得分：+{score} 分 (预估有效学习 {minutes} 分钟)"
-    else:
-        ok = clear_today_chat_heat(date_str)
-        heat_line = f"❄️ 未计入热力图（无效/闲聊）\n原因：{reason or '无实质公考学习内容'}"
-
-    if not ok:
-        print("Failed to update database.", file=sys.stderr)
-        return 1
-
-    user_facing_msg = f"""📋 【{date_str} 导师今日评估报告】
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-{heat_line}
-📝 交流概要：{summary}
-
-{report}"""
-    print(user_facing_msg)
-    return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

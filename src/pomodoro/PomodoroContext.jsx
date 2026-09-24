@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { addEntry as addStudyEntry, scorePomodoro } from '../studyLog/studyLog.js';
+import { addEntry as addStudyEntry } from '../studyLog/studyLog.js';
+import { closeTimerSegments, segmentMinutes } from '../studyLog/studyTime.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 
 // ============================================================
@@ -450,7 +451,7 @@ export const PomodoroProvider = ({ children }) => {
 
   // 记录一个完成的工作番茄到历史
   const recordCompletion = useCallback(
-    (phase, durationMs, startedAt, endedAt) => {
+    (phase, durationMs, startedAt, endedAt, timeSegments) => {
       if (phase !== 'work') return;
       setHistory((h) => {
         const rec = {
@@ -466,8 +467,10 @@ export const PomodoroProvider = ({ children }) => {
       if (minutes > 0) {
         addStudyEntry({
           type: 'pomodoro',
+          id: `pomodoro-${endedAt}`,
+          ts: endedAt,
+          timeSegments,
           minutes,
-          score: scorePomodoro(minutes),
         });
       }
     },
@@ -498,7 +501,7 @@ export const PomodoroProvider = ({ children }) => {
     // 延后一个微任务不影响正确性（写的是历史记录，不参与本次渲染输出）。
     if (finishedPhase === 'work') {
       queueMicrotask(() =>
-        recordCompletion('work', state.durationMs, state.startedAt, endedAt),
+        recordCompletion('work', state.durationMs, state.startedAt, endedAt, closeTimerSegments(state, endedAt)),
       );
     }
 
@@ -539,10 +542,13 @@ export const PomodoroProvider = ({ children }) => {
       }
       // break / longBreak 结束
       if (settings.autoStartWork) {
+        const start = Date.now();
         return {
           ...s,
           phase: 'work',
-          startedAt: Date.now(),
+          startedAt: start,
+          runStartedAt: start,
+          timeSegments: [],
           durationMs: settings.workMs,
           pausedRemainingMs: null,
         };
@@ -608,10 +614,13 @@ export const PomodoroProvider = ({ children }) => {
     (customMs) => {
       unlockBeep();
       const dur = customMs ?? settings.workMs;
+      const start = Date.now();
       setState((s) => ({
         ...s,
         phase: 'work',
-        startedAt: Date.now(),
+        startedAt: start,
+        runStartedAt: start,
+        timeSegments: [],
         durationMs: dur,
         pausedRemainingMs: null,
       }));
@@ -657,6 +666,8 @@ export const PomodoroProvider = ({ children }) => {
       return {
         ...s,
         phase: 'paused',
+        timeSegments: closeTimerSegments(s, Math.min(Date.now(), s.startedAt + s.durationMs)),
+        runStartedAt: null,
         pausedRemainingMs: remaining,
         // 保留 durationMs 用于重启计算
         _resumePhase: s.phase, // 存下次恢复时要去的阶段
@@ -673,6 +684,7 @@ export const PomodoroProvider = ({ children }) => {
         ...s,
         phase: s._resumePhase || 'work',
         startedAt: Date.now() - (s.durationMs - remaining),
+        runStartedAt: Date.now(),
         pausedRemainingMs: null,
       };
     });
@@ -691,14 +703,22 @@ export const PomodoroProvider = ({ children }) => {
 
   const stop = useCallback(() => {
     noiseEngine?.stop();
+    if (state.phase === 'work' || (state.phase === 'paused' && state._resumePhase === 'work')) {
+      const end = state.phase === 'paused' ? Date.now() : Math.min(Date.now(), state.startedAt + state.durationMs);
+      const timeSegments = closeTimerSegments(state, end);
+      if (timeSegments.length) addStudyEntry({ type: 'pomodoro', ts: end,
+        id: `pomodoro-${end}`, timeSegments, minutes: segmentMinutes(timeSegments) });
+    }
     setState((s) => ({
       ...s,
       phase: 'idle',
+      runStartedAt: null,
+      timeSegments: [],
       startedAt: null,
       durationMs: 0,
       pausedRemainingMs: null,
     }));
-  }, [noiseEngine]);
+  }, [noiseEngine, state]);
 
   const resetRounds = useCallback(() => {
     setState((s) => ({ ...s, roundsCompleted: 0 }));

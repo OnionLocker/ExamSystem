@@ -5,21 +5,20 @@ import {
 } from 'lucide-react';
 import { DEFAULT_BLOCKS, COLOR_PALETTE, loadBlocks, saveBlocks, resetBlocks } from './blocks.js';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
-import { addEntry as addStudyEntry, scoreMock } from '../studyLog/studyLog.js';
+import { addEntry as addStudyEntry } from '../studyLog/studyLog.js';
+import { closeTimerSegments } from '../studyLog/studyTime.js';
 
 // ============================================================
 // 90 分钟全卷模考器（简化版）
 // 真实顺序展示模块时间块；模块结束播一声"滴"；支持自定义时长 / 拖拽排序
 // ============================================================
 
-// 模考按实际计时时长加热力，跟番茄钟同口径（1 分钟 1 分）。
-// 不足 10 分钟不记：那多半是点开看了一眼，不是真在模考。
-const MIN_MOCK_SEC = 10 * 60;
-
-const logMockHeat = (elapsedSec) => {
-  if (!elapsedSec || elapsedSec < MIN_MOCK_SEC) return;
+// 模考与番茄钟按实际计时区间合并去重，不另加热力分。
+const logMockHeat = (elapsedSec, state, end) => {
+  if (!(elapsedSec > 0)) return;
   const minutes = Math.round(elapsedSec / 60);
-  addStudyEntry({ type: 'mock', module: '全卷模考', minutes, score: scoreMock(minutes) });
+  addStudyEntry({ type: 'mock', module: '全卷模考', minutes,
+    id: `mock-${end}`, ts: end, timeSegments: closeTimerSegments(state, end) });
 };
 
 const STATE_KEY = 'mockexam_state_v1';
@@ -157,25 +156,29 @@ const MockExam = () => {
     if (state.finished && lastBlockRef.current !== -2) {
       lastBlockRef.current = -2;
       playBeep();
-      logMockHeat(totalSec);
+      logMockHeat(totalSec, state, state.startedAt + totalSec * 1000);
     }
-  }, [state.finished, totalSec]);
+  }, [state, totalSec]);
 
   const start = () => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission().catch(() => {});
     }
-    setState({ startedAt: Date.now(), pausedRemaining: null, finished: false });
+    const start = Date.now();
+    setState({ startedAt: start, runStartedAt: start, timeSegments: [], pausedRemaining: null, finished: false });
     lastBlockRef.current = -1;
   };
   const pause = () => {
     if (!isRunning) return;
-    setState({ ...state, pausedRemaining: remainingSec });
+    setState({ ...state, pausedRemaining: remainingSec,
+      timeSegments: closeTimerSegments(state, Math.min(Date.now(), state.startedAt + totalSec * 1000)), runStartedAt: null });
   };
   const resume = () => {
     if (state.pausedRemaining == null) return;
     setState({
+      ...state,
       startedAt: Date.now() - (totalSec - state.pausedRemaining) * 1000,
+      runStartedAt: Date.now(),
       pausedRemaining: null,
       finished: false,
     });
@@ -183,7 +186,8 @@ const MockExam = () => {
   const stop = () => {
     if (!confirm('提前结束这场模考？')) return;
     // 提前结束也算学了，按已经跑过的时长计
-    logMockHeat(elapsedSec);
+    const end = state.pausedRemaining != null ? Date.now() : Math.min(Date.now(), state.startedAt + totalSec * 1000);
+    logMockHeat(elapsedSec, state, end);
     setState({ startedAt: null, pausedRemaining: null, finished: false });
     lastBlockRef.current = -1;
   };

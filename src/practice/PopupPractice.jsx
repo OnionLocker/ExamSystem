@@ -3,7 +3,7 @@ import { Check, X, SkipForward, RotateCcw, Eye, EyeOff, Timer, BookOpen, Chevron
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs, isSubAvailable } from './generators.js';
 import { recordPromotionResult, getRank } from './ranks.js';
 import RankBadge from './RankBadge.jsx';
-import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
+import { addEntry as addStudyEntry } from '../studyLog/studyLog.js';
 import { loadHistory, saveHistory } from './history.js';
 
 
@@ -192,6 +192,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       correct: stats.correct + (isCorrect ? 1 : 0),
       wrong: stats.wrong + (isCorrect ? 0 : 1),
       totalMs: stats.totalMs + timeMs,
+      timeSegments: [...(stats.timeSegments || []), [qStartedAt, now]],
       bestMs: isCorrect
         ? stats.bestMs == null
           ? timeMs
@@ -208,6 +209,7 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
       ...stats,
       skipped: stats.skipped + 1,
       totalMs: stats.totalMs + timeMs,
+      timeSegments: [...(stats.timeSegments || []), [qStartedAt, now]],
     };
     setStats(nextStats);
     scheduleAdvance({ ok: false, skipped: true, answer: typeof question.displayAnswer === 'function' ? question.displayAnswer(question.answer) : question.answer }, nextStats);
@@ -338,10 +340,13 @@ const PopupPractice = ({ catId: pCat, subId: pSub, mode: pMode, embedded = false
     saveHistory(list);
     addStudyEntry({
       type: 'numeric',
+      id: `numeric-${result.id}`,
+      ts: result.id,
+      timeSegments: (finalStats.timeSegments || []).filter(([start, end]) => end > start),
       module: result.subName,
       count: result.total,
+      skipped: result.skipped,
       correct: result.correct,
-      score: scoreNumeric(result.total, result.correct),
     });
     setRaceDone(result);
   };

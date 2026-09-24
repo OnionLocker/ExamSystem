@@ -4,27 +4,27 @@ import {
   loadLog,
   aggregateByDay,
   mergeServerHeat,
-  scoreLevel,
 } from './studyLog.js';
+import { timeLevel } from './studyTime.js';
 
 // ============================================================
 // 热力图相关工具：颜色梯度 + Hook
 // 放在独立的 .js 文件里，避免与组件文件混在一起破坏 Fast Refresh
 // ============================================================
 
-// 9 档颜色（含未打卡）：GitHub 风单色相琥珀，在黑底上层层递进
-// 低档位贴近底色，高档位饱满发光，减少视觉噪点
-export const LEVEL_COLORS = [
-  null,      // 0: 无打卡（由调用方处理底色，通常是 rgba(255,255,255,0.04)）
-  '#3d2e0a', // 1: 极弱（几乎和黑底融合的暗琥珀）
-  '#5c4410', // 2: 弱
-  '#82611a', // 3: 中低
-  '#b08628', // 4: 中
-  '#d4a43a', // 5: 中高
-  '#c4a050', // 6: 高（压饱和，避免和暖纸底撞色）
-  '#d4b46a', // 7: 很高
-  '#e4cc8a', // 8: 顶格（米黄，不是荧光黄）
+// 固定时长区间，不能用正确率或题量兑换分钟。
+export const HEAT_LEVELS = [
+  { color: '#252525', text: '#a3a3a3', label: '无记录', range: '0' },
+  { color: '#334155', text: '#f8fafc', label: '微量', range: '<30分钟' },
+  { color: '#1d4ed8', text: '#ffffff', label: '较低', range: '30–60分钟' },
+  { color: '#0891b2', text: '#071b22', label: '中低', range: '1–2小时' },
+  { color: '#2dd4bf', text: '#062923', label: '中等', range: '2–3小时' },
+  { color: '#facc15', text: '#342800', label: '中高', range: '3–4小时' },
+  { color: '#fb923c', text: '#431407', label: '较高', range: '4–6小时' },
+  { color: '#f87171', text: '#450a0a', label: '很高', range: '6–8小时' },
+  { color: '#b91c1c', text: '#ffffff', label: '极高', range: '≥8小时' },
 ];
+export const UNKNOWN_HEAT = { color: '#45454f', text: '#ffffff', label: '时长未知', range: '有学习记录' };
 
 // AI 练题的热力由服务端按练习记录现算，不进本地学习日志。
 // 这里统一拉一次，热力图和打卡面板共用，省得两处各查一遍。
@@ -42,7 +42,7 @@ export const useServerHeat = (version = 0) => {
   return heat;
 };
 
-// 供仪表盘日历使用：根据 dayKey 返回 { score, minutes, level, color, entries }
+// 供仪表盘日历使用：根据 dayKey 返回 { minutes, unknownCount, level, color, entries }
 export const useStudyHeatmap = (version = 0) => {
   const serverHeat = useServerHeat(version);
   const byDay = useMemo(
@@ -54,8 +54,8 @@ export const useStudyHeatmap = (version = 0) => {
   const getDay = (key) => {
     const v = byDay.get(key);
     if (!v) return null;
-    const level = scoreLevel(v.score);
-    return { ...v, level, color: LEVEL_COLORS[level] };
+    const level = timeLevel(v.minutes);
+    return { ...v, level, color: (v.minutes ? HEAT_LEVELS[level] : UNKNOWN_HEAT).color };
   };
   return { byDay, getDay, serverHeat };
 };

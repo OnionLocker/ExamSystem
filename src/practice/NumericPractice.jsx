@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, generate, getSub, judge, BAI_HUA_FEN_TABLE, SQUARE_TABLE, visibleSubs } from './generators.js';
 import PopupPractice from './PopupPractice.jsx';
-import { addEntry as addStudyEntry, scoreNumeric } from '../studyLog/studyLog.js';
+import { addEntry as addStudyEntry } from '../studyLog/studyLog.js';
 import RankDashboard from './RankDashboard.jsx';
 import RankBadge from './RankBadge.jsx';
 import { recordPromotionResult, getRank, getBaseMs, getLadderInfo } from './ranks.js';
@@ -90,7 +90,6 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
   const [currentSubId, setCurrentSubId] = useState(null);
   const [mode, setMode] = useState('train');
   const [raceSize, setRaceSize] = useState(RACE_SIZE_DEFAULT);
-  const [activeTask, setActiveTask] = useState(null);
 
   const [session, setSession] = useState(null);
   const [sessionResult, setSessionResult] = useState(null);
@@ -105,7 +104,6 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
         setCurrentSubId(subId);
         setMode('race');
         setRaceSize(taskNavigation.plannedCount || RACE_SIZE_DEFAULT);
-        setActiveTask(taskNavigation);
         setSession(null);
         setSessionResult(null);
         setView('subs');
@@ -121,7 +119,6 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     setCurrentSubId(null);
     setSession(null);
     setSessionResult(null);
-    setActiveTask(null);
   };
   const openCategory = (catId) => {
     const cat = CATEGORIES.find((c) => c.id === catId);
@@ -129,7 +126,6 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     setCurrentCat(cat);
     setCurrentSubId(visibleSubs(cat)[0]?.id);
     setMode('train');
-    setActiveTask(null);
     setView('subs');
   };
   // 从今日处方直接点进某个子项，跳过"先选分类再选子项"这一步
@@ -141,7 +137,6 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     setCurrentCat(cat);
     setCurrentSubId(nextSub);
     setMode('train');
-    setActiveTask(null);
     setView('subs');
   };
   const startSession = () => {
@@ -208,10 +203,13 @@ const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateT
     // 写入学习日志
     addStudyEntry({
       type: 'numeric',
+      id: `numeric-${result.id}`,
+      ts: result.id,
+      timeSegments: records.filter(r => r.timeMs > 0).map(r => [r.startedAt, r.startedAt + r.timeMs]),
       module: subName,
       count: result.total,
+      skipped: result.skipped,
       correct: result.correct,
-      score: scoreNumeric(result.total, result.correct),
     });
     applyNumericTodayRace({
       catId,
@@ -942,6 +940,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       isCorrect,
       skipped: false,
       timeMs,
+      startedAt: session.questionStartedAt,
       fromWrongPool: !!current.fromWrongPool,
     };
     if (isCorrect) {
@@ -968,6 +967,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
       isCorrect: false,
       skipped: true,
       timeMs,
+      startedAt: session.questionStartedAt,
       fromWrongPool: !!current.fromWrongPool,
     };
     recordWrong(session.subId, {

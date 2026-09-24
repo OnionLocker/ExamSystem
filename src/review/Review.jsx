@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  addEntryOncePerDay,
-  hasEntryToday,
-  QUALITATIVE,
-} from '../studyLog/studyLog.js';
+import { addEntry } from '../studyLog/studyLog.js';
+import { mergeSegments } from '../studyLog/studyTime.js';
 import {
   BookMarked,
   Plus,
@@ -53,31 +50,34 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
-// 复习是"翻资料看截图"，没有题数可数，只能按真正停留的时长定性给分。
-// 只在页面可见时累计，切到别的标签页或锁屏就停 —— 挂着不算学习。
-// 满门槛后当天只记一次，反复进出这个模块不会反复加热。
-const useReviewDwell = () => {
+// 只记录可见页面的计时，每分钟及离开页面时保存；计时不认证注意力或掌握度。
+const useReviewDwell = (active) => {
   useEffect(() => {
-    if (hasEntryToday('reviewBrowse')) return undefined;
-    const need = QUALITATIVE.reviewBrowse.minMinutes * 60;
-    let seconds = 0;
+    if (!active) return undefined;
+    let segments = [];
+    let last = Date.now();
+    const flush = () => {
+      if (!segments.length) return;
+      const timeSegments = mergeSegments(segments);
+      segments = [];
+      addEntry({ type: 'reviewBrowse', module: '复习浏览', timeSegments });
+    };
     const tid = setInterval(() => {
+      const now = Date.now();
+      const start = Math.max(last, now - 1000);
+      last = now;
       if (document.visibilityState !== 'visible') return;
-      seconds += 1;
-      if (seconds < need) return;
-      clearInterval(tid);
-      addEntryOncePerDay('reviewBrowse', {
-        module: QUALITATIVE.reviewBrowse.label,
-        minutes: QUALITATIVE.reviewBrowse.minMinutes,
-        score: QUALITATIVE.reviewBrowse.score,
-      });
+      if (now > start) segments.push([start, now]);
+      if (segments.length >= 60) flush();
     }, 1000);
-    return () => clearInterval(tid);
-  }, []);
+    const hide = () => { if (document.hidden) flush(); last = Date.now(); };
+    document.addEventListener('visibilitychange', hide);
+    return () => { clearInterval(tid); document.removeEventListener('visibilitychange', hide); flush(); };
+  }, [active]);
 };
 
-const Review = () => {
-  useReviewDwell();
+const Review = ({ active = true }) => {
+  useReviewDwell(active);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

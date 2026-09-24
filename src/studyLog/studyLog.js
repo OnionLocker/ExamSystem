@@ -2,7 +2,7 @@
 // 学习日志：统一记录所有"真的学了"的行为，用于打卡热力图
 // ============================================================
 // 记录来源：
-//   1) 番茄钟完成（完整走完一个工作番茄，中途停止不计）
+//   1) 番茄钟完成或停止（只计实际运行时段）
 //   2) 数资练习完成冲刺（冲刺模式结束）
 //   3) 手动导入套题（用户在"今日学习录入"里填）
 //   4) 错题复盘（后续扩展）
@@ -16,10 +16,11 @@
 //   minutes?: number,    // 对 pomodoro 使用
 //   count?: number,      // 题数
 //   correct?: number,    // 正确题数（数资）
-//   score: number,       // 本条贡献的学习分
+//   timeSegments?: [[number, number]], // 实测开始、结束时间戳
 // }
 
 import { cloudGet, cloudSet } from '../cloudStorage.js';
+import { aggregateStudyTime, emptyStudyDay, studyDayKey } from './studyTime.js';
 
 const LOG_KEY = 'study_log_v1';
 const DIGEST_KEY = 'study_digest_v1';
@@ -43,8 +44,8 @@ export const ENTRY_TYPES = {
   numeric: { label: '数资练习', color: '#8d7348' },
   aiquiz: { label: 'AI 练题', color: '#e0a800' },
   mock: { label: '全卷模考', color: '#0ea5e9' },
-  examReview: { label: '真题复盘', color: '#06b6d4' },
-  setReview: { label: '套题解析', color: '#0d9488' },
+  examReview: { label: '真题录屏', color: '#06b6d4' },
+  setReview: { label: '套题录屏', color: '#0d9488' },
   import: { label: '导入套题', color: '#3b82f6' },
   review: { label: '错题复盘', color: '#22c55e' },
   reviewBrowse: { label: '复习浏览', color: '#14b8a6' },
@@ -66,7 +67,7 @@ export const addEntry = (entry) => {
     ...entry,
   };
   list.unshift(rec);
-  // 保留 3 年
+  // ponytail: 最多 10000 条；超过后需要服务端分页存储。
   saveLog(list.slice(0, 10000));
   // 广播变化事件（同页面内 storage 事件不触发，用自定义事件）
   try {
@@ -88,41 +89,6 @@ export const removeEntry = (id) => {
   }
 };
 
-// ---------------- 分数计算 ----------------
-// 完整番茄钟：每分钟 1 分
-export const scorePomodoro = (minutes) => Math.round(minutes);
-
-// 数资练习冲刺：题数 * 0.3 + 正确率 * 0.1
-// 举例：10 题 / 正确 8 → 3 + 80*0.1 = 11 分
-export const scoreNumeric = (total, correct) => {
-  if (!total) return 0;
-  const acc = Math.round((correct / total) * 100);
-  return Math.round(total * 0.3 + acc * 0.1);
-};
-
-// 导入套题 / 真题：每题 1.5 分（申论按篇 × 20 折算）
-export const scoreImport = (module, count) => {
-  if (!count) return 0;
-  const perQ = module === 'shenlun' ? 20 : 1.5;
-  return Math.round(count * perQ);
-};
-
-// 错题复盘：每题 0.5 分
-export const scoreReview = (count) => Math.round((count || 0) * 0.5);
-
-// 全卷模考：按实际计时时长算，跟番茄钟同口径（1 分钟 1 分）
-export const scoreMock = (minutes) => Math.round(minutes || 0);
-
-// ---------------- 定性来源 ----------------
-// 有些事情没法精确计量（复习时翻了多少张截图、字帖临了多久），
-// 但确实是在学。这类给固定分，并设一个最低门槛挡住"点一下就算"，
-// 而且当天只记一次 —— 反复进出同一个模块不该反复加热。
-export const QUALITATIVE = {
-  reviewBrowse: { label: '复习浏览', minMinutes: 5, score: 8 },
-  vocab: { label: '词汇练习', minCount: 20, score: 10 },
-  copybook: { label: '字帖练习', score: 10 },
-};
-
 // 当天已经记过这个类型就不再记，返回 null
 export const addEntryOncePerDay = (type, entry) => {
   const today = dayKey(Date.now());
@@ -137,43 +103,12 @@ export const hasEntryToday = (type) => {
   return loadLog().some((r) => r.type === type && dayKey(r.ts) === today);
 };
 
-// 有些定性来源要看"当天累计做了多少"（比如词汇练习满 20 题才给分），
-// 这里存当天的临时计数。故意不进云同步白名单：它只是个游标，
-// 达标后会写成正式的日志条目，那条才是要跨设备同步的东西。
-const DAILY_COUNT_KEY = 'study_daily_count_v1';
-
-export const bumpDailyCount = (type, step = 1) => {
-  const today = dayKey(Date.now());
-  const all = cloudGet(DAILY_COUNT_KEY, {});
-  const prev = all[type] && all[type].day === today ? all[type].count : 0;
-  const count = prev + step;
-  cloudSet(DAILY_COUNT_KEY, { ...all, [type]: { day: today, count } });
-  return count;
-};
-
 // ---------------- 聚合查询 ----------------
-// 日期键：YYYY-MM-DD（按本地时区）
-const pad = (n) => String(n).padStart(2, '0');
-export const dayKey = (ts) => {
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
+// 日期键：YYYY-MM-DD（北京时间）
+export const dayKey = studyDayKey;
 
-// 返回 Map<dayKey, { score, minutes, entries: [...] }>
-export const aggregateByDay = (log = loadLog()) => {
-  const m = new Map();
-  for (const r of log) {
-    const k = dayKey(r.ts);
-    if (!m.has(k)) {
-      m.set(k, { score: 0, minutes: 0, entries: [] });
-    }
-    const d = m.get(k);
-    d.score += r.score || 0;
-    d.minutes += r.minutes || 0;
-    d.entries.push(r);
-  }
-  return m;
-};
+// 返回 Map<dayKey, { minutes, unknownCount, entries, segments }>
+export const aggregateByDay = (log = loadLog()) => aggregateStudyTime(log);
 
 // 某天学了啥：导师总结里的科目 + 系统活动按科目合并。
 // 84 场「2 的乘法」会收成一行，而不是 84 条。
@@ -223,7 +158,7 @@ export const digestDay = (entries = []) => {
       g.correct += e.correct;
       g.hasCorrect = true;
     }
-    g.minutes += e.minutes || 0;
+    g.minutes += e.measuredMinutes || 0;
   }
 
   for (const g of groups.values()) {
@@ -238,7 +173,7 @@ export const digestDay = (entries = []) => {
   return lines;
 };
 
-// AI 练题的分数不在这份日志里，而是服务端按 practice_sessions 现算的
+// AI 练题的记录不在这份日志里，而是服务端按 practice_sessions 现算的
 // （见 GET /api/practice/heat）。这里把它并进按天聚合的结果。
 //
 // 为什么不让前端交卷时往日志里写一条：这份日志是整体 PUT 的 JSON 数组，
@@ -246,90 +181,64 @@ export const digestDay = (entries = []) => {
 // 还顺带让历史场次不用回填脚本就能直接亮起来。
 export const mergeServerHeat = (byDay, serverHeat) => {
   if (!serverHeat) return byDay;
-  // 不改传进来的 Map：同一份聚合结果被合并两次就会把分数翻倍
-  const out = new Map();
-  for (const [k, v] of byDay) out.set(k, { ...v, entries: [...v.entries] });
+  const entries = new Map();
+  for (const day of byDay.values()) for (const entry of day.entries) {
+    const source = entry.sourceEntry || entry;
+    entries.set(`${source.type}:${source.id ?? source.ts}`, source);
+  }
   for (const [key, day] of Object.entries(serverHeat)) {
-    if (!out.has(key)) out.set(key, { score: 0, minutes: 0, entries: [] });
-    const d = out.get(key);
-    d.score += day.score || 0;
     for (const e of day.entries || []) {
       // derived：派生条目删不掉，UI 不给删除按钮
-      d.entries.push({ ...e, id: `srv-${key}-${e.ts}-${e.count}`, derived: true });
+      const id = e.id ?? `srv-${key}-${e.ts}-${e.count}`;
+      entries.set(`${e.type}:${id}`, { ...e, id, day: key, derived: true });
     }
   }
-  return out;
+  return aggregateStudyTime([...entries.values()]);
 };
 
 // 获取最近 N 天的日期键列表（从今天向前）
 export const recentDayKeys = (days) => {
   const keys = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = Date.now();
   for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    keys.push(dayKey(d.getTime()));
+    keys.push(dayKey(today - i * 86400000));
   }
   return keys;
-};
-
-// 按分数分级（热力图颜色）
-// 0: 未打卡 | 1-8: 8 档递进（分数阈值下方）
-export const scoreLevel = (s) => {
-  if (!s) return 0;
-  if (s <= 10) return 1;
-  if (s <= 25) return 2;
-  if (s <= 45) return 3;
-  if (s <= 70) return 4;
-  if (s <= 100) return 5;
-  if (s <= 150) return 6;
-  if (s <= 220) return 7;
-  return 8;
 };
 
 // 本周/本日/本月汇总
 export const summarize = (log = loadLog(), serverHeat = null) => {
   const byDay = mergeServerHeat(aggregateByDay(log), serverHeat);
   const todayKey = dayKey(Date.now());
-  const today = byDay.get(todayKey) || { score: 0, minutes: 0, entries: [] };
+  const today = byDay.get(todayKey) || emptyStudyDay();
 
-  const now = new Date();
-  const weekDay = (now.getDay() + 6) % 7; // 周一=0
-  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - weekDay);
-  monday.setHours(0, 0, 0, 0);
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  const todayStart = Date.parse(`${todayKey}T00:00:00+08:00`);
+  const weekDay = (new Date(`${todayKey}T00:00:00Z`).getUTCDay() + 6) % 7;
+  const monday = dayKey(todayStart - weekDay * 86400000);
+  const thisMonth = `${todayKey.slice(0, 7)}-01`;
 
-  let weekScore = 0,
-    weekMin = 0,
+  let weekMin = 0,
     weekDays = 0;
-  let monthScore = 0,
-    monthMin = 0,
+  let monthMin = 0,
     monthDays = 0;
 
   for (const [k, v] of byDay) {
-    const [y, m, d] = k.split('-').map(Number);
-    const ts = new Date(y, m - 1, d).getTime();
-    if (ts >= monday.getTime()) {
-      weekScore += v.score;
+    if (k > todayKey) continue;
+    if (k >= monday) {
       weekMin += v.minutes;
-      if (v.score > 0) weekDays += 1;
+      if (v.entries.length) weekDays += 1;
     }
-    if (ts >= thisMonth) {
-      monthScore += v.score;
+    if (k >= thisMonth) {
       monthMin += v.minutes;
-      if (v.score > 0) monthDays += 1;
+      if (v.entries.length) monthDays += 1;
     }
   }
 
-  // 连续打卡天数（从今天往前算，连续有分数的天）
+  // 连续打卡天数（从今天往前算，连续有学习记录的天）
   let streak = 0;
   for (let i = 0; i < 365; i++) {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    const v = byDay.get(dayKey(d.getTime()));
-    if (v && v.score > 0) {
+    const v = byDay.get(dayKey(todayStart - i * 86400000));
+    if (v?.entries.length) {
       streak += 1;
     } else {
       break;
@@ -338,10 +247,8 @@ export const summarize = (log = loadLog(), serverHeat = null) => {
 
   return {
     today,
-    weekScore,
     weekMin,
     weekDays,
-    monthScore,
     monthMin,
     monthDays,
     streak,

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   addEntryOncePerDay,
   hasEntryToday,
-  QUALITATIVE,
 } from '../studyLog/studyLog.js';
 import { PenTool, Image, Sparkles, Download, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
 
@@ -24,8 +23,7 @@ export default function Copybook() {
 
   const handleCheckIn = () => {
     addEntryOncePerDay('copybook', {
-      module: QUALITATIVE.copybook.label,
-      score: QUALITATIVE.copybook.score,
+      module: '字帖练习',
     });
     setCheckedIn(true);
   };
@@ -68,7 +66,7 @@ export default function Copybook() {
               }`}
             >
               <CheckCircle2 size={16} />
-              <span>{checkedIn ? '今日已打卡' : `练完打卡 +${QUALITATIVE.copybook.score}`}</span>
+              <span>{checkedIn ? '今日已打卡' : '练完打卡'}</span>
             </button>
             <button
               onClick={handleGenerate}
