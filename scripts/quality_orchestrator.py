@@ -175,6 +175,7 @@ ZILIAO_MATERIAL_SYSTEM = """你是独立的资料分析材料核查员，只检�
 ZILIAO_BLIND_SYSTEM = """你是独立资料分析盲解官。只有冻结材料、结构化图表与题面，没有标答、解析或验算清单。
 逐题从材料取数、独立推导；四个选项都必须检验。对于反向设问，stands表示符合设问，而非陈述本身为真。
 综合计数必须分别判断每个编号陈述。材料矛盾、无解、多解均REJECT，不能猜标答。
+option_tests只包含题面实际存在的A、B、C、D四个键，禁止添加E或空占位选项；每项都必须有核对依据。
 只输出JSON：{"questions":[{"id":"...","answer":"A","also_valid":[],"verdict":"PASS",
 "steps":"取数、算式和推导过程","option_tests":{"A":{"stands":true,"reason":"依据"},
 "B":{"stands":false,"reason":"依据"},"C":{"stands":false,"reason":"依据"},
