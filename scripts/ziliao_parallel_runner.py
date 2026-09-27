@@ -213,11 +213,6 @@ def valid_material(result: dict) -> bool:
                         for item in series))
     return False
 
-def material_passes_realism(result: dict, item: dict, track: str = TRACK_GD) -> bool:
-    material = result.get("material") or {}
-    long_text = track == TRACK_GD and str(item.get("id") or "") == "M01" and str(item.get("format") or "") == "text"
-    return not material_realism_errors(material, track=track, long_text=long_text)
-
 def auto_slots(count: int, materials: int, difficulty: str, track: str = TRACK_GD) -> list[dict]:
     """Default slots: 轨A 粤向配额，轨B 经典 10 类轮转。"""
     return resolve_track_slots(track, count, materials, difficulty)
@@ -512,22 +507,22 @@ def material_call(frame: dict, item: dict, batch_id: str, batch_dir: Path | None
     for attempt in range(5):
         result = call(prompt + (repair.format(attempt=attempt + 1) + feedback if attempt else ""), 9000)
         result["track"] = track
-        if valid_material(result):
-            kind = str((result["material"].get("figure") or {}).get("kind") or "none")
-            if ((item.get("format") == "chart" and kind == "bars")
-                    or (item.get("format") == "table" and kind == "table")
-                    or (item.get("format") == "text" and kind == "none")):
-                if material_passes_realism(result, item, track):
-                    review = review_ziliao_material(result["material"], item)
-                    attempts.append({"material": result["material"], "review": review})
-                    if batch_dir is not None:
-                        evidence = batch_dir / "evidence"
-                        evidence.mkdir(exist_ok=True)
-                        (evidence / f"{item['id'].lower()}-material.json").write_text(json.dumps(
-                            {"model": MODEL, "attempts": attempts}, ensure_ascii=False, indent=2))
-                    if review.get("verdict") == "PASS" and review.get("issues") == []:
-                        return result
-                    feedback = "\n独立材料核查未通过：" + json.dumps(review, ensure_ascii=False)
+        material = result.get("material") or {}
+        kind = str((material.get("figure") or {}).get("kind") or "none")
+        errors = ([f"材料结构不完整或图形类型不符，必须为{required_kind}"]
+                  if not valid_material(result) or kind != required_kind else
+                  material_realism_errors(material, track=track,
+                      long_text=track == TRACK_GD and item.get("id") == "M01" and item.get("format") == "text"))
+        review = {"verdict": "REJECT", "issues": errors} if errors else review_ziliao_material(material, item)
+        attempts.append({"material": material, "stage": "local" if errors else "independent", "review": review})
+        if batch_dir is not None:
+            evidence = batch_dir / "evidence"
+            evidence.mkdir(exist_ok=True)
+            (evidence / f"{item['id'].lower()}-material.json").write_text(json.dumps(
+                {"model": MODEL, "attempts": attempts}, ensure_ascii=False, indent=2))
+        if review.get("verdict") == "PASS" and review.get("issues") == []:
+            return result
+        feedback = "\n独立材料核查未通过：" + json.dumps(review, ensure_ascii=False)
     raise ValueError(f"invalid frozen material data: {item.get('id')} {feedback}")
 
 def parse_args(argv=None):

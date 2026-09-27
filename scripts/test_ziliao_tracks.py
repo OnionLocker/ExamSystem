@@ -73,6 +73,17 @@ class LabelTest(unittest.TestCase):
 
 
 class RealismTest(unittest.TestCase):
+    def test_material_retry_records_local_rejection(self):
+        import ziliao_parallel_runner as runner
+        valid = {"material": {"content": "收入123.4亿元。", "figure": {"kind": "none"}}}
+        with tempfile.TemporaryDirectory() as tmp, patch.object(runner, "call", side_effect=[{"material": {}}, valid]), patch.object(
+            runner, "review_ziliao_material", return_value={"verdict": "PASS", "issues": []}
+        ) as reviewer:
+            runner.material_call({"track": "classic"}, {"id": "M01", "format": "text"}, "b", Path(tmp))
+            attempts = json.loads(Path(tmp, "evidence", "m01-material.json").read_text())["attempts"]
+            self.assertEqual([a["review"]["verdict"] for a in attempts], ["REJECT", "PASS"])
+            self.assertEqual(reviewer.call_count, 1)
+
     def test_arithmetic_first_and_second_diff(self):
         self.assertTrue(tracks.is_arithmetic_series([100, 140, 180, 220]))
         self.assertTrue(tracks.is_arithmetic_series([140, 180, 230, 290, 360, 440]))
