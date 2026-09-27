@@ -44,6 +44,14 @@ GD_QUOTA = {
     FAMILY_MIX_PULL: (0, 2),
 }
 
+# 闸门认的四种综合判断（generation_gate._judge_form）。四篇 Q5 各用一种，禁止全写成「正确/有误」。
+GD_JUDGE_FORMS = (
+    {"material": "M01", "form": "属实", "stem": "根据资料，以下说法可以判断属实的是"},
+    {"material": "M02", "form": "无法推出", "stem": "不能从上述资料中推出的是"},
+    {"material": "M03", "form": "计数", "stem": "根据资料，下列说法正确的有"},
+    {"material": "M04", "form": "能推出", "stem": "能够从上述资料中推出的是"},
+)
+
 # 秒杀找数 / 一步 / 两步 / 四陈述综合
 FAMILY_DIFFICULTY = {
     FAMILY_DETAIL: 1,
@@ -119,46 +127,82 @@ def difficulty_score(family: str, paper_tier: str = "mid") -> int:
     return base
 
 
+def classify_judge_form(stem: str) -> str:
+    """与 generation_gate._judge_form 同一分类，供配额和题级回炉使用。"""
+    text = str(stem or "")
+    if "正确的有" in text:
+        return "计数"
+    if ("不能" in text or "无法" in text) and "推" in text:
+        return "无法推出"
+    if "属实" in text:
+        return "属实"
+    if "能够" in text and "推" in text:
+        return "能推出"
+    if "有误" in text or "不正确" in text or "错误的是" in text:
+        return "有误"
+    if "正确的是" in text:
+        return "正确"
+    return ""
+
+
+def judge_slot_fields(material_index: int) -> dict:
+    spec = GD_JUDGE_FORMS[material_index % len(GD_JUDGE_FORMS)]
+    return {
+        "judge_form": spec["form"],
+        "judge_stem": spec["stem"],
+        "brief": (
+            f"综合正误。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
+            "禁止改成「下列说法正确的是」或「下列说法有误的是」。"
+            "四陈述埋时间偷换、累计vs当年、未给出不能比、范围扩大。"
+        ),
+    }
+
+
 def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
-    """4×5 粤考日练槽位：M01 长文 3 细节/综合 + 2 轻量计算；每篇 Q5 综合正误。"""
+    """4×5 粤考日练槽位：M01 长文 3 细节/综合 + 2 轻量计算；每篇 Q5 综合正误且问法跨篇轮换。"""
     s = lambda family, tag, brief: _slot(family, tag, brief, paper_tier)
-    return [
+    slots = [
         # M01 长文字
         s(FAMILY_DETAIL, ZILIAO_QI, "文字细节定位：主题/分类/口径，直接找数，勿大计算"),
         s(FAMILY_DETAIL, ZILIAO_QI, "细节排除：未提及/不包括；利用材料里用不到的干扰指标"),
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或简单加减，一步可算，可用成数/区间"),
         s(FAMILY_GROWTH, ZILIAO_DELTA, "增长量或简单增长率，一步到两步"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, "综合正误（正确/有误）。必须埋：时间偷换、累计vs当年、未给出不能比、范围扩大"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
         # M02 表
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或表内简单加减"),
         s(FAMILY_GROWTH, ZILIAO_RATE, "同比增长率计算或区间判断"),
         s(FAMILY_BASE_SHARE, ZILIAO_BASE, "基期量，或由现期与增速反推"),
         s(FAMILY_AVG_CMP, ZILIAO_AVG, "平均数或年均增量；比较则枚举范围内全部点"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, "综合正误。陷阱含时间戳/累计与当年/范围扩大"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
         # M03 图
         s(FAMILY_SHARE_ADD, ZILIAO_QI, "简单加减或现期量查找，真正读图"),
         s(FAMILY_GROWTH, ZILIAO_DELTA, "增长量，读图序列"),
         s(FAMILY_BASE_SHARE, ZILIAO_SHARE_DIFF, "基期比重或两期比重差"),
         s(FAMILY_AVG_CMP, ZILIAO_CMP, "比较类：枚举题干年份范围内全部点，禁止漏年"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, "综合正误。四陈述，正确/有误/不正确"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
         # M04 图：补足细节 + 至多 1 道混合/拉动
         s(FAMILY_DETAIL, ZILIAO_QI, "读图细节定位或排除"),
         s(FAMILY_DETAIL, ZILIAO_QI, "细节排除或口径辨析，可含未给出不能比"),
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重，一步"),
         s(FAMILY_MIX_PULL, ZILIAO_MIX, "混合增速或拉动/贡献率，整套至多 1–2 道，不要再叠第二道"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, "综合正误。埋未给出不能比或范围扩大"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
     ]
+    for material_index, slot_index in enumerate((4, 9, 14, 19)):
+        slots[slot_index].update(judge_slot_fields(material_index))
+    return slots
 
 
 def gd_slots_5(paper_tier: str = "mid") -> list[dict]:
     s = lambda family, tag, brief: _slot(family, tag, brief, paper_tier)
-    return [
+    slots = [
         s(FAMILY_DETAIL, ZILIAO_QI, "文字或图表细节定位/排除"),
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或简单加减"),
         s(FAMILY_GROWTH, ZILIAO_RATE, "增长率或增长量"),
         s(FAMILY_AVG_CMP, ZILIAO_CMP, "比较或平均；比较须枚举范围内全部点"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, "综合正误（正确/有误），含时间偷换或累计vs当年"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
     ]
+    slots[-1].update(judge_slot_fields(0))
+    return slots
 
 
 def classic_slots(count: int, materials: int, paper_tier: str = "mid") -> list[dict]:
@@ -235,6 +279,9 @@ def validate_gd_quota(slots: list[dict], *, count: int | None = None) -> None:
         raise ValueError("轨A至少1篇长文字：3 综合/细节 + 2 轻量计算（默认 M01）")
     if sum(1 for slot in slots[4::5] if slot.get("family") == FAMILY_JUDGE) < 4:
         raise ValueError("轨A每篇第5题须为综合正误")
+    forms = [classify_judge_form(slot.get("judge_stem") or "") for slot in slots[4::5]]
+    if len({form for form in forms if form}) < 2:
+        raise ValueError("轨A四道综合正误须跨篇至少 2 种问法（属实 / 无法推出 / 能推出几个 / 能推出）")
 
 
 def batch_source(track: str, targeted: bool, difficulty: str, compact_date: str,
@@ -490,6 +537,7 @@ def track_framework_rules(track: str) -> str:
         "M01 必须是长文字（350–700字），含 1–2 个本题用不到的干扰指标或冗余句。"
         "图序列禁止等差或等差增量；禁止总计整万+人均整十。"
         "难度按秒杀找数/一步/两步/四陈述综合拉开，禁止全员 difficulty=3。"
+        "四篇 Q5 综合正误的题干已写在槽位 judge_stem：属实、不能推出、正确的有、能够推出，禁止四篇都写成「下列说法正确/有误的是」。"
     )
 
 
@@ -512,8 +560,16 @@ def track_material_rules(track: str, item: dict) -> str:
 def track_question_rules(track: str, slot: dict, index: int) -> str:
     family = str(slot.get("family") or "")
     if track == TRACK_GD and family == FAMILY_JUDGE:
+        stem = str(slot.get("judge_stem") or "")
+        form = str(slot.get("judge_form") or "")
+        locked = (
+            f"题干必须以「{stem}」开头，形式码={form}。"
+            "不得改成「下列说法正确的是」「下列说法有误的是」或其他篇的问法。"
+            if stem else
+            "题干须使用槽位指定的综合判断句，不得四篇同一句。"
+        )
         return (
-            "本题必须是综合正误：题干用「根据资料，下列说法正确/有误/不正确的是」或轮换的属实/不能推出/正确的有/能够推出。"
+            "本题必须是综合正误。" + locked +
             "四个选项各一句陈述，分别埋时间偷换、累计vs当年、未给出不能比、范围扩大中的至少两类。"
             "不要出混合增速或拉动专名题。计算清单可写正确项=1、错项=0。"
         )

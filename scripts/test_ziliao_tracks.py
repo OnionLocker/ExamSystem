@@ -173,6 +173,90 @@ class DifficultyAndExplainTest(unittest.TestCase):
         self.assertIn("images/", question["options"][0]["images"][0])
 
 
+class JudgeFormTest(unittest.TestCase):
+    def test_track_a_assigns_at_least_two_forms(self):
+        slots = tracks.gd_slots_20()
+        finals = slots[4::5]
+        forms = [slot["judge_form"] for slot in finals]
+        self.assertEqual(forms, ["属实", "无法推出", "计数", "能推出"])
+        self.assertGreaterEqual(len(set(forms)), 2)
+        self.assertEqual(
+            [tracks.classify_judge_form(slot["judge_stem"]) for slot in finals],
+            forms,
+        )
+        for slot in finals:
+            self.assertIn(slot["judge_stem"], slot["brief"])
+            self.assertNotIn("正确/有误", slot["brief"])
+
+    def test_generic_correct_or_wrong_collapses_to_one_form(self):
+        correct = ["根据资料，下列说法正确的是"] * 4
+        wrong = ["根据资料，下列说法有误的是"] * 4
+        self.assertEqual(len({tracks.classify_judge_form(stem) for stem in correct}), 1)
+        self.assertEqual(len({tracks.classify_judge_form(stem) for stem in wrong}), 1)
+
+    def test_quota_rejects_single_wording(self):
+        slots = tracks.gd_slots_20()
+        for slot in slots[4::5]:
+            slot["judge_stem"] = "根据资料，下列说法正确的是"
+        with self.assertRaisesRegex(ValueError, "至少 2 种"):
+            tracks.validate_gd_quota(slots)
+
+    def test_prompts_lock_assigned_stem(self):
+        import ziliao_parallel_runner as runner
+        slots = tracks.gd_slots_20()
+        plan = {"id": "M02", "track": "gd", "slots": slots[5:10], "count": 5}
+        material = {"content": "G省增加值1876.4亿元", "external_id": "b-M02", "figure": {}}
+        prompt = runner.paper_prompt(material, plan, "b")
+        self.assertIn("不能从上述资料中推出的是", prompt)
+        self.assertNotIn("或同等正确/有误", prompt)
+        self.assertNotIn("第5题必须是综合正误（正确/有误/不正确）", prompt)
+        qprompt = runner.question_prompt(material, plan, 5, "b", slots[9])
+        self.assertIn("不能从上述资料中推出的是", qprompt)
+        self.assertNotIn("或同等正确/有误", qprompt)
+
+    def test_question_errors_reject_generic_correct(self):
+        import ziliao_parallel_runner as runner
+        slot = tracks.gd_slots_20()[4]
+        question = {
+            "external_id": "b-M01-Q5",
+            "material_id": "b-M01",
+            "stem": "根据资料，下列说法正确的是",
+            "options": [{"key": key, "text": key} for key in "ABCD"],
+            "answer": "A",
+            "tags": [slot["tag"]],
+            "explanation": "",
+        }
+        errors = runner.question_errors(
+            question, {}, {"external_id": "b-M01"}, {}, "b-M01-Q5", slot, [],
+        )
+        self.assertTrue(any("可以判断属实" in err or "属实" in err for err in errors))
+
+    def test_gate_rejects_all_generic_correct(self):
+        import generation_gate
+        questions = []
+        for i in range(20):
+            mid = i // 5 + 1
+            questions.append({
+                "category": "资料分析",
+                "question_type": "single",
+                "external_id": f"M{mid:02d}-Q{(i % 5) + 1}",
+                "material_id": f"M{mid:02d}",
+                "stem": "根据资料，下列说法正确的是" if i % 5 == 4 else "2023年比重是多少",
+                "options": [{"key": key, "text": key} for key in "ABCD"],
+                "answer": "A",
+                "difficulty": 2,
+                "tags": ["资料分析-基础知识-统计术语与常考概念"],
+            })
+        manifest = {"generation": {"batch_constraints": {"track": "gd", "targeted_drill": False}}}
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "materials.json").write_text(json.dumps([
+                {"external_id": f"M{m:02d}", "content": f"2024年G省第{m}产业增加值{1876.43 + m}亿元，同比增长{12.7 + m}%。"}
+                for m in range(1, 5)
+            ]), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "跨篇轮换"):
+                generation_gate.validate_paper_hard_rules(manifest, questions, Path(tmp))
+
+
 class GeminiConfigTest(unittest.TestCase):
     def test_model_reads_env_only(self):
         with patch.dict(os.environ, {"ZILIAO_GEMINI_MODEL": "gemini-test-high"}, clear=False):

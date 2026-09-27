@@ -27,6 +27,7 @@ from ziliao_tracks import (
     validate_difficulty_gradient,
     validate_gd_quota,
     explanation_missing_years,
+    classify_judge_form,
     CHART_MATCH_HOOK,
 )
 
@@ -87,7 +88,12 @@ def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=
     track = plan.get("track") or TRACK_GD
     q5 = index == 5 and (slot.get("family") == "judge" or (track == TRACK_GD and not slot.get("tag")))
     level = slot.get("difficulty_score") or {"easy": 2, "mid": 3, "hard": 4}[slot.get("difficulty") or plan.get("difficulty", "mid")]
-    form = {"M01": "根据资料，下列说法正确的是", "M02": "根据资料，下列说法有误的是", "M03": "下列说法正确的有", "M04": "根据资料，下列说法不正确的是"}.get(str(plan.get("id")), "根据资料，下列说法正确的是")
+    form = slot.get("judge_stem") or {
+        "M01": "根据资料，以下说法可以判断属实的是",
+        "M02": "不能从上述资料中推出的是",
+        "M03": "根据资料，下列说法正确的有",
+        "M04": "能够从上述资料中推出的是",
+    }.get(str(plan.get("id")), "根据资料，以下说法可以判断属实的是")
     tasks = plan.get("chart_tasks") or []
     task = tasks[(index - 1) % len(tasks)] if tasks else "根据材料完成不同于其他题的信息定位或计算"
     calc_rule = '计算清单可写 correct=1、正确项1、错项0' if skip_calculation(slot) else '计算选项必须唯一匹配answer，correct只含数字和+-*/括号'
@@ -98,7 +104,7 @@ def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=
 材料：{material['content']}
 图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
 本题指定考法：{task}。如果材料带图，本题必须真正使用图表中的数据；图表题不得只复述正文中已直接给出的同一句数字。
-第{index}题必须{'是综合正误题，题干以“'+form+'”或同等正确/有误句开头，四选项各一句陈述' if q5 or slot.get('family')=='judge' else '围绕材料真实数据设计单选题'}。
+第{index}题必须{'是综合正误题，题干必须以“'+form+'”开头，不得改成「下列说法正确/有误的是」，四选项各一句陈述' if q5 or slot.get('family')=='judge' else '围绕材料真实数据设计单选题'}。
 解析写清取数与算式；比较类必须枚举题干年份范围内每一年。不要用「最后明确选择X项」套话收尾。
 严格输出JSON：{{"question":{{"external_id":"{batch_id}-{material['external_id'].rsplit('-',1)[-1]}-Q{index}","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...","tags":["白名单标签"],"difficulty":{level},"family":"{slot.get('family') or ''}"}},"calculation":{{"question_id":"...","correct":"算式或1","options":{{"A":0,"B":0,"C":0,"D":0}},"tolerance":0.001}}}}
 tags只能从以下白名单选：{json.dumps(TAGS, ensure_ascii=False)}。{calc_rule}；解析、答案、计算清单一致；保留Gemini原始A-D顺序，不要改排。"""
@@ -110,9 +116,12 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
         f"Q{index} family={slot.get('family')} score={slot.get('difficulty_score')}：{track_question_rules(track, slot, index)}"
         for index, slot in enumerate(slots, 1)
     )
+    judge = next((slot for slot in reversed(slots) if slot.get("family") == "judge"), {})
+    judge_stem = str(judge.get("judge_stem") or "")
     mix_rule = (
         "严格按槽位 family 出题：细节定位/排除、现期比重或简单加减、增长率/增长量、基期或两期比重、平均/比较、综合正误。"
-        "第5题必须是综合正误（正确/有误/不正确），四陈述埋时间偷换、累计vs当年、未给出不能比、范围扩大。"
+        + (f"第5题题干必须以「{judge_stem}」开头，禁止改成「下列说法正确的是」或「下列说法有误的是」。" if judge_stem else "第5题必须是综合正误，并使用槽位指定问法。")
+        + "四陈述埋时间偷换、累计vs当年、未给出不能比、范围扩大。"
         "不要把本篇改成教材 10 类套餐，混合或拉动仅当槽位 family=mix_pull 时才出。"
         if track == TRACK_GD else
         "可按经典计算技法覆盖本篇槽位，允许混合/拉动/比重差；第5题可以是综合判断或承重计算。"
@@ -229,6 +238,13 @@ def question_errors(question: dict, calculation: dict, material: dict, plan: dic
     missing = explanation_missing_years({**question, "family": slot.get("family"), "brief": slot.get("brief")})
     if missing:
         errors.append(f"比较类解析漏年：{','.join(missing)}")
+    expected_stem = str(slot.get("judge_stem") or "")
+    expected_form = str(slot.get("judge_form") or "")
+    stem = str(question.get("stem") or "")
+    if expected_stem and expected_stem not in stem:
+        errors.append(f"综合判断题干必须包含「{expected_stem}」")
+    if expected_form and classify_judge_form(stem) != expected_form:
+        errors.append(f"综合判断形式须为{expected_form}，实际{classify_judge_form(stem) or '未识别'}")
     return errors
 
 def paper_call(material: dict, plan: dict, batch_id: str) -> dict:
