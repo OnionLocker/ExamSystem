@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 import tempfile
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from ziliao_agent_trial import Trial, verify
-from ziliao_agent_paper import sync_reviewed_version
+from ziliao_agent_paper import sync_reviewed_version, import_checked
 
 
 def main():
@@ -55,6 +56,30 @@ def main():
         assert not (trial.out / ".gate.json").exists()
         assert (trial.out / "before-full-repair-1/.gate.json").read_text() == "old"
         print("PASS: full-paper option normalization is synchronized before repair, old receipt invalidated")
+        with patch("ziliao_agent_paper.verify", side_effect=ValueError("stale receipt")), \
+             patch("ziliao_agent_paper.subprocess.run") as importer:
+            try:
+                import_checked(trial.out, trial.db)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("Stale receipt must block import")
+            importer.assert_not_called()
+        with patch("ziliao_agent_paper.verify", return_value={"question_ids": ["Q1"]}), \
+             patch("ziliao_agent_paper.subprocess.run", return_value=SimpleNamespace(
+                 returncode=0, stdout="imported", stderr="")) as importer:
+            assert import_checked(trial.out, trial.db) == 1
+            assert importer.call_args.kwargs["env"]["EXAM_DB"] == str(trial.db.resolve())
+        with patch("ziliao_agent_paper.verify", return_value={"question_ids": ["Q1"]}), \
+             patch("ziliao_agent_paper.subprocess.run", return_value=SimpleNamespace(
+                 returncode=1, stdout="", stderr="database error")):
+            try:
+                import_checked(trial.out, trial.db)
+            except RuntimeError:
+                pass
+            else:
+                raise AssertionError("Import failure must not be reported as success")
+        print("PASS: import requires current receipt, uses selected database, propagates failure")
 
 
 if __name__ == "__main__":

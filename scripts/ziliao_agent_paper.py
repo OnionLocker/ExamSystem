@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Four isolated Hermes/Gemini workers, then the existing full-paper gate. No import."""
+"""Four isolated Hermes/Gemini workers, full-paper gate, and optional checked import."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
@@ -18,6 +18,17 @@ from generation_gate import verify
 from ziliao_agent_trial import write
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def import_checked(out, db):
+    receipt = verify(out)
+    proc = subprocess.run(["node", str(ROOT / "scripts/import-batch.mjs"), str(out)],
+                          cwd=ROOT, env={**os.environ, "EXAM_DB": str(db.resolve())},
+                          capture_output=True, text=True, timeout=180)
+    (out / "import-output.txt").write_text(proc.stdout + proc.stderr)
+    if proc.returncode:
+        raise RuntimeError("审核已通过，但入库失败：" + (proc.stdout + proc.stderr)[-2000:])
+    return len(receipt["question_ids"])
 
 
 def sync_reviewed_version(out, work, mid, attempt):
@@ -46,6 +57,8 @@ def main():
     parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=2)
     parser.add_argument("--hermes-root", type=Path, default=Path.home() / ".hermes/hermes-agent")
     parser.add_argument("--resume", type=Path, help="恢复已有批次并重新执行整套闸门，失败自动回修")
+    parser.add_argument("--import", dest="import_batch", action="store_true",
+                        help="完整闸门通过后调用现有校验导入器；默认仅生成验收产物")
     args = parser.parse_args()
     started = time.monotonic()
     today = dt.date.today()
@@ -183,15 +196,21 @@ def main():
                 list(pool.map(repair, [p for p in plans if p["id"] in targets]))
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
+    imported = 0
+    if passed and args.import_batch:
+        try:
+            imported = import_checked(out, args.db)
+        except Exception as exc:
+            error = f"{type(exc).__name__}: {exc}"
     summary = {"passed": passed, "batch_dir": str(out), "model": runner.MODEL,
                "seconds": round(time.monotonic()-started, 2) + (previous["seconds"] if args.resume else 0),
                "question_count": 20, "materials": 4,
                "worker_runs": worker_runs, "full_gate_rounds": rounds,
-               "error": error, "imported": 0, "manual_content_edits": 0,
+               "error": error, "imported": imported, "manual_content_edits": 0,
                "chart_match_supported": False}
     write(out / "paper-summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False), flush=True)
-    return 0 if passed else 1
+    return 0 if passed and error is None else 1
 
 
 if __name__ == "__main__":
