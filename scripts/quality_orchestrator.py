@@ -28,7 +28,7 @@ from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
 from normalize_ai_batch import generated_questions, scratchpad_leak
 from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
-from ziliao_tracks import resolve_gemini_model, ZILIAO_INFERENCE_RULES
+from ziliao_tracks import resolve_gemini_model, ZILIAO_INFERENCE_RULES, ZILIAO_FIGURE_RULES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -203,7 +203,7 @@ claim_checks逐一核验输入explanation_claims的每条原解析，恰好一�
 
 
 def review_ziliao_material(material: dict) -> dict:
-    review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES, json.dumps(material, ensure_ascii=False))
+    review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES + ZILIAO_FIGURE_RULES, json.dumps(material, ensure_ascii=False))
     checks = review.get("checks") or {}
     required = {"totals", "growth", "scope_units", "text_figure", "naturalness"}
     if (set(checks) != required or any(

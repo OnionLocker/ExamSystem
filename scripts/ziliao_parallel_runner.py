@@ -30,6 +30,7 @@ from ziliao_tracks import (
     classify_judge_form,
     CHART_MATCH_HOOK,
     ZILIAO_INFERENCE_RULES,
+    ZILIAO_FIGURE_RULES,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,6 +75,7 @@ def framework_prompt(difficulty="mid", formats=None, slots=None, track=TRACK_GD)
     formats = formats or default_formats(track, 4, False)
     return f"""你是公考资料分析命题总设计师。设计{len(formats)}篇材料的命题框架，不写题目。
 产品轨：{"粤考日练（轨A）" if track == TRACK_GD else "经典计算加练（轨B）"}。{track_framework_rules(track)}
+{ZILIAO_FIGURE_RULES}
 输出JSON：{{"difficulty":"{difficulty}","materials":[{{"id":"M01","theme":"...","format":"text/table/chart","focus":"...","question_plan":"...","chart_tasks":[]}}]}}
 材料编号严格依次M01、M02等；形态按此顺序：{json.dumps(formats)}。chart只用bars，table只用table，text只用none；禁止mixed。柱图4—8分类，表格至少6行4列。
 各篇主题和信息组织应不同。图表必须承担找数、筛选、求和、趋势或表文结合任务，不能只是装饰。
@@ -87,6 +89,7 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
 本批难度 {frame.get('difficulty', 'mid')}。方向与已确认考点：{json.dumps(item, ensure_ascii=False)}。生成一篇数据足够、篇幅适当的原创统计材料。
 {ZILIAO_INFERENCE_RULES}
 材料自洽，所有题目所需数字必须来自正文或结构化图表。使用G省、H省或全国，不用“某省”。
+{ZILIAO_FIGURE_RULES}
 先确定独立的底层数，再计算总量、合计、占比和总增速，禁止独立随机编造互相约束的统计数。
 分项穷尽时，现期之和、各自反推的基期之和都必须与总量一致；部分列示须说明范围。
 不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
@@ -357,7 +360,18 @@ def retry_visual_materials(batch_dir: Path, frame: dict, plans: list[dict],
         plan = plan_by_id.get(short_id)
         if not plan:
             continue
-        new_result = material_call(frame, plan, batch_id, batch_dir)
+        feedback = []
+        visual_path = batch_dir / "evidence" / "ziliao-visual-quality.json"
+        if visual_path.is_file():
+            for image in json.loads(visual_path.read_text()).get("images") or []:
+                if Path(image.get("path") or "").stem.upper().startswith(short_id + "-"):
+                    feedback.extend(image.get("issues") or [])
+        quality_path = batch_dir / "evidence" / "system-quality.json"
+        if quality_path.is_file():
+            for item in json.loads(quality_path.read_text()).get("results") or []:
+                if f"-{short_id}-" in str(item.get("question_id")):
+                    feedback.extend(((item.get("quality") or {}).get("review") or {}).get("issues") or [])
+        new_result = material_call(frame, dict(plan, repair_feedback=feedback), batch_id, batch_dir)
         new_material = new_result["material"]
         render_material(new_material, image_dir)
         old_material = next((item for item in materials if str(item.get("external_id", "")).endswith(f"-{short_id}")), None)
