@@ -65,12 +65,22 @@ def main():
             else:
                 raise AssertionError("Stale receipt must block import")
             importer.assert_not_called()
-        with patch("ziliao_agent_paper.verify", return_value={"question_ids": ["Q1"]}), \
+        for receipt in ({}, {"question_count": 0}, {"question_count": "1"}, {"question_count": True}):
+            with patch("ziliao_agent_paper.verify", return_value=receipt), \
+                 patch("ziliao_agent_paper.subprocess.run") as importer:
+                try:
+                    import_checked(trial.out, trial.db)
+                except (KeyError, ValueError):
+                    pass
+                else:
+                    raise AssertionError("Invalid question count must block import before any write")
+                importer.assert_not_called()
+        with patch("ziliao_agent_paper.verify", return_value={"question_count": 1}), \
              patch("ziliao_agent_paper.subprocess.run", return_value=SimpleNamespace(
                  returncode=0, stdout="imported", stderr="")) as importer:
             assert import_checked(trial.out, trial.db) == 1
             assert importer.call_args.kwargs["env"]["EXAM_DB"] == str(trial.db.resolve())
-        with patch("ziliao_agent_paper.verify", return_value={"question_ids": ["Q1"]}), \
+        with patch("ziliao_agent_paper.verify", return_value={"question_count": 1}), \
              patch("ziliao_agent_paper.subprocess.run", return_value=SimpleNamespace(
                  returncode=1, stdout="", stderr="database error")):
             try:
