@@ -14,7 +14,6 @@ if not FONT_PATH.exists():
     FONT_PATH = Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc")
 INK = (0, 0, 0)
 LINE = (0, 0, 0)
-RULE = (170, 170, 170)
 BG = (255, 255, 255)
 BAR_FILLS = [(25, 25, 25), (90, 90, 90), (155, 155, 155), (220, 220, 220), (55, 55, 55), (125, 125, 125)]
 
@@ -183,7 +182,7 @@ def render_bars(
     for i in range(tick_count + 1):
         val = axis_min + step * i
         yy = top + plot_h - plot_h * i / tick_count
-        draw.line((left, yy, left + plot_w, yy), fill=RULE, width=1)
+        draw.line((left - 4, yy, left, yy), fill=LINE, width=1)
         label = f"{val:g}" if float(val).is_integer() else f"{val:.1f}"
         lw, lh = measure(draw, label, face)
         draw.text((left - lw - 8, yy - lh // 2), label, fill=INK, font=face)
