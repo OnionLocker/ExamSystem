@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from PIL import Image
+from unittest.mock import patch
+from PIL import Image, ImageDraw
 from render_ziliao_figure import BG, render_bars, render_pie, render_table
 
 tmp = Path("/tmp/ziliao-render-test")
@@ -20,4 +21,22 @@ assert Image.open(table).size[0] > 100
 assert Image.open(bars).size[0] > 200
 assert Image.open(pie).size[0] > 100
 assert Image.open(table).getpixel((2, 2)) == BG
+
+# Reproduce the long customs-category labels and near-ceiling value from a live batch.
+drawn = []
+original_text = ImageDraw.ImageDraw.text
+def record_text(draw, xy, text, *args, **kwargs):
+    drawn.append((text, draw.textbbox(xy, text, font=kwargs.get("font"), anchor=kwargs.get("anchor"))))
+    return original_text(draw, xy, text, *args, **kwargs)
+
+long_bars = tmp / "long-labels.png"
+with patch.object(ImageDraw.ImageDraw, "text", record_text):
+    render_bars("图3 测试", "亿元", ["一般贸易", "加工贸易", "保税物流", "跨境电商网购保税", "保税研发与维修", "其他"],
+                [("2023年", [816.9, 372.45, 168.74, 54.63, 28.16, 13.85])], long_bars)
+labels = [(text, box) for text, box in drawn if box[0] >= 64 and 320 < box[1] < Image.open(long_bars).height - 28]
+assert "".join(text for text, _ in labels) == "一般贸易加工贸易保税物流跨境电商网购保税保税研发与维修其他"
+for i, (_, a) in enumerate(labels):
+    for _, b in labels[i + 1:]:
+        assert a[2] < b[0] or b[2] < a[0] or a[3] < b[1] or b[3] < a[1], (a, b)
+assert next(box for text, box in drawn if text == "816.9")[1] > 74
 print("ok", Image.open(table).size, Image.open(bars).size, Image.open(pie).size)
