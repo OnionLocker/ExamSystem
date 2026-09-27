@@ -220,6 +220,24 @@ class JudgeFormTest(unittest.TestCase):
         self.assertIn("不能从上述资料中推出的是", qprompt)
         self.assertNotIn("或同等正确/有误", qprompt)
 
+    def test_gd_design_survives_question_repair(self):
+        import ziliao_parallel_runner as runner
+        slots = tracks.gd_slots_20()
+        self.assertEqual(slots[9]["required_trap"], "scope")
+        self.assertEqual(slots[19]["required_trap"], "percent_vs_point")
+        plan = {"id": "M04", "track": "gd", "slots": slots[15:20], "count": 5}
+        material = {"content": "比率从8.6%下降到6.3%。", "external_id": "b-M04", "figure": {}}
+        q = {"external_id": "b-M04-Q5"}
+        prompts = [runner.paper_prompt(material, plan, "b"),
+                   runner.question_prompt(material, plan, 5, "b", slots[19]),
+                   runner.question_repair_prompt(material, plan, q, {}, "修正解析")]
+        for prompt in prompts:
+            self.assertIn(tracks.GD_DESIGN_RULES, prompt)
+            self.assertIn("percent_vs_point", prompt)
+            self.assertIn("能够从上述资料中推出的是", prompt)
+        plan["track"] = "classic"
+        self.assertNotIn(tracks.GD_DESIGN_RULES, runner.paper_prompt(material, plan, "b"))
+
     def test_question_errors_reject_generic_correct(self):
         import ziliao_parallel_runner as runner
         slot = tracks.gd_slots_20()[4]

@@ -59,6 +59,25 @@ def test_ziliao_review_fails_closed() -> None:
         assert qo.ziliao_review_issues(q, good | change), change
     with patch.object(qo, "call_flash", return_value={"verdict": "PASS", "checks": {}, "issues": []}):
         assert qo.review_ziliao_material({})["verdict"] == "REJECT"
+    q["requested_slot"]["track"] = "gd"
+    assert qo.ziliao_review_issues(q, good)  # Missing design evidence cannot pass.
+    designed = good | {"design_check": {"ok": True, "reason": "正文口径应用，一步辨析"}}
+    assert qo.ziliao_review_issues(q, designed) == []
+    for change in ({"design_check": {"ok": False, "reason": "只复读注脚"}},
+                   {"design_check": {"ok": True, "reason": ""}}, {"actual_difficulty": 3}):
+        assert qo.ziliao_review_issues(q, designed | change)
+    q["requested_slot"]["track"] = "classic"
+    assert qo.ziliao_review_issues(q, good) == []
+
+    manifest = {"generation": {"batch_constraints": {"track": "gd"}}}
+    batch = dict(verdict="PASS", type_distribution_ok=True, difficulty_distribution_ok=True,
+                 reference_alignment_ok=True, duplicate_groups=[], issues=[])
+    for check, expected in [(None, "REJECT"), ({"ok": False, "reason": "缺少百分点辨析"}, "REJECT"),
+                            ({"ok": True, "reason": "各篇覆盖已核对"}, "PASS")]:
+        with patch.object(qo, "call_flash", return_value=batch | {"issues": [], "design_check": check}), patch.object(
+            qo, "mechanical_answers_ok", return_value=True
+        ), patch.object(qo, "evaluation_references", return_value={}):
+            assert qo.run_batch_quality(Path("."), manifest, [])["verdict"] == expected
 
 
 def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:

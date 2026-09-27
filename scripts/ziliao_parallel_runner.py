@@ -31,6 +31,8 @@ from ziliao_tracks import (
     CHART_MATCH_HOOK,
     ZILIAO_INFERENCE_RULES,
     ZILIAO_FIGURE_RULES,
+    GD_DESIGN_RULES,
+    GD_PAPER_RULES,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -91,7 +93,8 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
 材料自洽，所有题目所需数字必须来自正文或结构化图表。使用G省、H省或全国，不用“某省”。
 {ZILIAO_FIGURE_RULES}
 先确定独立的底层数，再计算总量、合计、占比和总增速，禁止独立随机编造互相约束的统计数。
-分项穷尽时，现期之和、各自反推的基期之和都必须与总量一致；部分列示须说明范围。
+分项穷尽时，现期之和、各自反推的基期之和须在各数字的四舍五入精度内与总量一致；部分列示须说明范围。
+合计和分项恰好相等也合理；不能为制造毛数故意改总量，不能用舍入掩盖超出精度范围的差异。
 不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
 本批槽位需要反推金额，所有金额及其增速必须同为现价名义口径，并在附注简明说明；不得添加不变价增速来规避总分自洽检查。
     format为chart时只能返回bars figure，format为table时只能返回table figure，format为text时kind必须为none，绝不返回mixed。bars的categories为4-10个且每个series.values等长非空数字数组；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
@@ -113,12 +116,13 @@ def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=
     calc_rule = '计算清单可写 correct=1、正确项1、错项0' if skip_calculation(slot) else '计算选项必须唯一匹配answer，correct只含数字和+-*/括号'
     return f"""你是独立命题模型，只根据下面冻结材料设计第{index}题，不修改材料、数字、图表或口径。
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{track_question_rules(track, slot, index)}
+{GD_DESIGN_RULES if track == TRACK_GD else ''}
 {ZILIAO_INFERENCE_RULES}
 本题难度分 {level}（1秒杀找数 / 2一步 / 3两步 / 4四陈述综合）。材料方向：{json.dumps(plan, ensure_ascii=False)}
 指定槽位（family、主标签、brief 必须遵守）：{json.dumps(slot, ensure_ascii=False)}。
 材料：{material['content']}
 图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
-本题指定考法：{task}。如果材料带图，本题必须真正使用图表中的数据；图表题不得只复述正文中已直接给出的同一句数字。
+本题指定考法：{task}。指定读图时须真正使用图表独有数据；同一图表篇也可按槽位设计正文口径题。
 第{index}题必须{'是综合正误题，题干必须以“'+form+'”开头，不得改成「下列说法正确/有误的是」，四选项各一句陈述' if q5 or slot.get('family')=='judge' else '围绕材料真实数据设计单选题'}。
 解析写清取数与算式；比较类必须枚举题干年份范围内每一年。不要用「最后明确选择X项」套话收尾。
 {CALCULATION_RULE}
@@ -137,7 +141,7 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
     mix_rule = (
         "严格按槽位 family 出题：细节定位/排除、现期比重或简单加减、增长率/增长量、基期或两期比重、平均/比较、综合正误。"
         + (f"第5题题干必须以「{judge_stem}」开头，禁止改成「下列说法正确的是」或「下列说法有误的是」。" if judge_stem else "第5题必须是综合正误，并使用槽位指定问法。")
-        + "四陈述埋时间偷换、累计vs当年、未给出不能比、范围扩大。"
+        + GD_DESIGN_RULES + GD_PAPER_RULES +
         "不要把本篇改成教材 10 类套餐，混合或拉动仅当槽位 family=mix_pull 时才出。"
         if track == TRACK_GD else
         "可按经典计算技法覆盖本篇槽位，允许混合/拉动/比重差；第5题可以是综合判断或承重计算。"
@@ -167,6 +171,8 @@ def question_repair_prompt(material: dict, plan: dict, question: dict, calculati
 材料：{material['content']}
 图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
 本题槽位：{json.dumps(slot, ensure_ascii=False)}
+{track_question_rules(plan.get('track') or TRACK_GD, slot, int(index) if index.isdigit() else 1)}
+{GD_DESIGN_RULES if (plan.get('track') or TRACK_GD) == TRACK_GD else ''}
 本篇其他题（不可修改，避免重复求同一结果或泄露答案）：{json.dumps(siblings or [], ensure_ascii=False)}
 原题：{json.dumps(question, ensure_ascii=False)}
 原验算：{json.dumps(calculation, ensure_ascii=False)}
@@ -512,7 +518,7 @@ def material_call(frame: dict, item: dict, batch_id: str, batch_dir: Path | None
                     or (item.get("format") == "table" and kind == "table")
                     or (item.get("format") == "text" and kind == "none")):
                 if material_passes_realism(result, item, track):
-                    review = review_ziliao_material(result["material"])
+                    review = review_ziliao_material(result["material"], item)
                     attempts.append({"material": result["material"], "review": review})
                     if batch_dir is not None:
                         evidence = batch_dir / "evidence"

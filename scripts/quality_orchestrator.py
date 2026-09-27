@@ -28,7 +28,8 @@ from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
 from normalize_ai_batch import generated_questions, scratchpad_leak
 from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
-from ziliao_tracks import resolve_gemini_model, ZILIAO_INFERENCE_RULES, ZILIAO_FIGURE_RULES
+from ziliao_tracks import (resolve_gemini_model, ZILIAO_INFERENCE_RULES, ZILIAO_FIGURE_RULES,
+                           GD_DESIGN_RULES, GD_PAPER_RULES, track_material_rules)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,6 +160,7 @@ and reference_ids echoing the exact list of external_id from evaluation_only_rea
 ZILIAO_MATERIAL_SYSTEM = """你是独立的资料分析材料核查员，只检查原创模拟材料，不出题。
 按正文与figure逐项核查：总分项可加性及合计、现期基期增长率、单位和统计范围、表文一致性。
 必须亲自复算所有可核对的关系。百分比小数位允许真实四舍五入误差，不许用四舍五入掩盖明显差异。
+各分项和合计分别舍入时按各自显示精度核对，反推基期还须考虑增速舍入；恰好相等不构成缺陷。
 分项并非穷尽、行业允许负利润、名义量与可比价增速等情形按材料明确口径判断，勿自行添加假设。
 特别检查多个地区之和是否超过全省、分项现期和增速反推的基期合计能否得到总增速。
 还检查背景指标、干扰信息是否自然，禁止“本段用于凑字数/作为干扰”等命题提示。
@@ -202,8 +204,14 @@ claim_checks逐一核验输入explanation_claims的每条原解析，恰好一�
 """
 
 
-def review_ziliao_material(material: dict) -> dict:
-    review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES + ZILIAO_FIGURE_RULES, json.dumps(material, ensure_ascii=False))
+def review_ziliao_material(material: dict, plan: dict | None = None) -> dict:
+    design = ""
+    if plan and plan.get("track") == "gd":
+        design = (track_material_rules("gd", plan) +
+                  "核查naturalness时列出正文口径句、两个背景指标、半给指标、有图表时的图表独有取数点；"
+                  "缺失则不通过。半给的背景指标不构成事实缺漏；尚未出题，不要求预测哪些指标最终入题。")
+    review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES + ZILIAO_FIGURE_RULES + design,
+                        json.dumps(material, ensure_ascii=False))
     checks = review.get("checks") or {}
     required = {"totals", "growth", "scope_units", "text_figure", "naturalness"}
     if (set(checks) != required or any(
@@ -233,6 +241,12 @@ def ziliao_review_issues(question: dict, review: dict) -> list[str]:
     difficulty = review.get("actual_difficulty")
     if type(difficulty) is not int or not 1 <= difficulty <= 5 or not review.get("difficulty_reason"):
         issues.append("缺少实际难度及依据")
+    if (question.get("requested_slot") or {}).get("track") == "gd":
+        check = review.get("design_check")
+        if not isinstance(check, dict) or check.get("ok") is not True or not str(check.get("reason") or "").strip():
+            issues.append(f"轨A命题设计核验缺失或不通过：{check}")
+        if expected == "detail" and type(difficulty) is int and difficulty > 2:
+            issues.append("轨A细节槽实际难度超过2，须简化题目")
     claims = explanation_claims(question)
     checks = review.get("claim_checks")
     if (not claims or not isinstance(checks, list) or len(checks) != len(claims)
@@ -895,6 +909,7 @@ def run_quality(
 
     def review_group(group):
         ziliao = all(q.get("category") == CAT_ZILIAO for q in group)
+        gd = ziliao and ((manifest.get("generation") or {}).get("batch_constraints") or {}).get("track") == "gd"
         payload = {
             "items": [
                 {
@@ -910,7 +925,11 @@ def run_quality(
         for question in group:
             for index, path in enumerate(question_images(batch_dir, question), 1):
                 images.append((f"{question['external_id']} IMAGE {index}", path))
-        return indexed(call_flash(QUALITY_SYSTEM + (ZILIAO_QUALITY_RULES + ZILIAO_INFERENCE_RULES if ziliao else ""), json.dumps(payload, ensure_ascii=False), images))
+        design = (GD_DESIGN_RULES +
+                  '每题额外返回design_check={"ok":true,"reason":"该题口径、实际负担、适用的干扰公式或综合辨析依据"}。'
+                  '逐项核对上述轨A要求，缺陷须ok=false并在issues给出题号及修法；不适用的要求说明不适用。'
+                  if gd else "")
+        return indexed(call_flash(QUALITY_SYSTEM + (ZILIAO_QUALITY_RULES + ZILIAO_INFERENCE_RULES if ziliao else "") + design, json.dumps(payload, ensure_ascii=False), images))
 
     groups = {}
     for q in questions:
@@ -1051,9 +1070,17 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
         "questions": [public_question(q, include_answer=True) | {"difficulty": q.get("difficulty")} for q in questions],
         "evaluation_references_by_question": evaluation_references(manifest),
     }
-    review = call_flash(BATCH_SYSTEM, json.dumps(payload, ensure_ascii=False))
+    gd = payload["batch_constraints"].get("track") == "gd" and not payload["batch_constraints"].get("targeted_drill")
+    design = (GD_PAPER_RULES +
+              '额外返回design_check={"ok":true,"reason":"引用题号和取数点说明细节、范围、百分点及各篇图表独有数据的实际覆盖"}。'
+              '未覆盖则ok=false且issues给出具体缺陷。' if gd else "")
+    review = call_flash(BATCH_SYSTEM + design, json.dumps(payload, ensure_ascii=False))
     if not isinstance(review, dict):
         review = {}
+    if gd:
+        check = review.get("design_check")
+        if not isinstance(check, dict) or check.get("ok") is not True or not str(check.get("reason") or "").strip():
+            review.setdefault("issues", []).append(f"轨A整套设计核验缺失或不通过：{check}")
     review["answer_distribution_ok"] = mechanical_answers_ok(manifest, questions)
     if review["answer_distribution_ok"]:
         kept = [item for item in (review.get("issues") or []) if not _letter_cluster_issue(item)]
@@ -1094,7 +1121,7 @@ def run(batch_dir: Path) -> dict:
             question["material_images"] = material.get("images") or []
             question["material_figure"] = material.get("figure") or {}
         if question.get("category") == CAT_ZILIAO and index < len(slots):
-            question["requested_slot"] = slots[index]
+            question["requested_slot"] = {**slots[index], "track": constraints.get("track")}
     generated = [
         q for q in questions
         if str(q.get("origin") or "") != "zhenti"
