@@ -105,4 +105,31 @@ assert.match(importSrc, /if \(manifest\.kind === 'ai-generated'\) \{/);
 assert.match(importSrc, /function upsertDailyRun/);
 assert.match(importSrc, /collected-import/);
 
+assert.equal(
+  nameOf({
+    batch_id: '20260927_hermes_ziliao_tracka',
+    source: '粤考日练-资料分析-mid-20260927',
+    module: '资料分析',
+  }),
+  '粤考日练-资料分析-中等-20260927',
+);
+assert.equal(
+  nameOf({
+    batch_id: '20260927_hermes_ziliao_classic',
+    source: '经典计算加练-资料分析-计算技法-mid-20260927',
+    module: '资料分析',
+  }),
+  '经典计算加练-资料分析-计算技法-中等-20260927',
+);
+assert.equal(
+  nameOf({
+    batch_id: '20260927_hermes_ziliao_legacy',
+    source: '广东省考行测-资料分析-综合训练-mid-20260927',
+    module: '资料分析',
+  }),
+  '经典计算加练-资料分析-中等-20260927',
+);
+assert.equal(moduleOf({ source: '粤考日练-资料分析-mid-20260927' }), '资料分析');
+assert.equal(moduleOf({ source: '经典计算加练-资料分析-mid-20260927' }), '资料分析');
+
 console.log('ok: practice modules / DAILY_SLUG tuxing');

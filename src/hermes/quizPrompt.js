@@ -12,18 +12,22 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
     const requestedFormat = /柱状图|柱图|柱形图|条形图/.test(spokenText) ? 'chart'
       : /表格|表格图/.test(spokenText) ? 'table'
         : /纯文字|文字材料|文字资料/.test(spokenText) ? 'text' : null;
-    const fullPaper = /整套|一套|完整一套|均衡/.test(spokenText);
+    const fullPaper = /整套|一套|完整一套|均衡|日练/.test(spokenText);
+    const wantsClassic = /经典计算|计算加练|混合增速加练|拉动加练/.test(spokenText)
+      && !/粤考日练|广东省考|日练/.test(spokenText);
+    const track = wantsClassic ? 'classic' : 'gd';
     const format = requestedFormat || (fullPaper ? null : 'chart');
     const count = fullPaper ? 20 : 5;
     const materials = fullPaper ? 4 : 1;
     const formats = fullPaper ? '' : ` --formats ${format}`;
+    const trackLabel = track === 'classic' ? '经典计算加练（轨B，不要标成广东省考综合训练）' : '粤考日练（轨A，近年粤考配额：细节/排除/综合正误为主）';
     return {
       wantsQuiz,
       quizNudge: [
-        '这是资料分析出题请求，走专用篇级独立上下文流程，不使用 quiz_lite。',
-        `只生成${fullPaper ? '一套均衡资料分析卷：4篇×5题，每篇由独立子Agent调用负责，知识点尽量均衡覆盖，单题失败只回炉该题' : `一篇${format === 'chart' ? '柱状图' : format === 'table' ? '表格' : '纯文字'}材料×5题，仅调用对应形态的篇级子Agent`}。每个篇级调用拥有独立上下文，材料冻结后不得因单题问题重出整篇。`,
-        `调用：python3 ${projectRoot}/scripts/ziliao_parallel_runner.py --count ${count} --materials ${materials} --difficulty mid${formats}`,
-        '用户明确指定题量/难度/知识点时优先保留。没有指定时，单篇任务均衡选5个不同相关知识点；整套任务轮转覆盖资料分析主知识点。表格和柱状图必须由程序根据冻结数据渲染。',
+        '这是资料分析出题请求，走专用篇级独立上下文流程，不使用 quiz_lite。用 Gemini（CLIPROXY，模型见 ZILIAO_GEMINI_MODEL/默认 gemini-3.8-flash-high）。',
+        `只生成${fullPaper ? `一套${trackLabel}：4篇×5题，每篇由独立子Agent调用负责，单题失败只回炉该题` : `一篇${format === 'chart' ? '柱状图' : format === 'table' ? '表格' : '纯文字'}材料×5题，仅调用对应形态的篇级子Agent，默认仍走${trackLabel}`}。每个篇级调用拥有独立上下文，材料冻结后不得因单题问题重出整篇。`,
+        `调用：python3 ${projectRoot}/scripts/ziliao_parallel_runner.py --track ${track} --count ${count} --materials ${materials} --difficulty mid${formats}`,
+        '默认日练/用户说广东省考只走 --track gd。只有用户明确要经典计算/混合拉动加练时才 --track classic。用户明确指定题量/难度/知识点时优先保留。表格和柱状图必须由程序根据冻结数据渲染。',
         '失败按脚本原文报告，不手写题、不绕过质量门。成功只报告真实批次号和入库题数。',
       ].join('\n'),
     };

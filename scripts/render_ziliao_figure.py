@@ -34,6 +34,16 @@ def measure(draw: ImageDraw.ImageDraw, text: str, face: ImageFont.FreeTypeFont) 
     return box[2] - box[0], box[3] - box[1]
 
 
+def wrap_text(draw, text, face, width):
+    lines, line = [], ""
+    for char in text:
+        if line and measure(draw, line + char, face)[0] > width:
+            lines.append(line)
+            line = ""
+        line += char
+    return lines + ([line] if line else [])
+
+
 def nice_max(value: float) -> float:
     if value <= 0:
         return 1
@@ -71,7 +81,8 @@ def render_table(
     pad_x, pad_y = 14, 8
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
     cols = list(zip(*([headers] + rows)))
-    widths = [max(measure(probe, cell, face)[0] for cell in col) + pad_x * 2 for col in cols]
+    widths = [max(min(measure(probe, col[0], face)[0], 114),
+                  max((measure(probe, cell, face)[0] for cell in col[1:]), default=0)) + pad_x * 2 for col in cols]
     row_h = max(measure(probe, "\u9ad8", face)[1] + pad_y * 2, 34)
     title_h = measure(probe, title, face_title)[1] + 14 if title else 0
     unit_h = measure(probe, unit, face_unit)[1] + 8 if unit else 0
@@ -81,7 +92,9 @@ def render_table(
     if extra > 0:
         widths = [w + extra // len(widths) for w in widths]
         widths[-1] += extra % len(widths)
-    height = title_h + unit_h + row_h * (1 + len(rows)) + note_h + 6
+    header_lines = [wrap_text(probe, head, face, w - pad_x * 2) for head, w in zip(headers, widths)]
+    header_h = max(row_h, max(map(len, header_lines), default=1) * 24 + pad_y * 2)
+    height = title_h + unit_h + header_h + row_h * len(rows) + note_h + 6
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
     y = 6
@@ -96,17 +109,19 @@ def render_table(
 
     def cell(x0, y0, w, h, text, *, header=False, first=False, total=False):
         draw.rectangle((x0, y0, x0 + w, y0 + h), outline=LINE, width=1)
-        cw, ch = measure(draw, text, face)
-        tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
-        draw.text((tx, y0 + (h - ch) // 2 - 1), text, fill=INK, font=face)
+        lines = text if header else [text]
+        for index, line in enumerate(lines):
+            cw, ch = measure(draw, line, face)
+            tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
+            draw.text((tx, y0 + (h - ch - 24 * (len(lines) - 1)) // 2 - 1 + index * 24), line, fill=INK, font=face)
         if header or total:
             draw.line((x0, y0 + h - 1, x0 + w, y0 + h - 1), fill=INK, width=2)
 
     x = 2
-    for w, head in zip(widths, headers):
-        cell(x, y, w, row_h, head, header=True)
+    for w, head in zip(widths, header_lines):
+        cell(x, y, w, header_h, head, header=True)
         x += w
-    y += row_h
+    y += header_h
     for row in rows:
         is_total = str(row[0]).startswith("\u5408\u8ba1")
         x = 2
@@ -134,15 +149,10 @@ def render_bars(
     left, right, top, bottom = 64, 24, 70, 92
     plot_w, plot_h = 700, 250
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
-    title_lines = []
-    line = ""
-    for char in title:
-        if line and measure(probe, line + char, face_title)[0] > left + plot_w + right - 24:
-            title_lines.append(line)
-            line = ""
-        line += char
-    if line:
-        title_lines.append(line)
+    title_lines = wrap_text(probe, title, face_title, left + plot_w + right - 24)
+    group_w = plot_w / max(len(categories), 1)
+    category_lines = [wrap_text(probe, category, face, group_w - 12) for category in categories]
+    bottom = max(bottom, 24 * max(map(len, category_lines), default=1) + 58)
     top += max(0, len(title_lines) - 1) * 30
     width, height = left + plot_w + right, top + plot_h + bottom
     img = Image.new("RGB", (width, height), BG)
@@ -154,16 +164,16 @@ def render_bars(
     values = [v for _, vals in series for v in vals]
     raw_min = min(values) if values else 0
     raw_max = max(values) if values else 1
-    raw_span = max(raw_max - raw_min, 1)
+    raw_span = max(max(0, raw_max) - min(0, raw_min), 1)
     step = nice_step(raw_span / 4)
-    axis_min = math.floor(min(0, raw_min) / step) * step
-    axis_max = math.ceil(max(0, raw_max) / step) * step
+    # Leave room for the value labels inside the plot, including negative bars.
+    padding = raw_span * 0.12
+    axis_min = math.floor((raw_min - padding if raw_min < 0 else 0) / step) * step
+    axis_max = math.ceil((raw_max + padding if raw_max > 0 else 0) / step) * step
     if axis_min == axis_max:
         axis_max = axis_min + step * 4
     span = axis_max - axis_min
-    n_cat = max(len(categories), 1)
     n_ser = max(len(series), 1)
-    group_w = plot_w / n_cat
     bar_w = group_w * 0.62 / n_ser
     origin_y = top + plot_h * axis_max / span
 
@@ -192,8 +202,9 @@ def render_bars(
             y0, y1 = sorted((origin_y, value_y))
             draw.rectangle((x0, y0, x1, y1), fill=BAR_FILLS[si % 3], outline=INK)
             value_labels.append(((x0 + x1) / 2, y0, y1, f"{val:g}", val >= 0))
-        cw, _ = measure(draw, category, face)
-        draw.text((left + group_w * ci + (group_w - cw) / 2, top + plot_h + 10), category, fill=INK, font=face)
+        for line_index, category_line in enumerate(category_lines[ci]):
+            cw, _ = measure(draw, category_line, face)
+            draw.text((left + group_w * ci + (group_w - cw) / 2, top + plot_h + 10 + line_index * 24), category_line, fill=INK, font=face)
 
     # Draw value labels last so bars cannot cover them. A solid backing masks grid
     # lines, and a fixed gap keeps glyphs clear of each bar top after scaling.

@@ -217,6 +217,10 @@ ZILIAO_TAG_ALIASES = {
     "资料分析-平均数-现期平均数": ZILIAO_AVG,
     "资料分析-平均类-年均增长率": ZILIAO_AVG,
     "资料分析-特殊考点-贡献率": ZILIAO_SPEC,
+    "资料分析-文字细节-细节定位与排除": ZILIAO_QI,
+    "资料分析-文字细节-细节排除": ZILIAO_QI,
+    "资料分析-简单查找-细节定位": ZILIAO_QI,
+    "资料分析-综合分析-综合正误": ZILIAO_CMP,
     "资料分析-综合分析-综合判断": ZILIAO_CMP,
 }
 
@@ -496,9 +500,11 @@ def _ziliao_from_keywords(raw: str) -> str:
         return ZILIAO_BASE
     if _has_any(raw, "双线", "增量比较"):
         return ZILIAO_CMP
+    if _has_any(raw, "细节定位", "细节排除", "未提及", "不包括"):
+        return ZILIAO_QI
     if _has_any(raw, "倍数", "直接读数", "简单查找", "读数排序", "术语"):
         return ZILIAO_QI
-    if _has_any(raw, "综合判断", "综合分析"):
+    if _has_any(raw, "综合正误", "综合判断", "综合分析"):
         return ZILIAO_CMP
     return ""
 

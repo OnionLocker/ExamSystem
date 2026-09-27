@@ -108,6 +108,23 @@ class ZiliaoWorkflow(unittest.TestCase):
             with self.subTest(extra=extra), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 ziliao.parse_args(self.argv + extra)
 
+    def test_default_track_a_quota_and_plan_only(self):
+        args = ziliao.parse_args([])
+        self.assertEqual(args.track, "gd")
+        self.assertEqual(args.formats, ["text", "table", "chart", "chart"])
+        self.assertFalse(args.targeted)
+        self.assertEqual(args.slots[4]["family"], "judge")
+        classic = ziliao.parse_args(["--track", "classic"])
+        self.assertEqual(classic.formats, ["chart", "table", "text", "chart"])
+        self.assertTrue(all(slot["family"] == "classic" for slot in classic.slots))
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(ziliao.main(["--plan-only", "--track", "gd"]), 0)
+        plan = json.loads(out.getvalue())
+        self.assertEqual(plan["track"], "gd")
+        self.assertTrue(plan["source"].startswith("粤考日练-"))
+        self.assertFalse(plan["chart_match"]["implemented"])
+        self.assertTrue(str(plan["model"]).startswith("gemini-"))
+
     def test_frozen_material_rejects_nonfinite_or_string_chart_values(self):
         figure = {"kind": "bars", "categories": ["a", "b", "c", "d"], "series": [{"values": [1, 2, 3, 4]}]}
         self.assertTrue(ziliao.valid_material({"material": {"figure": figure}}))
@@ -140,10 +157,15 @@ class ZiliaoWorkflow(unittest.TestCase):
             return {"question": {"external_id": qid, "material_id": "test-M01", "tags": [ziliao.TAGS[1]], "difficulty": 5},
                     "calculation": {"question_id": qid}}
         material = {"external_id": "../bad" if bad_id else "test-M01", "content": "G省产值123.4亿元", "figure": {"kind": "none"}}
+        def material_call(frame, item, batch_id, batch_dir):
+            evidence = batch_dir / "evidence"
+            evidence.mkdir(exist_ok=True)
+            (evidence / "m01-material.json").write_text(json.dumps({"verdict": "PASS"}))
+            return {"material": material}
         def command(cmd, **kwargs):
             self.assertEqual(kwargs["env"]["EXAM_DB"], str(self.db))
             return subprocess.CompletedProcess(cmd, gate_code if "issue" in cmd else 0, "checked", "")
-        with patch.object(ziliao, "call", side_effect=model), patch.object(ziliao, "material_call", return_value={"material": material}), patch.object(
+        with patch.object(ziliao, "call", side_effect=model), patch.object(ziliao, "material_call", side_effect=material_call), patch.object(
             ziliao, "render_material"
         ) as render, patch.object(ziliao.subprocess, "run", side_effect=command) as commands, contextlib.redirect_stdout(io.StringIO()):
             if bad_id:

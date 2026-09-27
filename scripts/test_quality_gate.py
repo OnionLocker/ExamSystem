@@ -45,6 +45,51 @@ def question(qid: str, category: str, sub_category: str, tag: str, answer: str =
     }
 
 
+def test_ziliao_review_fails_closed() -> None:
+    q = question("M01-Q1", qo.CAT_ZILIAO, "", "资料分析-基础知识-统计术语与常考概念")
+    q.update(explanation="A项符合。B项不符。", difficulty=1, requested_slot={"family": "detail"})
+    good = dict(material_consistent=True, slot_match=True, actual_family="detail",
+                actual_difficulty=1, difficulty_reason="直接查找",
+                claim_checks=[{"index": i, "valid": True, "reason": "核对原文"} for i in (1, 2)])
+    assert qo.ziliao_review_issues(q, good) == []
+    for change in ({"claim_checks": []}, {"claim_checks": [good["claim_checks"][0]] * 2},
+                   {"slot_match": False}, {"actual_family": "judge"},
+                   {"actual_difficulty": True}, {"material_consistent": False},
+                   {"claim_checks": [{"index": i, "valid": False, "reason": "排除正确项"} for i in (1, 2)]}):
+        assert qo.ziliao_review_issues(q, good | change), change
+    with patch.object(qo, "call_flash", return_value={"verdict": "PASS", "checks": {}, "issues": []}):
+        assert qo.review_ziliao_material({})["verdict"] == "REJECT"
+
+
+def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:
+    q = question("M01-Q1", qo.CAT_ZILIAO, "", "资料分析-基础知识-统计术语与常考概念")
+    q.update(material_id="M01", material_content="收入123.4亿元。", material_figure={"kind": "table"},
+             difficulty=1, family="detail", requested_slot={"family": "detail"})
+    write_json(root / "calculations.json", {"questions": [{"question_id": "M01-Q1", "correct": "1",
+               "options": {"A": 1, "B": 0, "C": 0, "D": 0}}]})
+    def blind(system, prompt):
+        public = json.loads(prompt)[0]
+        assert public["figure"] == q["material_figure"]
+        assert not set(public) & {"answer", "explanation", "difficulty", "family", "requested_slot"}
+        return {"questions": [{"id": "M01-Q1", "answer": "B", "verdict": "PASS", "also_valid": [],
+                "steps": "独立取数得B", "issues": [], "option_tests": {
+                    k: {"stands": k == "B", "reason": "与原文比较"} for k in "ABCD"}}]}
+    with patch.object(qo, "call_flash", side_effect=blind):
+        result = qo.run_route_b(root, [q])["M01-Q1"]
+    assert result["calculation"]["matching_options"] == ["A"]
+    assert result["verdict"] == "REJECT"
+
+    # A live reviewer omitted only the empty issues array; substantive checks remain mandatory.
+    good = {"id": "M01-Q1", "answer": "A", "verdict": "PASS", "also_valid": [],
+            "steps": "独立取数得A", "option_tests": {
+                k: {"stands": k == "A", "reason": "与原文比较"} for k in "ABCD"}}
+    for change, expected in [({}, "PASS"), ({"issues": ["发现矛盾"]}, "REJECT"),
+                             ({"option_tests": {}}, "REJECT"), ({"steps": ""}, "REJECT"),
+                             ({"also_valid": ["B"]}, "REJECT")]:
+        with patch.object(qo, "call_flash", return_value={"questions": [good | change]}):
+            assert qo.run_route_b(root, [q])["M01-Q1"]["verdict"] == expected
+
+
 def test_routes_and_calculations(root: Path) -> None:
     yanyu = question(
         "Q-C", qo.CAT_YANYU, "", f"{qo.CAT_YANYU}-\u7247\u6bb5\u9605\u8bfb-\u4e3b\u65e8\u6982\u62ec"
@@ -564,6 +609,9 @@ def main() -> None:
         test_context_and_v3_tamper(Path(temp))
     test_verbal_local_quality_regressions()
     test_translation_echo_local_quality()
+    test_ziliao_review_fails_closed()
+    with tempfile.TemporaryDirectory(prefix="ziliao-blind-test-") as temp:
+        test_ziliao_blind_does_not_trust_calculation(Path(temp))
     print("quality gate regression: ok")
 
 

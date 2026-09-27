@@ -173,9 +173,11 @@ python3 /home/ubuntu/ExamSystem/scripts/ziliao_parallel_runner.py \
 ```
 
 - 支持 `--blueprint` 编排，标签仍使用资料分析白名单，`brief` 指定细分情形，不新造资料标签。
-- 题量 1–20，每篇 1–5 题，材料 1–4 篇；`--formats` 按篇传 `text,table,chart`，chart 为程序渲染柱图。
+- 双轨：`--track gd`（默认，粤考日练）按近年粤考配额出细节/排除/综合正误；`--track classic` 才保留混合/拉动等教材技法，source 必须是「经典计算加练-…」，不得再标「广东省考综合训练」。默认日练/用户说广东省考只走轨 A。
+- 题量 1–20，每篇 1–5 题，材料 1–4 篇；`--formats` 按篇传 `text,table,chart`，chart 为程序渲染柱图。轨 A 整套默认 `text,table,chart,chart`，M01 为长文字。
+- 模型走 Gemini：`ZILIAO_GEMINI_MODEL` / `DAILY_GEMINI_MODEL` / 默认 `gemini-3.8-flash-high`，密钥只读 `CLIPROXY_API_KEY`。可先 `--plan-only` 核对配额。
 - 资料分析按篇隔离上下文：每篇 5 题由一个独立篇级 worker 负责，先冻结材料和结构化数据，再生成该篇题目；其他篇草稿不得传入该 worker。
-- 用户只点“柱状图/柱图”时只传 `--count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。用户说“一套/整套/均衡”时默认 20 题、4 篇，按柱图/表格/文字/柱图均衡编排并轮转资料分析主考点。
+- 用户只点“柱状图/柱图”时只传 `--track gd --count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。用户说“一套/整套/均衡/日练/广东省考”时默认 `--track gd` 20 题、4 篇。只有用户明确要经典计算加练时才 `--track classic`。
 - 单题质量失败只回炉该题，保留冻结材料和其余题；只有材料数据、单位或图表本身不自洽时才重出整篇。不要因一题失败丢弃整篇。
 - 质量门返回具体 `question_id` 时，脚本最多按题号修复并重签两轮；视觉质检失败时按图片对应的材料编号局部重做该篇及其题目，最多重试三轮；只有超过上限或无法定位失败对象时才结束批次。不要让一次图表排版失败直接丢弃其他篇。
 - 未指定批次号时自动分配唯一编号；显式编号重复则拒绝，不覆盖原题。

@@ -51,6 +51,19 @@ def item(qid: str, category: str, tag: str, answer: str = "B", **extra) -> dict:
 
 
 class NormalizeBatchTest(unittest.TestCase):
+    def test_parallel_option_references_follow_swap(self):
+        cases = [
+            ("低于10.05%（排除C、D），故选B", "B", "C", "低于10.05%（排除B、D），故选C"),
+            ("A、B、C三项均属于，D项不属于", "A", "D", "D、B、C三项均属于，A项不属于"),
+            ("排除A、D项；仅B项符合", "A", "B", "排除B、D项；仅A项符合"),
+            ("排除A、B两项。故选C", "A", "C", "排除C、B两项。故选A"),
+            ("A与B均正确；GDP=A/B，ABCD是变量", "A", "D", "D与B均正确；GDP=A/B，ABCD是变量"),
+        ]
+        for original, src, dst, expected in cases:
+            with self.subTest(original=original):
+                self.assertEqual(nab.remap_letter_mentions(original, src, dst), expected)
+                self.assertEqual(nab.remap_letter_mentions(expected, src, dst), original)
+
     def test_letter_plan_is_balanced(self):
         letters = nab.planned_letters(CAT_SHULIANG, 15, "seed-15")
         self.assertEqual(len(letters), 15)

@@ -84,16 +84,6 @@ python3 scripts/learner_snapshot.py --compact
 
 以上限制针对学员状态查询。政治/常识出题所需公共资料按 `quiz-pipeline/references/politics-common-workflow.md` 执行：允许联网检索权威原文，运行 `scripts/policy_sources.py status/show/inspect/add/refresh/discover/review-updates`，读取 `data/manual-policy-sources/` 的已核验原文及候选，写入该目录的资料登记；允许按 quiz-pipeline 调用已批准的出题脚本。执行这些脚本不等于修改系统源码。不得凭搜索摘要或模型记忆编造资料。
 
-### 工具失败处理
-
-**同一个工具连续失败 2 次，立即停下来**，向用户说明情况，不要：
-
-- 换着花样重试
-- 尝试其他等价工具
-- 继续调用其他工具绕过问题
-
-失败就是失败，报告给用户，等待指示。
-
 ## 复盘与审核流程
 
 ### 复盘要求
