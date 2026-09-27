@@ -796,6 +796,17 @@ def _is_targeted_drill(manifest: dict) -> bool:
 
 def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: Path | None = None) -> None:
     """广东通用卷机械硬规则（出题闸门，不依赖大模型）。已用样卷验收，命中即拦下本次生成。"""
+    if (manifest.get("generation") or {}).get("ziliao_checklist"):
+        from ziliao_checklist import VERSION as CHECKLIST_VERSION, rounding_issues, question_style_issues
+        if manifest["generation"]["ziliao_checklist"] != CHECKLIST_VERSION or batch_dir is None:
+            raise ValueError("资料清单版本或批次目录无效")
+        errors = []
+        for material in read_json(batch_dir / "materials.json"):
+            errors.extend(f"{material['external_id']}: {e}" for e in rounding_issues(material))
+        for question in questions:
+            errors.extend(f"{question['external_id']}: {e}" for e in question_style_issues(question))
+        if errors:
+            raise ValueError("资料清单不通过：" + "；".join(errors))
     generated = generated_questions(questions)
     # 1) 单选完整性（双答案兜底）：答案唯一字母、至少 4 个互不相同的选项
     for question in generated:

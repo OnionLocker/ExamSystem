@@ -1,9 +1,9 @@
 ---
 name: quiz-pipeline
 description: >
-  文字专项、政治理论和常识调 quiz_lite.py；政治常识先核对权威原文；资料图表调 ziliao_parallel_runner.py。禁止在会话里写 questions.json、
+  文字专项、政治理论和常识调 quiz_lite.py；政治常识先核对权威原文；资料分析默认整套调 ziliao_agent_paper.py，单篇/指定配额/经典轨调 ziliao_parallel_runner.py。禁止在会话里写 questions.json、
   禁止手跑 generation_gate / import-batch。触发词：出题、来几题、测测我、刷题、专项。
-version: 4.0.0
+version: 4.1.0
 author: local
 license: MIT
 metadata:
@@ -164,7 +164,33 @@ python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' \
 
 ## 资料分析：共享材料与确定性图表
 
-纯文字单题可用 `quiz_lite.py`，每题须自带全部数据。需要共享材料、表格或柱状图时：
+### 默认粤考整套：Hermes 工具子 Agent
+
+用户要“一套/整套/均衡/日练/广东省考资料分析”，且未指定不同题量、考点配额、图表形态或 easy/hard 时，默认轨 A、mid、4篇20题，使用下面的新入口。每篇为隔离的 Hermes AIAgent/Gemini 上下文，默认最多同时运行2篇。必须后台执行，环境变量只从已有环境文件加载，禁止打印密钥。
+
+    cd /home/ubuntu/ExamSystem
+    set -a
+    . /home/ubuntu/ExamSystem/.env
+    . /home/ubuntu/.hermes/.env
+    set +a
+    export PYTHONUNBUFFERED=1
+    export EXAM_DB=/home/ubuntu/ExamSystem/data/exam.db
+    /home/ubuntu/.hermes/hermes-agent/.venv/bin/python scripts/ziliao_agent_paper.py \
+      --output-dir /home/ubuntu/ExamSystem/data/manual-ziliao-agent-paper \
+      --db /home/ubuntu/ExamSystem/data/exam.db --workers 2 --import
+
+- 脚本自动完成按篇出题、工具计算、自主修复、整套审核以及校验后入库。成功必须是退出码0、passed=true、error为空且imported=20；审核通过但入库失败不能宣称题库已更新。
+- 用户明确要求只验收、不入库时，去掉 --import，成功返回 imported=0。
+- 材料变更会作废该篇旧题和回执；单题错误局部修复，整套问题自动返回对应worker。不得手改题、手跑闸门或降低标准放行。
+- 保留所有失败及回修证据。达到预算上限如实报告；不得悄悄换旧runner再出一套冒充新流程成功。
+- 四图选一仍未实现，不启用 chart_match 或假选项图。单个成功批次不代表以后零重试。
+- 这是按需出题，不恢复每日自动调度。用户当前要审核已有批次时只读审核，不重新生成。
+- 运行说明与产物见 docs/ziliao-agent-workflow.md。
+
+### 单篇、显式配额或经典计算：原入口
+
+纯文字单题可用 quiz_lite.py，每题须自带全部数据。用户明确指定某知识点、单篇、不同题量、形态、easy/hard 或 classic 时，仍走下面入口，严格服从指定范围，不能强改成新入口的固定20题：
+
 
 ```bash
 python3 /home/ubuntu/ExamSystem/scripts/ziliao_parallel_runner.py \
@@ -177,7 +203,7 @@ python3 /home/ubuntu/ExamSystem/scripts/ziliao_parallel_runner.py \
 - 题量 1–20，每篇 1–5 题，材料 1–4 篇；`--formats` 按篇传 `text,table,chart`，chart 为程序渲染柱图。轨 A 整套默认 `text,table,chart,chart`，M01 为长文字。
 - 模型走 Gemini：`ZILIAO_GEMINI_MODEL` / `DAILY_GEMINI_MODEL` / 默认 `gemini-3.8-flash-high`，密钥只读 `CLIPROXY_API_KEY`。可先 `--plan-only` 核对配额。
 - 资料分析按篇隔离上下文：每篇 5 题由一个独立篇级 worker 负责，先冻结材料和结构化数据，再生成该篇题目；其他篇草稿不得传入该 worker。
-- 用户只点“柱状图/柱图”时只传 `--track gd --count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。用户说“一套/整套/均衡/日练/广东省考”时默认 `--track gd` 20 题、4 篇。只有用户明确要经典计算加练时才 `--track classic`。
+- 用户只点“柱状图/柱图”时只传 `--track gd --count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。默认轨A整套使用上节工具子Agent入口；本节只承接明确的专项/配额/难度/形态或经典轨请求。只有用户明确要经典计算加练时才 `--track classic`。
 - 单题质量失败只回炉该题，保留冻结材料和其余题；只有材料数据、单位或图表本身不自洽时才重出整篇。不要因一题失败丢弃整篇。
 - 质量门返回具体 `question_id` 时，脚本最多按题号修复并重签两轮；视觉质检失败时按图片对应的材料编号局部重做该篇及其题目，最多重试三轮；只有超过上限或无法定位失败对象时才结束批次。不要让一次图表排版失败直接丢弃其他篇。
 - 未指定批次号时自动分配唯一编号；显式编号重复则拒绝，不覆盖原题。
