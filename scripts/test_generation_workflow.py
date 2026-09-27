@@ -108,6 +108,23 @@ class ZiliaoWorkflow(unittest.TestCase):
             with self.subTest(extra=extra), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 ziliao.parse_args(self.argv + extra)
 
+    def test_default_track_a_quota_and_plan_only(self):
+        args = ziliao.parse_args([])
+        self.assertEqual(args.track, "gd")
+        self.assertEqual(args.formats, ["text", "table", "chart", "chart"])
+        self.assertFalse(args.targeted)
+        self.assertEqual(args.slots[4]["family"], "judge")
+        classic = ziliao.parse_args(["--track", "classic"])
+        self.assertEqual(classic.formats, ["chart", "table", "text", "chart"])
+        self.assertTrue(all(slot["family"] == "classic" for slot in classic.slots))
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(ziliao.main(["--plan-only", "--track", "gd"]), 0)
+        plan = json.loads(out.getvalue())
+        self.assertEqual(plan["track"], "gd")
+        self.assertTrue(plan["source"].startswith("粤考日练-"))
+        self.assertFalse(plan["chart_match"]["implemented"])
+        self.assertTrue(str(plan["model"]).startswith("gemini-"))
+
     def test_frozen_material_rejects_nonfinite_or_string_chart_values(self):
         figure = {"kind": "bars", "categories": ["a", "b", "c", "d"], "series": [{"values": [1, 2, 3, 4]}]}
         self.assertTrue(ziliao.valid_material({"material": {"figure": figure}}))

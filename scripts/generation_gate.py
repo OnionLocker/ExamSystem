@@ -27,6 +27,13 @@ from panduan_pack import _blob as _kepui_blob
 from panduan_pack import is_kepui_paper, is_panduan_paper, kepui_bucket, validate_kepui_paper, validate_panduan_paper
 from reference_style import has_images, match_level
 from yanyu_variety import validate_yanyu_fills
+from ziliao_tracks import (
+    TRACK_GD,
+    material_realism_errors,
+    validate_comparison_explanations,
+    validate_difficulty_gradient,
+    validate_gd_question_mix,
+)
 
 
 def is_zhenti_question(question: dict) -> bool:
@@ -701,7 +708,7 @@ _SCIENCE_OVERLEVEL = ("理想气体", "状态方程", "动量守恒", "动量定
 
 
 def _judge_form(stem: str) -> str:
-    """资料综合判断题干形式分类（属实 / 无法推出 / 计数 / 能推出）。"""
+    """资料综合判断题干形式分类（属实 / 无法推出 / 计数 / 能推出 / 正确 / 有误）。"""
     if "正确的有" in stem:
         return "计数"
     if ("不能" in stem or "无法" in stem) and "推" in stem:
@@ -710,6 +717,10 @@ def _judge_form(stem: str) -> str:
         return "属实"
     if "能够" in stem and "推" in stem:
         return "能推出"
+    if "有误" in stem or "不正确" in stem or "错误的是" in stem:
+        return "有误"
+    if "正确的是" in stem:
+        return "正确"
     return ""
 
 
@@ -737,10 +748,45 @@ def _dirty_ratio(texts: list[str]) -> float:
     return (dirty / total) if total else 1.0
 
 
+def _validate_ziliao_track_rules(manifest: dict, questions: list[dict],
+                                 batch_dir: Path | None, contents: list[str]) -> None:
+    constraints = ((manifest or {}).get("generation") or {}).get("batch_constraints") or {}
+    track = str(constraints.get("track") or "")
+    if track != TRACK_GD or _is_targeted_drill(manifest):
+        if track and batch_dir:
+            _validate_ziliao_material_realism(batch_dir, track)
+        return
+    validate_gd_question_mix(questions)
+    validate_difficulty_gradient(questions, track=track)
+    validate_comparison_explanations(questions)
+    if batch_dir:
+        _validate_ziliao_material_realism(batch_dir, track)
+
+
+def _validate_ziliao_material_realism(batch_dir: Path, track: str) -> None:
+    path = batch_dir / "materials.json"
+    if not path.is_file():
+        return
+    data = read_json(path)
+    if not isinstance(data, list):
+        return
+    for index, material in enumerate(data):
+        if not isinstance(material, dict):
+            continue
+        long_text = track == TRACK_GD and index == 0 and str((material.get("figure") or {}).get("kind") or "none") == "none"
+        errors = material_realism_errors(material, track=track, long_text=long_text)
+        if errors:
+            raise ValueError(f"{material.get('external_id') or index} 材料去教材化失败：{'；'.join(errors)}")
+
+
 def _is_targeted_drill(manifest: dict) -> bool:
     source = str((manifest or {}).get("source") or "")
     batch_id = str((manifest or {}).get("batch_id") or "")
     constraints = ((manifest or {}).get("generation") or {}).get("batch_constraints") or {}
+    track = str(constraints.get("track") or "")
+    # 双轨卷只认显式 targeted_drill，避免 Hermes 批次号里的 _hermes_ 把轨A整套豁免掉。
+    if track in {"gd", "classic"}:
+        return constraints.get("targeted_drill") is True
     return (
         "专项" in source
         or "_hermes_" in batch_id
@@ -802,6 +848,7 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
         all_forms = [f for forms in forms_by_material.values() for f in forms]
         if not _is_targeted_drill(manifest) and len(set(all_forms)) < 2:
             raise ValueError("综合判断形式需跨篇轮换（属实 / 无法推出 / 能推出几个 / 能推出），至少 2 种")
+        _validate_ziliao_track_rules(manifest, ziliao, batch_dir, contents)
     # 7) 判断推理 20 题 = 图形 5 + 逻辑 15；日练不得再走「后 5 科学」压缩模型
     panduan = [q for q in generated if str(q.get("category") or "") == "判断推理"]
     if len(panduan) == 20:

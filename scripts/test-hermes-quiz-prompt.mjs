@@ -33,16 +33,23 @@ assert.match(buildQuizPrompt({ audio: true, projectRoot }).quizNudge, /若录音
 
 const bar = buildQuizPrompt({ text: '我只练柱状图资料分析', projectRoot });
 assert.equal(bar.wantsQuiz, true);
-assert.match(bar.quizNudge, /--count 5 --materials 1 --difficulty mid --formats chart/);
+assert.match(bar.quizNudge, /--track gd --count 5 --materials 1 --difficulty mid --formats chart/);
 assert.match(bar.quizNudge, /独立上下文/);
 
 const table = buildQuizPrompt({ text: '只练表格资料分析，出5题', projectRoot });
 assert.match(table.quizNudge, /--formats table/);
+assert.match(table.quizNudge, /--track gd/);
 
 const paper = buildQuizPrompt({ text: '给我出一整套资料分析，均衡一点', projectRoot });
-assert.match(paper.quizNudge, /--count 20 --materials 4 --difficulty mid/);
+assert.match(paper.quizNudge, /--track gd --count 20 --materials 4 --difficulty mid/);
 assert.doesNotMatch(paper.quizNudge, /--formats chart/);
+assert.match(paper.quizNudge, /粤考日练/);
+
+const classic = buildQuizPrompt({ text: '资料分析来一套经典计算加练', projectRoot });
+assert.match(classic.quizNudge, /--track classic --count 20 --materials 4 --difficulty mid/);
+assert.match(classic.quizNudge, /经典计算加练/);
+assert.match(classic.quizNudge, /不要标成广东省考综合训练/);
 
 const defaultZiliao = buildQuizPrompt({ text: '资料分析出5题', projectRoot });
-assert.match(defaultZiliao.quizNudge, /--count 5 --materials 1 --difficulty mid --formats chart/);
+assert.match(defaultZiliao.quizNudge, /--track gd --count 5 --materials 1 --difficulty mid --formats chart/);
 console.log('Hermes quiz prompt: ok');

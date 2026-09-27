@@ -93,18 +93,33 @@ export function dailyDateOf(item = {}) {
   return '';
 }
 
+const TIER_LABELS = { easy: '简单', mid: '中等', hard: '困难', ladder: '综合', auto: '综合', 自主难度: '综合' };
+
+function normalizeTierTitle(source) {
+  return String(source || '').replace(
+    /-(easy|mid|hard|ladder|auto|自主难度)-(\d{8})$/,
+    (_, tier, day) => `-${TIER_LABELS[tier]}-${day}`,
+  );
+}
+
 export function nameOf(item = {}) {
   const date = dailyDateOf(item);
   const module = moduleOf(item);
-  const source = item.source || item.display_title || '';
+  let source = item.source || item.display_title || '';
+  // 历史「广东省考行测-资料分析-综合训练」是教材 10×2 计算卷，展示改为轨B，避免错配粤考日练。
+  if (/资料分析-综合训练/.test(source)) {
+    source = source.replace(/^广东省考行测-资料分析-综合训练/, '经典计算加练-资料分析');
+  }
+  if (source.startsWith('粤考日练-') || source.startsWith('经典计算加练-')) {
+    return normalizeTierTitle(source);
+  }
   // A targeted drill can be on today's plan without becoming a whole-module paper.
   if (!DAILY_DATE_RE.test(String(item.batch_id || item.category || ''))
       && source.startsWith('广东省考行测-')) {
     // Older signed batches keep their original evidence; normalize only their display.
-    const labels = { easy: '简单', mid: '中等', hard: '困难', ladder: '综合', auto: '综合', 自主难度: '综合' };
-    const title = source
-      .replace(/问题综合-(?=(?:(?:easy|mid|hard|ladder|auto|自主难度)-)?\d{8}$)/, '问题-')
-      .replace(/-(easy|mid|hard|ladder|auto|自主难度)-(\d{8})$/, (_, tier, day) => `-${labels[tier]}-${day}`);
+    const title = normalizeTierTitle(
+      source.replace(/问题综合-(?=(?:(?:easy|mid|hard|ladder|auto|自主难度)-)?\d{8}$)/, '问题-'),
+    );
     return /-(简单|中等|困难|综合)-\d{8}$/.test(title)
       ? title : title.replace(/-(\d{8})$/, '-综合-$1');
   }

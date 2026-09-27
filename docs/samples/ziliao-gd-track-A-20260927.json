@@ -1,0 +1,183 @@
+{
+  "track": "gd",
+  "track_label": "粤考日练",
+  "source": "粤考日练-资料分析-mid-20260927",
+  "model": "gemini-3.8-flash-high",
+  "count": 20,
+  "materials": 4,
+  "formats": [
+    "text",
+    "table",
+    "chart",
+    "chart"
+  ],
+  "targeted_drill": false,
+  "slots": [
+    {
+      "tag": "资料分析-基础知识-统计术语与常考概念",
+      "count": 1,
+      "family": "detail",
+      "brief": "文字细节定位：主题/分类/口径，直接找数，勿大计算",
+      "difficulty": "mid",
+      "difficulty_score": 1
+    },
+    {
+      "tag": "资料分析-基础知识-统计术语与常考概念",
+      "count": 1,
+      "family": "detail",
+      "brief": "细节排除：未提及/不包括；利用材料里用不到的干扰指标",
+      "difficulty": "mid",
+      "difficulty_score": 1
+    },
+    {
+      "tag": "资料分析-比重类-现期、基期与隔级比重",
+      "count": 1,
+      "family": "share_add",
+      "brief": "现期比重或简单加减，一步可算，可用成数/区间",
+      "difficulty": "mid",
+      "difficulty_score": 2
+    },
+    {
+      "tag": "资料分析-ABRX类-增长量计算与现期推算",
+      "count": 1,
+      "family": "growth",
+      "brief": "增长量或简单增长率，一步到两步",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-比较类-双线法与增量比较",
+      "count": 1,
+      "family": "judge",
+      "brief": "综合正误（正确/有误）。必须埋：时间偷换、累计vs当年、未给出不能比、范围扩大",
+      "difficulty": "mid",
+      "difficulty_score": 4
+    },
+    {
+      "tag": "资料分析-比重类-现期、基期与隔级比重",
+      "count": 1,
+      "family": "share_add",
+      "brief": "现期比重或表内简单加减",
+      "difficulty": "mid",
+      "difficulty_score": 2
+    },
+    {
+      "tag": "资料分析-ABRX类-增长率计算模型",
+      "count": 1,
+      "family": "growth",
+      "brief": "同比增长率计算或区间判断",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-ABRX类-基期量计算与比较",
+      "count": 1,
+      "family": "base_share",
+      "brief": "基期量，或由现期与增速反推",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-平均类-一般平均值与年均增速/增量",
+      "count": 1,
+      "family": "avg_cmp",
+      "brief": "平均数或年均增量；比较则枚举范围内全部点",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-比较类-双线法与增量比较",
+      "count": 1,
+      "family": "judge",
+      "brief": "综合正误。陷阱含时间戳/累计与当年/范围扩大",
+      "difficulty": "mid",
+      "difficulty_score": 4
+    },
+    {
+      "tag": "资料分析-基础知识-统计术语与常考概念",
+      "count": 1,
+      "family": "share_add",
+      "brief": "简单加减或现期量查找，真正读图",
+      "difficulty": "mid",
+      "difficulty_score": 2
+    },
+    {
+      "tag": "资料分析-ABRX类-增长量计算与现期推算",
+      "count": 1,
+      "family": "growth",
+      "brief": "增长量，读图序列",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-比重类-比重趋势、比重差与比值差",
+      "count": 1,
+      "family": "base_share",
+      "brief": "基期比重或两期比重差",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-比较类-双线法与增量比较",
+      "count": 1,
+      "family": "avg_cmp",
+      "brief": "比较类：枚举题干年份范围内全部点，禁止漏年",
+      "difficulty": "mid",
+      "difficulty_score": 3
+    },
+    {
+      "tag": "资料分析-比较类-双线法与增量比较",
+      "count": 1,
+      "family": "judge",
+      "brief": "综合正误。四陈述，正确/有误/不正确",
+      "difficulty": "mid",
+      "difficulty_score": 4
+    },
+    {
+      "tag": "资料分析-基础知识-统计术语与常考概念",
+      "count": 1,
+      "family": "detail",
+      "brief": "读图细节定位或排除",
+      "difficulty": "mid",
+      "difficulty_score": 1
+    },
+    {
+      "tag": "资料分析-基础知识-统计术语与常考概念",
+      "count": 1,
+      "family": "detail",
+      "brief": "细节排除或口径辨析，可含未给出不能比",
+      "difficulty": "mid",
+      "difficulty_score": 1
+    },
+    {
+      "tag": "资料分析-比重类-现期、基期与隔级比重",
+      "count": 1,
+      "family": "share_add",
+      "brief": "现期比重，一步",
+      "difficulty": "mid",
+      "difficulty_score": 2
+    },
+    {
+      "tag": "资料分析-盐水类-十字交叉法与混合增长率",
+      "count": 1,
+      "family": "mix_pull",
+      "brief": "混合增速或拉动/贡献率，整套至多 1–2 道，不要再叠第二道",
+      "difficulty": "mid",
+      "difficulty_score": 4
+    },
+    {
+      "tag": "资料分析-比较类-双线法与增量比较",
+      "count": 1,
+      "family": "judge",
+      "brief": "综合正误。埋未给出不能比或范围扩大",
+      "difficulty": "mid",
+      "difficulty_score": 4
+    }
+  ],
+  "chart_match": {
+    "implemented": false,
+    "family": "chart_match",
+    "reason": "粤考常见「下列哪幅图反映……」需为 A–D 各渲一张饼/柱/折线并挂 options[].images。当前 runner 只渲染材料图；render_option_figures() 已预留：若题目自带 options[].figure 则程序出图，但轨 A 配额不强制本槽，避免假实现。"
+  },
+  "gemini": "CLIPROXY_API_KEY + CLIPROXY_BASE_URL（只读环境变量，勿写入仓库）"
+}
