@@ -40,6 +40,17 @@ for i, (_, a) in enumerate(labels):
         assert a[2] < b[0] or b[2] < a[0] or a[3] < b[1] or b[3] < a[1], (a, b)
 assert next(box for text, box in drawn if text == "816.9")[1] > 74
 
+# Monetary labels near a tick must remain clear: use axis ticks, not full-width grid lines.
+lines = []
+original_line = ImageDraw.ImageDraw.line
+def record_line(draw, xy, *args, **kwargs):
+    lines.append(xy)
+    return original_line(draw, xy, *args, **kwargs)
+with patch.object(ImageDraw.ImageDraw, "line", record_line):
+    render_bars("出口额", "亿元", [str(y) for y in range(2018, 2024)],
+                [("出口额", [8936.4, 9612.8, 10248.5, 11824.2, 12581.6, 13952.9])], tmp / "near-ticks.png")
+assert sum(y0 == y1 and x1 - x0 > 100 for x0, y0, x1, y1 in lines) == 1  # Baseline only.
+
 wide_headers = ["地区", "高新技术企业数（家）", "营业收入（亿元）", "营业收入同比增量（亿元）", "研发经费内部支出（亿元）", "研发经费内部支出同比增速（%）", "期末有效发明专利拥有量（件）"]
 wide_table = tmp / "long-headers.png"
 drawn.clear()
