@@ -81,7 +81,8 @@ def render_table(
     pad_x, pad_y = 14, 8
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
     cols = list(zip(*([headers] + rows)))
-    widths = [max(measure(probe, cell, face)[0] for cell in col) + pad_x * 2 for col in cols]
+    widths = [max(min(measure(probe, col[0], face)[0], 114),
+                  max((measure(probe, cell, face)[0] for cell in col[1:]), default=0)) + pad_x * 2 for col in cols]
     row_h = max(measure(probe, "\u9ad8", face)[1] + pad_y * 2, 34)
     title_h = measure(probe, title, face_title)[1] + 14 if title else 0
     unit_h = measure(probe, unit, face_unit)[1] + 8 if unit else 0
@@ -91,7 +92,9 @@ def render_table(
     if extra > 0:
         widths = [w + extra // len(widths) for w in widths]
         widths[-1] += extra % len(widths)
-    height = title_h + unit_h + row_h * (1 + len(rows)) + note_h + 6
+    header_lines = [wrap_text(probe, head, face, w - pad_x * 2) for head, w in zip(headers, widths)]
+    header_h = max(row_h, max(map(len, header_lines), default=1) * 24 + pad_y * 2)
+    height = title_h + unit_h + header_h + row_h * len(rows) + note_h + 6
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
     y = 6
@@ -106,17 +109,19 @@ def render_table(
 
     def cell(x0, y0, w, h, text, *, header=False, first=False, total=False):
         draw.rectangle((x0, y0, x0 + w, y0 + h), outline=LINE, width=1)
-        cw, ch = measure(draw, text, face)
-        tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
-        draw.text((tx, y0 + (h - ch) // 2 - 1), text, fill=INK, font=face)
+        lines = text if header else [text]
+        for index, line in enumerate(lines):
+            cw, ch = measure(draw, line, face)
+            tx = x0 + (w - cw) // 2 if header else x0 + 10 if first else x0 + w - cw - 10
+            draw.text((tx, y0 + (h - ch - 24 * (len(lines) - 1)) // 2 - 1 + index * 24), line, fill=INK, font=face)
         if header or total:
             draw.line((x0, y0 + h - 1, x0 + w, y0 + h - 1), fill=INK, width=2)
 
     x = 2
-    for w, head in zip(widths, headers):
-        cell(x, y, w, row_h, head, header=True)
+    for w, head in zip(widths, header_lines):
+        cell(x, y, w, header_h, head, header=True)
         x += w
-    y += row_h
+    y += header_h
     for row in rows:
         is_total = str(row[0]).startswith("\u5408\u8ba1")
         x = 2
