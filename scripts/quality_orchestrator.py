@@ -605,7 +605,7 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
             keys = {str(o.get("key")) for o in question.get("options") or []}
             if (review.get("verdict") != "PASS" or review.get("answer") != question.get("answer")
                     or review.get("also_valid") != [] or not str(review.get("steps") or "").strip()
-                    or review.get("issues") != [] or set(tests) != keys
+                    or review.get("issues", []) != [] or set(tests) != keys
                     or any(not isinstance(t, dict) or type(t.get("stands")) is not bool or not t.get("reason") for t in tests.values())
                     or [k for k, t in tests.items() if isinstance(t, dict) and t.get("stands") is True] != [question.get("answer")]):
                 issues.append("资料独立盲解未通过：" + json.dumps(review, ensure_ascii=False))

@@ -79,6 +79,16 @@ def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:
     assert result["calculation"]["matching_options"] == ["A"]
     assert result["verdict"] == "REJECT"
 
+    # A live reviewer omitted only the empty issues array; substantive checks remain mandatory.
+    good = {"id": "M01-Q1", "answer": "A", "verdict": "PASS", "also_valid": [],
+            "steps": "独立取数得A", "option_tests": {
+                k: {"stands": k == "A", "reason": "与原文比较"} for k in "ABCD"}}
+    for change, expected in [({}, "PASS"), ({"issues": ["发现矛盾"]}, "REJECT"),
+                             ({"option_tests": {}}, "REJECT"), ({"steps": ""}, "REJECT"),
+                             ({"also_valid": ["B"]}, "REJECT")]:
+        with patch.object(qo, "call_flash", return_value={"questions": [good | change]}):
+            assert qo.run_route_b(root, [q])["M01-Q1"]["verdict"] == expected
+
 
 def test_routes_and_calculations(root: Path) -> None:
     yanyu = question(
