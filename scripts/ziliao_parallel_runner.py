@@ -148,7 +148,7 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
 严格输出JSON：{{"blueprint":[{{"index":1,"tag":"白名单标签","family":"detail","skill":"...","calculation_plan":"...","trap":"..."}}],"questions":[{{"external_id":"{batch_id}-{plan.get('id')}-Q1","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...","tags":["白名单标签"],"difficulty":1,"family":"detail"}}],"calculations":[{{"question_id":"{batch_id}-{plan.get('id')}-Q1","correct":"算式或1","options":{{"A":1,"B":0,"C":0,"D":0}},"tolerance":0.001}}]}}
 questions和calculations必须各恰好5个，external_id按Q1-Q5连续。tags只能从以下白名单选择：{json.dumps(TAGS, ensure_ascii=False)}。不要输出Markdown。"""
 
-def question_repair_prompt(material: dict, plan: dict, question: dict, calculation: dict, error: str) -> str:
+def question_repair_prompt(material: dict, plan: dict, question: dict, calculation: dict, error: str, siblings: list[dict] | None = None) -> str:
     raw_id = str(question.get("external_id") or "")
     index = raw_id.rsplit("-Q", 1)[-1]
     slots = plan.get("slots") or []
@@ -157,6 +157,7 @@ def question_repair_prompt(material: dict, plan: dict, question: dict, calculati
 材料：{material['content']}
 图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
 本题槽位：{json.dumps(slot, ensure_ascii=False)}
+本篇其他题（不可修改，避免重复求同一结果或泄露答案）：{json.dumps(siblings or [], ensure_ascii=False)}
 原题：{json.dumps(question, ensure_ascii=False)}
 原验算：{json.dumps(calculation, ensure_ascii=False)}
 校验失败：{error}
@@ -281,7 +282,7 @@ def generate_paper_questions(material: dict, plan: dict, batch_id: str) -> tuple
         for attempt in range(2):
             if not errors:
                 break
-            repaired = call(question_repair_prompt(material, plan, question, calculation, "；".join(errors)), 6000)
+            repaired = call(question_repair_prompt(material, plan, question, calculation, "；".join(errors), siblings), 6000)
             question = repaired.get("question") or question
             calculation = repaired.get("calculation") or calculation
             questions[index - 1] = question
@@ -391,11 +392,6 @@ def gate_repair_targets(batch_dir: Path) -> dict[str, str]:
             continue
         if all((item.get(key) or {}).get("verdict") == "PASS" for key in ("correctness", "quality")):
             continue
-        quality = item.get("quality") or {}
-        if ((item.get("correctness") or {}).get("verdict") == "PASS"
-                and quality.get("issues")
-                and all(str(issue).startswith("实际难度应为 ") for issue in quality["issues"])):
-            continue  # The rating is applied locally; keep the Gemini-authored question unchanged.
         qid = str(item.get("question_id") or "")
         if not qid:
             continue
@@ -437,6 +433,7 @@ def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[di
             repaired = call(question_repair_prompt(
                 material, plan, candidate_question, candidate_calculation,
                 error + ("；上一次回炉仍未通过本地计算校验，请重新核对答案字母与 options 数值" if attempt else ""),
+                [q for q in questions if q.get("material_id") == material["external_id"] and q is not question],
             ), 6000)
             next_question = repaired.get("question")
             next_calculation = repaired.get("calculation")
@@ -465,25 +462,6 @@ def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[di
         (batch_dir / "questions.json").write_text(json.dumps(questions, ensure_ascii=False, indent=2))
         (batch_dir / "calculations.json").write_text(json.dumps({"questions": list(calc_by_id.values())}, ensure_ascii=False, indent=2))
     return changed
-
-def apply_reviewed_difficulties(batch_dir: Path, questions: list[dict]) -> bool:
-    path = batch_dir / "evidence" / "system-quality.json"
-    if not path.is_file():
-        return False
-    by_id = {q["external_id"]: q for q in questions}
-    changed = False
-    for item in json.loads(path.read_text()).get("results") or []:
-        review = (item.get("quality") or {}).get("review") or {}
-        score = review.get("actual_difficulty")
-        q = by_id.get(item.get("question_id"))
-        if (q is not None and type(score) is int and 1 <= score <= 5
-                and review.get("difficulty_reason") and q.get("difficulty") != score):
-            q["difficulty"] = score
-            changed = True
-    if changed:
-        (batch_dir / "questions.json").write_text(json.dumps(questions, ensure_ascii=False, indent=2))
-    return changed
-
 
 def failed_data_material_ids(batch_dir: Path) -> set[str]:
     path = batch_dir / "evidence" / "system-quality.json"
@@ -685,10 +663,9 @@ def main(argv=None) -> int:
             if retry_visual_materials(out, frame, frame["materials"], visual_ids, batch_id):
                 continue
         if gate_attempt < GATE_ATTEMPTS:
-            graded = apply_reviewed_difficulties(out, questions)
             repaired = repair_gate_questions(out, materials, frame["materials"], questions, calculations, batch_id)
-            if graded or repaired:
-                retry_log.append({"attempt": gate_attempt, "kind": "question-repair", "regraded": graded})
+            if repaired:
+                retry_log.append({"attempt": gate_attempt, "kind": "question-repair"})
                 continue
         break
     marks["gate_seconds"] = round(time.monotonic() - t, 2)

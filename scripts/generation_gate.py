@@ -903,6 +903,30 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                 "请按 answer_plan 均衡放置正确项")
 
 
+def record_ziliao_difficulty(batch_dir: Path, system_path: Path) -> None:
+    evidence = read_json(system_path)
+    ratings = {
+        item["question_id"]: (item.get("quality", {}).get("review") or {}).get("actual_difficulty")
+        for item in evidence.get("results") or []
+    }
+    path = batch_dir / "questions.json"
+    questions = read_json(path)
+    changed = False
+    for q in questions:
+        if q.get("category") != "资料分析":
+            continue
+        score = ratings.get(q["external_id"])
+        if type(score) is not int or not 1 <= score <= 5:
+            raise ValueError(f"资料题缺少有效考官评级：{q['external_id']}")
+        if q.get("difficulty") != score:
+            q["difficulty"] = score
+            changed = True
+    if changed:
+        atomic_json(path, questions)
+        evidence["questions_sha256"] = digest(path)
+        atomic_json(system_path, evidence)
+
+
 def issue(
     batch_dir: Path,
     correctness_path: Path | None = None,
@@ -926,6 +950,8 @@ def issue(
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
     system_path = run_system_quality_gate(batch_dir, ids)
+    record_ziliao_difficulty(batch_dir, system_path)
+    validate_paper_hard_rules(manifest, read_json(questions_path), batch_dir)
     image_paths = ziliao_image_paths(batch_dir)
     visual_path = run_ziliao_visual_gate(batch_dir, image_paths)
 

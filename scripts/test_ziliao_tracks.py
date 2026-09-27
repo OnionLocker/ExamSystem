@@ -282,20 +282,23 @@ class GeminiConfigTest(unittest.TestCase):
 
 class GateIntegrationTest(unittest.TestCase):
     def test_rating_only_failure_does_not_regenerate_question(self):
-        import ziliao_parallel_runner as runner
+        import generation_gate as gate
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "evidence").mkdir()
-            report = {"results": [{"question_id": "batch-M01-Q1", "verdict": "REJECT",
-                "correctness": {"verdict": "PASS"}, "quality": {"verdict": "REJECT",
-                    "issues": ["实际难度应为 2：一步除法"],
+            report = {"results": [{"question_id": "batch-M01-Q1", "verdict": "PASS",
+                "correctness": {"verdict": "PASS"}, "quality": {"verdict": "PASS",
+                    "issues": [],
                     "review": {"actual_difficulty": 2, "difficulty_reason": "一步除法"}}}]}
             (root / "evidence/system-quality.json").write_text(json.dumps(report))
-            questions = [{"external_id": "batch-M01-Q1", "difficulty": 3, "stem": "保留题面"}]
-            self.assertEqual(runner.gate_repair_targets(root), {})
-            self.assertTrue(runner.apply_reviewed_difficulties(root, questions))
+            questions = [{"external_id": "batch-M01-Q1", "category": "资料分析", "difficulty": 3, "stem": "保留题面"}]
+            (root / "questions.json").write_text(json.dumps(questions))
+            gate.record_ziliao_difficulty(root, root / "evidence/system-quality.json")
+            questions = json.loads((root / "questions.json").read_text())
             self.assertEqual(questions[0]["difficulty"], 2)
             self.assertEqual(questions[0]["stem"], "保留题面")
+            evidence = json.loads((root / "evidence/system-quality.json").read_text())
+            self.assertEqual(evidence["questions_sha256"], gate.digest(root / "questions.json"))
 
     def test_generation_gate_rejects_flat_difficulty_on_track_a(self):
         import generation_gate

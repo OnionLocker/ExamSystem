@@ -190,6 +190,7 @@ avg_cmp为平均/跨年比较；mix_pull为混合/拉动。不要把所有读图
 actual_difficulty按最终题目评1-5：1直接定位/分类；2单一加减除法或简单趋势；
 3多步计算/多点筛选；4多口径综合、四陈述或有实质额外步骤；5明显复杂的组合。
 不要单因题型名字或请求mid而给固定分，也不要为配额故意提高认知负担。
+原difficulty只是命题预测；请返回实际评级，由系统在签发前记录，不因预测与评级不同拒绝正确题。
 claim_checks逐一核验输入explanation_claims的每条原解析，恰好一个对应index：
 [{"index":1,"valid":true,"reason":"核算/核对依据"}]。
 必须复算每句等式、近似、大小关系、比例方向，并把每个选项字母及排除列表与现有选项逐项对应。
@@ -232,8 +233,6 @@ def ziliao_review_issues(question: dict, review: dict) -> list[str]:
     difficulty = review.get("actual_difficulty")
     if type(difficulty) is not int or not 1 <= difficulty <= 5 or not review.get("difficulty_reason"):
         issues.append("缺少实际难度及依据")
-    elif question.get("difficulty") != difficulty:
-        issues.append(f"实际难度应为 {difficulty}：{review['difficulty_reason']}")
     claims = explanation_claims(question)
     checks = review.get("claim_checks")
     if (not claims or not isinstance(checks, list) or len(checks) != len(claims)
