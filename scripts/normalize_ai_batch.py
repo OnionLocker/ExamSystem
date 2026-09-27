@@ -36,7 +36,8 @@ ALLOWED_SUBS = {
 }
 
 _MENTION = re.compile(
-    r"(?P<group>(?<![A-Za-z])[ABCD](?:\s*[、，,和及与]\s*[ABCD])+)(?=\s*(?:[两三四234]?[个项]|均|都|皆))"
+    r"(?P<list_pre>排除|选择|应选|故选)(?P<letters>[ABCD](?:\s*[、，,和及与]\s*[ABCD])+)(?![A-Za-z])"
+    r"|(?P<group>(?<![A-Za-z])[ABCD](?:\s*[、，,和及与]\s*[ABCD])+)(?=\s*(?:[两三四234]?[个项]|均|都|皆))"
     r"|(?P<pre>\u6545\u9009|\u5e94\u9009|\u7b54\u6848\u4e3a|\u7b54\u6848\u662f|"
     r"\u6b63\u786e\u7b54\u6848\u4e3a|\u6b63\u786e\u7b54\u6848\u662f|\u7b54\u6848[:\uff1a]|\u9009\u9879)"
     r"(?P<a>[ABCD])"
@@ -377,6 +378,8 @@ def remap_letter_mentions(text: str, src: str, dst: str) -> str:
         return letter
 
     def repl(match: re.Match[str]) -> str:
+        if match.group("letters") is not None:
+            return match.group("list_pre") + match.group("letters").translate(str.maketrans({src: dst, dst: src}))
         if match.group("group") is not None:
             return match.group("group").translate(str.maketrans({src: dst, dst: src}))
         if match.group("a") is not None:
