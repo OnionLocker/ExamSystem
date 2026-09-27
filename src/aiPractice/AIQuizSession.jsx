@@ -463,7 +463,7 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
 
 // ─── 主组件 ───────────────────────────────────────────────────
 
-const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSessionId, onExit, onAnalyzeWithHermes, onAuditWithHermes }) => {
+const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditSourceSessionId, onExit, onAnalyzeWithHermes, onAuditWithHermes }) => {
   // 界面上只出题组名；batchId 只用来请求接口
   const title = batchName || batchId;
   // 带着 reviewSessionId 进来就先铺复盘页（不新建会话），
@@ -577,6 +577,37 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
           return;
         }
 
+        if (redoPackId) {
+          const pack = await api(`/api/practice/redo-packs/${redoPackId}`);
+          if (aborted) return;
+          const items = (pack.items || []).map((item) => ({
+            ...item,
+            id: item.id,
+            tags: item.tags || item.knowledge_tags || [],
+          }));
+          if (!items.length) throw new Error('这套复盘重做题集没有可用题目');
+          const s = await api(`/api/practice/redo-packs/${redoPackId}/session`, { method: 'POST' });
+          if (aborted) return;
+          setQuestions(items);
+          setHistoryMap({});
+          setSessionId(s.id);
+          setIndex(0);
+          setAnswers({});
+          setTimeSpent({});
+          timeSegmentsRef.current = [];
+          setDrafts({});
+          setResult(null);
+          setReport(null);
+          setOpenReview(null);
+          setErrMsg('');
+          dirtyDraftsRef.current = new Set();
+          uploadedRef.current = new Set();
+          setEnter({ qid: items[0].id, at: document.hidden ? 0 : Date.now() });
+          setPageLive(!document.hidden);
+          setPhase('running');
+          return;
+        }
+
         const params = new URLSearchParams({ batch_id: batchId, limit: '50' });
         if (!String(batchId).startsWith('daily-')) params.set('random', '1');
         const [qres, hist] = await Promise.all([
@@ -613,7 +644,7 @@ const AIQuizSession = ({ batchId, batchName, reviewSessionId, auditSourceSession
       }
     })();
     return () => { aborted = true; };
-  }, [batchId, runKey, reviewing, reviewSessionId, auditSourceSessionId]);
+  }, [batchId, redoPackId, runKey, reviewing, reviewSessionId, auditSourceSessionId]);
 
   // 重做 / 再刷一遍：都是开全新的一场。redoing 一旦置上，上面那个 effect
   // 就不再走复盘分支。旧成绩在库里原封不动，新这一场交了卷才会取代它

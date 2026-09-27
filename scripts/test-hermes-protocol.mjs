@@ -162,9 +162,17 @@ const review = extractReview(
   '[USER_MESSAGE]\n复盘\n[/USER_MESSAGE]\n'
   + '/home/ubuntu/ExamSystem/data/practice-reviews/82-demo.md',
 );
-assert.equal(review.content, '');
+assert.equal(review.content, '复盘');
 assert.equal(review.review.kind, 'practice');
 assert.equal(review.review.id, 82);
+
+const reviewWithImage = normalizeHermesHistory([
+  { role: 'user', text: '[USER_MESSAGE]\n请重点看第6题\n[/USER_MESSAGE]\n'
+    + 'data:image/png;base64,ZmFrZQ==\n'
+    + '/home/ubuntu/ExamSystem/data/practice-reviews/82-demo.md' },
+], deps);
+assert.equal(reviewWithImage[0].content, '请重点看第6题');
+assert.equal(reviewWithImage[0].images.length, 1);
 
 const uploadReview = extractReview(
   '[USER_MESSAGE]\n\n[/USER_MESSAGE]\n'

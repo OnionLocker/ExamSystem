@@ -444,6 +444,12 @@ const BGM_TYPES = [
   { id: 'night', name: '夜晚', desc: '蟋蟀虫鸣，夏夜氛围', icon: Moon },
   { id: 'cafe', name: '咖啡厅', desc: '嘈杂人声 + 杯盘碰撞', icon: Coffee },
   { id: 'keyboard', name: '键盘声', desc: '机械键盘敲击，办公氛围', icon: Keyboard },
+  { id: 'white', name: '白噪音', desc: '均匀宽频底噪，立即启动', icon: Volume2 },
+  { id: 'pink', name: '粉噪音', desc: '更柔和的专注底噪', icon: Wind },
+  { id: 'brown', name: '棕噪音', desc: '低沉厚实，遮蔽环境声', icon: Moon },
+  { id: 'deep', name: '深沉噪音', desc: '更低频的安静空间', icon: Waves },
+  { id: 'fan', name: '风扇', desc: '稳定的机械循环声', icon: Wind },
+  { id: 'aircon', name: '空调', desc: '轻微低频的室内底噪', icon: CloudRain },
 ];
 
 const BGMBlock = ({ settings, updateSettings, toggleBGM }) => {

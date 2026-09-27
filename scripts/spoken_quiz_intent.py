@@ -13,7 +13,10 @@ from kaodian_taxonomy import (
     NUM_DATE,
     NUM_ENGINEERING,
     NUM_EQUATION,
-    NUM_EXTREME,
+    NUM_EXTREME_DRAWER,
+    NUM_EXTREME_HEDING,
+    NUM_EXTREME_QUAD,
+    NUM_EXTREME_REVERSE,
     NUM_GEOMETRY,
     NUM_INCLUSION,
     NUM_PERM,
@@ -54,7 +57,10 @@ TAG_ALIASES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("特殊模型", "八大情形", "经典模型", "捆绑", "插空", "隔板", "排列组合"), NUM_PERM),
     (("反面容斥", "正难则反", "反面剥离"), NUM_PERM),
     (("翻译推理", "逆否", "德摩根", "否后否前"), TRANSLATION),
-    (("和定最值", "和定", "最值构造", "抽屉", "最不利"), NUM_EXTREME),
+    (("和定最值", "和定", "最值构造"), NUM_EXTREME_HEDING),
+    (("抽屉", "最不利", "最不利原则"), NUM_EXTREME_DRAWER),
+    (("反向构造", "多集合最值"), NUM_EXTREME_REVERSE),
+    (("二次函数", "乘积极值", "乘积最值"), NUM_EXTREME_QUAD),
     (("日期", "星期"), NUM_DATE),
     (("周期", "排班"), NUM_CYCLE),
     (("行程", "相遇", "追及"), NUM_TRAVEL),
@@ -80,7 +86,10 @@ SLUGS = {
     NUM_PERM: "排列组合",
     NUM_PROB: "概率",
     TRANSLATION: "翻译推理",
-    NUM_EXTREME: "最值",
+    NUM_EXTREME_HEDING: "和定最值",
+    NUM_EXTREME_DRAWER: "最不利抽屉",
+    NUM_EXTREME_REVERSE: "反向构造",
+    NUM_EXTREME_QUAD: "乘积极值",
     NUM_AVERAGE: "平均数",
     NUM_DATE: "日期星期",
     NUM_CYCLE: "周期排班",
@@ -114,6 +123,12 @@ def extract_count(text: str, default: int = 5) -> int:
 
 def resolve_tag(text: str) -> str:
     blob = text or ""
+    from quiz_scope import resolve_scope_tag
+
+    scoped_text = re.sub(r"逻辑填空[-—－：:\s]+(实词|成语|虚词)(?!填空)", r"逻辑填空-\1填空", blob)
+    scoped = resolve_scope_tag(scoped_text)
+    if scoped:
+        return scoped
     short = lookup_fenbi_short(blob)
     if short:
         return short

@@ -24,10 +24,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, registered_knowledge_points, tags_for_canon_lookup, validate_ai_primary_tag
 from normalize_ai_batch import generation_payload_extras
 from scheduler_common import DB, ROOT, load_snapshot, local_today
-from spoken_quiz_intent import slug_of
 
 
-MODEL = os.environ.get("DAILY_GEMINI_MODEL", "gemini-3.8-flash-high")
+MODEL = "gemini-3.8-flash-high"
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
 RETRIES = 3
 FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.I | re.M)
@@ -74,7 +73,16 @@ def parse_json(text: str) -> dict:
     start, end = text.find("{"), text.rfind("}")
     if 0 <= start < end:
         text = text[start : end + 1]
-    data = json.loads(text)
+    while True:
+        try:
+            data = json.loads(text)
+            break
+        except json.JSONDecodeError as exc:
+            # The parser identifies a backslash inside a string. Preserve it literally;
+            # never invent missing fields, quotes, brackets, or mathematical content.
+            if exc.msg != 'Invalid \\escape':
+                raise
+            text = text[:exc.pos] + '\\' + text[exc.pos:]
     if not isinstance(data, dict) or not isinstance(data.get("questions"), list) or not data["questions"]:
         raise ValueError("Gemini returned no questions")
     return data
@@ -317,32 +325,9 @@ def yanyu_contract_issues(question: dict, tag: str | None = None) -> list[str]:
         issues.append("缺少 kaodian_signal，疑似考点坍缩")
     if "逻辑填空" in tag and not re.search(r"[_＿]{2,}|…{2,}", stem):
         issues.append("指定逻辑填空但题干没有空格")
-    signal_rules = {
-        "成语填空": (r"成语|熟语", "未体现成语辨析"),
-        "实词填空": (r"实词|词义|语境辨析", "未体现实词辨析"),
-        "虚词填空": (r"虚词|关联词|语法关系", "未体现虚词辨析"),
-        "词的辨析": (r"词义|辨析|语境", "未体现词义辨析"),
-        "混搭填空": (r"混搭|实词.*虚词|虚词.*实词", "未体现实词/虚词混合判断"),
-        "语境分析": (r"语境", "未体现语境约束"),
-        "特殊题型": (r"特殊|语境|搭配|成语|实词|虚词", "kaodian_signal 过于空泛"),
-    }
-    for marker, (pattern, message) in signal_rules.items():
-        if marker in tag and not re.search(pattern, signal):
-            issues.append(f"指定{marker}{message}")
-    if "语句排序" in tag and not any(word in stem for word in ("排序", "顺序", "排列")):
-        issues.append("指定语句排序但设问未要求排序")
-    if "语句填空" in tag and not re.search(r"[_＿]{2,}|…{2,}|横线|填入", stem):
+    # Semantic subtype matching belongs to the language reviewers, not an ask-word whitelist.
+    if "语句填空" in tag and "语句排序" not in tag and not re.search(r"[_＿]{2,}|…{2,}|横线|填入|空缺|空白", stem):
         issues.append("指定语句填空但题干没有衔接空位")
-    if "标题填入" in tag and "标题" not in stem:
-        issues.append("指定标题题但设问未要求标题")
-    if "细节判断" in tag and not any(word in stem for word in ("符合", "不符合", "正确", "错误")):
-        issues.append("指定细节判断但设问未形成细节判断")
-    if "词句理解" in tag and not re.search(r"词|句|指代|含义|意思", stem + signal):
-        issues.append("指定词句理解但题干未形成词句含义/指代问题")
-    if "接语选择" in tag and not any(word in stem for word in ("下文", "接下来", "后文")):
-        issues.append("指定接语选择但设问未要求下文推断")
-    if "中心理解" in tag and not re.search(r"主旨|中心|意在|主要", stem + signal):
-        issues.append("指定中心理解但设问未形成主旨判断")
     return issues
 
 
@@ -575,7 +560,8 @@ def run_canon_card(run: dict, tag: str) -> str:
     # 一批只读取一次，补题和审核沿用同一版本；快照随 manifest 留存。
     cards = run.setdefault("kaofa_canon", {})
     if tag not in cards:
-        cards[tag] = canon_card(run["module"], tag)
+        slot = next((s for s in run.get("slots", []) if s["tag"] == tag), {})
+        cards[tag] = slot.get("definition") or canon_card(run["module"], tag)
     return cards[tag]
 
 
@@ -853,27 +839,8 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
     extras["batch_constraints"].pop("shuliang_layout", None)
     extras["batch_constraints"].pop("panduan_layout", None)
     run["answer_plan"] = extras["answer_plan"]
-    topic = slug_of(run["focus_tag"])
-    if len(run_slots(run)) > 1:
-        l3_set = {
-            parsed[2]
-            for slot in run_slots(run)
-            if (parsed := parse_fenbi_tag(str(slot.get("tag") or "")))
-        }
-        if len(l3_set) == 1:
-            l3_name = l3_set.pop().replace("问题", "")
-            topic = f"{l3_name}综合"
-    elif topic == "专项" and run.get("focus_tag"):
-        topic = run["focus_tag"].split("-")[-1]
-    slots_list = run_slots(run)
-    diff = run.get("difficulty") or (slots_list[0].get("difficulty") if slots_list else None)
-    if not diff and run.get("batch_id"):
-        for d in ("easy", "mid", "hard"):
-            if f"_{d}_" in run["batch_id"] or run["batch_id"].endswith(f"_{d}"):
-                diff = d
-                break
-    diff_suffix = f"-{diff}" if diff else ""
-    source = f"广东省考行测-{run['module']}-{topic}{diff_suffix}-{local_today():%Y%m%d}"
+    from quiz_scope import source_name
+    source = source_name(run['module'], run_slots(run), local_today(), run.get('difficulty'))
     env = {**os.environ, "EXAM_DB": str(db_path)}
     deadline = time.monotonic() + timeout
     error = None
@@ -933,18 +900,35 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
             raise SystemExit("需要 --tag 与 --count，或改用 --blueprint")
         raw_slots = [{"tag": args.tag, "count": args.count, "difficulty": args.difficulty}]
 
+    from quiz_scope import catalog, scope_slots
+    current_nodes = None
     slots: list[dict] = []
     modules: set[str] = set()
+    allocated: dict[str, int] = {}
     for raw in raw_slots:
         if not isinstance(raw, dict):
             raise SystemExit(f"槽位必须是对象: {raw!r}")
         tag_in = str(raw.get("tag") or "").strip()
-        count = int(raw.get("count") or 0)
+        count = raw.get("count")
+        if isinstance(count, bool) or not isinstance(count, int):
+            raise ValueError("槽位 count 须为整数")
         if not tag_in or count < 1:
             raise SystemExit(f"槽位缺 tag 或 count: {raw!r}")
         parts = [part for part in tag_in.split("-") if part]
         subtype = parts[1] if len(parts) > 1 else ""
-        tag = validate_ai_primary_tag(canonicalize(tag_in, args.module, subtype), args.module)
+        if tag_in.startswith(("资料分析-", "科学推理-")) or args.module in {"资料分析", "科学推理"}:
+            tag = validate_ai_primary_tag(canonicalize(tag_in, args.module, subtype), args.module)
+            expanded = [{"tag": tag, "count": count}]
+        else:
+            if current_nodes is None:
+                current_nodes = catalog()
+            expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes)
+            scope_tag = expanded[0]["scope_tag"]
+            offset = allocated.get(scope_tag, 0)
+            if offset:
+                expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes, allocation_offset=offset)
+            allocated[scope_tag] = offset + count
+            tag = expanded[0]["tag"]
         head = tag.split("-", 1)[0]
         modules.add(head if head in MODULES else module_of(tag, args.module))
         slot = {"tag": tag, "count": count}
@@ -955,7 +939,7 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
                 raise ValueError("目前仅政治理论支持判断/多选专项")
             slot["question_type"] = raw["question_type"]
         if raw.get("difficulty"):
-            if raw["difficulty"] not in {"easy", "mid", "hard"}:
+            if raw["difficulty"] not in {"easy", "mid", "hard"} and not (head in {"数量关系", "言语理解与表达", "判断推理", "政治理论", "常识判断"} and raw["difficulty"] == "auto"):
                 raise ValueError("difficulty 须为 easy / mid / hard")
             slot["difficulty"] = str(raw["difficulty"])
         if raw.get("brief"):
@@ -963,7 +947,8 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
             if len(brief) > BRIEF_LIMIT:
                 raise ValueError(f"brief 超过 {BRIEF_LIMIT} 字，请精简，不会静默截断")
             slot["brief"] = brief
-        slots.append(slot)
+        for child in expanded:
+            slots.append({**slot, **child})
     if len(modules) > 1:
         raise SystemExit(f"一个批次只能一个模块，收到: {sorted(modules)}")
     return modules.pop(), slots

@@ -19,6 +19,7 @@ import BackgroundNotice from './BackgroundNotice.jsx';
 import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
 import { getToolActivity } from './toolActivity.js';
+import { buildQuizPrompt } from './quizPrompt.js';
 import QuotaBar from './QuotaBar.jsx';
 import HermesSidebar from './HermesSidebar.jsx';
 import HermesContextPickers from './HermesContextPickers.jsx';
@@ -750,6 +751,18 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     }
   }, []);
 
+  const refreshUsage = useCallback(async (sessionId = sidRef.current) => {
+    const gw = gwRef.current;
+    if (!gw || gw.connectionState !== 'open' || !sessionId) return;
+    try {
+      const res = await gw.request('session.usage', { session_id: sessionId });
+      const used = Number(res?.context_used);
+      const max = Number(res?.context_max);
+      if (res && typeof res === 'object' && Number.isFinite(used) && used >= 0
+        && Number.isFinite(max) && max > 0 && sidRef.current === sessionId) setUsage(res);
+    } catch { /* 老版本 gateway 没有这个方法，保留上一份统计 */ }
+  }, []);
+
   const applyResume = useCallback((res, storedId, { force = true, stick = false, allowSwitch = force } = {}) => {
     const payload = coerceResumePayload(res);
     if (!allowSwitch && !resumeMatchesSession(payload, sidRef.current, activeStoredIdRef.current || storedId)) {
@@ -798,10 +811,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       await gw.request('session.close', { session_id: live });
       const res = await gw.request('session.resume', { session_id: stored, cols: 100 });
       applyResume(res, stored, { allowSwitch: false });
+      await refreshUsage(sidRef.current);
     } catch {
       /* 清不掉就算了，下一次会话回收时系统也会把音频丢掉 */
     }
-  }, [applyResume]);
+  }, [applyResume, refreshUsage]);
 
   useEffect(() => {
     dropAudioContextRef.current = dropAudioFromContext;
@@ -906,12 +920,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   useEffect(() => {
     const gw = gwRef.current;
     if (!gw || connState !== 'open' || !sid) return undefined;
-    let cancelled = false;
-    gw.request('session.usage', { session_id: sid })
-      .then((res) => { if (!cancelled && res && typeof res === 'object') setUsage(res); })
-      .catch(() => { /* 老版本 gateway 没有这个方法，指示器留空即可 */ });
-    return () => { cancelled = true; };
-  }, [sid, connState]);
+    refreshUsage(sid).catch(() => {});
+  }, [sid, connState, refreshUsage]);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -1210,7 +1220,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     sendingRef.current = true;
     const images = pendingImages;
     const review = pendingReview;
-    practiceReviewRef.current = review;
+    const redoPackingRequested = /(?:打包|抽取|整理).{0,8}(?:错题|重做|复盘题)|(?:错题|重做题).{0,8}(?:打包|抽取|整理)/.test(text.trim());
+    const redoPacking = review?.kind === 'practice' && redoPackingRequested;
+    const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
+    practiceReviewRef.current = redoPacking ? null : review;
     voiceTurnRef.current = Boolean(audio);
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
@@ -1234,6 +1247,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
+        ].join('\n')
+      : '';
+    const redoPackingLead = redoPacking
+      ? [
+          `这是一项独立的错题打包任务。来源是 AI 练题场次 ${review.id}，先打开报告：${review.path}`,
+          '只按报告和用户点名的题目选择需要重新认真作答的历史原题，不重新讲完整场，不生成或改写题目，不修改掌握度。错题/空题、连续未掌握或需重建解题步骤可以入选；已连续两次答对、仅一次粗心且已掌握的不入选。没有合格题就说明原因，不能凑数；1–15 题都可打包。',
+          `用 terminal 执行 node /home/ubuntu/ExamSystem/scripts/create-redo-pack.mjs，并通过标准输入传 JSON：{"title":"题集名称","source_session_id":${review.id},"reason_summary":"推荐理由摘要","items":[{"question_id":报告中的题目id,"reason":"本题重做原因","priority":"high|normal|low","knowledge_tags":["现有知识点标签"]}]}。只报命令成功返回的 id 和题数，入口是 AI 练题 → 复盘重做。`,
         ].join('\n')
       : '';
     const practiceReviewLead = review?.kind === 'practice'
@@ -1298,13 +1318,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const reviewLead = review?.kind === 'debt'
       ? `[KNOWLEDGE_DEBT]\n${review.instruction}\n[/KNOWLEDGE_DEBT]`
       : review?.kind === 'practice'
-      ? practiceReviewLead
+      ? (redoPacking ? redoPackingLead : practiceReviewLead)
       : review?.kind === 'upload'
         ? uploadReviewLead
         : examReviewLead;
     const audioLabel = audio ? audioLabelOf(audio.sec) : '';
 
-    const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     const masteryBaseNudge = review?.kind === 'practice' && review?.profileReviewed
       ? [
           'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
@@ -1345,7 +1364,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。未绑定场次和逐题过程的聊天记录不用于认证掌握等级。新考点先 --register。',
         ].join('\n');
-    const masteryNudge = masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
+    const masteryNudge = redoPackingRequested ? '' : masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
       `先读取 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/mastery-assessment.md，按其口径逐题评估，不增加题目质量检查。`,
       `每题记录完成或已存在后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --assess ${review.kind} ${review.id} <题目id或题号> '<评估JSON>'`,
       'JSON 必须包含 independence、process、basis、execution、reason；未知就填 unknown/unavailable。reason 引用本题草稿或独立解题说明，不能编造独立性、结构变式或耗时目标。缺失草稿不等于不会。',
@@ -1472,37 +1491,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const submittedText = review || persistText
         ? `[USER_MESSAGE]\n${persistText}\n[/USER_MESSAGE]`
         : '';
-      const wantsQuiz = /\u7ed9\u6211\u51fa|\u5e2e\u6211\u51fa|\u51fa(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u8003\u8003\u6211|\u6765(?:[\u4e00-\u9fa5\d\u51e0]+)(?:\u9053|\u4e2a)?\u9898|\u5237\u9898|AI\s*\u7ec3\u9898|\u4e13\u9879\u7ec3\u9898|\u751f\u6210.{0,6}\u7ec3\u4e60|(?:\u6211\u8981|\u6211\u60f3|\u7ee7\u7eed|\u9488\u5bf9).{0,12}\u7ec3|(?:来|出|再来|各来|各出)\s*[\d\u4e00-\u9fa5]{1,3}\s*(?:\u9053|\u4e2a)(?![\u5e74\u6708\u5468])/.test(spokenText);
-      const wantsInlineQuiz = /(?:\u76f4\u63a5|\u5c31).{0,8}(?:\u804a\u5929|\u8fd9\u91cc).{0,8}(?:\u53d1|\u51fa|\u505a).{0,4}\u9898/.test(spokenText);
-      const quizScript = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>'`;
-      const figureQuizScript = `python3 ${projectRoot}/scripts/quiz_generator.py --module '<模块>' --tag '<规范主标签>' --count <题量> --batch-id '<YYYYMMDD_hermes_考点_序号>'`;
-      const quizBlueprint = `python3 ${projectRoot}/scripts/quiz_lite.py --module '<模块>' --batch-id '<YYYYMMDD_hermes_考点_序号>' --blueprint '{"slots":[{"tag":"<规范主标签A>","count":3,"difficulty":"mid"},{"tag":"<规范主标签B>","count":3,"difficulty":"hard"},{"tag":"<规范主标签C>","count":4,"difficulty":"hard"}]}'`;
-      const quizSlotHint = [
-        `If the user wants several 考法/题型 in one batch, a difficulty mix, or a split like 3+3+4, use the blueprint form instead of a single --tag (they are mutually exclusive): ${quizBlueprint}`,
-        'Slots map to item order. Each slot needs tag+count; difficulty is optional (easy/mid/hard); all slots must share one module; the total still has to be 1-15. Choosing the slots, their counts and the difficulty spread is your call. A mix (e.g. 4 easy + 3 mid + 3 hard, batch_id …_ladder_01) is allowed; the AI练题 card will be tagged ladder, not the first slot.',
-        `科学推理或判断推理-图形推理/空间类必须使用重型带图管线：${figureQuizScript}；不要用 quiz_lite，因为它会拒绝或剥离图片。Gemini 必须按知识点返回结构化图形规格，由程序渲染并经过视觉质检。`,
-        'A slot may also carry "brief": free text (<=600 chars) that is YOUR drafting instruction for this batch. The script already injects the solver-canon 固定识别/考场步骤/禁止 for that 考法, so use brief for what the canon cannot know: this run\'s emphasis, degenerate patterns to avoid, current-exam intel you looked up, or a difficulty demand the user just voiced. brief may only tighten constraints, never relax the gate, and must never contain stems, answers or numbers.',
-        '一个一级知识点下的不同考法是不同的二级标签，只传一个标签整批就只有那一个考法。最值问题有四个独立考法标签：和定最值与构造 / 最不利原则与抽屉 / 反向构造与多集合最值 / 二次函数与乘积极值，不要用一个标签笼统覆盖。',
-        'quiz_lite 出稿后会跑两个独立审核：盲解官看不到答案自己重做一遍，考官查难度档、考法归属、公考风格与解析可复算。只有不合格的那几道会被退回重出，已通过的题不动，所以返回的 rounds 里可能有多轮，这是正常的。',
-      ].join('\n');
-      const quizNudge = wantsQuiz && !wantsInlineQuiz
-        ? [
-            'This is a question-generation request. Deliver only to ExamSystem AI Practice.',
-            'Do not write questions.json, do not skill_view long references, do not run generation_gate or import-batch yourself.',
-            'First tool call must be the script below. Do not ls, search_files, read_file, or sqlite first.',
-            `Call exactly once, in the background with notify_on_complete (foreground terminal dies at 180s): ${quizScript}`,
-            'workdir=/home/ubuntu/ExamSystem. If the user names a knowledge point, --tag must be that canonical 模块-一级-二级. Count is what they asked; default 5 if unnamed. Do not emit a 20-question daily paper.',
-            quizSlotHint,
-            'Wait for the JSON. Success: report only batch_id and imported count. Failure: report the script message. Never draft questions yourself.',
-          ].join('\n')
-        : audio && !review
-          ? [
-              `If the recording asks to generate questions, call once in the background with notify_on_complete: ${quizScript}`,
-              'Use the knowledge point and count from the recording (including a point you just recommended from the snapshot). Do not explore the repo first.',
-              quizSlotHint,
-            ].join('\n')
-          : '';
-      const needsLearnerSnapshot = Boolean(review || audio || wantsQuiz
+      const { wantsQuiz, quizNudge } = buildQuizPrompt({
+        text: spokenText, audio: Boolean(audio && !review), projectRoot,
+      });
+      const needsLearnerSnapshot = !redoPackingRequested && Boolean(review || audio || wantsQuiz
         || /今天.*(?:学|练)|接下来.*(?:学|练)|继续学习|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
       let learnerNudge = '';
       if (needsLearnerSnapshot) {
@@ -1531,6 +1523,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         : '';
       const outbound = [
         reviewLead,
+        redoPackingRequested && !review
+          ? '请先让用户在 Hermes 中选中对应的 AI 练题复盘报告，再执行打包。没有来源场次和题目id时不要凭聊天印象造题集。'
+          : '',
         voiceLead,
         submittedText,
         learnerNudge,
@@ -2130,7 +2125,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const contextGauge = (() => {
     const used = Number(usage?.context_used);
     const max = Number(usage?.context_max);
-    if (!Number.isFinite(used) || !Number.isFinite(max) || used <= 0 || max <= 0) return null;
+    if (!Number.isFinite(used) || !Number.isFinite(max) || used < 0 || max <= 0) return null;
     const percent = Math.max(0, Math.min(100, Math.round((used / max) * 100)));
     // 语音是唯一会在后续每轮整包重传的附件，而 token 百分比不会告诉你负担来自哪，
     // 所以把它单独点出来。时长取自消息上的语音标签，resume 之后依然在。
@@ -2416,7 +2411,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
           {messages.map((m) => {
             const reply = m.role === 'assistant' ? visibleAssistantReply(m.content) : m.content;
-            const showUserText = Boolean(m.content) && !isAudioLabel(m.content) && !m.review;
+            const showUserText = Boolean(m.content) && !isAudioLabel(m.content);
             if (
               m.role === 'assistant'
               && !m.streaming

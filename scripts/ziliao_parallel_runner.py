@@ -8,10 +8,12 @@ from collections import Counter
 from quiz_generator import resolve_slots, run_canon_card
 from kaodian_taxonomy import validate_ai_primary_tag
 from scheduler_common import DB
+from quality_orchestrator import equivalent, safe_eval
 
 ROOT = Path(__file__).resolve().parents[1]
-MODEL = os.environ.get("DAILY_GEMINI_MODEL", "gemini-3.8-flash-high")
+MODEL = "gemini-3.8-flash-high"
 BASE = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
+GATE_ATTEMPTS = 3
 TAGS = [
     "资料分析-基础知识-统计术语与常考概念", "资料分析-ABRX类-基期量计算与比较",
     "资料分析-ABRX类-增长量计算与现期推算", "资料分析-ABRX类-增长率计算模型",
@@ -19,6 +21,7 @@ TAGS = [
     "资料分析-平均类-一般平均值与年均增速/增量", "资料分析-比较类-双线法与增量比较",
     "资料分析-盐水类-十字交叉法与混合增长率", "资料分析-特殊考点-拉动增长、贡献率与容斥",
 ]
+BALANCED_TAGS = TAGS[:]
 
 def key() -> str:
     if os.environ.get("CLIPROXY_API_KEY"):
@@ -73,6 +76,33 @@ easy只需直接定位或一步计算；mid多一层转化；hard允许隐含中
 严格输出JSON：{{"question":{{"external_id":"{batch_id}-{material['external_id'].rsplit('-',1)[-1]}-Q{index}","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...最后明确选择X项","tags":["白名单标签"],"difficulty":{level}}},"calculation":{{"question_id":"...","correct":"只含数字和+-*/括号的算式","options":{{"A":0,"B":0,"C":0,"D":0}},"tolerance":0.001}}}}
 tags只能从以下白名单选：{json.dumps(TAGS, ensure_ascii=False)}。计算选项必须唯一匹配answer；解析、答案、计算清单一致；保留Gemini原始A-D顺序，不要改排。"""
 
+def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
+    slots = plan.get("slots") or []
+    return f"""你是独立的资料分析篇命题 Agent，只负责 {plan.get('id')} 这一篇和它的5道题。
+你看不到其他材料，也不得生成其他篇。材料和图表已经冻结，不能修改任何数字、单位、分类、口径或正文。
+材料：{material['content']}
+图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
+本篇五题槽位：{json.dumps(slots, ensure_ascii=False)}
+先输出 blueprint，列出每题考点、数据引用、计算链和错误路径，再输出 questions、calculations。
+五题各自主要考一个知识点，不得重复同一未知量或直接泄露另一题答案；应尽量覆盖查找/比较、增长率或增长量、比重/比例、平均数/贡献率/综合判断中的至少4类。第5题优先做综合判断，但必须使用至少两个数据关系，不能复述前面题目。
+每个选项都要有可解释的错误路径。图表篇必须真正使用图表数据。
+严格输出JSON：{{"blueprint":[{{"index":1,"tag":"白名单标签","skill":"...","calculation_plan":"...","trap":"..."}}],"questions":[{{"external_id":"{batch_id}-{plan.get('id')}-Q1","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...最后明确选择X项","tags":["白名单标签"],"difficulty":3}}],"calculations":[{{"question_id":"{batch_id}-{plan.get('id')}-Q1","correct":"只含数字和+-*/括号的算式","options":{{"A":0,"B":0,"C":0,"D":0}},"tolerance":0.001}}]}}
+questions和calculations必须各恰好5个，external_id按Q1-Q5连续。tags只能从以下白名单选择：{json.dumps(TAGS, ensure_ascii=False)}。不要输出Markdown。"""
+
+def question_repair_prompt(material: dict, plan: dict, question: dict, calculation: dict, error: str) -> str:
+    raw_id = str(question.get("external_id") or "")
+    index = raw_id.rsplit("-Q", 1)[-1]
+    slots = plan.get("slots") or []
+    slot = slots[int(index) - 1] if index.isdigit() and 0 < int(index) <= len(slots) else {}
+    return f"""只修复冻结材料中的第{index}题。不要改材料、不要改其他题、不要改变题号。
+材料：{material['content']}
+图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
+本题槽位：{json.dumps(slot, ensure_ascii=False)}
+原题：{json.dumps(question, ensure_ascii=False)}
+原验算：{json.dumps(calculation, ensure_ascii=False)}
+校验失败：{error}
+重新设计一个唯一答案、真正命中槽位、与本篇其他题不重复的题目。只输出{{"question":{{...}},"calculation":{{...}}}}。"""
+
 def render_material(material: dict, image_dir: Path) -> None:
     figure = material.pop("figure", None) or {}; kind = str(figure.get("kind") or "none")
     if kind == "none": return
@@ -102,6 +132,257 @@ def valid_material(result: dict) -> bool:
                         and all(type(value) in (int, float) and math.isfinite(value) for value in item["values"])
                         for item in series))
     return False
+
+def auto_slots(count: int, materials: int, difficulty: str) -> list[dict]:
+    """Give an unqualified paper a stable, broad knowledge-point rotation."""
+    result = []
+    for index in range(count):
+        group = index // max(1, math.ceil(count / materials))
+        tag = BALANCED_TAGS[(group * 5 + index % 5) % len(BALANCED_TAGS)]
+        result.append({"tag": tag, "count": 1, "difficulty": difficulty})
+    return result
+
+def valid_paper(result: dict, material: dict, plan: dict, batch_id: str) -> bool:
+    questions = result.get("questions") or []
+    calculations = result.get("calculations") or []
+    if len(questions) != plan.get("count") or len(calculations) != plan.get("count"):
+        return False
+    return all(isinstance(question, dict) for question in questions)
+
+def question_errors(question: dict, calculation: dict, material: dict, plan: dict,
+                    expected_id: str, slot: dict, sibling_questions: list[dict]) -> list[str]:
+    errors = []
+    if question.get("external_id") != expected_id:
+        errors.append(f"题号必须为 {expected_id}")
+    if question.get("material_id") != material.get("external_id"):
+        errors.append("material_id 必须指向冻结材料")
+    try:
+        validate_ai_primary_tag((question.get("tags") or [""])[0], "资料分析")
+    except (ValueError, IndexError):
+        errors.append("tags[0] 必须是有效的资料分析主标签")
+    if slot.get("tag") and (question.get("tags") or [""])[0] != slot["tag"]:
+        errors.append(f"必须命中指定知识点 {slot['tag']}")
+    options = question.get("options") or []
+    if len(options) != 4 or {str(o.get("key")) for o in options} != {"A", "B", "C", "D"}:
+        errors.append("必须恰有A-D四个选项")
+    elif len({str(o.get("text") or "") for o in options}) != 4:
+        errors.append("四个选项必须存在且互不重复")
+    if str(question.get("answer") or "") not in {"A", "B", "C", "D"}:
+        errors.append("answer必须是A-D之一")
+    signature = re.sub(r"\d+(?:\.\d+)?", "<n>", str(question.get("stem") or ""))
+    for sibling in sibling_questions:
+        other = re.sub(r"\d+(?:\.\d+)?", "<n>", str(sibling.get("stem") or ""))
+        if signature and signature == other:
+            errors.append("题干结构与本篇其他题重复")
+            break
+    try:
+        target = safe_eval(calculation.get("correct"))
+        values = {str(k): safe_eval(v) for k, v in (calculation.get("options") or {}).items()}
+        matches = [k for k, value in values.items() if equivalent(value, target, float(calculation.get("tolerance", 0.001)))]
+        if matches != [str(question.get("answer") or "")]:
+            errors.append(f"计算验算匹配 {matches}，但答案是 {question.get('answer')}")
+    except Exception as exc:
+        errors.append(f"计算式不可复算：{exc}")
+    return errors
+
+def paper_call(material: dict, plan: dict, batch_id: str) -> dict:
+    prompt = paper_prompt(material, plan, batch_id)
+    for attempt in range(3):
+        result = call(prompt + (f"\n这是第{attempt + 1}次修复：输出必须恰好{plan.get('count')}道题。" if attempt else ""), 12000)
+        if valid_paper(result, material, plan, batch_id):
+            return result
+    raise ValueError(f"篇级题目生成失败：{plan.get('id')}")
+
+def generate_paper_questions(material: dict, plan: dict, batch_id: str) -> tuple[list[dict], list[dict]]:
+    result = paper_call(material, plan, batch_id)
+    questions = list(result["questions"])
+    calculations = list(result["calculations"])
+    calc_by_id = {str(c.get("question_id")): c for c in calculations if isinstance(c, dict)}
+    for index, question in enumerate(questions, 1):
+        qid = f"{batch_id}-{plan['id']}-Q{index}"
+        calculation = calc_by_id.get(qid, {})
+        slots = plan.get("slots") or []
+        slot = slots[index - 1] if index <= len(slots) else {}
+        siblings = questions[:index - 1] + questions[index:]
+        errors = question_errors(question, calculation, material, plan, qid, slot, siblings)
+        for attempt in range(2):
+            if not errors:
+                break
+            repaired = call(question_repair_prompt(material, plan, question, calculation, "；".join(errors)), 6000)
+            question = repaired.get("question") or question
+            calculation = repaired.get("calculation") or calculation
+            questions[index - 1] = question
+            calc_by_id[qid] = calculation
+            errors = question_errors(question, calculation, material, plan, qid, slot, siblings)
+        if errors:
+            raise ValueError(f"{qid} 题级修复失败：{'；'.join(errors)}")
+    return questions, [calc_by_id[f"{batch_id}-{plan['id']}-Q{i}"] for i in range(1, len(questions) + 1)]
+
+
+def generate_material_questions(material: dict, plan: dict, batch_id: str) -> tuple[list[dict], list[dict]]:
+    if plan.get("count") == 5:
+        return generate_paper_questions(material, plan, batch_id)
+    jobs = [(material, plan, index) for index in range(1, plan["count"] + 1)]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(8, len(jobs))) as pool:
+        results = list(pool.map(
+            lambda job: call(
+                question_prompt(job[0], job[1], job[2], batch_id,
+                                job[1]["slots"][job[2] - 1] if job[1].get("slots") else None),
+                6000,
+            ),
+            jobs,
+        ))
+    return [result["question"] for result in results], [result["calculation"] for result in results]
+
+
+def failed_visual_material_ids(batch_dir: Path) -> set[str]:
+    evidence_path = batch_dir / "evidence" / "ziliao-visual-quality.json"
+    if not evidence_path.is_file():
+        return set()
+    try:
+        evidence = json.loads(evidence_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return set()
+    result = set()
+    for item in evidence.get("images") or []:
+        if str(item.get("verdict") or "").upper() == "PASS":
+            continue
+        stem = Path(str(item.get("path") or "")).stem
+        material_id = stem.rsplit("-", 1)[0].upper()
+        if re.fullmatch(r"M\d{2}", material_id):
+            result.add(material_id)
+    return result
+
+
+def retry_visual_materials(batch_dir: Path, frame: dict, plans: list[dict],
+                           target_ids: set[str], batch_id: str) -> bool:
+    if not target_ids:
+        return False
+    materials_path = batch_dir / "materials.json"
+    questions_path = batch_dir / "questions.json"
+    calculations_path = batch_dir / "calculations.json"
+    materials = json.loads(materials_path.read_text())
+    questions = json.loads(questions_path.read_text())
+    raw_calculations = json.loads(calculations_path.read_text())
+    calculations = raw_calculations.get("questions") if isinstance(raw_calculations, dict) else raw_calculations
+    calculations = calculations if isinstance(calculations, list) else []
+    material_by_id = {str(item.get("external_id")): item for item in materials}
+    plan_by_id = {str(plan.get("id")): plan for plan in plans}
+    question_by_id = {str(item.get("external_id")): item for item in questions}
+    calculation_by_id = {str(item.get("question_id")): item for item in calculations}
+    image_dir = batch_dir / "images"
+    changed = False
+    for short_id in sorted(target_ids):
+        plan = plan_by_id.get(short_id)
+        if not plan:
+            continue
+        new_result = material_call(frame, plan, batch_id)
+        new_material = new_result["material"]
+        render_material(new_material, image_dir)
+        old_material = next((item for item in materials if str(item.get("external_id", "")).endswith(f"-{short_id}")), None)
+        if old_material is None:
+            continue
+        material_index = materials.index(old_material)
+        materials[material_index] = new_material
+        new_questions, new_calculations = generate_material_questions(new_material, plan, batch_id)
+        for index, question in enumerate(new_questions, 1):
+            slot = (plan.get("slots") or [])[index - 1] if index <= len(plan.get("slots") or []) else {}
+            question["category"] = "资料分析"
+            question["difficulty"] = {"easy": 2, "mid": 3, "hard": 4}[slot.get("difficulty") or plan.get("difficulty") or "mid"]
+            question_by_id[str(question.get("external_id"))] = question
+        for calculation in new_calculations:
+            calculation_by_id[str(calculation.get("question_id"))] = calculation
+        changed = True
+    if not changed:
+        return False
+    for index, question in enumerate(questions):
+        replacement = question_by_id.get(str(question.get("external_id")))
+        if replacement is not None:
+            questions[index] = replacement
+    materials_path.write_text(json.dumps(materials, ensure_ascii=False, indent=2))
+    questions_path.write_text(json.dumps(questions, ensure_ascii=False, indent=2))
+    calculations_path.write_text(json.dumps({"questions": list(calculation_by_id.values())}, ensure_ascii=False, indent=2))
+    return True
+
+def gate_repair_targets(batch_dir: Path) -> dict[str, str]:
+    evidence_path = batch_dir / "evidence" / "system-quality.json"
+    if not evidence_path.is_file():
+        return {}
+    try:
+        evidence = json.loads(evidence_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    targets = {}
+    for item in evidence.get("results") or []:
+        if str(item.get("verdict") or "").upper() == "PASS":
+            continue
+        qid = str(item.get("question_id") or "")
+        if not qid:
+            continue
+        issues = []
+        for key in ("correctness", "quality"):
+            section = item.get(key) or {}
+            issues.extend(str(value) for value in section.get("issues") or [])
+            review = section.get("review") or {}
+            issues.extend(str(value) for value in review.get("issues") or [])
+        targets[qid] = "；".join(issues) or "质量门拒绝该题"
+    batch = evidence.get("batch_quality", {}).get("review", {})
+    for group in batch.get("duplicate_groups") or []:
+        for qid in list(group)[1:]:
+            targets.setdefault(str(qid), "与同篇其他题重复或泄题")
+    return targets
+
+def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[dict],
+                          questions: list[dict], calculations: list[dict], batch_id: str) -> bool:
+    targets = gate_repair_targets(batch_dir)
+    if not targets:
+        return False
+    material_by_id = {str(material.get("external_id")): material for material in materials}
+    plan_by_id = {str(plan.get("id")): plan for plan in plans}
+    calc_by_id = {str(item.get("question_id")): item for item in calculations}
+    changed = False
+    for qid, error in targets.items():
+        question = next((item for item in questions if str(item.get("external_id")) == qid), None)
+        if not question:
+            continue
+        material = material_by_id.get(str(question.get("material_id")))
+        plan_id = str(question.get("material_id") or "").rsplit("-", 1)[-1]
+        plan = plan_by_id.get(plan_id)
+        calculation = calc_by_id.get(qid, {})
+        if not material or not plan:
+            continue
+        position = questions.index(question)
+        candidate_question, candidate_calculation = question, calculation
+        for attempt in range(2):
+            repaired = call(question_repair_prompt(
+                material, plan, candidate_question, candidate_calculation,
+                error + ("；上一次回炉仍未通过本地计算校验，请重新核对答案字母与 options 数值" if attempt else ""),
+            ), 6000)
+            next_question = repaired.get("question")
+            next_calculation = repaired.get("calculation")
+            if not isinstance(next_question, dict) or not isinstance(next_calculation, dict):
+                continue
+            next_question["external_id"] = qid
+            next_question["material_id"] = material["external_id"]
+            next_calculation["question_id"] = qid
+            slot = (plan.get("slots") or [])[int(qid.rsplit("-Q", 1)[-1]) - 1]
+            errors = question_errors(
+                next_question, next_calculation, material, plan, qid, slot,
+                questions[:position] + questions[position + 1:],
+            )
+            if not errors:
+                candidate_question, candidate_calculation = next_question, next_calculation
+                break
+            candidate_question, candidate_calculation = next_question, next_calculation
+        else:
+            continue
+        questions[position] = candidate_question
+        calc_by_id[qid] = candidate_calculation
+        changed = True
+    if changed:
+        (batch_dir / "questions.json").write_text(json.dumps(questions, ensure_ascii=False, indent=2))
+        (batch_dir / "calculations.json").write_text(json.dumps({"questions": list(calc_by_id.values())}, ensure_ascii=False, indent=2))
+    return changed
 
 def material_call(frame: dict, item: dict, batch_id: str) -> dict:
     prompt = material_prompt(frame, item, batch_id)
@@ -139,13 +420,16 @@ def parse_args(argv=None):
     n = args.materials if args.materials is not None else math.ceil(count / 5)
     if not 1 <= count <= 20 or not 1 <= n <= 4 or not n <= count <= n * 5:
         parser.error("题量须1–20，每篇1–5题，材料须1–4篇")
-    formats = args.formats.split(',') if args.formats else ["chart", "table", "text", "text"][:n]
+    formats = args.formats.split(',') if args.formats else ["chart", "table", "text", "chart"][:n]
     if len(formats) != n or any(f not in {"text", "table", "chart"} for f in formats):
         parser.error("--formats 须与材料篇数一致，仅允许 text/table/chart")
     args.batch_id = args.batch_id or f"{dt.date.today():%Y%m%d}_hermes_ziliao_{uuid.uuid4().hex[:8]}"
     if not re.fullmatch(r"[\w-]{1,160}", args.batch_id):
         parser.error("batch-id 只能包含字母、数字、汉字、下划线和连字符")
-    args.total, args.slots, args.formats = count, slots, formats
+    targeted = bool(slots) or count != 20
+    if not slots:
+        slots = auto_slots(count, n, args.difficulty)
+    args.total, args.slots, args.formats, args.targeted = count, slots, formats, targeted
     return args
 
 
@@ -189,8 +473,12 @@ def main(argv=None) -> int:
             raise ValueError("材料 ID 与冻结框架不一致")
         render_material(material,image_dir)
     jobs=[(material,plan,index) for material,plan in zip(materials,frame["materials"]) for index in range(1,plan["count"]+1)]; t=time.monotonic()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool: results=list(pool.map(lambda job:call(question_prompt(job[0],job[1],job[2],batch_id,job[1]["slots"][job[2]-1] if job[1]["slots"] else None),6000),jobs))
-    marks["questions_seconds_wall"]=round(time.monotonic()-t,2); questions=[r["question"] for r in results]; calculations=[r["calculation"] for r in results]
+    # Each material owns its own question context; retries use the same boundary.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(materials)) as pool:
+        packed = list(pool.map(lambda pair: generate_material_questions(pair[0], pair[1], batch_id), zip(materials, frame["materials"])))
+    questions = [question for pair in packed for question in pair[0]]
+    calculations = [calculation for pair in packed for calculation in pair[1]]
+    marks["questions_seconds_wall"] = round(time.monotonic() - t, 2)
     for position, (question, calculation, job) in enumerate(zip(questions, calculations, jobs)):
         material, plan, index = job
         qid = f"{batch_id}-{plan['id']}-Q{index}"
@@ -202,17 +490,45 @@ def main(argv=None) -> int:
         question["category"] = "资料分析"
         question["difficulty"] = {"easy":2,"mid":3,"hard":4}[(per_item[position].get("difficulty") if per_item else None) or args.difficulty]
     constraints = {"all_original":True,"question_count":args.total,"difficulty_tier":args.difficulty,
-                   "answer_distribution":"unconstrained","targeted_drill":bool(args.slots) or args.total != 20,
+                   "answer_distribution":"unconstrained","targeted_drill":args.targeted,
                    "slot_plan":args.slots}
+    if args.targeted:
+        constraints.update(answer_max_per_letter=args.total, answer_min_letters=1)
     if per_item: constraints["tag_counts"] = dict(Counter(s["tag"] for s in per_item))
-    topic = args.slots[0]["tag"].split('-',1)[1] if args.slots else "综合训练"
+    topic = args.slots[0]["tag"].split('-',1)[1] if args.targeted else "综合训练"
     manifest={"batch_id":batch_id,"source":f"广东省考行测-资料分析-{topic}-{args.difficulty}-{today.replace('-','')}","region":"广东-模拟","year":int(today[:4]),"license":"仅用于学习与题库内部评测","created_at":today,"kind":"ai-generated","difficulty_tier":args.difficulty,"generation":{"style_marker":"GONGKAO-STYLE-v2-split","batch_constraints":constraints,"kaofa_canon":run.get("kaofa_canon",{}),"evaluation_contexts":[]}}
     for name,data in [("framework.json",frame),("manifest.json",manifest),("materials.json",materials),("questions.json",questions),("calculations.json",{"questions":calculations})]: (out/name).write_text(json.dumps(data,ensure_ascii=False,indent=2))
     env = {**os.environ, "EXAM_DB": str(args.db)}
-    marks["question_count"]=len(questions); t=time.monotonic(); gate=subprocess.run(["python3","scripts/generation_gate.py","issue",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["gate_seconds"]=round(time.monotonic()-t,2)
+    marks["question_count"] = len(questions)
+    t = time.monotonic()
+    gate = None
+    retry_log = []
+    for gate_attempt in range(1, GATE_ATTEMPTS + 1):
+        gate = subprocess.run(["python3", "scripts/generation_gate.py", "issue", str(out)], cwd=ROOT, env=env, text=True, capture_output=True)
+        if gate.returncode == 0:
+            break
+        # The gate normalizes files before checking them; always use its latest files.
+        materials = json.loads((out / "materials.json").read_text())
+        questions = json.loads((out / "questions.json").read_text())
+        calculation_payload = json.loads((out / "calculations.json").read_text())
+        calculations = calculation_payload.get("questions", calculation_payload) if isinstance(calculation_payload, dict) else calculation_payload
+        visual_ids = failed_visual_material_ids(out)
+        if visual_ids and gate_attempt < GATE_ATTEMPTS:
+            retry_log.append({"attempt": gate_attempt, "kind": "visual-material", "materials": sorted(visual_ids)})
+            if retry_visual_materials(out, frame, frame["materials"], visual_ids, batch_id):
+                continue
+        if gate_attempt < GATE_ATTEMPTS and repair_gate_questions(out, materials, frame["materials"], questions, calculations, batch_id):
+            retry_log.append({"attempt": gate_attempt, "kind": "question-repair"})
+            continue
+        break
+    marks["gate_seconds"] = round(time.monotonic() - t, 2)
+    marks["gate_attempts"] = gate_attempt
+    marks["gate_retries"] = retry_log
     if gate.returncode:
         marks["gate_error"]=(gate.stdout or gate.stderr)[-6000:]; marks["total_seconds"]=round(time.monotonic()-started,2); (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2)); print(gate.stdout or gate.stderr); return gate.returncode
     if args.no_import:
+        marks["total_seconds"] = round(time.monotonic() - started, 2)
+        (out / "timing.json").write_text(json.dumps(marks, ensure_ascii=False, indent=2))
         print(json.dumps({"status":"success","batch_id":batch_id,"imported":0,"batch_dir":str(out),"message":"质检通过，未入库"},ensure_ascii=False))
         return 0
     t=time.monotonic(); imp=subprocess.run(["node","scripts/import-batch.mjs",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["import_seconds"]=round(time.monotonic()-t,2); marks["total_seconds"]=round(time.monotonic()-started,2); marks["import_output"]=imp.stdout[-3000:]; (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2))

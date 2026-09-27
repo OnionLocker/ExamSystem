@@ -19,7 +19,7 @@ from PIL import Image
 
 
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("ZILIAO_VISUAL_REVIEW_MODEL", "gemini-3.7-flash-high")
+MODEL = "gemini-3.8-flash-high"
 # The target practice layout is iPad split view; 320px makes legitimate
 # multi-column exam tables unreadable and is not the user's display target.
 MOBILE_WIDTH = 768

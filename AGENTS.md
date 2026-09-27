@@ -82,7 +82,7 @@ python3 scripts/learner_snapshot.py --compact
 
 不要直接查询数据库，不要读取 CSV，不要自己拼接数据。快照已经包含所有必要信息。
 
-以上限制针对学员状态查询。政治/常识出题所需公共资料按 `quiz-pipeline/references/politics-common-workflow.md` 执行：允许联网检索权威原文，运行 `scripts/policy_sources.py status/add/refresh/discover`，读取 `data/manual-policy-sources/` 的已核验原文及候选，写入该目录的资料登记；允许按 quiz-pipeline 调用已批准的出题脚本。执行这些脚本不等于修改系统源码。不得凭搜索摘要或模型记忆编造资料。
+以上限制针对学员状态查询。政治/常识出题所需公共资料按 `quiz-pipeline/references/politics-common-workflow.md` 执行：允许联网检索权威原文，运行 `scripts/policy_sources.py status/show/inspect/add/refresh/discover/review-updates`，读取 `data/manual-policy-sources/` 的已核验原文及候选，写入该目录的资料登记；允许按 quiz-pipeline 调用已批准的出题脚本。执行这些脚本不等于修改系统源码。不得凭搜索摘要或模型记忆编造资料。
 
 ### 工具失败处理
 

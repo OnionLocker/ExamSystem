@@ -45,6 +45,17 @@ def nice_max(value: float) -> float:
     return 10 * mag
 
 
+def nice_step(value: float) -> float:
+    """Choose a readable tick interval for four grid divisions."""
+    if value <= 0:
+        return 1
+    mag = 10 ** math.floor(math.log10(value))
+    for step in (1, 1.2, 1.5, 2, 2.5, 3, 5, 10):
+        if step * mag >= value:
+            return step * mag
+    return 10 * mag
+
+
 def render_table(
     title: str,
     headers: list[str],
@@ -141,45 +152,54 @@ def render_bars(
         draw.text(((width - tw) // 2, 12 + index * 30), title_line, fill=INK, font=face_title)
 
     values = [v for _, vals in series for v in vals]
-    vmax = nice_max(max(values) * 1.08) if values else 1
+    raw_min = min(values) if values else 0
+    raw_max = max(values) if values else 1
+    raw_span = max(raw_max - raw_min, 1)
+    step = nice_step(raw_span / 4)
+    axis_min = math.floor(min(0, raw_min) / step) * step
+    axis_max = math.ceil(max(0, raw_max) / step) * step
+    if axis_min == axis_max:
+        axis_max = axis_min + step * 4
+    span = axis_max - axis_min
     n_cat = max(len(categories), 1)
     n_ser = max(len(series), 1)
     group_w = plot_w / n_cat
     bar_w = group_w * 0.62 / n_ser
-    origin_y = top + plot_h
+    origin_y = top + plot_h * axis_max / span
 
     draw.line((left, top, left, origin_y), fill=LINE, width=2)
     draw.line((left, origin_y, left + plot_w, origin_y), fill=LINE, width=2)
-    for i in range(1, 5):
-        val = vmax * i / 4
-        yy = origin_y - plot_h * i / 4
+    tick_count = max(1, round(span / step))
+    for i in range(tick_count + 1):
+        val = axis_min + step * i
+        yy = top + plot_h - plot_h * i / tick_count
         draw.line((left, yy, left + plot_w, yy), fill=RULE, width=1)
-        label = f"{val:.0f}" if val >= 10 else f"{val:.1f}"
+        label = f"{val:g}" if float(val).is_integer() else f"{val:.1f}"
         lw, lh = measure(draw, label, face)
         draw.text((left - lw - 8, yy - lh // 2), label, fill=INK, font=face)
     if ylabel:
         _, yh = measure(draw, ylabel, face)
         draw.text((left, top - yh - 8), ylabel, fill=INK, font=face)
 
-    value_labels: list[tuple[float, float, str]] = []
+    value_labels: list[tuple[float, float, float, str, bool]] = []
     for ci, category in enumerate(categories):
         gx = left + group_w * ci + group_w * 0.19
         for si, (_, vals) in enumerate(series):
             val = vals[ci] if ci < len(vals) else 0
-            h = plot_h * (val / vmax)
+            value_y = origin_y - plot_h * val / span
             x0 = gx + si * bar_w
-            y0 = origin_y - h
             x1 = x0 + bar_w - 3
-            draw.rectangle((x0, y0, x1, origin_y), fill=BAR_FILLS[si % 3], outline=INK)
-            value_labels.append(((x0 + x1) / 2, y0 if h >= 14 else origin_y - 4 - si * 14, f"{val:g}"))
+            y0, y1 = sorted((origin_y, value_y))
+            draw.rectangle((x0, y0, x1, y1), fill=BAR_FILLS[si % 3], outline=INK)
+            value_labels.append(((x0 + x1) / 2, y0, y1, f"{val:g}", val >= 0))
         cw, _ = measure(draw, category, face)
-        draw.text((left + group_w * ci + (group_w - cw) / 2, origin_y + 10), category, fill=INK, font=face)
+        draw.text((left + group_w * ci + (group_w - cw) / 2, top + plot_h + 10), category, fill=INK, font=face)
 
     # Draw value labels last so bars cannot cover them. A solid backing masks grid
     # lines, and a fixed gap keeps glyphs clear of each bar top after scaling.
     placed: list[tuple[int, int, int, int]] = []
-    for center_x, bar_top, label in value_labels:
-        label_y = bar_top - 6
+    for center_x, bar_top, bar_bottom, label, positive in value_labels:
+        label_y = bar_top - 6 if positive else bar_bottom + 18
         bbox = draw.textbbox((center_x, label_y), label, font=face_value, anchor="mb")
         while any(not (bbox[2] < box[0] or bbox[0] > box[2] or bbox[3] < box[1] or bbox[1] > box[3]) for box in placed):
             label_y -= bbox[3] - bbox[1] + 4

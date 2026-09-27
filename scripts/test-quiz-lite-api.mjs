@@ -20,7 +20,6 @@ childProcess.execFile = (file, args, options, callback) => {
   const value = flag => args[args.indexOf(flag) + 1];
   assert.equal(args.includes('--output'), false);
   assert.equal(value('--db'), process.env.EXAM_DB);
-  assert.equal(value('--difficulty'), 'mid');
   assert.equal(value('--count'), '2');
   assert.ok(options.timeout > 60000);
   generated += 1;
@@ -45,7 +44,8 @@ try {
   const url = `http://127.0.0.1:${server.address().port}/api/practice/quiz/lite`;
   const post = body => fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const base = { module: '数量关系', tag: '数量关系-数学运算-最值问题', count: 2 };
-  for (const invalid of [{ count: 20 }, { count: 2.5 }, { difficulty: 'unknown' }, { tag: [] }]) {
+  for (const invalid of [{ count: 20 }, { count: 2.5 }, { difficulty: 'unknown' },
+    { difficulty: null }, { tag: [] }]) {
     assert.equal((await post({ ...base, ...invalid })).status, 400);
   }
   assert.equal(generated, 0);
@@ -54,10 +54,15 @@ try {
   const result = await response.json();
   assert.equal(result.count, 2);
   assert.equal(generated, 1);
+  assert.equal(lastArgs.includes('--difficulty'), false);
   const session = db.prepare('SELECT * FROM practice_sessions WHERE id=?').get(result.sessionId);
   assert.equal(session.category, result.category);
   assert.equal(session.assessment_baseline, '{}');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM questions WHERE batch_id=?').get(result.category).n, 2);
+  for (const difficulty of ['easy', 'mid', 'hard', 'auto']) {
+    assert.equal((await post({ ...base, difficulty })).status, 200);
+    assert.equal(lastArgs[lastArgs.indexOf('--difficulty') + 1], difficulty);
+  }
   for (const invalid of [{ question_type: 'multi' }, { sources: ['bad/source'] }, { as_of: '2026-02-31' }]) {
     assert.equal((await post({ ...base, ...invalid })).status, 400);
   }
@@ -65,9 +70,12 @@ try {
     sources: ['gd-science-literacy-2026'], as_of: '2026-09-24' });
   assert.equal(political.status, 200);
   assert.equal(lastArgs.includes('--tag'), false);
+  assert.equal(lastArgs.includes('--difficulty'), false);
   assert.equal(lastArgs[lastArgs.indexOf('--sources') + 1], 'gd-science-literacy-2026');
   assert.equal(lastArgs[lastArgs.indexOf('--question-type') + 1], 'multi');
-  assert.equal(generated, 2);
+  assert.equal(generated, 6);
+  assert.equal((await post({ module: '判断推理', tag: '判断推理-逻辑判断-翻译推理', count: 2, difficulty: 'auto' })).status, 200);
+  assert.equal(lastArgs[lastArgs.indexOf('--difficulty') + 1], 'auto');
   console.log('quiz lite API: ok');
 } finally {
   await new Promise(resolve => server.close(resolve));

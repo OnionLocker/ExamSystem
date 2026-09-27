@@ -4,12 +4,17 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import tree from '../src/knowledge/fenbiTree.json' with { type: 'json' };
 import { XINGCE } from '../src/knowledge/canon.js';
+import { relatedRows } from '../src/knowledge/match.js';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const cards = new Map(XINGCE.modules.flatMap(m => m.types || []).map(c => [c.id, c]));
 export const topics = tree.modules.flatMap(m => m.children.flatMap(g => g.children.map(l => ({
   tag: `${m.name}-${g.name}-${l.name}`, title: l.name, moduleId: m.id, cards: l.cards || [],
 }))));
+const cardOwners = new Map();
+for (const topic of topics) for (const id of new Set(topic.cards)) {
+  cardOwners.set(id, (cardOwners.get(id) || 0) + 1);
+}
 const fail = (message, status = 400) => { throw Object.assign(new Error(message), { status }); };
 const text = (value, name, max) => {
   if (typeof value !== 'string' || !value.trim() || value.length > max) fail(`${name}须为非空文本，最多 ${max} 字符`);
@@ -28,7 +33,9 @@ export function initialTopic(tag) {
   }
   return { tag, revision: 0, nodes: [
     { id: 'overview', parentId: null, title: topic.title, order: 0, summary: '先选考法，再看步骤、公式和易错点。', markdown: '', aliases: [tag], archived: false },
-    ...topic.cards.map(id => cards.get(id)).filter(Boolean).map((c, order) => ({
+    ...topic.cards
+      .filter(id => cardOwners.get(id) === 1)
+      .map(id => cards.get(id)).filter(Boolean).map((c, order) => ({
       id: c.id, parentId: 'overview', title: c.name.replace(/^\d+\s*/, ''), order,
       summary: c.how || '', markdown: cardMarkdown(c), aliases: [], archived: false,
     })),
@@ -49,7 +56,7 @@ function labelPath(doc, node) {
 }
 
 // Separate content database: this module never opens the learner's exam.db.
-export function openKnowledgeStore(filename = resolve(ROOT, 'data/knowledge-content.db')) {
+export function openKnowledgeStore(filename = process.env.EXAM_KNOWLEDGE_DB || resolve(ROOT, 'data/knowledge-content.db')) {
   if (filename !== ':memory:') mkdirSync(dirname(filename), { recursive: true });
   const db = new Database(filename);
   db.pragma('journal_mode = WAL');
@@ -65,6 +72,36 @@ export function openKnowledgeStore(filename = resolve(ROOT, 'data/knowledge-cont
     const doc = get(t.tag);
     return { tag: t.tag, moduleId: t.moduleId, revision: doc.revision,
       nodes: visibleNodes(doc).map(({ id, parentId, title, order, aliases }) => ({ id, parentId, title, order, aliases })) };
+  });
+  // Use the same nodes the learner sees; IDs survive display renames and moves.
+  const catalog = (tag) => topics.filter(t => !tag || t.tag === tag || t.tag.startsWith(`${tag}-`)).map(t => {
+    const doc = get(t.tag);
+    const visible = new Set(visibleNodes(doc).map(n => n.id));
+    return { tag: t.tag, revision: doc.revision, nodes: doc.nodes.map(n => {
+      const card = cards.get(n.id);
+      const historical = card ? relatedRows(card, Object.entries(tree.legacyAliases || {})
+        .map(([kaodian, canonical]) => ({ kaodian, canonical }))
+        .filter(r => r.canonical === t.tag || r.canonical.startsWith(`${t.tag}-`))) : [];
+      const aliases = [...new Set([...(n.aliases || []), labelPath(doc, n),
+        ...historical.flatMap(r => [r.kaodian, r.canonical])])]
+        .filter(a => a !== t.tag);
+      const referenceOnly = Boolean(card && n.summary === (card.how || '') && n.markdown === cardMarkdown(card)
+        && !historical.some(r => r.canonical.startsWith(`${t.tag}-`)));
+      const ownReferences = t.tag.startsWith('数量关系-') && n.id === 'overview'
+        && n.summary === '先选考法，再看步骤、公式和易错点。' && !n.markdown
+        ? doc.nodes.filter(child => {
+          const ownCard = cards.get(child.id);
+          return child.parentId === 'overview' && visible.has(child.id) && t.cards.includes(child.id)
+            && cardOwners.get(child.id) === 1
+            && ownCard && child.summary === (ownCard.how || '') && child.markdown === cardMarkdown(ownCard);
+        }).map(child => child.markdown)
+        : [];
+      return { tag: nodeTag(t.tag, n), parentTag: n.parentId
+        ? nodeTag(t.tag, doc.nodes.find(p => p.id === n.parentId)) : t.tag.split('-').slice(0, 2).join('-'),
+      title: n.title, aliases, order: n.order, archived: !visible.has(n.id), referenceOnly,
+      definition: [`范围：${t.tag}；当前考点：${n.title}。只考本节点定义，不能因共用讲解卡扩展到其他父级。`,
+        n.summary, n.markdown, ...ownReferences].filter(Boolean).join('\n\n') };
+    }) };
   });
   const mutate = db.transaction((tag, input) => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) fail('请求必须是对象');
@@ -117,5 +154,5 @@ export function openKnowledgeStore(filename = resolve(ROOT, 'data/knowledge-cont
     db.prepare('INSERT INTO topics(tag, document) VALUES (?, ?) ON CONFLICT(tag) DO UPDATE SET document=excluded.document').run(tag, JSON.stringify(doc));
     return { ...doc, nodes: visibleNodes(doc), changed: { id, op, linkTag: nodeTag(tag, node), evidenceChanged: false } };
   });
-  return { get, index, mutate: (tag, input) => mutate.immediate(tag, input), close: () => db.close() };
+  return { get, index, catalog, mutate: (tag, input) => mutate.immediate(tag, input), close: () => db.close() };
 }

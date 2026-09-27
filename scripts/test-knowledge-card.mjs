@@ -1,8 +1,26 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
+import { XINGCE } from '../src/knowledge/canon.js';
+import treeData from '../src/knowledge/fenbiTree.json' with { type: 'json' };
 import { cardRow, relatedRows } from '../src/knowledge/match.js';
 import { cardToMarkdown, decorateMath } from '../src/knowledge/cardMarkdown.js';
 import { findFenbiTarget, leftoverRows, mergeFenbiTree, parseFenbiTag, rollupScores, rowsForTag } from '../src/knowledge/fenbiTree.js';
+
+// Both the displayed cards and the fallback solver notes must avoid fixed causal rankings.
+const logicGuides = [
+  ...XINGCE.modules.find(m => m.id === 'panduan').types
+    .filter(c => ['lp-weaken', 'lp-support-premise'].includes(c.id)).map(cardToMarkdown),
+  readFileSync(new URL('../hermes-skills/gd-gongkao-coach/references/solver-canon/05-panduan.md', import.meta.url), 'utf8'),
+];
+for (const guide of logicGuides) {
+  assert.doesNotMatch(guide, /削弱力度梯队|加强力度梯队|因果倒置\s*>|搭桥法\s*>|解释说明\s*>|反驳论据力度弱于/);
+  assert.match(guide, /论点、证据.*作用范围/);
+}
+assert.match(logicGuides[0], /往往不等于全部/);
+assert.match(logicGuides[0], /存在混杂.*不等于证明.*没有因果作用/);
+assert.match(logicGuides[2], /往往不等于全部/);
+assert.match(logicGuides[2], /存在混杂.*不等于证明.*没有因果作用/);
 
 assert.equal(
   decorateMath('平方差：a^2 - b^2 = (a + b)(a - b)'),
@@ -78,6 +96,15 @@ const tree = mergeFenbiTree(
 );
 const shuliang = tree.find((mod) => mod.id === 'shuliang');
 const math = shuliang.children.find((g) => g.name === '数学运算');
+const cycle = math.children.find((leaf) => leaf.name === '周期问题');
+const weekday = math.children.find((leaf) => leaf.name === '星期日期问题');
+assert.deepEqual(cycle.cards, ['cycle-schedule-lcm']);
+assert.deepEqual(weekday.cards, ['cycle-calendar-date']);
+assert.notEqual(cycle.cards[0], weekday.cards[0]);
+const canonMath = treeData.modules.find((mod) => mod.id === 'shuliang').children
+  .find((group) => group.name === '数学运算');
+assert.equal(canonMath.children.find((leaf) => leaf.name === '周期问题').cards[0], 'cycle-schedule-lcm');
+assert.equal(canonMath.children.find((leaf) => leaf.name === '星期日期问题').cards[0], 'cycle-calendar-date');
 const perm = math.children.find((leaf) => leaf.name === '排列组合问题');
 const avg = math.children.find((leaf) => leaf.name === '平均数问题');
 assert.equal(perm.score, 62);
@@ -170,7 +197,7 @@ assert.equal(leftovers.length, 1);
 assert.equal(leftovers[0].kaodian, '资料分析-ABRX类-基期量计算与比较');
 
 const jumped = findFenbiTarget('数量关系-既烧脑又能套公式的最值问题-最不利原则与抽屉');
-assert.equal(jumped.tag, '数量关系-数学运算-最值问题');
+assert.equal(jumped.tag, '数量关系-数学运算-最值问题-最不利原则与抽屉');
 assert.equal(jumped.moduleId, 'shuliang');
 
 console.log('knowledge card markdown: ok');

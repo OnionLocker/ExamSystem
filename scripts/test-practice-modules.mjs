@@ -42,6 +42,25 @@ assert.equal(moduleOf(collected), '图形题目');
 assert.equal(dailyDateOf(collected), '2026-09-10');
 assert.equal(nameOf(collected), '广东省考行测-图形题目-20260910');
 
+const targeted = {
+  batch_id: '20260925_hermes_paizu_all_01', module: '数量关系',
+  daily_plan_date: '2026-09-25',
+  source: '广东省考行测-数量关系-排列组合问题综合-自主难度-20260925',
+};
+assert.equal(nameOf(targeted), '广东省考行测-数量关系-排列组合问题-综合-20260925');
+assert.equal(nameOf({ ...targeted, source: '广东省考行测-数量关系-排列组合问题-位置限制与排队-mid-20260925' }),
+  '广东省考行测-数量关系-排列组合问题-位置限制与排队-中等-20260925');
+assert.equal(nameOf({ ...targeted, source: '广东省考行测-数量关系-排列组合问题-位置限制与排队-20260925' }),
+  '广东省考行测-数量关系-排列组合问题-位置限制与排队-综合-20260925');
+for (const [tier, label] of Object.entries({ easy: '简单', mid: '中等', hard: '困难', ladder: '综合', auto: '综合' })) {
+  assert.equal(nameOf({ ...targeted, source: `广东省考行测-数量关系-排列组合问题-${tier}-20260925` }),
+    `广东省考行测-数量关系-排列组合问题-${label}-20260925`);
+  const source = `广东省考行测-数量关系-排列组合问题-位置限制与排队-${label}-20260925`;
+  assert.equal(nameOf({ ...targeted, source }), source);
+}
+assert.equal(nameOf({ ...targeted, batch_id: 'daily-20260925-shuliang-123' }),
+  '广东省考行测-数量关系-20260925');
+
 assert.equal(
   moduleOf({
     category: '判断推理',

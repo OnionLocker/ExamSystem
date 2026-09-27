@@ -32,7 +32,7 @@ from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper,
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("QUALITY_GATE_MODEL", "gemini-3.7-flash-high")
+MODEL = "gemini-3.8-flash-high"
 MOBILE_WIDTH = 320
 RETRIES = 2
 
@@ -92,7 +92,9 @@ For targeted_drill batches, do not require the 5-subject quota; every science it
 For all targeted_drill batches, slot_plan controls the requested topics, counts, difficulty and brief.
 Check every brief, including batch-wide quotas, against the actual questions and kaofa_canon.
 A data-analysis targeted drill may contain 1-20 questions and 1-4 materials; do not impose a comprehensive Q5 when slots request a specific method.
-type_distribution_ok is false if that layout is missing."""
+type_distribution_ok is false if that layout is missing. For a targeted data-analysis drill,
+type_distribution_ok must be true when every item is a valid single-choice data-analysis item;
+do not invent a requirement for a comprehensive-judgment Q5."""
 
 REFERENCE_SYSTEM = """You are a strict reference-relevance auditor. For every generated question,
 read its exact stem/tag and every mapped evaluation reference.

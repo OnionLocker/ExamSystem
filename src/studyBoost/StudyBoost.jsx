@@ -1,5 +1,5 @@
-import { useCallback, useState, useMemo } from 'react';
-import { BookOpen, Search, CheckCircle2, ArrowRight, ChevronDown, Trophy, XCircle, Target } from 'lucide-react';
+import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
+import { BookOpen, Search, CheckCircle2, ArrowRight, Trophy, XCircle, Target, X } from 'lucide-react';
 import { cloudGet, cloudSet } from '../cloudStorage.js';
 import { addEntry } from '../studyLog/studyLog.js';
 import {
@@ -13,10 +13,14 @@ import {
   kindAvailability,
   pickNextTarget,
   summarizeProgress,
+  shuffle,
+  searchWords,
+  normalizeWordSearch,
 } from './vocabQuiz.js';
 import { IDIOM_GROUPS } from './idiomGroups.js';
 import { LEARNING_KEY, groupQuestion, groupProgress, learningState, recordAnswer, mergeLegacyStats } from './idiomLearning.js';
 import idiomEvidence from './idiomEvidence.json';
+import idiomHandout from './idiomHandout.json';
 import './idiomStudy.css';
 
 const MASTERED_KEY = 'vocab_mastered_ids_v1';
@@ -25,24 +29,88 @@ const MASTERED_KEY = 'vocab_mastered_ids_v1';
 const ZHENTI_CAT = '__zhenti';
 const GD_CAT = '__gd';
 const CURATED_CAT = '__curated';
+const HANDOUT_CAT = '__handout';
 const GROUPED_WORDS = new Set(IDIOM_GROUPS.flatMap(g => g.members.map(m => m[0])));
 const zhentiHits = (w) => w.references?.length || 0;
 const STATS_KEY = 'vocab_stats_v1';
 const KINDS_KEY = 'vocab_enabled_kinds_v1';
 
 function WordSources({ word }) {
-  if (!word?.references?.length && !word?.publicSources?.length) return null;
+  if (!word?.references?.length && !word?.publicSources?.length && !word?.handoutPage) return null;
   return <details className="idiom-source">
     <summary className="cursor-pointer">查看来源{word.references?.length ? ` · ${word.references.length} 条选项记录` : ''}</summary>
     <ul className="mt-2 space-y-1 leading-relaxed">
+      {word.handoutPage && <li>《{idiomHandout.title}》第 {word.handoutPage} 页 · 用户提供的学习讲义</li>}
       {word.references?.map((r, i) => <li key={i}>{r.paper} · 第 {r.number} 题{r.recalled && !r.paper.includes('回忆') ? '（回忆版）' : ''}</li>)}
       {word.publicSources?.map(s => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer" className="underline hover:text-slate-900">{s.title}</a>（选词参考）</li>)}
     </ul>
   </details>;
 }
 
+function WordDetails({ item }) {
+  const rivals = [...new Set([...(item.rivals || []), ...(item.rivals_weak || [])])].filter(r => r !== item.word);
+  return <div className="space-y-3 text-sm leading-relaxed">
+    {item.trap && <p className="idiom-key">注意：{item.trap}</p>}
+    {item.examples?.map((e, i) => <p className="idiom-example" key={i}>例：{e}</p>)}
+    {!item.examples?.length && item.cloze?.map((e, i) => <p key={i}>例：{e.replace(/____/g, item.word)}</p>)}
+    {rivals.length > 0 && <div><p className="idiom-muted mb-1">相关易混词</p>{rivals.map(r => <p key={r}><strong>{r}</strong>{lookupWord(r)?.explanation ? `：${lookupWord(r).explanation}` : '（待补释义）'}</p>)}</div>}
+    <WordSources word={item} />
+    {item.page && <p className="idiom-muted">原书 P{item.page}</p>}
+  </div>;
+}
+
+function StudyWindow({ session, onClose, onNext, onPracticeWord }) {
+  const dialogRef = useRef(null);
+  const bodyRef = useRef(null);
+  const item = session.items[session.index];
+  const grouped = session.mode === 'groups';
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const opener = document.activeElement;
+    const overflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = overflow;
+      if (opener?.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+  useEffect(() => { bodyRef.current.scrollTop = 0; }, [item]);
+  return <dialog ref={dialogRef} className="idiom-study-window" aria-labelledby="idiom-study-title"
+    onCancel={e => { e.preventDefault(); onClose(); }}>
+    <header className="idiom-window-header">
+      <div><p className="idiom-muted">{grouped ? '成组辨析' : '单词学习'} · 沉浸学习</p>
+        <h2 id="idiom-study-title">{grouped ? item.title : item.word}</h2></div>
+      <button className="idiom-window-close" aria-label="关闭学习浮窗" onClick={onClose}><X size={22} /></button>
+    </header>
+    <div className="idiom-window-body" ref={bodyRef}>
+      {grouped ? <>
+        <p className="idiom-window-axis">{item.axis}</p>
+        <div className="idiom-comparison" data-count={item.members.length}>
+          {item.members.map(([word, explanation, usage, example]) => <section key={word} className="idiom-member">
+            <h3>{word}</h3><p>{explanation}</p><p className="idiom-key">{usage}</p>
+            <p className="idiom-example">例：{example}</p><WordSources word={lookupWord(word)} />
+            <button className="idiom-link mt-3" onClick={() => onPracticeWord(lookupWord(word))}>单独练这个词</button>
+          </section>)}
+        </div>
+      </> : <div className="idiom-window-word">
+        {item.variants?.length > 0 && <p className="idiom-muted">又作：{item.variants.join('、')}</p>}
+        <p className="idiom-window-definition">{item.explanation}</p>
+        {item.usage && <p className="idiom-key">{item.usage}</p>}
+        <WordDetails item={item} />
+      </div>}
+    </div>
+    <footer className="idiom-footer">
+      <div className="idiom-muted">本轮 {session.index + 1} / {session.items.length}{grouped ? ' 组' : ' 词'}<br />每次进入随机 · 不保存学习进度</div>
+      <button className="idiom-action" onClick={onNext}>{grouped ? '下一组' : '下一个'} <ArrowRight size={16} /></button>
+    </footer>
+  </dialog>;
+}
+
 export default function StudyBoost() {
   const [learningMode, setLearningMode] = useState('groups');
+  const [studySession, setStudySession] = useState(null);
   const [learning, setLearning] = useState(() => learningState(cloudGet(LEARNING_KEY, null), cloudGet(MASTERED_KEY, []), ALL_WORDS));
   const [masteredIds, setMasteredIds] = useState(() => cloudGet(MASTERED_KEY, []));
   // Practice history is not a validated estimate of exam mastery.
@@ -78,44 +146,62 @@ export default function StudyBoost() {
     return [
       { id: CURATED_CAT, name: '重点整理', count: ALL_WORDS.filter(w => w.curated).length },
       { id: 'all', name: '全部积累', count: ALL_WORDS.length },
+      { id: HANDOUT_CAT, name: '高频成语讲义', count: idiomHandout.entries.length },
       { id: '__standalone', name: '未分组词语', count: ALL_WORDS.filter(w => !GROUPED_WORDS.has(w.word)).length },
       { id: GD_CAT, name: '广东近年选项词', count: ALL_WORDS.filter(w => w.references.some(r => r.region === '广东')).length },
       ...(zhentiCount ? [{ id: ZHENTI_CAT, name: '近年真题选项词', count: zhentiCount }] : []),
       ...[...counts.entries()]
-        .filter(([name]) => name)
+        .filter(([name]) => name && name !== '高频成语讲义')
         .sort((a, b) => b[1] - a[1])
         .map(([name, count]) => ({ id: name, name, count })),
     ];
   }, []);
 
   // 过滤词汇列表（浏览用，含无法出题的条目）
+  const matchingWords = useMemo(() => searchWords(searchQuery), [searchQuery]);
   const filteredWords = useMemo(() => {
+    // A typed search covers the whole library, including words outside the default category.
+    if (searchQuery.trim()) return matchingWords;
     const list = ALL_WORDS.filter(w => {
       const matchCat = selectedCat === 'all'
-        || (selectedCat === CURATED_CAT ? w.curated : selectedCat === '__standalone' ? !GROUPED_WORDS.has(w.word) : selectedCat === GD_CAT ? w.references.some(r => r.region === '广东')
+        || (selectedCat === CURATED_CAT ? w.curated : selectedCat === HANDOUT_CAT ? w.handoutPage : selectedCat === '__standalone' ? !GROUPED_WORDS.has(w.word) : selectedCat === GD_CAT ? w.references.some(r => r.region === '广东')
           : selectedCat === ZHENTI_CAT ? zhentiHits(w) > 0 : w.category === selectedCat);
-      const q = searchQuery.trim();
-      const matchSearch = !q || [w.word, w.explanation, w.usage, ...(w.rivals || [])].some(text => text?.includes(q));
-      return matchCat && matchSearch;
+      return matchCat;
     });
     // 真题视图按考频降序，先背考得最多的
     return [GD_CAT, ZHENTI_CAT].includes(selectedCat)
       ? [...list].sort((a, b) => zhentiHits(b) - zhentiHits(a))
       : list;
-  }, [selectedCat, searchQuery]);
+  }, [selectedCat, searchQuery, matchingWords]);
 
   // 出题池：只用可出题的词条，并跟随分类筛选
   const quizPool = filteredWords;
 
   const progress = useMemo(() => summarizeProgress(stats, QUIZ_POOL), [stats]);
   const filteredGroups = useMemo(() => IDIOM_GROUPS.filter(g => {
-    const match = [g.title, g.axis, ...g.members.flat()].some(text => text.includes(searchQuery.trim()));
+    const match = [g.title, g.axis, ...g.members.flat()].some(text => text.includes(normalizeWordSearch(searchQuery)));
     const p = groupProgress(learning, g.id);
     return match && (groupFilter === 'all'
       || groupFilter === 'gd' && g.members.some(([word]) => lookupWord(word)?.references.some(r => r.region === '广东'))
       || groupFilter === 'new' && p.right + p.wrong === 0
       || groupFilter === 'wrong' && p.wrong > 0);
   }), [searchQuery, groupFilter, learning]);
+
+  const openStudy = (mode, pool, first = null) => {
+    if (!pool.length) return;
+    const items = shuffle(pool.filter(item => item !== first));
+    if (first) items.unshift(first);
+    setStudySession({ mode, items, index: 0 });
+  };
+  const nextStudy = () => {
+    if (studySession.index + 1 < studySession.items.length) {
+      setStudySession({ ...studySession, index: studySession.index + 1 });
+    } else {
+      const items = shuffle(studySession.items);
+      if (items.length > 1 && items[0] === studySession.items[studySession.index]) [items[0], items[1]] = [items[1], items[0]];
+      setStudySession({ ...studySession, items, index: 0 });
+    }
+  };
 
   // 抽下一题：按掌握权重选词，题型由引擎在该词支持的范围内加权挑选
   const drawQuestion = useCallback((recent) => {
@@ -218,6 +304,8 @@ export default function StudyBoost() {
 
   return (
     <div className="idiom-study space-y-8 pb-12">
+      {studySession && <StudyWindow session={studySession} onClose={() => setStudySession(null)} onNext={nextStudy}
+        onPracticeWord={word => { setStudySession(null); practiceWord(word); }} />}
       <div className="space-y-6">
           {/* 扩展包装载诊断：生成的 pack 有问题时立刻可见，避免静默失败 */}
           {(PACK_DIAGNOSTICS.errors.length > 0 || PACK_DIAGNOSTICS.warnings.length > 0) && (
@@ -247,12 +335,21 @@ export default function StudyBoost() {
                   >{label}</button>
               ))}
             </div>
+            <div className="idiom-filters">
+            {!testMode && <button className="idiom-action"
+              disabled={!(learningMode === 'groups' ? filteredGroups : filteredWords).length}
+              onClick={() => openStudy(learningMode, learningMode === 'groups' ? filteredGroups : filteredWords)}>
+              <BookOpen size={16} />随机开始学习
+            </button>}
             <button onClick={() => testMode ? setTestMode(false) : startTest()}
               className="idiom-action">
               {testMode ? <BookOpen size={16} /> : <Trophy size={16} />}
               {testMode ? '返回词库' : learningMode === 'groups' ? '开始成组练习' : '开始单词练习'}
             </button>
+            </div>
           </div>
+          {!testMode && normalizeWordSearch(searchQuery) !== searchQuery.trim() &&
+            <p className="idiom-muted" role="status">已按“{normalizeWordSearch(searchQuery)}”搜索（规范写法）。</p>}
 
           {/* 模式一：考场真题秒杀模式 */}
           {testMode ? (
@@ -477,30 +574,24 @@ export default function StudyBoost() {
               <div className="idiom-filters" role="group" aria-label="辨析组筛选">
                 {[['all', '全部辨析'], ['gd', '含广东真题词'], ['new', '尚未练习'], ['wrong', '有过错题']].map(([id, label]) =>
                   <button key={id} className="idiom-filter" aria-pressed={groupFilter === id} onClick={() => setGroupFilter(id)}>{label}</button>)}
-                <span className="idiom-muted">显示 {filteredGroups.length} 组 · 点击卡片展开对照</span>
+                <span className="idiom-muted">显示 {filteredGroups.length} 组 · 点击卡片进入学习浮窗</span>
               </div>
+              {searchQuery.trim() && matchingWords.length > 0 && <p className="idiom-muted">
+                全词库找到 {matchingWords.length} 个词（包含未分组词语） · <button className="idiom-link"
+                  onClick={() => { setLearningMode('single'); setSelectedCat('all'); }}>查看单词结果</button>
+              </p>}
               <div className="idiom-catalog">
                 {filteredGroups.map(group => {
                   const p = groupProgress(learning, group.id);
                   const gd = group.members.some(([word]) => lookupWord(word)?.references.some(r => r.region === '广东'));
                   return <article key={group.id} className="idiom-group">
-                    <details name="idiom-group-detail">
-                      <summary>
-                        <div className="idiom-overline"><span>{gd ? '广东真题选项词 · 辨析整理' : '易混词辨析'}</span><span>{group.members.length} 词</span></div>
-                        <h3>{group.title}</h3>
-                        <div className="idiom-chips">{group.members.map(([word]) => <span key={word}>{word}</span>)}</div>
-                        <p className="idiom-axis">{group.axis}</p>
-                        <div className="idiom-detail-hint"><span>展开词义、搭配与例句</span><ChevronDown className="idiom-chevron" size={16} /></div>
-                      </summary>
-                      <div className="idiom-comparison" data-count={group.members.length}>
-                        {group.members.map(([word, explanation, usage, example]) => <section key={word} className="idiom-member">
-                          <h4>{word}</h4><p>{explanation}</p><p className="idiom-key">{usage}</p>
-                          <p className="idiom-example">例：{example}</p>
-                          <WordSources word={lookupWord(word)} />
-                          <button className="idiom-link mt-3" onClick={() => practiceWord(lookupWord(word))}>单独练这个词</button>
-                        </section>)}
-                      </div>
-                    </details>
+                    <button className="idiom-study-card" onClick={() => openStudy('groups', filteredGroups, group)} aria-label={`学习辨析组：${group.title}`}>
+                      <span className="idiom-overline"><span>{gd ? '广东真题选项词 · 辨析整理' : '易混词辨析'}</span><span>{group.members.length} 词</span></span>
+                      <span className="idiom-card-title">{group.title}</span>
+                      <span className="idiom-chips">{group.members.map(([word]) => <span key={word}>{word}</span>)}</span>
+                      <span className="idiom-axis">{group.axis}</span>
+                      <span className="idiom-detail-hint"><span>进入学习 · 词义、搭配与例句</span><ArrowRight size={16} /></span>
+                    </button>
                     <div className="idiom-footer">
                       <span className="idiom-muted">{p.right + p.wrong ? `答对 ${p.right} · 答错 ${p.wrong}` : '尚未练习'} · {1 + (group.quizzes?.length || 0)} 道小测</span>
                       <button className="idiom-action" onClick={() => practiceGroup(group)}>练这一组 <ArrowRight size={14} /></button>
@@ -521,40 +612,35 @@ export default function StudyBoost() {
                 <p className="idiom-muted">已练 {progress.total - progress.untouched} / {progress.total} 词<br />仅为本页练习记录，不代表考试掌握度</p>
               </div>
               <div className="idiom-filters" role="group" aria-label="词库筛选">
-                {categories.map(c => <button key={c.id} className="idiom-filter" aria-pressed={selectedCat === c.id} onClick={() => setSelectedCat(c.id)}>{c.name} <span className="opacity-70">{c.count}</span></button>)}
+                {categories.map(c => <button key={c.id} className="idiom-filter" aria-pressed={searchQuery.trim() ? c.id === 'all' : selectedCat === c.id} onClick={() => { setSelectedCat(c.id); setSearchQuery(''); }}>{c.name} <span className="opacity-70">{c.count}</span></button>)}
               </div>
+              {searchQuery.trim() && <p className="idiom-muted">正在搜索全部词库 · 找到 {filteredWords.length} 个词</p>}
               <details className="idiom-source">
                 <summary>收录与来源说明 · 当前显示 {filteredWords.length} 个词</summary>
                 <p>{idiomEvidence.scope}。重点整理包含成组词与单独补充词；不是完整考纲清单。</p>
                 <p>已收集广东卷的 {idiomEvidence.gdCoverage?.candidates} 个四字及以上选项词、完整联句已收录；此统计不代表覆盖全部公考词汇。</p>
+                <p>《{idiomHandout.title}》{idiomHandout.entries.length} 个词已全部收录并去重，可选“高频成语讲义”学习。讲义次数未注明统计范围，不作为广东考频。</p>
               </details>
               <div className="idiom-catalog">
                 {filteredWords.map(item => {
                   const isMarked = (item.legacyIds || [item.id]).some(id => masteredIds.map(String).includes(String(id)));
                   const st = stats[item.id];
-                  const rivals = [...new Set([...(item.rivals || []), ...(item.rivals_weak || [])])];
                   return <article key={item.id} className="idiom-word-card">
                     <div className="idiom-overline">
                       <span>{item.references.some(r => r.region === '广东') ? '广东真题选项词' : item.curated ? '重点整理' : '扩展积累'}{zhentiHits(item) > 0 ? ` · ${zhentiHits(item)} 条记录` : ''}</span>
                       <button onClick={() => toggleMastered(item)} aria-pressed={isMarked} title={isMarked ? '取消已读标记' : '标记已读（不计入掌握度）'}><CheckCircle2 size={17} className={isMarked ? 'text-[#5d7138]' : 'text-[#947b58]'} /></button>
                     </div>
-                    <h3>{item.word}</h3>
+                    <h3><button className="idiom-word-open" onClick={() => openStudy('single', filteredWords, item)} aria-label={`学习词语：${item.word}`}>{item.word} <BookOpen size={18} /></button></h3>
                     {item.variants?.length > 0 && <p className="idiom-muted">又作：{item.variants.join('、')}</p>}
                     <p className="idiom-definition">{item.explanation}</p>
                     {item.usage && <p className="idiom-key text-sm leading-relaxed mt-3">{item.usage}</p>}
                     <details>
                       <summary>例句、易混词与出处</summary>
-                      <div className="space-y-3 mt-3 text-sm leading-relaxed">
-                        {item.trap && <p className="idiom-key">注意：{item.trap}</p>}
-                        {item.examples?.map((e, i) => <p className="idiom-example" key={i}>例：{e}</p>)}
-                        {!item.examples?.length && item.cloze?.map((e, i) => <p key={i}>例：{e.replace(/____/g, item.word)}</p>)}
-                        {rivals.length > 0 && <div><p className="idiom-muted mb-1">相关易混词</p>{rivals.map(r => <p key={r}><strong>{r}</strong>{lookupWord(r)?.explanation ? `：${lookupWord(r).explanation}` : '（待补释义）'}</p>)}</div>}
-                        <WordSources word={item} />
-                        {item.page && <p className="idiom-muted">原书 P{item.page}</p>}
-                      </div>
+                      <div className="mt-3"><WordDetails item={item} /></div>
                     </details>
                     <div className="idiom-footer">
                       <span className="idiom-muted">{st ? `答对 ${st.right} · 答错 ${st.wrong}` : isMarked ? '已读 · 未练' : '未练习'}</span>
+                      <button className="idiom-link" onClick={() => openStudy('single', filteredWords, item)}>进入学习</button>
                       <button className="idiom-action" onClick={() => practiceWord(item)}>练这个词 <ArrowRight size={14} /></button>
                     </div>
                   </article>;

@@ -307,7 +307,7 @@ function main() {
   if (manifest.kind === 'ai-generated') {
     const gate = spawnSync(
       'python3',
-      [path.join(ROOT, 'scripts', 'generation_gate.py'), 'verify', abs],
+      [path.join(ROOT, 'scripts', 'generation_gate.py'), 'verify', abs, '--for-import'],
       { encoding: 'utf8' },
     );
     if (gate.status !== 0) {

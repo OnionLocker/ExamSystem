@@ -65,6 +65,29 @@ await submit(1, 'B');
 await submit(2, 'A');
 await submit(3, 'A');
 
+const redoPackResponse = await fetch(`http://127.0.0.1:${port}/api/practice/redo-packs`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    title: '单题重做验证',
+    source_session_id: sessions[0].id,
+    items: [{ question_id: question.id, reason: '验证单题可打包' }],
+  }),
+});
+assert.equal(redoPackResponse.status, 201);
+const redoPack = await redoPackResponse.json();
+assert.equal(redoPack.count, 1);
+const savedRedoPack = db.prepare('SELECT COUNT(*) AS n FROM redo_pack_items WHERE pack_id=?').get(redoPack.id);
+assert.equal(savedRedoPack.n, 1);
+const redoCli = spawnSync(process.execPath, ['scripts/create-redo-pack.mjs'], {
+  cwd: path.resolve('scripts/..'),
+  env: process.env,
+  input: JSON.stringify({ source_session_id: sessions[0].id, items: [{ question_id: question.id, reason: '命令行打包验证' }] }),
+  encoding: 'utf8',
+});
+assert.equal(redoCli.status, 0, redoCli.stderr);
+assert.equal(JSON.parse(redoCli.stdout).count, 1);
+
 const prematureAudit = await fetch(`http://127.0.0.1:${port}/api/practice/sessions/${sessions[0].id}/audit`, { method: 'POST' });
 assert.equal(prematureAudit.status, 409);
 

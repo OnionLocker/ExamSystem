@@ -11,6 +11,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import generation_gate
 import quiz_generator
 import quality_orchestrator
@@ -111,6 +114,20 @@ class ZiliaoWorkflow(unittest.TestCase):
         for bad in ("4", float("nan"), float("inf"), True):
             figure["series"][0]["values"][-1] = bad
             self.assertFalse(ziliao.valid_material({"material": {"figure": figure}}))
+
+    def test_visual_failures_are_scoped_to_material_ids(self):
+        evidence = {
+            "images": [
+                {"path": "images/m01-bars.png", "verdict": "REJECT"},
+                {"path": "images/m02-table.png", "verdict": "PASS"},
+                {"path": "images/m04-bars.png", "verdict": "REJECT"},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            batch = Path(tmp)
+            (batch / "evidence").mkdir()
+            (batch / "evidence" / "ziliao-visual-quality.json").write_text(json.dumps(evidence))
+            self.assertEqual(ziliao.failed_visual_material_ids(batch), {"M01", "M04"})
 
     def run_pipeline(self, gate_code=0, no_import=False, bad_id=False):
         frame = {"difficulty": "easy", "materials": [{"id": "M01", "format": "text"}]}

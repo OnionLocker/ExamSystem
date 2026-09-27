@@ -170,13 +170,11 @@ class HardRulesTest(unittest.TestCase):
                                              "数量关系-和差倍比与方程法-方程、比例与代入验证",
                                              stem="本题考察方程思想。")])
 
-    def test_yanyu_composition_tail_rejected(self):
-        with self.assertRaisesRegex(ValueError, "因此亟须"):
-            validate_paper_hard_rules({}, [q("X", "言语理解与表达", "片段阅读",
-                                             "言语理解与表达-片段阅读-主旨概括",
-                                             stem="……因此亟须加强治理。")])
+    def test_yanyu_wording_is_not_a_mechanical_veto(self):
+        validate_paper_hard_rules({}, [q("X", "言语理解与表达", "片段阅读",
+                                       "言语理解与表达-片段阅读-主旨概括", stem="……因此亟须加强治理。")])
 
-    def test_yanyu_polarity_dump_rejected(self):
+    def test_yanyu_polarity_is_a_context_review_signal(self):
         stem = "城市更新不仅是一场空间的重构，更是一次文脉的________。唯有修旧如旧，才能让历史记忆与现代生活________。"
         bad = q(
             "Y1", "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
@@ -189,10 +187,10 @@ class HardRulesTest(unittest.TestCase):
             ],
             answer="D",
         )
-        with self.assertRaisesRegex(ValueError, "极性送分"):
-            validate_paper_hard_rules({}, [bad])
+        self.assertIsNotNone(polarity_dump(bad))
+        validate_paper_hard_rules({}, [bad])
 
-    def test_yanyu_combo_stamp_rejected(self):
+    def test_yanyu_connectors_need_context_review(self):
         stem = "守正与创新从来不是________的。一方面必须守正；另一方面必须创新。只有找到平衡，才能使古老艺术________。"
         bad = q(
             "Y2", "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
@@ -205,8 +203,7 @@ class HardRulesTest(unittest.TestCase):
             ],
             answer="D",
         )
-        with self.assertRaisesRegex(ValueError, "三件套"):
-            validate_paper_hard_rules({}, [bad])
+        validate_paper_hard_rules({}, [bad])
 
     def test_yanyu_half_right_passes(self):
         stem = "深海冷泉喷口附近的微生物靠氧化甲烷获得能量，这种代谢方式把碳重新送回食物网，使深海碳循环得以________。"
@@ -224,7 +221,7 @@ class HardRulesTest(unittest.TestCase):
         validate_paper_hard_rules({}, [ok])
         self.assertIsNone(polarity_dump(ok))
 
-    def test_yanyu_same_mold_twice_rejected(self):
+    def test_yanyu_same_connectors_are_allowed_but_identical_stems_are_not(self):
         def fill(qid, stem):
             return q(
                 qid, "言语理解与表达", "逻辑填空", "言语理解与表达-逻辑填空-成语填空",
@@ -239,8 +236,9 @@ class HardRulesTest(unittest.TestCase):
             )
         a = fill("A", "这项工作不仅是一次技术升级，更是一次流程的________。")
         b = fill("B", "这场改革不仅是制度修补，更是一次观念的________。")
-        with self.assertRaisesRegex(ValueError, "句法模具重复"):
-            validate_yanyu_fills([a, b])
+        validate_yanyu_fills([a, b])
+        with self.assertRaisesRegex(ValueError, "题干重复"):
+            validate_yanyu_fills([a, {**b, "stem": a["stem"]}])
 
     def test_ziliao_moushengSi_and_dirty(self):
         items = ziliao_paper(distinct=True)

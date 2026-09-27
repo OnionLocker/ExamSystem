@@ -53,9 +53,10 @@ NUM_PROB = "数量关系-数学运算-概率问题"
 NUM_PROB_CLASSIC = NUM_PROB
 NUM_PROB_INDEPENDENT = NUM_PROB
 NUM_EXTREME = "数量关系-数学运算-最值问题"
-NUM_EXTREME_DRAWER = NUM_EXTREME
-NUM_EXTREME_REVERSE = NUM_EXTREME
-NUM_EXTREME_QUAD = "数量关系-数学运算-函数最值问题"
+NUM_EXTREME_HEDING = "数量关系-数学运算-最值问题-和定最值与构造"
+NUM_EXTREME_DRAWER = "数量关系-数学运算-最值问题-最不利原则与抽屉"
+NUM_EXTREME_REVERSE = "数量关系-数学运算-最值问题-反向构造与多集合最值"
+NUM_EXTREME_QUAD = "数量关系-数学运算-函数最值问题-二次函数与乘积极值"
 NUM_GEOMETRY = "数量关系-数学运算-几何问题"
 NUM_TRAVEL = "数量关系-数学运算-行程问题"
 NUM_TRAVEL_MEDIUM = NUM_TRAVEL
@@ -284,15 +285,15 @@ def _has_any(text: str, *needles: str) -> bool:
     return any(needle in text for needle in needles)
 
 
-def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
+def canonicalize(tag: str, module: str = "", subtype: str = "", *, aliases: dict[str, str] | None = None) -> str:
     raw = (tag or "").strip()
     # 科学推理在题库里是独立模块；粉笔树的历史别名把它挂在判断推理下，
     # 出题入口不能沿用那个展示归类，否则会走错 20 题判断卷规则。
-    if raw.startswith("科学推理-") and normalize_module(module) in {"", "科学推理"}:
+    if raw.startswith("科学推理-") and normalize_module(module) in {"未分类", "科学推理"}:
         return raw
     # 已确认的旧名映射优先；历史画像中存在旧行不应阻止归一。
-    mapped = static_alias(raw)
-    if mapped:
+    mapped = resolve_database_alias(raw, aliases)
+    if mapped != raw:
         return mapped
     if is_fenbi_primary(raw):
         return raw
@@ -305,11 +306,16 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
         and raw in registered_canonical_tags()
     ):
         return raw
-    short = lookup_fenbi_short(raw)
-    if short:
-        return short
     mod = normalize_module(module)
-    if (not module or mod == "未分类") and "-" in raw:
+    # 不完整的填空短名须先辨别实词/成语，不能采用 L2 默认的混搭填空。
+    needs_fine_grained = "逻辑填空" in raw and _has_any(raw, "实词", "成语", "虚词")
+    if needs_fine_grained and mod == "未分类":
+        mod = "言语理解与表达"
+    if not needs_fine_grained:
+        short = lookup_fenbi_short(raw)
+        if short:
+            return short
+    if mod == "未分类" and "-" in raw:
         inferred = normalize_module(raw.split("-", 1)[0])
         if inferred != "未分类":
             mod = inferred
@@ -379,8 +385,13 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
             return NUM_PERM
         if _has_any(raw, "二次函数", "乘积极值", "均值定理", "和定差小", "函数最值"):
             return NUM_EXTREME_QUAD
-        if _has_any(raw, "抽屉", "最不利", "反向构造", "多集合最值", "反向相加", "总数倒扣",
-                    "极值", "最值"):
+        if _has_any(raw, "抽屉", "最不利"):
+            return NUM_EXTREME_DRAWER
+        if _has_any(raw, "反向构造", "多集合最值", "反向相加", "总数倒扣"):
+            return NUM_EXTREME_REVERSE
+        if _has_any(raw, "和定最值", "和定"):
+            return NUM_EXTREME_HEDING
+        if _has_any(raw, "极值", "最值"):
             return NUM_EXTREME
         if "统筹" in raw:
             return "数量关系-数学运算-统筹规划问题"
@@ -412,9 +423,6 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
             return mapped
         if is_fenbi_primary(raw):
             return raw
-        short = lookup_fenbi_short(raw)
-        if short:
-            return short
         if "片段阅读" in raw or sub == "片段阅读":
             if "标题" in raw:
                 return YANYU_TITLE
@@ -432,6 +440,8 @@ def canonicalize(tag: str, module: str = "", subtype: str = "") -> str:
                 return "言语理解与表达-逻辑填空-成语填空"
             if "实词" in raw:
                 return "言语理解与表达-逻辑填空-实词填空"
+            if "虚词" in raw:
+                return "言语理解与表达-逻辑填空-虚词填空"
             return YANYU_LOGIC
         return f"言语理解与表达-{sub or '未细分'}-{raw}"
 
@@ -514,6 +524,41 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     return bool(row)
 
 
+def database_aliases(conn: sqlite3.Connection | None = None) -> dict[str, str]:
+    """读取当前已确认的改名/合并；可传连接以看到本事务内的登记。"""
+    owned = conn is None
+    if owned:
+        path = Path(os.environ.get("EXAM_DB") or Path(__file__).resolve().parents[1] / "data" / "exam.db")
+        if not path.is_file():
+            return {}
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        if not _table_exists(conn, "kaodian_aliases"):
+            return {}
+        return dict(conn.execute("SELECT alias, canonical FROM kaodian_aliases"))
+    finally:
+        if owned:
+            conn.close()
+
+
+def resolve_database_alias(tag: str, aliases: dict[str, str] | None = None) -> str:
+    """静态确认的旧名优先，再沿数据库改名链解析；拒绝循环。"""
+    aliases = database_aliases() if aliases is None else aliases
+    current = tag
+    seen = set()
+    while current not in seen:
+        seen.add(current)
+        fixed = static_alias(current)
+        target = fixed if fixed and fixed != current else aliases.get(current, current)
+        # 旧数据库可能保存过方向相反的映射，不能反转已确认的静态更名。
+        if target != current and static_alias(target) == current:
+            return current
+        if target == current:
+            return current
+        current = target
+    raise ValueError(f"考点别名存在循环：{tag}")
+
+
 def _upsert_alias(conn: sqlite3.Connection, alias: str, canonical: str, module: str = "", subtype: str = "") -> None:
     parsed = parse_fenbi_tag(canonical)
     normalized_module = normalize_module(module or (parsed[0] if parsed else canonical.split("-", 1)[0]))
@@ -545,13 +590,17 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
         )
         """
     )
+    existing = database_aliases(conn)
     mappings: dict[str, str] = {}
     for alias, canonical in LEGACY_TO_FENBI.items():
+        if alias == canonical:
+            canonical = resolve_database_alias(alias, existing)
         _upsert_alias(conn, alias, canonical)
         mappings[alias] = canonical
     for tag in fenbi_l3_tags():
-        _upsert_alias(conn, tag, tag)
-        mappings[tag] = tag
+        canonical = resolve_database_alias(tag, existing)
+        _upsert_alias(conn, tag, canonical)
+        mappings[tag] = canonical
     rows = []
     if _table_exists(conn, "kaodian_profile"):
         rows.extend(conn.execute("SELECT kaodian, module, subtype FROM kaodian_profile").fetchall())
@@ -576,7 +625,9 @@ def seed_aliases(conn: sqlite3.Connection) -> dict[str, str]:
                 """
             ).fetchall())
     for alias, module, subtype in rows:
-        canonical = canonicalize(alias, module or "", subtype or "")
+        canonical = resolve_database_alias(alias, existing)
+        if canonical == alias:
+            canonical = canonicalize(alias, module or "", subtype or "", aliases=existing)
         _upsert_alias(conn, alias, canonical, module or "", subtype or "")
         mappings[alias] = canonical
     return mappings
@@ -618,15 +669,16 @@ def registered_knowledge_points() -> dict[str, dict]:
             columns = {row[1] for row in conn.execute("PRAGMA table_info(kaodian_profile)")}
             definition = "COALESCE(definition, note, '')" if "definition" in columns else "COALESCE(note, '')"
             rows = conn.execute(f"SELECT kaodian, {definition} FROM kaodian_profile").fetchall()
+            aliases = database_aliases(conn)
         finally:
             conn.close()
     except sqlite3.Error:
         return {}
-    return {
-        str(row[0]): {"definition": str(row[1] or "")}
-        for row in rows
-        if row[0] and str(row[0]).count("-") >= 2 and not str(row[0]).startswith("未分类")
-    }
+    result = {}
+    for raw, definition in sorted(rows, key=lambda row: resolve_database_alias(str(row[0]), aliases) != row[0]):
+        if raw and str(raw).count("-") >= 2 and not str(raw).startswith("未分类"):
+            result.setdefault(resolve_database_alias(str(raw), aliases), {"definition": str(definition or "")})
+    return result
 
 
 def registered_canonical_tags() -> set[str]:
@@ -641,6 +693,8 @@ def assert_registerable_tag(kaodian: str, module: str = "") -> str:
     if raw.startswith("资料分析-") or normalize_module(module) == "资料分析":
         raise ValueError("资料分析是封闭词表，不能 --register 扩")
     if is_fenbi_primary(raw):
+        if module and normalize_module(module) != parse_fenbi_tag(raw)[0]:
+            raise ValueError(f"模块与考点不一致：{module} / {raw}")
         return raw
     raise ValueError(
         "新叶子必须挂在粉笔 L3 下，写成 模块-一级-二级-子题型，"
@@ -653,6 +707,10 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
     tag = (raw or "").strip()
     if not tag:
         raise ValueError("缺规范考点标签 tags[0]（也可用 knowledge_point）")
+    named_module = normalize_module(tag.split("-", 1)[0]) if "-" in tag else ""
+    known_modules = set(fenbi_l3_by_module()) | {"科学推理", "资料分析"}
+    if category and named_module in known_modules and normalize_module(category) != named_module:
+        raise ValueError(f"模块与考点不一致：{category} / {tag}")
     # 科学推理是独立模块；带完整前缀的标签不能因调用方省略 category
     # （例如 CLI 未传 --module 或旧题库行缺 category）而落入粉笔旧树。
     if normalize_module(category) == "科学推理" or tag.startswith("科学推理-"):
@@ -671,6 +729,8 @@ def validate_ai_primary_tag(raw: str, category: str = "") -> str:
         raise ValueError(f"标签必须是 模块-一级-二级，收到: {tag}")
     canonical = canonicalize(tag, category)
     parsed_canon = parse_fenbi_tag(canonical)
+    if category and parsed_canon and normalize_module(category) != parsed_canon[0]:
+        raise ValueError(f"模块与考点不一致：{category} / {canonical}")
     module = (category or (parsed_canon[0] if parsed_canon else tag.split("-", 1)[0])).strip()
     if tag in ZILIAO_BANNED_PRIMARY or tag.endswith("-综合判断"):
         raise ValueError(

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import unittest
+import os
+import tempfile
+from unittest.mock import patch
 
 from datetime import date
 
@@ -9,6 +12,18 @@ from spoken_quiz_intent import extract_count, parse_spoken_intent, resolve_tag, 
 
 
 class SpokenQuizIntentTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.env = patch.dict(os.environ, EXAM_DB=f"{cls.tmp.name}/exam.db",
+                             EXAM_KNOWLEDGE_DB=f"{cls.tmp.name}/knowledge.db")
+        cls.env.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.env.stop()
+        cls.tmp.cleanup()
+
     def test_special_model_maps_to_fenbi_perm(self):
         text = "给我出五道排列组合与概率的经典模型专项"
         self.assertEqual(resolve_tag(text), NUM_PERM)
@@ -38,7 +53,22 @@ class SpokenQuizIntentTest(unittest.TestCase):
         self.assertEqual(extract_count("出三道排列组合"), 3)
         self.assertEqual(resolve_tag("出五道平均数问题"), NUM_AVERAGE)
         self.assertEqual(resolve_tag("来几道工程问题"), NUM_ENGINEERING)
-        self.assertEqual(resolve_tag("刷片段阅读"), YANYU_MAIN)
+        self.assertEqual(resolve_tag("刷片段阅读"), "言语理解与表达-片段阅读")
+
+    def test_full_child_name_is_not_collapsed_to_parent(self):
+        self.assertEqual(resolve_tag("给我出五道最值问题"), "数量关系-数学运算-最值问题")
+        tag = resolve_tag("给我出五道数量关系-数学运算-最值问题-和定最值与构造")
+        self.assertEqual(tag, "数量关系-数学运算-最值问题-@extreme-heding")
+        self.assertEqual(resolve_tag("来五道逻辑填空-实词"), "言语理解与表达-逻辑填空-实词填空")
+
+    def test_registered_child_short_name_survives(self):
+        import sqlite3
+        from kaodian_profile import ensure_schema, register_knowledge_point
+        tag = NUM_ENGINEERING + "-交替合作"
+        with sqlite3.connect(os.environ["EXAM_DB"]) as conn:
+            ensure_schema(conn)
+            register_knowledge_point(conn, tag, "数量关系", "数学运算", "甲乙交替施工，用周期工作量和尾段处理")
+        self.assertEqual(resolve_tag("来五道工程问题-交替合作"), tag)
 
     def test_plain_chat_is_not_quiz(self):
         intent = parse_spoken_intent("今天天气怎么样")

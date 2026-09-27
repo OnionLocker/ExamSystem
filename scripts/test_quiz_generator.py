@@ -3,8 +3,10 @@
 import unittest
 
 import argparse
+import os
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -32,6 +34,19 @@ from quiz_generator import (
 EXTREME = "数量关系-数学运算-"
 FENBI_EXTREME = "数量关系-数学运算-最值问题"
 FENBI_PERM = "数量关系-数学运算-排列组合问题"
+
+
+def setUpModule():
+    global _temporary, _environment
+    _temporary = tempfile.TemporaryDirectory()
+    _environment = patch.dict(os.environ, EXAM_DB=f"{_temporary.name}/exam.db",
+                              EXAM_KNOWLEDGE_DB=f"{_temporary.name}/knowledge.db")
+    _environment.start()
+
+
+def tearDownModule():
+    _environment.stop()
+    _temporary.cleanup()
 
 def prompt_extras(run):
     """提示测试要用生产形状的 extras：里面有字母上限，build_prompt 会读。"""
@@ -174,13 +189,27 @@ class QuizGeneratorTest(unittest.TestCase):
                 [{"external_id": "demo_01", "stem": "没有空格", "kaodian_signal": "成语辨析"}],
             )
 
-    def test_yanyu_subtype_collapse_is_rejected(self):
-        question = {
-            "stem": "这是一段有________的题干。",
-            "tags": ["言语理解与表达-逻辑填空-成语填空"],
-            "kaodian_signal": "根据语境辨析实词的词义和搭配",
-        }
-        self.assertTrue(any("成语填空" in issue for issue in yanyu_contract_issues(question)))
+    def test_yanyu_alternate_sorting_wording_is_allowed(self):
+        question = {"stem": "①春雨落下。②种子萌芽。③春苗渐长。将以上三个句子组成语意连贯的一段话，最恰当的一项是：",
+                    "tags": ["言语理解与表达-语句表达-语句排序题"], "kaodian_signal": "时间线索与话题衔接"}
+        self.assertEqual(yanyu_contract_issues(question), [])
+
+    def test_detail_contract_accepts_text_bound_question_forms(self):
+        endings = [
+            "下列说法正确的是：", "下列说法错误的是？", "下列说法符合文意的是：",
+            "下列说法不符合文意的是：", "据此可以推知：",
+            "根据这段文字，下列说法能够推出的是：", "根据这段文字，以下说法可以得到支持的是：",
+            "根据原文，下列说法不能推出的是：",
+        ]
+        for ending in endings:
+            for separator in ("。", "。\n\n"):
+                with self.subTest(ending=ending, separator=separator):
+                    question = {
+                        "stem": "装置仅在网络连接正常时上传数据" + separator + ending,
+                        "kaodian_signal": "按原文核对条件和范围，辨别等价转述与严格推论",
+                        "tags": ["言语理解与表达-片段阅读-细节判断题"],
+                    }
+                    self.assertEqual(yanyu_contract_issues(question), [])
 
     def test_focus_prompt(self):
         run = {
@@ -288,7 +317,9 @@ class BlueprintTest(unittest.TestCase):
     def test_single_tag_still_works(self):
         module, slots = resolve_slots(blueprint_args(tag=FENBI_EXTREME, count=10))
         self.assertEqual(module, "数量关系")
-        self.assertEqual(slots, [{"tag": FENBI_EXTREME, "count": 10}])
+        self.assertEqual(sum(s["count"] for s in slots), 10)
+        self.assertEqual({s["tag"] for s in slots}, {FENBI_EXTREME + "-@" + ident for ident in
+                         ["extreme-heding", "extreme-drawer", "extreme-reverse-construct"]})
 
     def test_slots_expand_per_item(self):
         blueprint = (
@@ -298,10 +329,11 @@ class BlueprintTest(unittest.TestCase):
         )
         _, slots = resolve_slots(blueprint_args(blueprint=blueprint))
         run = {"slots": slots, "module": "数量关系"}
-        self.assertEqual(
-            slot_tags(run),
-            [EXTREME + "最值问题"] * 2 + [EXTREME + "函数最值问题"] * 3,
-        )
+        tags = slot_tags(run)
+        self.assertEqual(len(tags), 5)
+        self.assertEqual(len(set(tags[:2])), 2)
+        self.assertTrue(all(t.startswith(FENBI_EXTREME + "-") for t in tags[:2]))
+        self.assertTrue(all(t.startswith(EXTREME + "函数最值问题") for t in tags[2:]))
 
     def test_prompt_names_each_slot_range(self):
         _, slots = resolve_slots(
@@ -319,12 +351,12 @@ class BlueprintTest(unittest.TestCase):
         }
         extras = prompt_extras(run)
         text = build_prompt(run, {}, extras)
-        self.assertIn("items 1-2: tags[0] = " + FENBI_EXTREME, text)
-        self.assertIn("item 3: tags[0] = " + FENBI_EXTREME, text)
+        self.assertIn("items 1-2: tags[0] = " + FENBI_EXTREME + "-@extreme-drawer", text)
+        self.assertIn("item 3: tags[0] = " + FENBI_EXTREME + "-@extreme-heding", text)
 
     def test_short_tags_canonicalize(self):
         _, slots = resolve_slots(blueprint_args(blueprint='{"slots":[{"tag":"抽屉原理","count":1}]}'))
-        self.assertEqual(slots[0]["tag"], FENBI_EXTREME)
+        self.assertEqual(slots[0]["tag"], FENBI_EXTREME + "-@extreme-drawer")
 
     def test_rejects_bad_blueprints(self):
         cases = [
@@ -387,7 +419,7 @@ class CanonInjectionTest(unittest.TestCase):
         text = build_prompt(run, {}, extras)
         self.assertIn("必须出现残缺抽屉", text)
         self.assertIn("只能收紧不得放宽", text)
-        self.assertIn("考法二", text)
+        self.assertIn("正常抽屉取倒霉极限", text)
 
 
 if __name__ == "__main__":

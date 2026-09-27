@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""言语逻辑填空：句法模具与极性送分的机械指纹。
-
-只拦能数清的东西。主题、领域、具体用词交给模型。
-"""
+"""言语重复线索；只硬拦相同题干，句式和选项极性由语境审核判断。"""
 
 from __future__ import annotations
 
@@ -91,29 +88,12 @@ def validate_yanyu_fills(questions: list[dict]) -> None:
         and str(item.get("category") or "") == CAT_YANYU
         and is_fill(item)
     ]
-    mold_counts: Counter[str] = Counter()
+    seen = set()
     for item in fills:
-        qid = item.get("external_id")
-        dumped = polarity_dump(item)
-        if dumped:
-            raise ValueError(
-                f"逻辑填空干扰项极性送分（才能/从而空塞了 {dumped}）：{qid}"
-            )
-        hits = molds_of(stem_of(item))
-        if set(COMBO) <= set(hits):
-            raise ValueError(
-                f"逻辑填空禁止「从来不是 + 一方面另一方面 + 只有才能」三件套：{qid}"
-            )
-        for name in hits:
-            if name != "只有才能":
-                mold_counts[name] += 1
-    over = [f"{name}×{count}" for name, count in mold_counts.items() if count > 1]
-    if over:
-        raise ValueError(
-            "同批逻辑填空句法模具重复（"
-            + "，".join(over)
-            + "），每种申论套句最多 1 道"
-        )
+        stem = re.sub(r"\s+", "", stem_of(item))
+        if stem in seen:
+            raise ValueError(f"同批逻辑填空题干重复：{item.get('external_id')}")
+        seen.add(stem)
 
 
 def recent_yanyu_avoid(db_path: Path | None, days: int = 14) -> dict[str, Any]:

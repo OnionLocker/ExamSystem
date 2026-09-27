@@ -96,6 +96,18 @@ export function dailyDateOf(item = {}) {
 export function nameOf(item = {}) {
   const date = dailyDateOf(item);
   const module = moduleOf(item);
+  const source = item.source || item.display_title || '';
+  // A targeted drill can be on today's plan without becoming a whole-module paper.
+  if (!DAILY_DATE_RE.test(String(item.batch_id || item.category || ''))
+      && source.startsWith('广东省考行测-')) {
+    // Older signed batches keep their original evidence; normalize only their display.
+    const labels = { easy: '简单', mid: '中等', hard: '困难', ladder: '综合', auto: '综合', 自主难度: '综合' };
+    const title = source
+      .replace(/问题综合-(?=(?:(?:easy|mid|hard|ladder|auto|自主难度)-)?\d{8}$)/, '问题-')
+      .replace(/-(easy|mid|hard|ladder|auto|自主难度)-(\d{8})$/, (_, tier, day) => `-${labels[tier]}-${day}`);
+    return /-(简单|中等|困难|综合)-\d{8}$/.test(title)
+      ? title : title.replace(/-(\d{8})$/, '-综合-$1');
+  }
   if (date && module) return `广东省考行测-${module}-${date.replaceAll('-', '')}`;
   return item.source || item.display_title || item.batch_id || '未命名题组';
 }

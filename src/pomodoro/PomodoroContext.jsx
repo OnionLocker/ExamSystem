@@ -170,6 +170,27 @@ const SCENE_EVENTS = {
   },
 };
 
+// 本地生成的专注声：不需要下载文件，用户点击开始后即可出声。
+// 颜色噪声适合做持续底噪；采样场景仍优先使用原有高质量素材。
+const PROCEDURAL_SCENES = {
+  rain: { color: 'pink', cutoff: 5200, level: 0.22 },
+  thunderstorm: { color: 'pink', cutoff: 4200, level: 0.18 },
+  ocean: { color: 'brown', cutoff: 900, level: 0.16 },
+  stream: { color: 'pink', cutoff: 7000, level: 0.15 },
+  forest: { color: 'pink', cutoff: 3600, level: 0.12 },
+  fire: { color: 'brown', cutoff: 1500, level: 0.14 },
+  wind: { color: 'brown', cutoff: 1100, level: 0.16 },
+  night: { color: 'brown', cutoff: 1800, level: 0.12 },
+  cafe: { color: 'pink', cutoff: 2800, level: 0.1 },
+  keyboard: { color: 'pink', cutoff: 5200, level: 0.08 },
+  white: { color: 'white', cutoff: 11000, level: 0.42 },
+  pink: { color: 'pink', cutoff: 8000, level: 0.42 },
+  brown: { color: 'brown', cutoff: 520, level: 0.44 },
+  deep: { color: 'brown', cutoff: 180, level: 0.48 },
+  fan: { color: 'pink', cutoff: 1450, level: 0.34, hum: 78 },
+  aircon: { color: 'pink', cutoff: 1900, level: 0.3, hum: 52 },
+};
+
 // 容错：localStorage 里的 bgmType 如果是已下线的 white/pink/brown 等，回退到默认场景
 const DEFAULT_SCENE = 'rain';
 
@@ -183,6 +204,7 @@ class SoundEngine {
     this.volume = 0.4;
     this.bufferCache = new Map(); // url -> AudioBuffer | null
     this.seamlessMap = new WeakMap(); // AudioBuffer -> 交叉淡化后的循环 buffer
+    this.proceduralNodes = [];
     this.gen = 0;             // 代次号，作废过期的异步流程
   }
 
@@ -256,6 +278,68 @@ class SoundEngine {
     this.activeNodes.push(src);
   }
 
+  _noiseBuffer(color, seconds = 4) {
+    const length = Math.floor(this.ctx.sampleRate * seconds);
+    const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let brown = 0;
+    let b0 = 0; let b1 = 0; let b2 = 0; let b3 = 0; let b4 = 0; let b5 = 0; let b6 = 0;
+    for (let i = 0; i < length; i += 1) {
+      const white = Math.random() * 2 - 1;
+      if (color === 'brown') {
+        brown = (brown + white * 0.035) / 1.035;
+        data[i] = brown * 3.2;
+      } else if (color === 'pink') {
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+        b6 = white * 0.115926;
+      } else {
+        data[i] = white;
+      }
+    }
+    return buffer;
+  }
+
+  _playProceduralBase(type) {
+    const cfg = PROCEDURAL_SCENES[type];
+    if (!cfg || !this.master || !this.ctx) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = this._makeSeamless(this._noiseBuffer(cfg.color), 0.16);
+    source.loop = true;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = cfg.cutoff;
+    const gain = this.ctx.createGain();
+    gain.gain.value = cfg.level;
+    source.connect(filter).connect(gain).connect(this.master);
+    source.start();
+    this.proceduralNodes.push(source, filter, gain);
+    if (cfg.hum) {
+      const oscillator = this.ctx.createOscillator();
+      const humGain = this.ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = cfg.hum;
+      humGain.gain.value = 0.018;
+      oscillator.connect(humGain).connect(this.master);
+      oscillator.start();
+      this.proceduralNodes.push(oscillator, humGain);
+    }
+  }
+
+  _stopProceduralBase() {
+    const nodes = this.proceduralNodes;
+    this.proceduralNodes = [];
+    nodes.forEach((node) => {
+      try { node.stop?.(); } catch { /* already stopped */ }
+      try { node.disconnect?.(); } catch { /* ignore */ }
+    });
+  }
+
   // ---------- 单次事件音 ----------
   _playEventOnce(buf, volume) {
     if (!this.master || !this.ctx) return;
@@ -307,7 +391,7 @@ class SoundEngine {
 
     const myGen = ++this.gen;
     // 未知场景兜底（兼容老版本 localStorage 里的 white/pink/brown）
-    const sceneType = SCENE_SOUNDS[type] ? type : DEFAULT_SCENE;
+    const sceneType = (SCENE_SOUNDS[type] || PROCEDURAL_SCENES[type]) ? type : DEFAULT_SCENE;
     this.type = sceneType;
     this.volume = volume;
 
@@ -318,10 +402,18 @@ class SoundEngine {
       master.connect(this.ctx.destination);
       this.master = master;
       const now = this.ctx.currentTime;
-      master.gain.linearRampToValueAtTime(volume, now + 1.2);
+      master.gain.linearRampToValueAtTime(volume, now + 0.3);
+      this._playProceduralBase(sceneType);
+      if (!SCENE_SOUNDS[sceneType]) {
+        this._scheduleEvents(sceneType, myGen);
+        return;
+      }
       this._loadSample(SCENE_SOUNDS[sceneType]).then((buf) => {
         if (myGen !== this.gen || !this.master) return;
-        if (buf) this._playBaseLoop(buf);
+        if (buf) {
+          this._stopProceduralBase();
+          this._playBaseLoop(buf);
+        }
       });
       this._scheduleEvents(sceneType, myGen);
     };
@@ -344,9 +436,11 @@ class SoundEngine {
     if (!this.ctx || !this.master) return;
     const master = this.master;
     const nodes = this.activeNodes;
+    const procedural = this.proceduralNodes;
     const timers = this.eventTimers;
     this.master = null;
     this.activeNodes = [];
+    this.proceduralNodes = [];
     this.eventTimers = [];
     this.type = null;
     this.gen++; // 让进行中的异步流程作废
@@ -360,7 +454,7 @@ class SoundEngine {
     master.gain.linearRampToValueAtTime(0, now + 0.6);
 
     setTimeout(() => {
-      nodes.forEach((n) => {
+      [...nodes, ...procedural].forEach((n) => {
         try {
           if (n.stop) n.stop();
         } catch {

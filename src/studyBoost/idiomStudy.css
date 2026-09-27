@@ -29,17 +29,14 @@
 .idiom-study .idiom-muted { color: var(--idiom-muted); font-size: 12px; line-height: 1.7; }
 .idiom-study .idiom-catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 285px), 1fr)); gap: 16px; align-items: start; }
 .idiom-study .idiom-group, .idiom-study .idiom-word-card { min-width: 0; background: var(--idiom-paper); border: 1px solid var(--idiom-line); border-radius: 18px; overflow: hidden; }
-.idiom-study .idiom-group:has(> details[open]) { grid-column: 1 / -1; border-color: #ad8152; }
-.idiom-study .idiom-group > details > summary { display: block; padding: 20px; cursor: pointer; list-style: none; }
-.idiom-study .idiom-group > details > summary::-webkit-details-marker { display: none; }
-.idiom-study .idiom-group > details > summary:hover { background: #ecd5ad; }
-.idiom-study .idiom-group h3 { margin: 8px 0 12px; font-size: 18px; font-weight: 750; line-height: 1.4; }
+.idiom-study .idiom-study-card { display: block; width: 100%; padding: 20px; cursor: pointer; text-align: left; }
+.idiom-study .idiom-study-card:hover { background: #ecd5ad; }
+.idiom-study .idiom-card-title { display: block; margin: 8px 0 12px; font-size: 18px; font-weight: 750; line-height: 1.4; }
 .idiom-study .idiom-overline { display: flex; justify-content: space-between; gap: 12px; color: #8b5d33; font-size: 11px; font-weight: 650; }
 .idiom-study .idiom-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .idiom-study .idiom-chips span { padding: 5px 9px; background: #e3c69a; border-radius: 7px; font-size: 14px; font-weight: 650; }
-.idiom-study .idiom-axis { margin-top: 12px; color: #71573c; font-size: 12px; line-height: 1.7; }
+.idiom-study .idiom-axis { display: block; margin-top: 12px; color: #71573c; font-size: 12px; line-height: 1.7; }
 .idiom-study .idiom-detail-hint { display: flex; justify-content: space-between; align-items: center; margin-top: 13px; color: var(--idiom-muted); font-size: 12px; }
-.idiom-study .idiom-group details[open] > summary .idiom-chevron { transform: rotate(180deg); }
 .idiom-study .idiom-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; padding: 0 20px 20px; }
 .idiom-study .idiom-member { background: var(--idiom-inset); border: 1px solid #d9bb8d; border-radius: 12px; padding: 17px; }
 .idiom-study .idiom-member h4 { font-size: 18px; font-weight: 750; margin-bottom: 7px; }
@@ -69,11 +66,38 @@
 .idiom-study .idiom-quiz button.idiom-option[data-result="correct"] { background: #dce0b8; border-color: #718748; color: #324524; }
 .idiom-study .idiom-quiz button.idiom-option[data-result="wrong"] { background: #eac3ac; border-color: #b56448; color: #723d2b; }
 .idiom-study .idiom-quiz .text-slate-400 { color: #816a4e; }
+.idiom-study .idiom-word-open { display: inline-flex; align-items: center; gap: 12px; text-align: left; cursor: pointer; }
+.idiom-study .idiom-word-open:hover { color: #81542e; }
+.idiom-study .idiom-study-window {
+  position: fixed; inset: 0; margin: auto; padding: 0;
+  width: min(1040px, calc(100% - 32px)); max-width: none;
+  height: min(800px, calc(100dvh - 48px)); max-height: calc(100dvh - 24px);
+  border: 1px solid var(--idiom-line); border-radius: 22px;
+  background: var(--idiom-paper); color: var(--idiom-ink); box-shadow: 0 24px 90px #261b1666;
+}
+.idiom-study .idiom-study-window[open] { display: flex; flex-direction: column; }
+.idiom-study .idiom-study-window::backdrop { background: #21180fd1; backdrop-filter: blur(5px); }
+.idiom-study .idiom-window-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 24px 28px; border-bottom: 1px solid var(--idiom-line); }
+.idiom-study .idiom-window-header h2 { margin-top: 5px; font-size: clamp(23px, 3vw, 32px); font-weight: 750; line-height: 1.4; }
+.idiom-study .idiom-window-close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: var(--idiom-inset); }
+.idiom-study .idiom-window-body { flex: 1; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.idiom-study .idiom-window-axis { padding: 22px 24px; font-size: 16px; line-height: 1.8; color: #754321; }
+.idiom-study .idiom-study-window .idiom-member h3 { font-size: 24px; font-weight: 750; }
+.idiom-study .idiom-study-window .idiom-member p { font-size: 16px; line-height: 1.9; }
+.idiom-study .idiom-study-window .idiom-footer { flex-shrink: 0; }
+.idiom-study .idiom-window-word { max-width: 760px; padding: 32px 28px; margin: 0 auto; }
+.idiom-study .idiom-window-word > p { margin-bottom: 24px; }
+.idiom-study .idiom-window-definition { font-size: 23px; line-height: 1.9; }
+.idiom-study .idiom-window-word .space-y-3 { font-size: 16px; line-height: 1.9; }
 @media (max-width: 700px) {
   .idiom-study .idiom-comparison[data-count="4"] { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
-  .idiom-study .idiom-group > details > summary { padding: 16px; }
+  .idiom-study .idiom-study-card { padding: 16px; }
   .idiom-study .idiom-comparison { padding: 0 12px 12px; }
   .idiom-study .idiom-toolbar { align-items: stretch; }
+  .idiom-study .idiom-study-window { width: calc(100% - 16px); height: calc(100dvh - 24px); border-radius: 16px; }
+  .idiom-study .idiom-window-header, .idiom-study .idiom-window-word { padding: 18px; }
+  .idiom-study .idiom-window-axis { padding: 16px; }
+  .idiom-study .idiom-window-definition { font-size: 20px; }
 }

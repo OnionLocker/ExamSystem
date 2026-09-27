@@ -930,50 +930,31 @@ def coverage_report(conn, keyword=""):
     ):
         seen[row[0]] = row[1:]
 
-    registered = {
-        canonicalize(row[0]): row[1] or ""
-        for row in conn.execute("SELECT kaodian, COALESCE(definition, note, '') FROM kaodian_profile")
-        if parse_fenbi_tag(row[0]) and row[0].split('-', 1)[0] in {"数量关系", "言语理解与表达", "判断推理"}
-        and not any(word in row[0] for word in ("图形推理", "空间类", "科学推理"))
-    }
-
-    def profile_row(tag):
-        attempts, mastery, conf = seen.get(tag, (0, None, 0))
-        return {"tag": tag, "stock": stock.get(tag, 0), "attempts": attempts or 0,
-                "mastery": mastery, "confidence": conf or 0, "definition": registered.get(tag, "")}
-
+    from quiz_scope import catalog, scope_slots
+    nodes = catalog(conn)
+    roots = [keyword] if keyword else [tag for tag in nodes if fenbi_l3_of(tag) == tag]
     out = []
-    covered = set()
-    for card in canon_index():
-        # 此处覆盖文字专项的考点卡；资料分析使用独立的材料入口。
-        if any("图形推理" in t for t in card["tags"]) or not card["tags"]:
+    for scope in roots:
+        try:
+            slots = scope_slots(scope, 15, conn=conn, nodes=nodes, all_leaves=True)
+        except ValueError:
+            if keyword:
+                raise
             continue
-        family = card["tags"][0].rsplit("-", 1)[0]
-        # canon 里写的可能是旧名，先归一到实际在用的标签，库存/练习才对得上
-        usable = {canonicalize(t, card["module"]) for t in card["tags"]}
-        parents = {fenbi_l3_of(t) for t in usable} - {""}
-        usable.update(t for t in registered if fenbi_l3_of(t) in parents)
-        covered.update(usable)
-        if keyword and not any(keyword in value for value in [family, card["title"], *usable]):
-            continue
-        rows = [profile_row(tag) for tag in sorted(usable)]
-        # 一张卡只有一个标签时，卡内条目既可能是并列步骤也可能是可拆的考法，
-        # 不替 Hermes 下结论，如实列出让它自己判断。
-        untagged = [b["text"] for b in card["bullets"] if not b["tag"]] if len(rows) <= 1 else []
-        out.append({
-            "module": card["module"],
-            "title": card["title"],
-            "family": family,
-            "methods": len(card["bullets"]),
-            "rows": rows,
-            "untagged": untagged,
-        })
-    for parent in sorted({fenbi_l3_of(t) for t in registered.keys() - covered}):
-        tags = sorted(t for t in registered if fenbi_l3_of(t) == parent and t not in covered)
-        if keyword and not any(keyword in tag for tag in tags):
-            continue
-        out.append({"module": parent.split('-', 1)[0], "title": parent, "family": parent,
-                    "methods": len(tags), "rows": [profile_row(t) for t in tags], "untagged": []})
+        grouped = {}
+        for slot in slots:
+            tag = slot["tag"]
+            attempts, mastery, conf = seen.get(tag, (0, None, 0))
+            parent = fenbi_l3_of(tag)
+            grouped.setdefault(parent, []).append({
+                "tag": tag, "stock": stock.get(tag, 0), "attempts": attempts or 0,
+                "mastery": mastery, "confidence": conf or 0,
+                "definition": slot.get("definition", ""),
+            })
+        for parent, rows in grouped.items():
+            out.append({"module": parent.split("-", 1)[0], "title": nodes[parent]["title"],
+                        "family": parent, "methods": len(rows), "rows": rows, "untagged": []})
+
     return out
 
 
@@ -1004,25 +985,11 @@ def print_coverage(conn, keyword=""):
 
 def plan_blueprint(conn, keyword, count):
     """在匹配到的考点之间均衡分题，弱项优先，直接吐出 quiz_generator 能吃的蓝图。"""
-    cards = coverage_report(conn, keyword)
-    from kaodian_taxonomy import LEGACY_TAGS
-
-    if not 1 <= count <= 15:
-        raise ValueError("专项配题数量须为 1–15")
-    candidates = {row["tag"]: row for card in cards for row in card["rows"] if row["tag"] not in LEGACY_TAGS}
-    parents_with_children = {fenbi_l3_of(t) for t in candidates if fenbi_l3_of(t) != t}
-    pool = [row for tag, row in candidates.items() if tag not in parents_with_children]
-    if not pool:
-        raise SystemExit(f"没有匹配 '{keyword}' 的考点；先 --coverage 看有哪些")
-    pool.sort(key=lambda r: (r["mastery"] if r["mastery"] is not None else 50, r["stock"]))
-    pool = pool[:count]
-    base, extra = divmod(count, len(pool))
-    slots = []
-    for index, row in enumerate(pool):
-        n = base + (1 if index < extra else 0)
-        if n:
-            slots.append({"tag": row["tag"], "count": n})
-    return {"slots": slots}
+    from quiz_scope import scope_slots
+    try:
+        return {"slots": scope_slots(keyword, count, conn=conn)}
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 if __name__ == "__main__":

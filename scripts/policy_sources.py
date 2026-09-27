@@ -190,6 +190,101 @@ def add(spec):
     return record
 
 
+def validate_update_findings(audit):
+    findings = audit.get('findings')
+    evidence = {v['url']: v['text'] for v in audit.get('evidence', [])}
+    if not isinstance(findings, list) or not findings or any(not isinstance(f, dict) for f in findings):
+        raise ValueError('更新核验缺少实际阅读记录 findings：每个URL须有连续原文quote和具体finding，不接受仅检查HTTP状态')
+    if any(not isinstance(f.get('url'), str) for f in findings) or {f['url'] for f in findings} != set(evidence):
+        raise ValueError('更新核验阅读记录须覆盖全部核验URL')
+    for f in findings:
+        quote, finding = f.get('quote'), f.get('finding')
+        if (not isinstance(quote, str) or not 20 <= len(quote) <= 500 or quote not in evidence[f['url']]
+                or not isinstance(finding, str) or len(finding.strip()) < 15):
+            raise ValueError('更新核验须摘录20–500字连续原文，并说明该页面对版本/日期/适用范围的核对结果')
+
+
+def review_updates(spec):
+    """Record an Agent's explicit update check, with fetched evidence (not a refresh)."""
+    ids, urls = spec.get('source_ids'), spec.get('urls')
+    if (not isinstance(ids, list) or not ids or not isinstance(urls, list) or not 1 <= len(urls) <= 8
+            or not isinstance(spec.get('note'), str) or len(spec['note'].strip()) < 20):
+        raise ValueError('更新核验须提供source_ids、1–8个权威核验urls和具体note；先核对新发布/修订/替代，再登记')
+    entries = registry()
+    if any(not isinstance(i, str) or i not in entries for i in ids):
+        raise ValueError('更新核验包含未登记来源')
+    evidence = []
+    for url in dict.fromkeys(urls):
+        page, resolved = fetch(url)
+        text = '\n'.join(page.parts)
+        if len(text) < 120:
+            raise ValueError('更新核验页面正文不足')
+        evidence.append({'url': resolved, 'sha256': sha(text), 'text': text})
+    audit = {'source_ids': ids, 'note': spec['note'], 'evidence': evidence, 'findings': spec.get('findings')}
+    validate_update_findings(audit)
+    # Refresh first: a changed body invalidates an earlier update judgment.
+    records = [refresh(entries[i]) for i in dict.fromkeys(ids)]
+    checked = dt.datetime.now(dt.timezone.utc).isoformat()
+    audit['checked_at'] = checked
+    key = sha(json.dumps(audit, ensure_ascii=False))
+    atomic_json(directory() / 'update-evidence' / (key + '.json'), audit)
+    path = directory() / 'update-reviews.json'
+    reviews = json.loads(path.read_text()) if path.exists() else {}
+    for record in records:
+        reviews[record['id']] = {'checked_at': checked, 'source_sha256': record['sha256'],
+                                'note': spec['note'], 'evidence_file': key + '.json',
+                                'urls': [v['url'] for v in evidence]}
+    atomic_json(path, reviews)
+    return {'reviewed': list(dict.fromkeys(ids)), 'checked_at': checked}
+
+
+def update_review(record):
+    path = directory() / 'update-reviews.json'
+    review = (json.loads(path.read_text()) if path.exists() else {}).get(record['id'], {})
+    checked = dt.datetime.fromisoformat(review['checked_at']) if review.get('checked_at') else None
+    if (not checked or checked.tzinfo is None or not 0 <= (dt.datetime.now(dt.timezone.utc) - checked).total_seconds() < 86400
+            or review.get('source_sha256') != record['sha256']):
+        raise ValueError('资料尚未完成今日新发布/修订/替代核验：' + record['id'] + '；先联网核对，再用 policy_sources.py review-updates 登记依据')
+    evidence = directory() / 'update-evidence' / Path(review.get('evidence_file', '')).name
+    if not evidence.is_file() or not review.get('urls'):
+        raise ValueError('更新核验缺少可追溯原文：' + record['id'])
+    audit = json.loads(evidence.read_text())
+    validate_update_findings(audit)
+    if (audit.get('checked_at') != review['checked_at'] or record['id'] not in audit.get('source_ids', [])
+            or not audit.get('evidence') or any(sha(v['text']) != v['sha256'] for v in audit['evidence'])):
+        raise ValueError('更新核验记录与原文证据不一致：' + record['id'])
+    return review
+
+
+def require_current_sources(pack):
+    """New generation/import only. Historical reviewed snapshots stay readable."""
+    validate_pack(pack)
+    entries = registry()
+    for record in pack['sources']:
+        current = entries.get(record['id'])
+        if not current or not applicable(current, dt.date.fromisoformat(pack['as_of'])) or not applicable(current, today()):
+            raise ValueError('资料已失效或未登记：' + record['id'])
+        checked = dt.datetime.fromisoformat(record['checked_at'])
+        if (dt.datetime.now(dt.timezone.utc) - checked).total_seconds() >= (7 if record['kind'] == 'foundation' else 1) * 86400:
+            raise ValueError('新入库资料核验已过期：' + record['id'])
+        saved = directory() / (record['id'] + '.json')
+        latest = json.loads(saved.read_text()) if saved.exists() else {}
+        if latest.get('sha256') != record['sha256'] or any(
+                latest.get(k) != v or record.get(k) != v for k, v in current.items()):
+            raise ValueError('生成后资料正文或登记口径已变化，请重新生成：' + record['id'])
+        if record['kind'] != 'foundation':
+            update_review(record)
+        if record.get('scope') == 'current' and record['kind'] == 'law' and not record.get('effective_at'):
+            raise ValueError('现行法律须明确生效日期：' + record['id'])
+
+
+def applicable(spec, cutoff):
+    return (dt.date.fromisoformat(spec['published_at']) <= cutoff and not spec.get('superseded_by')
+            and not (spec.get('expires_at') and dt.date.fromisoformat(spec['expires_at']) <= cutoff)
+            and not (spec.get('scope') == 'current' and spec.get('effective_at')
+                     and dt.date.fromisoformat(spec['effective_at']) > cutoff))
+
+
 def matches(spec, tag):
     return any(tag == t or tag.startswith(t + '-') or t.startswith(tag + '-') for t in spec['tags'])
 
@@ -199,8 +294,24 @@ def source_pack(slots, ids=None, as_of=None):
     if cutoff > today():
         raise ValueError('资料截止日不能在未来')
     entries = registry()
-    selected = ids or list(dict.fromkeys(
-        ident for slot in slots for ident, spec in entries.items() if matches(spec, slot['tag'])))
+    if ids:
+        selected = list(dict.fromkeys(ids))
+    else:
+        eligible = sorted((s for s in entries.values() if applicable(s, cutoff)),
+                          key=lambda s: s['published_at'], reverse=True)
+        # Cover every slot before filling remaining room with recent relevant sources.
+        selected = []
+        for slot in slots:
+            candidates = [s['id'] for s in eligible if matches(s, slot['tag'])]
+            if not candidates:
+                raise ValueError('缺少此考点的有效原文，请先 sources add：' + slot['tag'])
+            if not any(i in selected for i in candidates):
+                selected.append(candidates[0])
+        for spec in eligible:
+            if len(selected) >= 8:
+                break
+            if spec['id'] not in selected and any(matches(spec, slot['tag']) for slot in slots):
+                selected.append(spec['id'])
     if not selected or len(selected) > 8:
         raise ValueError('请先登记权威原文或用 --sources 选择 1–8 份相关资料')
     sources = []
@@ -222,6 +333,8 @@ def source_pack(slots, ids=None, as_of=None):
         fresh = cached and all(cached.get(k) == v for k, v in spec.items()) and (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(cached['checked_at'])).total_seconds() < max_age * 86400
         # Failure propagates. A stale cache is never silently relabeled as checked.
         record = cached if fresh else refresh(spec)
+        if record['kind'] != 'foundation':
+            record = {**record, 'update_review': update_review(record)}
         sources.append(record)
     for slot in slots:
         if not any(matches(s, slot['tag']) for s in sources):
@@ -229,7 +342,7 @@ def source_pack(slots, ids=None, as_of=None):
     if sum(len(p['text']) for s in sources for p in s['paragraphs']) > 80000:
         raise ValueError('本批资料过多，请缩小考点或指定 --sources')
     pack = {'as_of': cutoff.isoformat(), 'sources': sources}
-    validate_pack(pack)
+    require_current_sources(pack)
     return pack
 
 
@@ -264,7 +377,7 @@ def validate_pack(pack):
             raise ValueError('资料正文与摘要哈希不一致')
 
 
-def citation_issues(checks, pack, question):
+def citation_issues(checks, pack, question, selection_rule=None, review_version=3):
     """Require an independently verifiable citation for every option/statement."""
     keys = ['statement'] if question.get('question_type') == 'judge' else ['A', 'B', 'C', 'D']
     if (not isinstance(checks, list) or len(checks) != len(keys)
@@ -273,9 +386,26 @@ def citation_issues(checks, pack, question):
         return ['逐项依据未覆盖全部选项/判断句']
     sources = {s['id']: s for s in pack['sources']}
     issues = []
+    if review_version >= 3 and (selection_rule not in ('select_true', 'select_false')
+            or (keys == ['statement'] and selection_rule != 'select_true')):
+        issues.append('缺少有效设问方向；判断题必须按陈述真假作答')
     for check in checks:
         if type(check.get('valid')) is not bool or not str(check.get('reason') or '').strip():
             issues.append('逐项判断缺少明确真假或理由')
+        if review_version >= 3:
+            relation = check.get('source_relation')
+            if relation not in ('entailed', 'contradicted', 'undetermined'):
+                issues.append('逐项依据缺少原文支持/反驳/未定关系')
+            elif relation == 'undetermined':
+                issues.append('给定原文无法确定该项，不能将未证当错误')
+            elif selection_rule in ('select_true', 'select_false'):
+                expected = (relation == 'entailed') == (selection_rule == 'select_true')
+                if check.get('valid') is not expected:
+                    issues.append('符合设问的判断与原文关系、选正选非方向不一致')
+            for field in ('subject_comparison', 'premise_comparison', 'strength_comparison'):
+                if not isinstance(check.get(field), str) or not check[field].strip():
+                    issues.append('逐项依据缺少主体、前提或断言强度对照')
+                    break
         citations = check.get('citations')
         if not isinstance(citations, list) or not citations:
             issues.append('每项必须有原文依据')
@@ -333,7 +463,11 @@ def evidence_status(evidence):
 
 def discover():
     config = json.loads(CONFIG.read_text())
-    found, errors = {}, []
+    path = directory() / 'candidates.json'
+    previous = json.loads(path.read_text()) if path.exists() else {}
+    found = {v['url']: v for v in previous.get('candidates', [])}
+    errors, checked = [], dt.datetime.now(dt.timezone.utc).isoformat()
+    registered = {v['url']: v['id'] for v in registry().values()}
     for url in config.get('watch_pages', []):
         try:
             page, final = fetch(url)
@@ -345,7 +479,10 @@ def discover():
                     trusted_url(link)
                 except ValueError:
                     continue
-                found[link] = {'url': link, 'title': title.strip(), 'status': 'candidate_unverified'}
+                old = found.get(link, {})
+                found[link] = {**old, 'url': link, 'title': title.strip(),
+                               'first_seen_at': old.get('first_seen_at', checked), 'last_seen_at': checked,
+                               'status': 'registered' if link in registered else old.get('status', 'candidate_unverified')}
         except Exception as exc:
             errors.append({'url': url, 'error': str(exc)})
     result = {'checked_at': dt.datetime.now(dt.timezone.utc).isoformat(), 'candidates': list(found.values()), 'errors': errors}
@@ -357,11 +494,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
     add_p = sub.add_parser('add'); add_p.add_argument('spec', help='@JSON文件或JSON对象；不接受手写正文')
+    review_p = sub.add_parser('review-updates'); review_p.add_argument('spec', help='@JSON: source_ids, urls, findings[{url,quote,finding}], note；先inspect阅读，再登记查新结论')
+    show_p = sub.add_parser('show', help='读取指定来源已保存的原文与段落ID'); show_p.add_argument('source_id')
+    inspect_p = sub.add_parser('inspect', help='联网读取权威网页正文与链接，供查新核对'); inspect_p.add_argument('url')
     sub.add_parser('refresh')
     sub.add_parser('discover')
     sub.add_parser('status')
     args = parser.parse_args()
-    if args.command == 'add':
+    if args.command == 'inspect':
+        page, url = fetch(args.url)
+        print(json.dumps({'url': url, 'text': '\n'.join(page.parts), 'links': page.links}, ensure_ascii=False))
+        return
+    if args.command == 'show':
+        if args.source_id not in registry():
+            raise ValueError('未登记资料：' + args.source_id)
+        path = directory() / (args.source_id + '.json')
+        if not path.exists():
+            raise ValueError('资料尚未抓取，请先 refresh：' + args.source_id)
+        print(path.read_text())
+        return
+    if args.command == 'review-updates':
+        raw = Path(args.spec[1:]).read_text() if args.spec.startswith('@') else args.spec
+        print(json.dumps(review_updates(json.loads(raw)), ensure_ascii=False))
+    elif args.command == 'add':
         raw = Path(args.spec[1:]).read_text() if args.spec.startswith('@') else args.spec
         result = add(json.loads(raw)); print(json.dumps({k: result[k] for k in ('id', 'title', 'checked_at', 'sha256')}, ensure_ascii=False))
     elif args.command == 'discover':
@@ -382,7 +537,14 @@ def main():
         for spec in registry().values():
             path = directory() / (spec['id'] + '.json')
             saved = json.loads(path.read_text()) if path.exists() else {}
-            rows.append({**spec, 'checked_at': saved.get('checked_at'), 'sha256': saved.get('sha256')})
+            due = spec.get('kind') != 'foundation'
+            if saved and due:
+                try:
+                    update_review(saved)
+                    due = False
+                except ValueError:
+                    pass
+            rows.append({**spec, 'checked_at': saved.get('checked_at'), 'sha256': saved.get('sha256'), 'update_review_due': due})
         print(json.dumps({'sources': rows, 'candidates_file': str(directory() / 'candidates.json')}, ensure_ascii=False))
     return 0
 

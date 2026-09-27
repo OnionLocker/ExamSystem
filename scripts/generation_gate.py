@@ -41,6 +41,34 @@ LEGACY_VERSIONS = {1, 2}
 # 只收纯文字专项批次，证据链仍然是 questions.json 的 sha256 + 逐题复核记录。
 LITE_VERSION = 10
 RECEIPT = ".gate.json"
+QUANTITY_HARD_POLICY = "mid-or-hard-v1"
+HARD_POLICY = "mid-or-hard-v2"
+HARD_POLICY_MODULES = {"言语理解与表达"}
+VERBAL_PRACTICE_POLICY = "knowledge-first-v1"
+POLICY_PRACTICE_POLICY = "source-knowledge-first-v1"
+REASONING_PRACTICE_POLICY = "logic-knowledge-first-v1"
+
+
+def current_hard_policy(module: str) -> str | None:
+    if module == "判断推理":
+        return REASONING_PRACTICE_POLICY
+    return QUANTITY_HARD_POLICY if module == "数量关系" else VERBAL_PRACTICE_POLICY if module == "言语理解与表达" else None
+
+
+def lite_allowed_tiers(tier: str, category: str = "", policy: str | None = None) -> tuple[str, ...]:
+    if category == '判断推理' and policy == REASONING_PRACTICE_POLICY:
+        return ("easy", "mid", "hard")
+    if category in {'政治理论', '常识判断'} and policy == POLICY_PRACTICE_POLICY:
+        return ("easy", "mid", "hard")
+    if category == "言语理解与表达" and policy == VERBAL_PRACTICE_POLICY:
+        return ("easy", "mid", "hard")
+    if tier == "auto":
+        return ("easy", "mid", "hard")
+    if category == "数量关系" and tier == "hard" and policy == QUANTITY_HARD_POLICY:
+        return ("mid", "hard")
+    if category in HARD_POLICY_MODULES and tier == "hard" and policy == HARD_POLICY:
+        return ("mid", "hard")
+    return (tier,)
 
 
 def read_json(path: Path) -> dict | list:
@@ -237,6 +265,37 @@ def validate_batch_constraints(manifest: dict, questions: list[dict]) -> None:
             actual_tags[tag] = actual_tags.get(tag, 0) + 1
         if actual_tags != {str(key): int(value) for key, value in expected_tags.items()}:
             raise ValueError(f"主标签配比不符合 batch_constraints：{actual_tags}")
+    slots = constraints.get("slot_plan") or []
+    if slots and manifest.get("generation", {}).get("pipeline") == "quiz_lite":
+        per_item = []
+        for slot in slots:
+            count = slot.get("count")
+            if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+                raise ValueError("slot_plan 的 count 须为正整数")
+            per_item.extend([slot] * count)
+        if len(per_item) != len(generated):
+            raise ValueError("slot_plan 题量与题目不一致")
+        for index, (slot, question) in enumerate(zip(per_item, generated), start=1):
+            if question_primary_tag(question) != slot.get("tag"):
+                raise ValueError(f"第{index}题主标签与 slot_plan 不一致")
+            tier = slot.get("difficulty") or manifest.get("difficulty_tier") or "mid"
+            generation = manifest.get("generation", {})
+            if tier == "auto":
+                if question.get("category") != "数量关系" and not (question.get("category") == "言语理解与表达"
+                        and generation.get("verbal_difficulty_policy") == VERBAL_PRACTICE_POLICY) and not (
+                        question.get('category') in {'政治理论', '常识判断'} and
+                        generation.get('policy_difficulty_policy') == POLICY_PRACTICE_POLICY) and not (
+                        question.get('category') == '判断推理' and
+                        generation.get('reasoning_difficulty_policy') == REASONING_PRACTICE_POLICY):
+                    raise ValueError("auto 难度仅适用于数量关系或新版言语、文字判断、政治常识练习")
+                if type(question.get("difficulty")) is not int or question["difficulty"] not in {2, 3, 4}:
+                    raise ValueError(f"第{index}题缺少有效实际难度")
+                continue
+            level = question.get("difficulty")
+            actual = {2: "easy", 3: "mid", 4: "hard"}.get(level) if type(level) is int else None
+            policy = generation.get('reasoning_difficulty_policy') or generation.get('policy_difficulty_policy') or generation.get("verbal_difficulty_policy", generation.get("hard_difficulty_policy", generation.get("quantity_hard_policy")))
+            if actual is None or actual not in lite_allowed_tiers(tier, question.get("category"), policy):
+                raise ValueError(f"第{index}题难度与 slot_plan 不一致")
     image_count = sum(bool(all_image_paths_for_question(question)) for question in generated)
     image_rule = constraints.get("image_dependent_count") or {}
     if image_rule:
@@ -353,10 +412,82 @@ def validate_system_quality(batch_dir: Path, evidence: dict, ids: list[str]) -> 
             raise ValueError(f"系统风格质量检查未通过：{qid}")
 
 
+def lite_necessity_claims(question: dict, *, verbal=False, usage_v2=False, verbal_all=False, reasoning=False) -> list[str]:
+    pattern = r"只能|必须|必然"
+    if verbal and question.get('category') == '言语理解与表达':
+        pattern += r"|不能|不(?:能|可)(?:用|与|搭配)|搭配不当|语法(?:错误|不合)|专指|仅(?:用于|指)"
+        if usage_v2:
+            pattern += r"|多用于|通常(?:用于|用来|指)|适用(?:对象|范围)|为(?:中性|褒义|贬义)词"
+    return list(dict.fromkeys(
+        sentence.strip() for sentence in re.split(r"[。！？；;\n]" if reasoning else r"[。！？\n]", str(question.get("analysis") or ""))
+        if sentence.strip() and (reasoning and question.get('category') == '判断推理'
+                                or verbal_all and question.get('category') == '言语理解与表达' or re.search(pattern, sentence))
+    ))
+
+
+def lite_reasoning_issues(blind: dict, examiner: dict, tier: str, claims: list[str],
+                          category: str = "", policy: str | None = None) -> list[str]:
+    """Review and import must enforce the same recorded reasoning requirements."""
+    issues = []
+    for row, role, reason_label in ((blind, "盲解官", "独立难度依据"),
+                                     (examiner, "考官", "难度删条件核查依据")):
+        actual = row.get("actual_difficulty")
+        if not isinstance(actual, str) or actual not in {"easy", "mid", "hard"}:
+            issues.append(f"{role}缺少有效实际难度档位")
+        elif actual not in lite_allowed_tiers(tier, category, policy):
+            issues.append(f"{role}实际评定为 {actual}，不匹配声明档位 {tier}："
+                          + str(row.get('difficulty_reason') or '')[:500])
+        if not isinstance(row.get("difficulty_reason"), str) or not row["difficulty_reason"].strip():
+            issues.append(f"{role}缺少{reason_label}")
+    if not isinstance(examiner.get("analysis_check"), str) or not examiner["analysis_check"].strip():
+        issues.append("考官缺少解析推导核查依据")
+    checks = examiner.get("necessity_checks")
+    if not isinstance(checks, list) or any(not isinstance(check, dict) for check in checks):
+        issues.append("考官缺少必要性断言逐条核验")
+    elif any(type(check.get("claim_index")) is not int for check in checks) or sorted(check["claim_index"] for check in checks) != list(range(len(claims))):
+        issues.append("必要性断言核验未覆盖全部原句")
+    else:
+        for check in checks:
+            if not isinstance(check.get("valid"), bool) or not isinstance(check.get("reason"), str) or not check["reason"].strip():
+                issues.append("必要性断言缺少有效判定或依据")
+            elif not check["valid"]:
+                issues.append(f"必要性断言不成立：{claims[check['claim_index']]}；{check['reason']}")
+    return issues
+
+
 def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> None:
     if evidence.get("kind") != "examsystem-lite-review":
         raise ValueError("轻量复核证据 kind 错误")
+    version = evidence.get("version", 1)
+    if type(version) is not int or version not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
+        raise ValueError("轻量复核证据版本不支持")
     manifest = read_json(batch_dir / "manifest.json")
+    generation = manifest.get("generation", {})
+    reasoning_policy = generation.get('reasoning_difficulty_policy')
+    if (reasoning_policy is not None and (reasoning_policy != REASONING_PRACTICE_POLICY or version != 9)
+            or evidence.get('reasoning_difficulty_policy') != reasoning_policy
+            or version == 9 and (reasoning_policy != REASONING_PRACTICE_POLICY or any(
+                generation.get(k) is not None for k in ('policy_difficulty_policy', 'verbal_difficulty_policy', 'hard_difficulty_policy', 'quantity_hard_policy')))):
+        raise ValueError('文字判断训练策略与复核版本不一致')
+    policy_training = generation.get('policy_difficulty_policy')
+    if (policy_training is not None and (policy_training != POLICY_PRACTICE_POLICY or version != 8)
+            or evidence.get('policy_difficulty_policy') != policy_training
+            or version == 8 and (policy_training != POLICY_PRACTICE_POLICY or any(
+                generation.get(k) is not None for k in ('verbal_difficulty_policy', 'hard_difficulty_policy', 'quantity_hard_policy')))):
+        raise ValueError('政治常识训练策略与复核版本不一致')
+    for key, expected in (("quantity_hard_policy", QUANTITY_HARD_POLICY), ("hard_difficulty_policy", HARD_POLICY)):
+        if generation.get(key) is not None and (generation[key] != expected or version < 3):
+            raise ValueError("困难档策略或复核版本不支持")
+        if evidence.get(key) != generation.get(key):
+            raise ValueError("困难档策略与复核记录不一致")
+    verbal_policy = generation.get("verbal_difficulty_policy")
+    if verbal_policy is not None and (verbal_policy != VERBAL_PRACTICE_POLICY or version != 7):
+        raise ValueError("言语训练策略或复核版本不支持")
+    if evidence.get("verbal_difficulty_policy") != verbal_policy:
+        raise ValueError("言语训练策略与复核记录不一致")
+    if version == 7 and (verbal_policy != VERBAL_PRACTICE_POLICY or generation.get("hard_difficulty_policy") is not None):
+        raise ValueError("新版言语复核须使用知识点训练策略")
+    policy = reasoning_policy or verbal_policy or generation.get("hard_difficulty_policy", generation.get("quantity_hard_policy"))
     if evidence.get("batch_id") != manifest.get("batch_id"):
         raise ValueError("轻量复核 batch_id 不一致")
     if "flash" not in str(evidence.get("model") or "").lower():
@@ -372,7 +503,64 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
     }
     if set(results) != set(ids):
         raise ValueError("轻量复核未覆盖全部生成题")
-    answers = {str(q["external_id"]): q["answer"] for q in read_json(batch_dir / "questions.json")}
+    questions = read_json(batch_dir / "questions.json")
+    if version == 9 and any(q.get('category') != '判断推理' or q.get('sub_category') != '逻辑判断' for q in questions):
+        raise ValueError('文字判断训练策略仅适用于逻辑判断')
+    if version == 8 and any(q.get('category') not in {'政治理论', '常识判断'} for q in questions):
+        raise ValueError('原文训练策略仅适用于政治常识')
+    if version == 7 and any(q.get("category") != "言语理解与表达" for q in questions):
+        raise ValueError("知识点训练策略仅适用于言语")
+    answers = {str(q["external_id"]): q["answer"] for q in questions}
+    slots = (manifest.get("generation") or {}).get("batch_constraints", {}).get("slot_plan")
+    if version < 3 and (manifest.get("difficulty_tier") == "auto" or any(
+        isinstance(slot, dict) and slot.get("difficulty") == "auto" for slot in (slots or [])
+    )):
+        raise ValueError("auto 难度须使用新版轻量复核证据")
+    if version >= 2:
+        if not isinstance(slots, list) or not slots:
+            raise ValueError("新版轻量复核缺少 slot_plan")
+        tiers = []
+        for slot in slots:
+            if not isinstance(slot, dict) or type(slot.get("count")) is not int or slot["count"] < 1:
+                raise ValueError("slot_plan 的 count 须为正整数")
+            tier = slot.get("difficulty") or manifest.get("difficulty_tier") or "mid"
+            if not isinstance(tier, str) or tier not in {"easy", "mid", "hard", "auto"}:
+                raise ValueError("slot_plan 缺少有效难度档位")
+            tiers.extend([tier] * slot["count"])
+        if len(tiers) != len(questions):
+            raise ValueError("难度槽位与题量不一致")
+        for question, tier in zip(questions, tiers):
+            if tier == "auto" and question.get("category") != "数量关系" and version not in {7, 8, 9}:
+                raise ValueError("auto 难度仅适用于数量关系或新版言语、文字判断、政治常识练习")
+            if question.get("category") in {"政治理论", "常识判断"}:
+                continue  # Grounded questions have their own per-option source checks below.
+            qid = str(question["external_id"])
+            item = results[qid]
+            blind, examiner = item.get("blind"), item.get("examiner")
+            if not isinstance(blind, dict) or not isinstance(examiner, dict):
+                raise ValueError(f"轻量复核角色记录缺失：{qid}")
+            if tier == "auto" and version not in {7, 9} and question.get("difficulty") != {
+                "easy": 2, "mid": 3, "hard": 4,
+            }.get(examiner.get("actual_difficulty")):
+                raise ValueError(f"实际难度与考官评级不一致：{qid}")
+            claims = lite_necessity_claims(question, verbal=version >= 4, usage_v2=version >= 5, verbal_all=version == 6, reasoning=version == 9)
+            if examiner.get("necessity_claims") != claims:
+                raise ValueError(f"必要性断言原句与解析不一致：{qid}")
+            errors = lite_reasoning_issues(blind, examiner, tier, claims, question.get("category"), policy)
+            if version == 9 or version >= 4 and question.get('category') == '言语理解与表达':
+                errors += lite_reasoning_issues(blind, {**examiner, 'necessity_checks': examiner.get('usage_checks')},
+                                                tier, claims, question['category'], policy)
+            if version == 9:
+                check = examiner.get('question_check')
+                if not isinstance(check, dict) or check.get('valid') is not True or not str(check.get('reason') or '').startswith('PASS'):
+                    errors.append('独立题面核查缺失或未通过')
+            if errors:
+                raise ValueError(f"轻量推导核验失败：{qid}：" + "；".join(errors))
+            if version in {7, 9} or lite_allowed_tiers(tier, question.get("category"), policy) == ("mid", "hard"):
+                actual_level = min({"easy": 2, "mid": 3, "hard": 4}[role["actual_difficulty"]]
+                                   for role in (blind, examiner))
+                if question.get("difficulty") != actual_level:
+                    raise ValueError(f"实际难度须按两位审核较低评级记录：{qid}")
     for qid, item in results.items():
         if str(item.get("verdict") or "").upper() != "PASS":
             raise ValueError(f"轻量复核未通过：{qid}")
@@ -390,7 +578,6 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
         if any((item.get("examiner") or {}).get(key) is not True
                for key in ("difficulty_ok", "kaodian_ok", "style_ok", "analysis_ok", "brief_ok")):
             raise ValueError(f"考官检查字段缺失或未通过：{qid}")
-    questions = read_json(batch_dir / 'questions.json')
     if any(q.get('category') in {'政治理论', '常识判断'} for q in questions):
         from policy_quiz import validate_receipt
         if manifest.get('generation', {}).get('source_grounded') is not True:
@@ -398,7 +585,7 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
         source_path = batch_dir / 'sources.json'
         if not source_path.is_file() or digest(source_path) != manifest['generation'].get('sources_sha256'):
             raise ValueError('权威原文快照缺失或被修改')
-        validate_receipt(batch_dir, manifest, questions, results)
+        validate_receipt(batch_dir, manifest, questions, results, review_version=version)
 
 
 def run_system_quality_gate(batch_dir: Path, ids: list[str]) -> Path:
@@ -650,12 +837,7 @@ def validate_paper_hard_rules(manifest: dict, questions: list[dict], batch_dir: 
                     "改用杠杆/浮力/串并联/海陆风/等高线/食物链光合等，公式限 F=ma、G=mg、p=ρgh、I=U/R 一档")
         if not _is_targeted_drill(manifest):
             validate_kepui_paper(science, require_images=True)
-    # 9) 言语：禁“因此亟须”作文腔；逻辑填空禁极性送分与同批申论套句
-    for question in questions:
-        if str(question.get("category") or "") == "言语理解与表达":
-            tail = str(question.get("stem") or "") + str(question.get("explanation") or question.get("analysis") or "")
-            if "因此亟须" in tail:
-                raise ValueError(f"言语题禁止“因此亟须…”作文腔表述：{question.get('external_id')}")
+    # 9) 言语题面重复硬检查；措辞、句式和选项竞争度由语境审核判断。
     validate_yanyu_fills(generated)
     # 10) 答案字母均衡（非资料卷；资料另用 3篇ABCD各一+1、1篇打散）：单卷任一字母 ≤ 约 40%
     nonziliao = [q for q in generated
@@ -751,12 +933,17 @@ def verify(batch_dir: Path) -> dict:
     if any(q.get('category') in {'政治理论', '常识判断'} for q in questions):
         if receipt.get('version') != LITE_VERSION:
             raise ValueError('政治/常识须使用原文核验的轻量出题流程')
+    if receipt.get('version') == LITE_VERSION:
+        if manifest.get('generation', {}).get('pipeline') != 'quiz_lite':
+            raise ValueError('轻量收据须对应 quiz_lite 流程')
+        if not manifest.get('generation', {}).get('batch_constraints', {}).get('slot_plan'):
+            raise ValueError('轻量出题缺少 slot_plan 考点配额')
         validate_batch_constraints(manifest, questions)
         from quiz_lite import local_issues
         for question in questions:
             errors = local_issues(question)
             if errors:
-                raise ValueError('政治/常识题面结构不合格：' + '；'.join(errors))
+                raise ValueError('轻量题面结构不合格：' + '；'.join(errors))
     ids = question_ids(batch_dir)
     if receipt.get("batch_id") != manifest.get("batch_id"):
         raise ValueError("闸门回执 batch_id 不一致")
@@ -811,6 +998,8 @@ def verify(batch_dir: Path) -> dict:
         "batch_id": receipt["batch_id"],
         "question_count": len(ids),
         "issued_at": receipt["issued_at"],
+        **({"review_schema_version": evidence.get("version", 1),
+            "legacy_review": evidence.get("version", 1) < 3} if version == LITE_VERSION else {}),
     }
 
 
@@ -823,12 +1012,16 @@ def main() -> int:
     issue_parser.add_argument("--quality", type=Path)
     verify_parser = sub.add_parser("verify")
     verify_parser.add_argument("batch_dir", type=Path)
+    verify_parser.add_argument('--for-import', action='store_true', help='新入库另核对资料时效，不改变历史回执验证')
     args = parser.parse_args()
     try:
         if args.command == "issue":
             result = issue(args.batch_dir.resolve(), args.correctness.resolve() if args.correctness else None, args.quality.resolve() if args.quality else None)
         else:
             result = verify(args.batch_dir.resolve())
+            if args.for_import and (args.batch_dir / 'sources.json').exists():
+                from policy_sources import require_current_sources
+                require_current_sources(read_json(args.batch_dir / 'sources.json'))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
     except (OSError, ValueError, json.JSONDecodeError) as exc:

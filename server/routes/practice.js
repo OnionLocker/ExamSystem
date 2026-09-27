@@ -135,6 +135,102 @@ const parseOptions = (raw) => {
 const draftUrl = (sessionId, questionId) =>
   `/api/practice/sessions/${sessionId}/drafts/${questionId}/file`;
 
+const parseRedoItem = (row) => ({
+  ...row,
+  options: parseOptions(row.options),
+  stem_images: parseOptions(row.stem_images),
+  explanation_images: parseOptions(row.explanation_images),
+  tags: parseTags(row.tags),
+  knowledge_tags: parseOptions(row.knowledge_tags),
+  source_evidence: parseOptions(row.source_evidence),
+  ...(row.material_content ? {
+    material: { content: row.material_content, images: parseOptions(row.material_images) },
+  } : {}),
+});
+
+// Hermes 只提交历史 question_id；服务端负责去重、校验和固定题目快照入口。
+router.get('/redo-packs', (_req, res) => {
+  const packs = db.prepare(`
+    SELECT p.id, p.title, p.source_session_id, p.reason_summary, p.created_at,
+           COUNT(i.id) AS item_count,
+           COALESCE((SELECT MAX(s.ended_at) FROM practice_sessions s WHERE s.redo_pack_id = p.id), NULL) AS last_completed_at,
+           (SELECT s.id FROM practice_sessions s WHERE s.redo_pack_id = p.id AND s.ended_at IS NOT NULL ORDER BY s.ended_at DESC LIMIT 1) AS last_session_id
+      FROM redo_packs p LEFT JOIN redo_pack_items i ON i.pack_id = p.id
+     GROUP BY p.id ORDER BY p.created_at DESC
+  `).all();
+  res.json(packs);
+});
+
+router.get('/redo-packs/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const pack = db.prepare('SELECT * FROM redo_packs WHERE id = ?').get(id);
+  if (!pack) return res.status(404).json({ error: 'redo pack not found' });
+  const items = db.prepare(`
+    SELECT i.reason, i.priority, i.knowledge_tags, i.suggested_order,
+           q.id, q.external_id, q.category, q.sub_category, q.question_type,
+           q.content, q.stem_images, q.options, q.correct_answer, q.explanation,
+           q.explanation_images, q.difficulty, q.tags, q.source, q.year, q.region,
+           q.material_id, q.source_evidence, m.content AS material_content, m.images AS material_images
+      FROM redo_pack_items i JOIN questions q ON q.id = i.question_id
+      LEFT JOIN materials m ON m.id = q.material_id
+     WHERE i.pack_id = ? ORDER BY i.suggested_order, i.id
+  `).all(id).map(parseRedoItem);
+  res.json({ ...pack, items });
+});
+
+export const createRedoPack = (body = {}) => {
+  const invalid = (message) => Object.assign(new Error(message), { status: 400 });
+  const sourceSessionId = Number(body.source_session_id);
+  const sourceSession = db.prepare('SELECT id, ended_at FROM practice_sessions WHERE id = ?').get(sourceSessionId);
+  if (!sourceSession?.ended_at) throw invalid('必须关联已完成的来源复盘场次');
+  const rawItems = Array.isArray(body.items) ? body.items : [];
+  const items = [...new Map(rawItems.map((item) => [Number(item?.question_id), item])).values()]
+    .filter((item) => Number.isInteger(Number(item?.question_id)) && String(item?.reason || '').trim())
+    .slice(0, 15);
+  if (!items.length) throw invalid('复盘重做卷至少需要 1 道有效历史题');
+  const ids = items.map((item) => Number(item.question_id));
+  const found = db.prepare(`SELECT id FROM questions WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  if (found.length !== ids.length) throw invalid('只能抽取已存在的历史题目');
+  const fromSource = db.prepare(`SELECT DISTINCT question_id FROM practice_answers
+    WHERE session_id = ? AND question_id IN (${ids.map(() => '?').join(',')})`).all(sourceSessionId, ...ids);
+  if (fromSource.length !== ids.length) throw invalid('题目必须来自来源复盘场次');
+  const create = db.transaction(() => {
+    const pack = db.prepare('INSERT INTO redo_packs (title, source_session_id, reason_summary) VALUES (?, ?, ?)')
+      .run(String(body.title || 'Hermes 复盘重做').slice(0, 120), sourceSessionId, String(body.reason_summary || '').slice(0, 500));
+    const insert = db.prepare(`INSERT INTO redo_pack_items
+      (pack_id, question_id, reason, priority, knowledge_tags, suggested_order)
+      VALUES (?, ?, ?, ?, ?, ?)`);
+    items.forEach((item, index) => insert.run(
+      pack.lastInsertRowid, Number(item.question_id), String(item.reason).slice(0, 300),
+      ['high', 'normal', 'low'].includes(item.priority) ? item.priority : 'normal',
+      JSON.stringify(Array.isArray(item.knowledge_tags) ? item.knowledge_tags.slice(0, 10) : []), index + 1,
+    ));
+    return pack.lastInsertRowid;
+  });
+  return { id: create(), count: items.length };
+};
+
+router.post('/redo-packs', (req, res) => {
+  try {
+    res.status(201).json(createRedoPack(req.body));
+  } catch (error) {
+    if (error.status === 400) return res.status(400).json({ error: error.message });
+    throw error;
+  }
+});
+
+router.post('/redo-packs/:id/session', (req, res) => {
+  const packId = Number(req.params.id);
+  const pack = db.prepare('SELECT id FROM redo_packs WHERE id = ?').get(packId);
+  if (!pack) return res.status(404).json({ error: 'redo pack not found' });
+  const existing = db.prepare('SELECT id FROM practice_sessions WHERE redo_pack_id = ? AND ended_at IS NULL ORDER BY id DESC LIMIT 1').get(packId);
+  if (existing) return res.json({ id: existing.id, existing: true });
+  const created = db.prepare(`INSERT INTO practice_sessions
+    (category, started_at, redo_pack_id, assessment_baseline)
+    VALUES (?, datetime('now'), ?, ?)`).run(`redo-pack:${packId}`, packId, assessmentBaseline());
+  res.status(201).json({ id: created.lastInsertRowid });
+});
+
 // ───────────────────────────────────────────────────────────────
 // POST /api/practice/sessions
 //   body: { category }
@@ -388,6 +484,7 @@ const getPracticeReport = (sessionId) => {
   const session = db.prepare(`
     SELECT s.*,
            COALESCE(
+             (SELECT p.title FROM redo_packs p WHERE p.id = s.redo_pack_id),
              (SELECT NULLIF(q.source, '') FROM questions q
                WHERE q.batch_id = s.category LIMIT 1),
              s.category
@@ -786,7 +883,7 @@ router.get('/heat', (_req, res) => {
 //   快速出题：指定模块和考点标签，生成一套小题
 // ───────────────────────────────────────────────────────────────
 router.post('/quiz/lite', async (req, res) => {
-  const { module, tag, difficulty = 'mid', sources, as_of, question_type } = req.body || {};
+  const { module, tag, difficulty, sources, as_of, question_type } = req.body || {};
   const grounded = ['政治理论', '常识判断'].includes(module);
   if (typeof module !== 'string' || !module.trim()
       || (tag !== undefined && (typeof tag !== 'string' || !tag.trim())) || (!tag && !grounded)) {
@@ -794,7 +891,9 @@ router.post('/quiz/lite', async (req, res) => {
   }
 
   const quizCount = Number(req.body.count ?? (module === '政治理论' && !tag ? 10 : 5));
-  if (!Number.isInteger(quizCount) || quizCount < 1 || quizCount > 15 || !['easy', 'mid', 'hard'].includes(difficulty)) {
+  if (!Number.isInteger(quizCount) || quizCount < 1 || quizCount > 15
+      || (difficulty !== undefined && !['easy', 'mid', 'hard'].includes(difficulty)
+        && !(difficulty === 'auto' && (grounded || ['数量关系', '言语理解与表达', '判断推理'].includes(module))))) {
     return res.status(400).json({ error: 'count 须为 1–15，difficulty 须为 easy/mid/hard' });
   }
   if ((sources !== undefined && (!grounded || !Array.isArray(sources) || !sources.length || sources.length > 8
@@ -816,7 +915,7 @@ router.post('/quiz/lite', async (req, res) => {
         '--module', String(module),
         ...(tag ? ['--tag', tag] : []),
         '--count', String(quizCount),
-        '--difficulty', difficulty,
+        ...(difficulty !== undefined ? ['--difficulty', difficulty] : []),
         '--batch-id', category,
         '--db', db.name,
         ...(sources ? ['--sources', sources.join(',')] : []),

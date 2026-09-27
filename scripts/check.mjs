@@ -17,6 +17,7 @@ for (const name of tests) {
       [join(root, 'scripts', name)], {
         cwd: root, encoding: 'utf8', timeout: 120000,
         env: { ...process.env, EXAM_DB: join(temp, 'exam.db'),
+          EXAM_KNOWLEDGE_DB: join(temp, 'knowledge.db'),
           EXAM_DRAFT_DIR: join(temp, 'drafts'), EXAM_PRACTICE_REVIEW_DIR: join(temp, 'reviews'),
           POLICY_LIVE_REVIEW: '0' },
       });

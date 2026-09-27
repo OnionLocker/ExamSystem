@@ -19,6 +19,7 @@ import { parseSqliteTime } from '../sqliteTime.js';
 
 const DEFAULT_TAB = '默认';
 const TIME_TAB = '时间';
+const REDO_TAB = '复盘重做';
 
 const STATUS_META = {
   imported: { label: '已导入', className: 'border-green-200 bg-green-50 text-green-700' },
@@ -76,6 +77,7 @@ const tabClass = (selected) =>
 
 const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled }) => {
   const [batches, setBatches] = useState([]);
+  const [redoPacks, setRedoPacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModule, setActiveModule] = useState(DEFAULT_TAB);
   const [chosenDate, setTimeDate] = useState('');
@@ -115,6 +117,12 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    api('/api/practice/redo-packs')
+      .then((rows) => setRedoPacks(Array.isArray(rows) ? rows : []))
+      .catch((error) => setErrMsg(error?.message || '复盘重做卷加载失败'));
   }, []);
 
   useEffect(() => {
@@ -223,6 +231,11 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
     });
   };
 
+  const openRedoPack = (pack) => {
+    if (selecting) return;
+    setActive({ redoPackId: pack.id, reviewSessionId: pack.last_session_id || null });
+  };
+
   const requestDelete = (batch, event) => {
     event.stopPropagation();
     event.preventDefault();
@@ -265,16 +278,20 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
         style={{ height: '100dvh' }}
       >
         <AIQuizSession
-          batchId={active.batchId}
-          batchName={nameOf(
-            batches.find((batch) => batch.batch_id === active.batchId)
-            || { batch_id: active.batchId },
-          )}
+          batchId={active.batchId || `redo-pack:${active.redoPackId}`}
+          redoPackId={active.redoPackId}
+          batchName={active.redoPackId
+            ? redoPacks.find((pack) => pack.id === active.redoPackId)?.title || 'Hermes 复盘重做'
+            : nameOf(
+              batches.find((batch) => batch.batch_id === active.batchId)
+              || { batch_id: active.batchId },
+            )}
           reviewSessionId={active.reviewSessionId}
           auditSourceSessionId={active.auditSourceSessionId}
           onExit={() => {
             setActive(null);
             loadBatches();
+            api('/api/practice/redo-packs').then((rows) => setRedoPacks(Array.isArray(rows) ? rows : [])).catch(() => {});
           }}
           onAnalyzeWithHermes={onAnalyzeWithHermes}
           onAuditWithHermes={(sessionId) => {
@@ -399,6 +416,18 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
               {dailyDates.length}
             </span>
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeModule === REDO_TAB}
+            onClick={() => { setActiveModule(REDO_TAB); exitSelect(); }}
+            className={tabClass(activeModule === REDO_TAB)}
+          >
+            {REDO_TAB}
+            <span className={`ml-2 text-[10px] ${activeModule === REDO_TAB ? 'text-white/60' : 'text-slate-400'}`}>
+              {redoPacks.length}
+            </span>
+          </button>
           {MODULES.map((module) => (
             <button
               key={module}
@@ -464,7 +493,31 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
         </div>
       )}
 
-      {loading && batches.length === 0 ? (
+      {activeModule === REDO_TAB ? (
+        redoPacks.length === 0 ? (
+          <div className="rounded-[2rem] border border-[#e8d5b0] bg-white p-10 text-center shadow-sm">
+            <Sparkles size={24} className="mx-auto mb-3 text-[#6b5428]" />
+            <h4 className="font-black">还没有复盘重做题集</h4>
+            <p className="mt-2 text-sm text-slate-500">Hermes 选出需要重新认真作答的题后，题集会出现在这里。</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {redoPacks.map((pack) => (
+              <button key={pack.id} type="button" onClick={() => openRedoPack(pack)}
+                className="w-full rounded-[1.75rem] border border-[#e8d5b0] bg-white p-5 text-left shadow-sm transition-colors hover:border-[#6b5428] hover:shadow-md">
+                <span className="flex flex-wrap items-center gap-2">
+                  <BookOpen size={16} className="text-[#6b5428]" />
+                  <span className="font-black">{pack.title}</span>
+                  <span className="rounded-full bg-[#fcfaf6] px-2 py-0.5 text-[10px] font-bold text-[#6b5428]">{pack.item_count} 题</span>
+                  {pack.last_session_id && <span className="text-[11px] text-emerald-700">已完成过</span>}
+                  <span className="ml-auto text-xs font-black text-[#6b5428]">{pack.last_session_id ? '查看结果' : '开始重做'} →</span>
+                </span>
+                <span className="mt-2 block text-[11px] text-slate-400">来源场次 {pack.source_session_id || '未标注'} · {relativeTime(pack.created_at) || pack.created_at}</span>
+              </button>
+            ))}
+          </div>
+        )
+      ) : loading && batches.length === 0 ? (
         <div className="rounded-[2rem] border border-[#e8d5b0] bg-white p-10 text-center shadow-sm">
           <Loader2 size={24} className="mx-auto mb-3 animate-spin text-[#6b5428]" />
           <p className="text-sm font-black text-slate-400">正在加载题组…</p>

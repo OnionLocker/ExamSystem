@@ -12,6 +12,7 @@ import { QUESTION_KINDS, KIND_BY_ID, OPTION_SOURCE, entrySupports, availableKind
 import { MERGE_UNION_FIELDS, ENRICHABLE_FIELDS, validatePack } from './vocabSchema.js';
 import { CURATED_WORDS } from './idiomGroups.js';
 import idiomEvidence from './idiomEvidence.json';
+import idiomHandout from './idiomHandout.json';
 
 // Vite 的 glob 导入：把 vocab-packs/ 下所有 *.json 当作扩展包自动装载。
 // 后续用 Gemini 生成的内容丢进那个目录即可生效，无需改代码。
@@ -122,6 +123,16 @@ function loadWords() {
     }
     unique.set(entry.word, merged);
   }
+  // The handout supplements the library; existing editorial content and IDs win.
+  for (const entry of idiomHandout.entries) {
+    const old = unique.get(entry.word);
+    const id = `handout:${entry.word}`;
+    unique.set(entry.word, old ? { ...old, handoutPage: entry.page } : {
+      id, word: entry.word, explanation: entry.explanation,
+      category: '高频成语讲义', source: idiomHandout.title, handoutPage: entry.page,
+      usable: true, legacyIds: [id], references: idiomEvidence.words[entry.word] || [],
+    });
+  }
   entries = [...unique.values()];
   return { entries, diagnostics };
 }
@@ -146,6 +157,14 @@ export { QUESTION_KINDS, KIND_BY_ID, availableKinds, entrySupports };
 /** 按词名查词条。易混词在数据里只是个名字，配上释义才能真正拿来对比 */
 export const lookupWord = (name) => byWord.get(String(name || '').trim()) || null;
 
+// Search corrections are not accepted spellings in the study material.
+export const normalizeWordSearch = (query) => query.trim() === '高屋见甄' ? '高屋建瓴' : query.trim();
+export const searchWords = (query) => {
+  const q = normalizeWordSearch(query);
+  return ALL_WORDS.filter(w => [w.word, w.explanation, w.usage, ...(w.variants || []), ...(w.rivals || [])]
+    .some(text => text?.includes(q)));
+};
+
 /** 当前词库实际能出的题型 + 各自可出题数，用于 UI 显示与开关 */
 export function kindAvailability(pool = QUIZ_POOL) {
   return QUESTION_KINDS.map((k) => ({
@@ -155,7 +174,7 @@ export function kindAvailability(pool = QUIZ_POOL) {
   }));
 }
 
-function shuffle(arr, rand = Math.random) {
+export function shuffle(arr, rand = Math.random) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));

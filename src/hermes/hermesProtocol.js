@@ -99,9 +99,8 @@ export const extractReview = (text) => {
     };
   }
   if (!review) return { content: visibleUserText(raw), review: null };
-  // 复盘附件只留芯片。用户附带的那句原话仍送给模型，但不上屏，
-  // 否则复盘审核会把「感觉还是不会」这类对话画在题卡旁边。
-  if (marked != null) return { content: '', review };
+  // 复盘附件保留芯片，同时保留用户附带的原话，便于回看完整消息。
+  if (marked != null) return { content: visibleUserText(raw), review };
   const cleaned = raw.replace(INTERNAL_NUDGE_RE, '').trim();
   const chunks = cleaned.split(/\n{2,}/);
   const last = (chunks[chunks.length - 1] || '').trim();
@@ -195,7 +194,7 @@ export const normalizeHermesHistory = (
         streaming: false,
         tools: [],
         thinking: '',
-        images: pulled.review?.kind === 'practice' ? [] : images,
+        images,
         audioSec,
         review: pulled.review,
         audio: null,

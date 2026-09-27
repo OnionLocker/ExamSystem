@@ -70,10 +70,34 @@ for (const records of Object.values(evidence.words)) {
 }
 const server = await createServer({ configFile: false, server: { middlewareMode: true } });
 try {
-  const { ALL_WORDS, lookupWord, buildQuestion, buildQuestionOfKind, QUESTION_KINDS, PACK_DIAGNOSTICS } = await server.ssrLoadModule('/src/studyBoost/vocabQuiz.js');
+  const { ALL_WORDS, lookupWord, buildQuestion, buildQuestionOfKind, QUESTION_KINDS, PACK_DIAGNOSTICS, searchWords, normalizeWordSearch, shuffle } = await server.ssrLoadModule('/src/studyBoost/vocabQuiz.js');
   assert.deepEqual(PACK_DIAGNOSTICS.errors, []);
   assert.equal(new Set(ALL_WORDS.map(w => w.word)).size, ALL_WORDS.length);
   assert.equal(new Set(ALL_WORDS.map(w => w.id)).size, ALL_WORDS.length);
+  const handout = JSON.parse(readFileSync(new URL('../src/studyBoost/idiomHandout.json', import.meta.url)));
+  assert.equal(handout.entries.length, 749);
+  assert.equal(new Set(handout.entries.map(w => w.word)).size, 749);
+  assert.deepEqual(Array.from(new Set(handout.entries.map(w => w.page))), Array.from({ length: 22 }, (_, i) => i + 1));
+  for (const entry of handout.entries) {
+    assert(entry.word.length >= 4 && entry.explanation.trim() && !/[⊥∪◇�]/.test(entry.explanation));
+    assert(entry.sourceCount > 0);
+    assert.equal(lookupWord(entry.word)?.handoutPage, entry.page, `${entry.word}: missing PDF entry`);
+  }
+  for (const word of ['天有不测风云', '远水解不了近渴', '知人知面不知心', '高屋建瓴']) assert(lookupWord(word), word);
+  const finalCurated = new Map(CURATED_WORDS.map(word => [word.word, word]));
+  for (const word of finalCurated.values()) assert.equal(lookupWord(word.word).explanation, word.explanation, 'preserve curated definitions');
+  assert(searchWords('高屋建瓴').some(w => w.word === '高屋建瓴'));
+  assert.deepEqual(searchWords(' 高屋见甄 '), searchWords('高屋建瓴'));
+  assert.equal(normalizeWordSearch('__proto__'), '__proto__');
+  assert.equal(lookupWord('高屋见甄'), null, 'typo is not a vocabulary entry');
+  const original = IDIOM_GROUPS.map(g => g.id);
+  const shuffled = shuffle(original, () => 0);
+  assert.equal(new Set(shuffled).size, original.length);
+  assert.notDeepEqual(shuffled, original);
+  assert.deepEqual(original, IDIOM_GROUPS.map(g => g.id), 'shuffle does not mutate the pool');
+  assert.notDeepEqual(shuffled, shuffle(original, () => .999));
+  assert.deepEqual(shuffle([]), []);
+  assert.deepEqual(shuffle(['only']), ['only']);
   for (const word of ALL_WORDS.filter(w => w.curated)) {
     assert(buildQuestion(word, ['reverse'], ALL_WORDS, () => .37), `${word.word}: single-word practice unavailable`);
   }

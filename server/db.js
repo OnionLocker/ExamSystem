@@ -154,8 +154,32 @@ CREATE TABLE IF NOT EXISTS practice_sessions (
   duration_sec INTEGER DEFAULT 0,
   started_at   TEXT    DEFAULT CURRENT_TIMESTAMP,
   ended_at     TEXT,
-  audit_of_session_id INTEGER
+  audit_of_session_id INTEGER,
+  redo_pack_id INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS redo_packs (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  title             TEXT NOT NULL,
+  source_session_id INTEGER,
+  reason_summary    TEXT,
+  created_at        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS redo_pack_items (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  pack_id         INTEGER NOT NULL,
+  question_id     INTEGER NOT NULL,
+  reason          TEXT NOT NULL,
+  priority        TEXT NOT NULL DEFAULT 'normal',
+  knowledge_tags  TEXT,
+  suggested_order INTEGER NOT NULL DEFAULT 0,
+  UNIQUE (pack_id, question_id),
+  FOREIGN KEY (pack_id) REFERENCES redo_packs(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_redo_items_pack ON redo_pack_items(pack_id, suggested_order);
 
 CREATE TABLE IF NOT EXISTS practice_answers (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -389,7 +413,11 @@ if (!psCols.has('profile_reviewed_at')) {
 if (!psCols.has('audit_of_session_id')) {
   db.exec('ALTER TABLE practice_sessions ADD COLUMN audit_of_session_id INTEGER');
 }
+if (!psCols.has('redo_pack_id')) {
+  db.exec('ALTER TABLE practice_sessions ADD COLUMN redo_pack_id INTEGER');
+}
 db.exec('CREATE INDEX IF NOT EXISTS idx_practice_audit_source ON practice_sessions(audit_of_session_id)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_practice_redo_pack ON practice_sessions(redo_pack_id)');
 
 
 const examCols = new Set(db.prepare('PRAGMA table_info(exam_analyses)').all().map((r) => r.name));
@@ -452,6 +480,7 @@ db.exec(`
    WHERE mastery_note = '子知识点加权' AND mastery_source != 'manual';
   DELETE FROM kaodian_profile
    WHERE attempts = 0 AND mastery IS NULL AND mastery_source != 'manual'
+     AND COALESCE(TRIM(definition), '') = '' AND COALESCE(TRIM(note), '') = ''
      AND NOT EXISTS (SELECT 1 FROM kaodian_events e WHERE e.kaodian = kaodian_profile.kaodian);
   UPDATE kaodian_profile
      SET attempts = (SELECT COUNT(*) FROM kaodian_events e
