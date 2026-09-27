@@ -116,6 +116,12 @@ class RealismTest(unittest.TestCase):
 
 
 class DifficultyAndExplainTest(unittest.TestCase):
+    def test_actual_difficulty_survives_slot_stamping(self):
+        q = {"difficulty": 2}
+        tracks.apply_slot_difficulty(q, {"family": "judge", "difficulty_score": 4})
+        self.assertEqual(q["difficulty"], 2)
+        self.assertEqual(q["family"], "judge")
+
     def test_scores_are_graded(self):
         slots = tracks.gd_slots_20()
         scores = {slot["difficulty_score"] for slot in slots}
@@ -275,6 +281,22 @@ class GeminiConfigTest(unittest.TestCase):
 
 
 class GateIntegrationTest(unittest.TestCase):
+    def test_rating_only_failure_does_not_regenerate_question(self):
+        import ziliao_parallel_runner as runner
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "evidence").mkdir()
+            report = {"results": [{"question_id": "batch-M01-Q1", "verdict": "REJECT",
+                "correctness": {"verdict": "PASS"}, "quality": {"verdict": "REJECT",
+                    "issues": ["实际难度应为 2：一步除法"],
+                    "review": {"actual_difficulty": 2, "difficulty_reason": "一步除法"}}}]}
+            (root / "evidence/system-quality.json").write_text(json.dumps(report))
+            questions = [{"external_id": "batch-M01-Q1", "difficulty": 3, "stem": "保留题面"}]
+            self.assertEqual(runner.gate_repair_targets(root), {})
+            self.assertTrue(runner.apply_reviewed_difficulties(root, questions))
+            self.assertEqual(questions[0]["difficulty"], 2)
+            self.assertEqual(questions[0]["stem"], "保留题面")
+
     def test_generation_gate_rejects_flat_difficulty_on_track_a(self):
         import generation_gate
 

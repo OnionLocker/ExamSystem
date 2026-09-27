@@ -2,13 +2,13 @@
 """Gemini data-analysis paper: framework -> materials -> independent questions."""
 from __future__ import annotations
 
-import argparse, concurrent.futures, datetime as dt, json, math, os, re, sqlite3, subprocess, time, urllib.request, uuid
+import argparse, concurrent.futures, datetime as dt, json, math, os, re, shutil, sqlite3, subprocess, time, urllib.request, uuid
 from pathlib import Path
 from collections import Counter
 from quiz_generator import resolve_slots, run_canon_card
 from kaodian_taxonomy import validate_ai_primary_tag
 from scheduler_common import DB
-from quality_orchestrator import equivalent, safe_eval
+from quality_orchestrator import equivalent, safe_eval, review_ziliao_material
 from ziliao_tracks import (
     TRACK_GD,
     apply_slot_difficulty,
@@ -29,6 +29,7 @@ from ziliao_tracks import (
     explanation_missing_years,
     classify_judge_form,
     CHART_MATCH_HOOK,
+    ZILIAO_INFERENCE_RULES,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +56,7 @@ def call(prompt: str, max_tokens: int = 12000) -> dict:
     last = None
     for attempt in range(2):
         body = json.dumps({"model": MODEL, "max_tokens": max_tokens,
+            "response_format": {"type": "json_object"},
             "temperature": 0.55 if attempt == 0 else 0.2,
             "messages": [{"role": "user", "content": prompt + ("\n只输出完整可解析JSON对象，不要Markdown或解释。" if attempt else "")}]}
         ).encode()
@@ -79,7 +81,11 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
     return f"""你是独立的资料分析材料设计模型，只负责{item['id']}，不出题。
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{track_material_rules(track, item)}
 本批难度 {frame.get('difficulty', 'mid')}。方向与已确认考点：{json.dumps(item, ensure_ascii=False)}。生成一篇数据足够、篇幅适当的原创统计材料。
+{ZILIAO_INFERENCE_RULES}
 材料自洽，所有题目所需数字必须来自正文或结构化图表。使用G省、H省或全国，不用“某省”。
+先确定独立的底层数，再计算总量、合计、占比和总增速，禁止独立随机编造互相约束的统计数。
+分项穷尽时，现期之和、各自反推的基期之和都必须与总量一致；部分列示须说明范围。
+不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
     format为chart时只能返回bars figure，format为table时只能返回table figure，format为text时kind必须为none，绝不返回mixed。bars的categories为4-10个且每个series.values等长非空数字数组；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
 严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"none或table或bars","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}}}}}}。"""
 
@@ -99,6 +105,7 @@ def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=
     calc_rule = '计算清单可写 correct=1、正确项1、错项0' if skip_calculation(slot) else '计算选项必须唯一匹配answer，correct只含数字和+-*/括号'
     return f"""你是独立命题模型，只根据下面冻结材料设计第{index}题，不修改材料、数字、图表或口径。
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{track_question_rules(track, slot, index)}
+{ZILIAO_INFERENCE_RULES}
 本题难度分 {level}（1秒杀找数 / 2一步 / 3两步 / 4四陈述综合）。材料方向：{json.dumps(plan, ensure_ascii=False)}
 指定槽位（family、主标签、brief 必须遵守）：{json.dumps(slot, ensure_ascii=False)}。
 材料：{material['content']}
@@ -128,6 +135,7 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
     )
     return f"""你是独立的资料分析篇命题 Agent，只负责 {plan.get('id')} 这一篇和它的5道题。
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{mix_rule}
+{ZILIAO_INFERENCE_RULES}
 你看不到其他材料，也不得生成其他篇。材料和图表已经冻结，不能修改任何数字、单位、分类、口径或正文。
 材料：{material['content']}
 图表数据：{json.dumps(material.get('figure') or {}, ensure_ascii=False)}
@@ -136,7 +144,7 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
 先输出 blueprint，列出每题考点、数据引用、计算链和错误路径，再输出 questions、calculations。
 五题各自主要考一个槽位，不得重复同一未知量或直接泄露另一题答案。细节/综合题计算清单可写 correct=1。
 每个选项都要有可解释的错误路径。图表篇必须真正使用图表数据。比较类解析必须枚举题干年份范围内全部点。
-禁止全员 difficulty=3；按槽位 difficulty_score 填写。不要用「最后明确选择X项」套话。
+槽位difficulty_score仅作设计参考；difficulty须按实际定位/计算/判断步骤评定，后续由独立考官复核。不要用「最后明确选择X项」套话。
 严格输出JSON：{{"blueprint":[{{"index":1,"tag":"白名单标签","family":"detail","skill":"...","calculation_plan":"...","trap":"..."}}],"questions":[{{"external_id":"{batch_id}-{plan.get('id')}-Q1","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...","tags":["白名单标签"],"difficulty":1,"family":"detail"}}],"calculations":[{{"question_id":"{batch_id}-{plan.get('id')}-Q1","correct":"算式或1","options":{{"A":1,"B":0,"C":0,"D":0}},"tolerance":0.001}}]}}
 questions和calculations必须各恰好5个，external_id按Q1-Q5连续。tags只能从以下白名单选择：{json.dumps(TAGS, ensure_ascii=False)}。不要输出Markdown。"""
 
@@ -152,7 +160,10 @@ def question_repair_prompt(material: dict, plan: dict, question: dict, calculati
 原题：{json.dumps(question, ensure_ascii=False)}
 原验算：{json.dumps(calculation, ensure_ascii=False)}
 校验失败：{error}
-重新设计一个唯一答案、真正命中槽位、与本篇其他题不重复的题目。只输出{{"question":{{...}},"calculation":{{...}}}}。"""
+{ZILIAO_INFERENCE_RULES}
+如果只错解析或难度，保留题干、选项、答案，仅修正错误解析或评级；材料缺数据时重设本题，不得编造材料。
+解析所有等式、比例方向、排除项字母均须与最终选项一致；不要添加无必要的第二种解法。
+重新设计时必须唯一答案、真正命中槽位。只输出{{"question":{{...}},"calculation":{{...}}}}。"""
 
 def render_material(material: dict, image_dir: Path) -> None:
     figure = material.pop("figure", None) or {}; kind = str(figure.get("kind") or "none")
@@ -338,7 +349,7 @@ def retry_visual_materials(batch_dir: Path, frame: dict, plans: list[dict],
         plan = plan_by_id.get(short_id)
         if not plan:
             continue
-        new_result = material_call(frame, plan, batch_id)
+        new_result = material_call(frame, plan, batch_id, batch_dir)
         new_material = new_result["material"]
         render_material(new_material, image_dir)
         old_material = next((item for item in materials if str(item.get("external_id", "")).endswith(f"-{short_id}")), None)
@@ -378,6 +389,13 @@ def gate_repair_targets(batch_dir: Path) -> dict[str, str]:
     for item in evidence.get("results") or []:
         if str(item.get("verdict") or "").upper() == "PASS":
             continue
+        if all((item.get(key) or {}).get("verdict") == "PASS" for key in ("correctness", "quality")):
+            continue
+        quality = item.get("quality") or {}
+        if ((item.get("correctness") or {}).get("verdict") == "PASS"
+                and quality.get("issues")
+                and all(str(issue).startswith("实际难度应为 ") for issue in quality["issues"])):
+            continue  # The rating is applied locally; keep the Gemini-authored question unchanged.
         qid = str(item.get("question_id") or "")
         if not qid:
             continue
@@ -428,6 +446,7 @@ def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[di
             next_question["material_id"] = material["external_id"]
             next_calculation["question_id"] = qid
             slot = (plan.get("slots") or [])[int(qid.rsplit("-Q", 1)[-1]) - 1]
+            apply_slot_difficulty(next_question, slot, plan.get("difficulty") or "mid")
             errors = question_errors(
                 next_question, next_calculation, material, plan, qid, slot,
                 questions[:position] + questions[position + 1:],
@@ -439,6 +458,7 @@ def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[di
         else:
             continue
         questions[position] = candidate_question
+        candidate_question["analysis"] = candidate_question.get("explanation") or ""
         calc_by_id[qid] = candidate_calculation
         changed = True
     if changed:
@@ -446,13 +466,45 @@ def repair_gate_questions(batch_dir: Path, materials: list[dict], plans: list[di
         (batch_dir / "calculations.json").write_text(json.dumps({"questions": list(calc_by_id.values())}, ensure_ascii=False, indent=2))
     return changed
 
-def material_call(frame: dict, item: dict, batch_id: str) -> dict:
+def apply_reviewed_difficulties(batch_dir: Path, questions: list[dict]) -> bool:
+    path = batch_dir / "evidence" / "system-quality.json"
+    if not path.is_file():
+        return False
+    by_id = {q["external_id"]: q for q in questions}
+    changed = False
+    for item in json.loads(path.read_text()).get("results") or []:
+        review = (item.get("quality") or {}).get("review") or {}
+        score = review.get("actual_difficulty")
+        q = by_id.get(item.get("question_id"))
+        if (q is not None and type(score) is int and 1 <= score <= 5
+                and review.get("difficulty_reason") and q.get("difficulty") != score):
+            q["difficulty"] = score
+            changed = True
+    if changed:
+        (batch_dir / "questions.json").write_text(json.dumps(questions, ensure_ascii=False, indent=2))
+    return changed
+
+
+def failed_data_material_ids(batch_dir: Path) -> set[str]:
+    path = batch_dir / "evidence" / "system-quality.json"
+    if not path.is_file():
+        return set()
+    return {
+        item["question_id"].rsplit("-", 2)[-2]
+        for item in json.loads(path.read_text()).get("results") or []
+        if ((item.get("quality") or {}).get("review") or {}).get("material_consistent") is False
+    }
+
+
+def material_call(frame: dict, item: dict, batch_id: str, batch_dir: Path | None = None) -> dict:
     prompt = material_prompt(frame, item, batch_id)
     track = frame.get("track") or TRACK_GD
     required_kind = {"chart": "bars", "table": "table", "text": "none"}[str(item.get("format") or "text")]
     repair = f"\n这是第{{attempt}}次修复。format={item.get('format')}，figure.kind必须严格等于 {required_kind}。只输出完整JSON；不要把图表改成文字，不要输出mixed。数字禁止整万配整十人均，图序列禁止等差或等差增量。"
+    feedback = ""
+    attempts = []
     for attempt in range(5):
-        result = call(prompt + (repair.format(attempt=attempt + 1) if attempt else ""), 9000)
+        result = call(prompt + (repair.format(attempt=attempt + 1) + feedback if attempt else ""), 9000)
         result["track"] = track
         if valid_material(result):
             kind = str((result["material"].get("figure") or {}).get("kind") or "none")
@@ -460,8 +512,17 @@ def material_call(frame: dict, item: dict, batch_id: str) -> dict:
                     or (item.get("format") == "table" and kind == "table")
                     or (item.get("format") == "text" and kind == "none")):
                 if material_passes_realism(result, item, track):
-                    return result
-    raise ValueError(f"invalid frozen material data: {item.get('id')}")
+                    review = review_ziliao_material(result["material"])
+                    attempts.append({"material": result["material"], "review": review})
+                    if batch_dir is not None:
+                        evidence = batch_dir / "evidence"
+                        evidence.mkdir(exist_ok=True)
+                        (evidence / f"{item['id'].lower()}-material.json").write_text(json.dumps(
+                            {"model": MODEL, "attempts": attempts}, ensure_ascii=False, indent=2))
+                    if review.get("verdict") == "PASS" and review.get("issues") == []:
+                        return result
+                    feedback = "\n独立材料核查未通过：" + json.dumps(review, ensure_ascii=False)
+    raise ValueError(f"invalid frozen material data: {item.get('id')} {feedback}")
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description="资料分析：冻结材料、程序渲染、独立出题、现有质检入库")
@@ -557,7 +618,7 @@ def main(argv=None) -> int:
         cursor += item["count"]
     (out/"framework.json").write_text(json.dumps(frame, ensure_ascii=False, indent=2))
     t=time.monotonic()
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: material_results=list(pool.map(lambda item:material_call(frame,item,batch_id),frame["materials"]))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: material_results=list(pool.map(lambda item:material_call(frame,item,batch_id,out),frame["materials"]))
     marks["materials_seconds_wall"]=round(time.monotonic()-t,2); materials=[r["material"] for r in material_results]; image_dir=out/"images"; image_dir.mkdir(exist_ok=True)
     for material, plan in zip(materials,frame["materials"]):
         if material.get("external_id") != f"{batch_id}-{plan['id']}":
@@ -600,7 +661,17 @@ def main(argv=None) -> int:
     gate = None
     retry_log = []
     for gate_attempt in range(1, GATE_ATTEMPTS + 1):
+        # Retain each input/review so later repairs do not erase the failure evidence.
+        snapshot = out / "gate-attempts" / str(gate_attempt)
+        snapshot.mkdir(parents=True)
+        for name in ("materials.json", "questions.json", "calculations.json", "manifest.json"):
+            shutil.copy2(out / name, snapshot / name)
+        for name in ("system-quality.json", "ziliao-visual-quality.json"):
+            (out / "evidence" / name).unlink(missing_ok=True)
         gate = subprocess.run(["python3", "scripts/generation_gate.py", "issue", str(out)], cwd=ROOT, env=env, text=True, capture_output=True)
+        for name in ("materials.json", "questions.json", "calculations.json", "manifest.json"):
+            shutil.copy2(out / name, snapshot / name)
+        shutil.copytree(out / "evidence", snapshot / "evidence", dirs_exist_ok=True)
         if gate.returncode == 0:
             break
         # The gate normalizes files before checking them; always use its latest files.
@@ -608,14 +679,17 @@ def main(argv=None) -> int:
         questions = json.loads((out / "questions.json").read_text())
         calculation_payload = json.loads((out / "calculations.json").read_text())
         calculations = calculation_payload.get("questions", calculation_payload) if isinstance(calculation_payload, dict) else calculation_payload
-        visual_ids = failed_visual_material_ids(out)
+        visual_ids = failed_visual_material_ids(out) | failed_data_material_ids(out)
         if visual_ids and gate_attempt < GATE_ATTEMPTS:
-            retry_log.append({"attempt": gate_attempt, "kind": "visual-material", "materials": sorted(visual_ids)})
+            retry_log.append({"attempt": gate_attempt, "kind": "material", "materials": sorted(visual_ids)})
             if retry_visual_materials(out, frame, frame["materials"], visual_ids, batch_id):
                 continue
-        if gate_attempt < GATE_ATTEMPTS and repair_gate_questions(out, materials, frame["materials"], questions, calculations, batch_id):
-            retry_log.append({"attempt": gate_attempt, "kind": "question-repair"})
-            continue
+        if gate_attempt < GATE_ATTEMPTS:
+            graded = apply_reviewed_difficulties(out, questions)
+            repaired = repair_gate_questions(out, materials, frame["materials"], questions, calculations, batch_id)
+            if graded or repaired:
+                retry_log.append({"attempt": gate_attempt, "kind": "question-repair", "regraded": graded})
+                continue
         break
     marks["gate_seconds"] = round(time.monotonic() - t, 2)
     marks["gate_attempts"] = gate_attempt

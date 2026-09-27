@@ -28,11 +28,12 @@ from hermes_skills import quiz_pipeline_references
 from normalize_ai_batch import answer_distribution_ok as mechanical_answers_ok
 from normalize_ai_batch import generated_questions, scratchpad_leak
 from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
+from ziliao_tracks import resolve_gemini_model, ZILIAO_INFERENCE_RULES
 
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = "gemini-3.8-flash-high"
+MODEL = resolve_gemini_model()
 MOBILE_WIDTH = 320
 RETRIES = 2
 
@@ -153,6 +154,97 @@ and reference_ids echoing the exact list of external_id from evaluation_only_rea
 "module_match":true,"style_match":true,"facts_closed":true,"answer_unique":true,
 "distractor_paths":{"A":"...","C":"...","D":"..."},"reference_ids":["exact_external_id_1","exact_external_id_2"],
 "verdict":"PASS","issues":[]}]}"""
+
+
+ZILIAO_MATERIAL_SYSTEM = """你是独立的资料分析材料核查员，只检查原创模拟材料，不出题。
+按正文与figure逐项核查：总分项可加性及合计、现期基期增长率、单位和统计范围、表文一致性。
+必须亲自复算所有可核对的关系。百分比小数位允许真实四舍五入误差，不许用四舍五入掩盖明显差异。
+分项并非穷尽、行业允许负利润、名义量与可比价增速等情形按材料明确口径判断，勿自行添加假设。
+特别检查多个地区之和是否超过全省、分项现期和增速反推的基期合计能否得到总增速。
+还检查背景指标、干扰信息是否自然，禁止“本段用于凑字数/作为干扰”等命题提示。
+只输出JSON：{"verdict":"PASS或REJECT","checks":{
+"totals":{"ok":true,"reason":"列出核对的合计或说明为何不可加"},
+"growth":{"ok":true,"reason":"独立复算及容差依据"},
+"scope_units":{"ok":true,"reason":"口径及单位依据"},
+"text_figure":{"ok":true,"reason":"表文核对依据"},
+"naturalness":{"ok":true,"reason":"统计材料的信息组织是否自然"}},"issues":[]}。
+任一错误须REJECT并给出具体数字和应满足的关系，不替命题者改数。"""
+
+ZILIAO_BLIND_SYSTEM = """你是独立资料分析盲解官。只有冻结材料、结构化图表与题面，没有标答、解析或验算清单。
+逐题从材料取数、独立推导；四个选项都必须检验。对于反向设问，stands表示符合设问，而非陈述本身为真。
+综合计数必须分别判断每个编号陈述。材料矛盾、无解、多解均REJECT，不能猜标答。
+只输出JSON：{"questions":[{"id":"...","answer":"A","also_valid":[],"verdict":"PASS",
+"steps":"取数、算式和推导过程","option_tests":{"A":{"stands":true,"reason":"依据"},
+"B":{"stands":false,"reason":"依据"},"C":{"stands":false,"reason":"依据"},
+"D":{"stands":false,"reason":"依据"}},"issues":[]}]}。"""
+
+ZILIAO_QUALITY_RULES = """
+本次每次只审一篇资料的题目。必须检查全部题目，不相信标答、family、difficulty或命题配额已经正确。
+每题额外返回 material_consistent、slot_match、actual_family、actual_difficulty、difficulty_reason、claim_checks。
+material_consistent：正文、图表总分项/增长/单位/范围是否自洽，若错须false且issues给具体数据。
+slot_match：按实际解题动作核对requested_slot的family、主标签和brief；classic按主标签和brief。
+actual_family取 detail/share_add/growth/base_share/avg_cmp/mix_pull/judge：
+detail仅定位/分类/口径，不计算平均、增量、比重；四陈述混合判断归judge。
+share_add为现期比重或简单加减；growth为增量/增速；base_share为基期/两期比重；
+avg_cmp为平均/跨年比较；mix_pull为混合/拉动。不要把所有读图题都算detail。
+actual_difficulty按最终题目评1-5：1直接定位/分类；2单一加减除法或简单趋势；
+3多步计算/多点筛选；4多口径综合、四陈述或有实质额外步骤；5明显复杂的组合。
+不要单因题型名字或请求mid而给固定分，也不要为配额故意提高认知负担。
+claim_checks逐一核验输入explanation_claims的每条原解析，恰好一个对应index：
+[{"index":1,"valid":true,"reason":"核算/核对依据"}]。
+必须复算每句等式、近似、大小关系、比例方向，并把每个选项字母及排除列表与现有选项逐项对应。
+结论正确但中间推理错、排除了正确项、A/B/C并列引用漏改、1:10写成10:1都必须REJECT。
+不能只核对最终答案或替作者脑补修正。标题等无事实句可标valid=true并说明。
+全部索引必须返回，任何无效断言写valid=false，并在issues引用原句和具体问题。
+正常估算只要求精度足以唯一选项，不把合理舍入当错误。
+所有额外字段必填，issues必须包含可用于局部修复的明确原因。
+"""
+
+
+def review_ziliao_material(material: dict) -> dict:
+    review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES, json.dumps(material, ensure_ascii=False))
+    checks = review.get("checks") or {}
+    required = {"totals", "growth", "scope_units", "text_figure", "naturalness"}
+    if (set(checks) != required or any(
+        not isinstance(check, dict) or check.get("ok") is not True or not str(check.get("reason") or "").strip()
+        for check in checks.values()
+    )):
+        review["verdict"] = "REJECT"
+        review.setdefault("issues", []).append("材料核验不全或不通过")
+    return review
+
+
+def explanation_claims(question: dict) -> list[str]:
+    return [s.strip() for s in re.split(r"(?<=[。；;\n])", str(question.get("explanation") or "")) if s.strip()]
+
+
+def ziliao_review_issues(question: dict, review: dict) -> list[str]:
+    issues = []
+    for field in ("material_consistent", "slot_match"):
+        if review.get(field) is not True:
+            issues.append(f"资料审核 {field} 缺失或不通过")
+    family = review.get("actual_family")
+    if family not in {"detail", "share_add", "growth", "base_share", "avg_cmp", "mix_pull", "judge"}:
+        issues.append("缺少实际考法分类")
+    expected = (question.get("requested_slot") or {}).get("family")
+    if expected and expected != "classic" and family != expected:
+        issues.append(f"实际考法 {family} 不符槽位 {expected}，须修题而非改标签")
+    difficulty = review.get("actual_difficulty")
+    if type(difficulty) is not int or not 1 <= difficulty <= 5 or not review.get("difficulty_reason"):
+        issues.append("缺少实际难度及依据")
+    elif question.get("difficulty") != difficulty:
+        issues.append(f"实际难度应为 {difficulty}：{review['difficulty_reason']}")
+    claims = explanation_claims(question)
+    checks = review.get("claim_checks")
+    if (not claims or not isinstance(checks, list) or len(checks) != len(claims)
+            or any(not isinstance(c, dict) or type(c.get("index")) is not int for c in checks)
+            or {c["index"] for c in checks} != set(range(1, len(claims) + 1))):
+        issues.append("原解析逐句核查缺项或重复")
+    else:
+        for check in checks:
+            if check.get("valid") is not True or not str(check.get("reason") or "").strip():
+                issues.append(f"解析第{check['index']}句不通过：{check.get('reason') or '缺依据'}")
+    return issues
 
 
 def read_json(path: Path) -> Any:
@@ -308,9 +400,13 @@ def public_question(question: dict, include_answer: bool = False) -> dict:
     if question.get("material_content"):
         result["material"] = question["material_content"]
         result["material_images"] = question.get("material_images") or []
+        result["figure"] = question.get("material_figure") or {}
     if include_answer:
         result["answer"] = question.get("answer")
         result["explanation"] = question.get("explanation")
+        result["difficulty"] = question.get("difficulty")
+        result["family"] = question.get("family")
+        result["requested_slot"] = question.get("requested_slot") or {}
     return result
 
 
@@ -434,6 +530,21 @@ def equivalent(left: Any, right: Any, tolerance: float) -> bool:
     return left == right
 
 
+def run_ziliao_blind(questions: list[dict]) -> dict[str, dict]:
+    groups = {}
+    for q in questions:
+        if q.get("category") == CAT_ZILIAO:
+            groups.setdefault(q.get("material_id") or q["external_id"], []).append(q)
+    if not groups:
+        return {}
+
+    def review_group(group):
+        return indexed(call_flash(ZILIAO_BLIND_SYSTEM + ZILIAO_INFERENCE_RULES, json.dumps([public_question(q) for q in group], ensure_ascii=False)))
+
+    with ThreadPoolExecutor(max_workers=min(4, len(groups))) as pool:
+        return {qid: review for result in pool.map(review_group, groups.values()) for qid, review in result.items()}
+
+
 def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
     if not questions:
         return {}
@@ -448,6 +559,7 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
     raw = read_json(path)
     specs = raw.get("questions") if isinstance(raw, dict) else raw
     by_id = {str(item.get("question_id")): item for item in specs or [] if isinstance(item, dict)}
+    blind = run_ziliao_blind(questions)
     output = {}
     for question in questions:
         qid = str(question["external_id"])
@@ -488,6 +600,17 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
                     issues.append("calculation options do not cover question options")
             except Exception as exc:
                 issues.append(str(exc))
+        if question.get("category") == CAT_ZILIAO:
+            review = blind.get(qid) or {}
+            tests = review.get("option_tests") or {}
+            keys = {str(o.get("key")) for o in question.get("options") or []}
+            if (review.get("verdict") != "PASS" or review.get("answer") != question.get("answer")
+                    or review.get("also_valid") != [] or not str(review.get("steps") or "").strip()
+                    or review.get("issues") != [] or set(tests) != keys
+                    or any(not isinstance(t, dict) or type(t.get("stands")) is not bool or not t.get("reason") for t in tests.values())
+                    or [k for k, t in tests.items() if isinstance(t, dict) and t.get("stands") is True] != [question.get("answer")]):
+                issues.append("资料独立盲解未通过：" + json.dumps(review, ensure_ascii=False))
+            details["blind_review"] = review
         output[qid] = {
             "route": "B",
             "verdict": "PASS" if not issues else "REJECT",
@@ -770,23 +893,32 @@ def run_quality(
         if path.is_file():
             rules += "\n" + path.read_text(encoding="utf-8")
     references = evaluation_references(manifest)
-    payload = {
-        "items": [
-            {
-                "question": public_question(q, include_answer=True),
-                "evaluation_only_real_questions": references.get(str(q["external_id"]), []),
-            }
-            for q in questions
-        ],
-        "rules": rules,
-    }
-    images = []
-    for question in questions:
-        for index, path in enumerate(question_images(batch_dir, question), 1):
-            images.append((f"{question['external_id']} IMAGE {index}", path))
-    reviews = indexed(
-        call_flash(QUALITY_SYSTEM, json.dumps(payload, ensure_ascii=False), images)
-    )
+
+    def review_group(group):
+        ziliao = all(q.get("category") == CAT_ZILIAO for q in group)
+        payload = {
+            "items": [
+                {
+                    "question": public_question(q, include_answer=True),
+                    "evaluation_only_real_questions": references.get(str(q["external_id"]), []),
+                    **({"explanation_claims": [{"index": i, "text": s} for i, s in enumerate(explanation_claims(q), 1)]} if ziliao else {}),
+                }
+                for q in group
+            ],
+            "rules": rules,
+        }
+        images = []
+        for question in group:
+            for index, path in enumerate(question_images(batch_dir, question), 1):
+                images.append((f"{question['external_id']} IMAGE {index}", path))
+        return indexed(call_flash(QUALITY_SYSTEM + (ZILIAO_QUALITY_RULES + ZILIAO_INFERENCE_RULES if ziliao else ""), json.dumps(payload, ensure_ascii=False), images))
+
+    groups = {}
+    for q in questions:
+        key = (q.get("material_id") or q["external_id"]) if q.get("category") == CAT_ZILIAO else "other"
+        groups.setdefault(key, []).append(q)
+    with ThreadPoolExecutor(max_workers=min(4, max(1, len(groups)))) as pool:
+        reviews = {qid: review for result in pool.map(review_group, groups.values()) for qid, review in result.items()}
     output = {}
     for question in questions:
         qid = str(question["external_id"])
@@ -795,6 +927,8 @@ def run_quality(
         if not review:
             issues.append("quality reviewer missing")
         else:
+            if question.get("category") == CAT_ZILIAO:
+                issues.extend(ziliao_review_issues(question, review))
             if str(review.get("verdict") or "").upper() != "PASS":
                 issues.append("quality reviewer rejected")
             if int(review.get("score") or 0) < 10:
@@ -952,11 +1086,16 @@ def run(batch_dir: Path) -> dict:
     questions = read_json(batch_dir / "questions.json")
     materials = read_json(batch_dir / "materials.json") if (batch_dir / "materials.json").is_file() else []
     material_by_id = {str(item.get("external_id")): item for item in materials if isinstance(item, dict)}
-    for question in questions:
+    constraints = (manifest.get("generation") or {}).get("batch_constraints") or {}
+    slots = [slot for slot in constraints.get("slot_plan") or [] for _ in range(slot.get("count", 1))]
+    for index, question in enumerate(questions):
         material = material_by_id.get(str(question.get("material_id")))
         if material:
             question["material_content"] = material.get("content") or ""
             question["material_images"] = material.get("images") or []
+            question["material_figure"] = material.get("figure") or {}
+        if question.get("category") == CAT_ZILIAO and index < len(slots):
+            question["requested_slot"] = slots[index]
     generated = [
         q for q in questions
         if str(q.get("origin") or "") != "zhenti"

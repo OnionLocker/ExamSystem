@@ -25,6 +25,14 @@ TRACK_GD = "gd"
 TRACK_CLASSIC = "classic"
 TRACKS = (TRACK_GD, TRACK_CLASSIC)
 
+ZILIAO_INFERENCE_RULES = """推断边界：范围扩大不自动等于错误。对人数、营收、产量等可加的非负量，
+部分已超过某阈值，则包含该部分的整体也超过该阈值；整体未超过阈值，则部分也未超过。
+须区分精确数值无法确定与上下界仍可推出，不能仅以“全部/规上/部分”字样否定选项。
+平均数、增长率、比重不具有上述包含关系；利润等可能为负的量也不可直接套用。
+“累计”本身不表示跨年；“2023年累计”通常就是2023年内累计。只有明确写出跨年起点，
+如“自2020年启动以来至2023年底累计”，才能与2023年当年区分。口径歧义不得当作陷阱。
+所有判定必须基于资料的具体数值和逻辑，不能凭“范围扩大/累计vs当年”模板猜命题意图。"""
+
 FAMILY_DETAIL = "detail"
 FAMILY_JUDGE = "judge"
 FAMILY_SHARE_ADD = "share_add"
@@ -153,7 +161,7 @@ def judge_slot_fields(material_index: int) -> dict:
         "brief": (
             f"综合正误。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
             "禁止改成「下列说法正确的是」或「下列说法有误的是」。"
-            "四陈述埋时间偷换、累计vs当年、未给出不能比、范围扩大。"
+            "四陈述考察时间、口径、范围和可推断边界；错误项必须确实不成立，不机械套陷阱词。"
         ),
     }
 
@@ -515,10 +523,10 @@ def validate_gd_question_mix(questions: list[dict]) -> None:
 def apply_slot_difficulty(question: dict, slot: dict, paper_tier: str = "mid") -> None:
     family = str(slot.get("family") or "")
     if family and family != "classic":
-        question["difficulty"] = int(slot.get("difficulty_score") or difficulty_score(family, paper_tier))
+        question.setdefault("difficulty", int(slot.get("difficulty_score") or difficulty_score(family, paper_tier)))
         question["family"] = family
         return
-    question["difficulty"] = {"easy": 2, "mid": 3, "hard": 4}[slot.get("difficulty") or paper_tier]
+    question.setdefault("difficulty", {"easy": 2, "mid": 3, "hard": 4}[slot.get("difficulty") or paper_tier])
 
 
 def skip_calculation(slot: dict) -> bool:
@@ -576,7 +584,7 @@ def track_question_rules(track: str, slot: dict, index: int) -> str:
     if family == FAMILY_DETAIL:
         return (
             "本题是细节定位或排除：主题/分为几类/未提及/不包括。错误项来自张冠李戴或材料未给出。"
-            "不要编造需要两步公式的计算。计算清单可写正确项=1、错项=0。"
+            "只找数、分类或辨析口径，不得计算人均、增长量、比重，也不得偷换成四陈述综合判断。计算清单可写正确项=1、错项=0。"
         )
     if family == FAMILY_AVG_CMP or "比较" in str(slot.get("brief") or ""):
         return "比较类解析必须列出题干年份范围内每一年的计算过程，禁止漏年。"
