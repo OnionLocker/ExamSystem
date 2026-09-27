@@ -411,6 +411,9 @@ def material_realism_errors(material: dict, *, track: str = TRACK_GD, long_text:
         if is_arithmetic_series(values):
             errors.append("图/表序列一阶或二阶差分公差恒定（等差增量），须重生")
             break
+        if (track == TRACK_GD and figure.get("kind") == "bars" and "元" in str(figure.get("unit") or "")
+                and len(values) >= 4 and all(v > 0 and abs(v / 10 - round(v / 10)) < 1e-8 for v in values)):
+            errors.append("金额柱图整列都是整十数，须保留自然数据精度，不要整列粗取整")
     if _round_total_and_per_capita(content, figure):
         errors.append("禁止总计整万/整千且人均整十的凑数（如 10000 亿 / 400 万人 = 25 万）")
     if _too_round_base_period(content):
@@ -602,7 +605,8 @@ def track_material_rules(track: str, item: dict) -> str:
             "时间序列也避免近似恒定差分及连续三年接近翻倍的模板，不给每年增长一个固定步长。"
             "图表金额按合适单位保留小数精度，避免整列粗取整；企业家数等离散计数仍用整数。"
             "每篇正文自然写明一个统计范围边界，注释可复述；背景指标至少两个，并至少一个只给完成率不提供金额、"
-            "或只给明确跨年累计而不提供当年新增。不要在面向考生的材料中写命题用途。"
+            "或只给明确跨年累计而不提供当年新增。半给指标缺少的值也不能从其他数字反推；已有实际额和完成率不算半给。"
+            "不要在面向考生的材料中写命题用途。"
             "图表保留至少一个不在正文复述的指标取数点。槽位要求percent_vs_point时给出比率/增速的两期变化供辨析。"
         )
     if track == TRACK_GD and str(item.get("id") or "") == "M01":

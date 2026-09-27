@@ -89,6 +89,15 @@ class RealismTest(unittest.TestCase):
         self.assertTrue(tracks.is_arithmetic_series([140, 180, 230, 290, 360, 440]))
         self.assertFalse(tracks.is_arithmetic_series([1876.4, 2011.2, 1988.7, 2210.5]))
 
+    def test_money_bars_reject_coarse_rounding_but_not_counts(self):
+        figure = {"kind": "bars", "unit": "亿元", "series": [{"values": [8940, 9610, 10250, 11820, 12580, 13950]}]}
+        self.assertTrue(tracks.material_realism_errors({"figure": figure}))
+        figure["unit"] = "家"
+        self.assertFalse(tracks.material_realism_errors({"figure": figure}))
+        figure["unit"] = "亿元"
+        figure["series"][0]["values"] = [8941.3, 9618.4, 10257.8, 11826.1, 12582.9, 13953.6]
+        self.assertFalse(tracks.material_realism_errors({"figure": figure}))
+
     def test_round_total_per_capita(self):
         material = {
             "content": "2023年全省主要海洋产业增加值10000亿元，从业人员400万人。",
