@@ -58,6 +58,9 @@ requested_slot/槽位指定的required_trap必须实际出现并在解析中辨�
 每篇保留至少两个不作为计算目标的背景指标，允许用于细节选项；至少一个指标只给部分信息，不能误判为材料缺漏。
 禁止用额外基期、混合或拉动计算挤占细节槽，禁止规划尚未支持的chart_match或四幅选项图。"""
 
+from ziliao_checklist import QUESTION_RULES
+GD_DESIGN_RULES += "\n" + QUESTION_RULES
+
 GD_PAPER_RULES = """轨A整套要求（targeted_drill为true时只按指定槽位）：
 至少一道未提及具体数值或统计口径不包括的细节题；综合问法按槽位跨篇轮换。
 四篇主题轮换，避免重复新能源高速增长模板；全套综合题至少一次实际考查统计范围、一次百分比与百分点。
