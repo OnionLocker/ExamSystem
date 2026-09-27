@@ -157,10 +157,15 @@ class ZiliaoWorkflow(unittest.TestCase):
             return {"question": {"external_id": qid, "material_id": "test-M01", "tags": [ziliao.TAGS[1]], "difficulty": 5},
                     "calculation": {"question_id": qid}}
         material = {"external_id": "../bad" if bad_id else "test-M01", "content": "G省产值123.4亿元", "figure": {"kind": "none"}}
+        def material_call(frame, item, batch_id, batch_dir):
+            evidence = batch_dir / "evidence"
+            evidence.mkdir(exist_ok=True)
+            (evidence / "m01-material.json").write_text(json.dumps({"verdict": "PASS"}))
+            return {"material": material}
         def command(cmd, **kwargs):
             self.assertEqual(kwargs["env"]["EXAM_DB"], str(self.db))
             return subprocess.CompletedProcess(cmd, gate_code if "issue" in cmd else 0, "checked", "")
-        with patch.object(ziliao, "call", side_effect=model), patch.object(ziliao, "material_call", return_value={"material": material}), patch.object(
+        with patch.object(ziliao, "call", side_effect=model), patch.object(ziliao, "material_call", side_effect=material_call), patch.object(
             ziliao, "render_material"
         ) as render, patch.object(ziliao.subprocess, "run", side_effect=command) as commands, contextlib.redirect_stdout(io.StringIO()):
             if bad_id:
