@@ -21,14 +21,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def import_checked(out, db):
-    receipt = verify(out)
+    question_count = verify(out)["question_count"]
+    if type(question_count) is not int or question_count <= 0:
+        raise ValueError("闸门返回的题数无效，不得入库")
     proc = subprocess.run(["node", str(ROOT / "scripts/import-batch.mjs"), str(out)],
                           cwd=ROOT, env={**os.environ, "EXAM_DB": str(db.resolve())},
                           capture_output=True, text=True, timeout=180)
     (out / "import-output.txt").write_text(proc.stdout + proc.stderr)
     if proc.returncode:
         raise RuntimeError("审核已通过，但入库失败：" + (proc.stdout + proc.stderr)[-2000:])
-    return len(receipt["question_ids"])
+    return question_count
 
 
 def sync_reviewed_version(out, work, mid, attempt):
