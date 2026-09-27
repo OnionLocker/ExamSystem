@@ -44,6 +44,10 @@ TAGS = [
     "资料分析-盐水类-十字交叉法与混合增长率", "资料分析-特殊考点-拉动增长、贡献率与容斥",
 ]
 BALANCED_TAGS = TAGS[:]
+CALCULATION_RULE = """calculation.correct和options中的值必须是JSON数字或仅含数字及+-*/括号的算式字符串。
+禁止Python函数、变量、if、列表推导、count、index或中文；不要把题面选项字母写成算式。
+比较/排序/计数题直接填写独立算出的年份、排名或个数（例如2021或2），在解析中枚举全部比较点，
+系统另有不看验算清单的盲解核验。数值题选项用与正确值相同单位；不能为匹配答案随意增大容差。"""
 
 def key() -> str:
     if os.environ.get("CLIPROXY_API_KEY"):
@@ -113,6 +117,7 @@ def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=
 本题指定考法：{task}。如果材料带图，本题必须真正使用图表中的数据；图表题不得只复述正文中已直接给出的同一句数字。
 第{index}题必须{'是综合正误题，题干必须以“'+form+'”开头，不得改成「下列说法正确/有误的是」，四选项各一句陈述' if q5 or slot.get('family')=='judge' else '围绕材料真实数据设计单选题'}。
 解析写清取数与算式；比较类必须枚举题干年份范围内每一年。不要用「最后明确选择X项」套话收尾。
+{CALCULATION_RULE}
 严格输出JSON：{{"question":{{"external_id":"{batch_id}-{material['external_id'].rsplit('-',1)[-1]}-Q{index}","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...","tags":["白名单标签"],"difficulty":{level},"family":"{slot.get('family') or ''}"}},"calculation":{{"question_id":"...","correct":"算式或1","options":{{"A":0,"B":0,"C":0,"D":0}},"tolerance":0.001}}}}
 tags只能从以下白名单选：{json.dumps(TAGS, ensure_ascii=False)}。{calc_rule}；解析、答案、计算清单一致；保留Gemini原始A-D顺序，不要改排。"""
 
@@ -143,6 +148,7 @@ def paper_prompt(material: dict, plan: dict, batch_id: str) -> str:
 {slot_rules}
 先输出 blueprint，列出每题考点、数据引用、计算链和错误路径，再输出 questions、calculations。
 五题各自主要考一个槽位，不得重复同一未知量或直接泄露另一题答案。细节/综合题计算清单可写 correct=1。
+{CALCULATION_RULE}
 每个选项都要有可解释的错误路径。图表篇必须真正使用图表数据。比较类解析必须枚举题干年份范围内全部点。
 槽位difficulty_score仅作设计参考；difficulty须按实际定位/计算/判断步骤评定，后续由独立考官复核。不要用「最后明确选择X项」套话。
 严格输出JSON：{{"blueprint":[{{"index":1,"tag":"白名单标签","family":"detail","skill":"...","calculation_plan":"...","trap":"..."}}],"questions":[{{"external_id":"{batch_id}-{plan.get('id')}-Q1","category":"资料分析","question_type":"single","material_id":"{material['external_id']}","stem":"...","options":[{{"key":"A","text":"..."}},{{"key":"B","text":"..."}},{{"key":"C","text":"..."}},{{"key":"D","text":"..."}}],"answer":"A","explanation":"...","tags":["白名单标签"],"difficulty":1,"family":"detail"}}],"calculations":[{{"question_id":"{batch_id}-{plan.get('id')}-Q1","correct":"算式或1","options":{{"A":1,"B":0,"C":0,"D":0}},"tolerance":0.001}}]}}
@@ -161,6 +167,7 @@ def question_repair_prompt(material: dict, plan: dict, question: dict, calculati
 原题：{json.dumps(question, ensure_ascii=False)}
 原验算：{json.dumps(calculation, ensure_ascii=False)}
 校验失败：{error}
+{CALCULATION_RULE}
 {ZILIAO_INFERENCE_RULES}
 如果只错解析或难度，保留题干、选项、答案，仅修正错误解析或评级；材料缺数据时重设本题，不得编造材料。
 解析所有等式、比例方向、排除项字母均须与最终选项一致；不要添加无必要的第二种解法。
@@ -289,7 +296,7 @@ def generate_paper_questions(material: dict, plan: dict, batch_id: str) -> tuple
             calc_by_id[qid] = calculation
             errors = question_errors(question, calculation, material, plan, qid, slot, siblings)
         if errors:
-            raise ValueError(f"{qid} 题级修复失败：{'；'.join(errors)}")
+            raise ValueError(f"{qid} 题级修复失败：{'；'.join(errors)}；验算={json.dumps(calculation, ensure_ascii=False)}")
     return questions, [calc_by_id[f"{batch_id}-{plan['id']}-Q{i}"] for i in range(1, len(questions) + 1)]
 
 
