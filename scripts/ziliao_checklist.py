@@ -24,6 +24,8 @@ growth槽可问营业收入/利润额等绝对指标的同比增长率，不可�
 混合槽如问两部分的倍数关系，正确结果不得精确或按选项精度近似落成整数倍（例如5.0倍）；
 不能微调标答，须依据合理底层数据更换取数对象或重设材料。优先自然混合加权增速，避免反推整数配比。
 四个选项的错误路径须可实际复现；禁止审核用“计算失误/取数错误”等泛话替缺乏依据的干扰项辩护。
+解析中明确列出的纯数字算式须与写出的结果在展示精度内一致。按舍入后的增速反推基期，
+结果可能与图表直接给的上年数略有不同；不得把图表旧数伪写成反推算式的计算结果。
 本轮未实现四图选一：禁止chart_match及A—D选项图，不能把普通读图宣称为图表匹配已解决。"""
 
 
@@ -65,6 +67,36 @@ def rounding_issues(material):
     return errors
 
 
+def explanation_math_issues(text):
+    """Check explicit literal arithmetic only; symbolic/estimate reasoning stays with reviewers."""
+    from quality_orchestrator import safe_eval
+    text = text.replace("\\n", "\n")
+    pattern = r"(?:≈|=|＝)\s*(-?\d+(?:\.\d+)?)(%|％|个百分点)?"
+    issues = []
+    for match in re.finditer(pattern, text):
+        # The RHS must be a complete number, not the start of another expression in a chain.
+        if re.match(r"\s*[+＋*/×÷−－-]", text[match.end():]):
+            continue
+        left = re.search(r"[\d.\s()＋+*/×÷−－%％-]+$", text[:match.start()])
+        if not left:
+            continue
+        expression = left[0].strip()
+        shown, unit = match.groups()
+        if not re.search(r"[+＋*/×÷]|(?<=\d)\s*[-−－]", expression):
+            continue
+        expression = expression.translate(str.maketrans("×÷−－＋", "*/--+"))
+        expression = re.sub(r"(\d+(?:\.\d+)?)\s*[%％]", r"(\1/100)", expression)
+        try:
+            value = float(safe_eval(expression)) * (100 if unit else 1)
+            digits = len(shown.split(".")[1]) if "." in shown else 0
+            tolerance = 0.5 * 10 ** -digits + 1e-8
+            if math.isfinite(value) and abs(value - float(shown)) > tolerance:
+                issues.append(f"解析算式不符展示精度：{left[0].strip()}{match[0]}；复算为{value:.8g}，须修正结果或明确改写估算过程")
+        except (ValueError, SyntaxError, TypeError, ArithmeticError):
+            continue  # Incomplete or symbolic fragments are not a mechanical proof.
+    return issues
+
+
 def question_style_issues(question, calculation=None):
     issues = []
     stem = str(question.get("stem") or "")
@@ -81,4 +113,5 @@ def question_style_issues(question, calculation=None):
         o.get("figure") or o.get("images") for o in question.get("options", [])
     ):
         issues.append("四图选一尚未实现，本轮禁止chart_match/选项图")
+    issues.extend(explanation_math_issues(str(question.get("explanation") or "")))
     return issues

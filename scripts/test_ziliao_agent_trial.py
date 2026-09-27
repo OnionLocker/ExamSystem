@@ -6,6 +6,7 @@ import tempfile
 from unittest.mock import patch
 
 from ziliao_agent_trial import Trial, verify
+from ziliao_agent_paper import sync_reviewed_version
 
 
 def main():
@@ -40,6 +41,20 @@ def main():
             else:
                 raise AssertionError("No receipt must never count as success")
         print("PASS: rejection preserves state; material replacement invalidates all dependent artifacts")
+        parent = Path(directory) / "paper"
+        parent.mkdir()
+        questions = [{"external_id": f"paper-M02-Q{i}", "material_id": "paper-M02",
+                      "answer": "C"} for i in range(1, 6)]
+        calculations = {"questions": [{"question_id": q["external_id"], "options": {"C": 1}} for q in questions]}
+        (parent / "questions.json").write_text(json.dumps(questions))
+        (parent / "calculations.json").write_text(json.dumps(calculations))
+        (trial.out / ".gate.json").write_text("old")
+        sync_reviewed_version(parent, trial.out, "M02", 1)
+        assert json.loads((trial.out / "questions.json").read_text())[0]["answer"] == "C"
+        assert json.loads((trial.out / "calculations.json").read_text()) == calculations
+        assert not (trial.out / ".gate.json").exists()
+        assert (trial.out / "before-full-repair-1/.gate.json").read_text() == "old"
+        print("PASS: full-paper option normalization is synchronized before repair, old receipt invalidated")
 
 
 if __name__ == "__main__":

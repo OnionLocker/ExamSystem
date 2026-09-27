@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regression cases reported in the user's audit; no network or model calls."""
 from copy import deepcopy
-from ziliao_checklist import rounding_issues, question_style_issues
+from ziliao_checklist import rounding_issues, question_style_issues, explanation_math_issues
 
 
 def main():
@@ -31,6 +31,13 @@ def main():
     q["options"][0]["text"] = "5.3倍"
     assert not question_style_issues(q)
     assert question_style_issues({"family": "chart_match"})
+    assert explanation_math_issues("5468.2 / (1 + 8.5%) ≈ 5041.6亿元")
+    assert not explanation_math_issues("5468.2 / (1 + 8.5%) ≈ 5039.8亿元")
+    assert not explanation_math_issues("两期比重差约0.43个百分点，9.1%≈1/11。")
+    assert not explanation_math_issues("1952.7 × 9.1% / (1 + 9.1%) ≈ 162.9亿元")
+    assert not explanation_math_issues("1952.7/(11+1)=1952.7/12≈162.7亿元")
+    assert not explanation_math_issues("9.2%+6.2%+9.2%×6.2%=15.4%+0.5704%≈15.97%")
+    assert not explanation_math_issues("0.6405×0.7%/1.049≈0.43个百分点")
     print("PASS: genuine rounding, fake rounding, percentage-point wording, integer mixture, unsupported charts")
 
 

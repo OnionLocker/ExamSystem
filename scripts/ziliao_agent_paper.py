@@ -20,19 +20,40 @@ from ziliao_agent_trial import write
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def sync_reviewed_version(out, work, mid, attempt):
+    """Return the exact normalized version reviewed by the full-paper gate."""
+    questions = [q for q in json.loads((out / "questions.json").read_text())
+                 if q["material_id"] == f"{out.name}-{mid}"]
+    ids = {q["external_id"] for q in questions}
+    calculations = [c for c in json.loads((out / "calculations.json").read_text())["questions"]
+                    if c["question_id"] in ids]
+    if len(ids) != 5 or len(calculations) != 5 or {c["question_id"] for c in calculations} != ids:
+        raise ValueError("整套回修版本缺题或验算，不得写入worker")
+    snapshot = work / f"before-full-repair-{attempt}"
+    snapshot.mkdir()
+    for name in ("questions.json", "calculations.json", ".gate.json"):
+        if (work / name).exists():
+            shutil.copy2(work / name, snapshot / name)
+    (work / ".gate.json").unlink(missing_ok=True)
+    write(work / "questions.json", questions)
+    write(work / "calculations.json", {"questions": calculations})
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--db", type=Path, required=True)
     parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=2)
     parser.add_argument("--hermes-root", type=Path, default=Path.home() / ".hermes/hermes-agent")
+    parser.add_argument("--resume", type=Path, help="恢复已有批次并重新执行整套闸门，失败自动回修")
     args = parser.parse_args()
     started = time.monotonic()
     today = dt.date.today()
     batch_id = today.strftime("%Y%m%d") + "_hermes_agents_" + uuid.uuid4().hex[:8]
-    out = args.output_dir.resolve() / batch_id
-    out.mkdir(parents=True)
-    (out / "images").mkdir()
+    out = args.resume.resolve() if args.resume else args.output_dir.resolve() / batch_id
+    batch_id = out.name
+    out.mkdir(parents=True, exist_ok=bool(args.resume))
+    (out / "images").mkdir(exist_ok=bool(args.resume))
     slots = runner.auto_slots(20, 4, "mid", "gd")
     themes = ["财政收支与民生支出", "工业分行业营业收入与利润额", "货物进出口与分地区结构", "社会消费品零售与城乡结构"]
     plans = [{"id": f"M{i+1:02}", "track": "gd", "difficulty": "mid", "format": kind,
@@ -41,9 +62,18 @@ def main():
               "question_plan": ("增长率槽只问收入/利润额同比率，不问利润率的相对增长率。" if i == 1 else
                                 "混合槽不得机械反推整数配比，若问混合总增速则正文不能直接给出总增速。" if i == 3 else ""),
               "chart_tasks": []} for i, kind in enumerate(runner.default_formats("gd", 4, False))]
-    for plan in plans:
-        write(out / f"{plan['id']}-plan.json", plan)
-    rounds, worker_runs = [], []
+    if args.resume:
+        previous = json.loads((out / "paper-summary.json").read_text())
+        shutil.copy2(out / "paper-summary.json", out / f"paper-summary-before-{len(previous['full_gate_rounds'])}.json")
+        plans = [json.loads((out / f"M{i:02}-plan.json").read_text()) for i in range(1, 5)]
+        slots = [s for p in plans for s in p["slots"]]
+        rounds, worker_runs = previous["full_gate_rounds"], previous["worker_runs"]
+        (out / ".gate.json").unlink(missing_ok=True)
+        write(out / "paper-summary.json", {**previous, "passed": False, "status": "rechecking"})
+    else:
+        for plan in plans:
+            write(out / f"{plan['id']}-plan.json", plan)
+        rounds, worker_runs = [], []
     print(f"batch_dir={out}", flush=True)
 
     def worker(plan, resume=False, feedback=None):
@@ -54,6 +84,7 @@ def main():
                "--db", str(args.db.resolve()), "--hermes-root", str(args.hermes_root),
                "--plan", str(out / f"{mid}-plan.json")]
         if resume:
+            sync_reviewed_version(out, work, mid, len(rounds))
             write(out / f"{mid}-feedback.json", feedback)
             cmd += ["--resume", str(work), "--feedback", str(out / f"{mid}-feedback.json")]
         log = out / f"{mid}-{'resume-' + str(len(rounds)) if resume else 'initial'}.log"
@@ -100,9 +131,12 @@ def main():
 
     passed, error = False, None
     try:
-        with ThreadPoolExecutor(max_workers=args.workers) as pool:
-            paths = list(pool.map(worker, plans))
-        for attempt in range(1, 4):
+        if args.resume:
+            paths = [out / "workers" / p["id"] / batch_id for p in plans]
+        else:
+            with ThreadPoolExecutor(max_workers=args.workers) as pool:
+                paths = list(pool.map(worker, plans))
+        for attempt in range(len(rounds) + 1, 4):
             assemble(paths)
             (out / ".gate.json").unlink(missing_ok=True)
             for name in ("system-quality.json", "ziliao-visual-quality.json"):
@@ -132,6 +166,8 @@ def main():
             visual = out / "evidence/ziliao-visual-quality.json"
             figures = json.loads(visual.read_text()) if visual.exists() else {}
             targets = runner.failed_visual_material_ids(out) | runner.failed_data_material_ids(out)
+            # A local hard-gate failure can name a material before any model evidence exists.
+            targets.update(p["id"] for p in plans if f"{batch_id}-{p['id']}" in proc.stdout + proc.stderr)
             for result in data.get("results", []):
                 if any((result.get(k) or {}).get("verdict") != "PASS" for k in ("correctness", "quality")):
                     targets.add(result["question_id"].rsplit("-", 2)[-2])
@@ -148,7 +184,8 @@ def main():
     except Exception as exc:
         error = f"{type(exc).__name__}: {exc}"
     summary = {"passed": passed, "batch_dir": str(out), "model": runner.MODEL,
-               "seconds": round(time.monotonic()-started, 2), "question_count": 20, "materials": 4,
+               "seconds": round(time.monotonic()-started, 2) + (previous["seconds"] if args.resume else 0),
+               "question_count": 20, "materials": 4,
                "worker_runs": worker_runs, "full_gate_rounds": rounds,
                "error": error, "imported": 0, "manual_content_edits": 0,
                "chart_match_supported": False}

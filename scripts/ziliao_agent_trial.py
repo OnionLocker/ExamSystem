@@ -284,6 +284,7 @@ def main():
             history = previous["messages"]
             shutil.copy2(out / "agent-result.json", out / f"agent-result-before-{len(trial.calls)}.json")
             prompt = ("整套合并审核未通过。沿用本篇材料和五题，按下列反馈自主修复，重新review通过后完成。"
+                      "先read_state：程序已同步整套闸门实际审过的题面/选项/验算，可能与旧对话选项顺序不同。"
                       "只处理本篇，忽略其他篇的题号；不能改变配额。反馈：\n" + args.feedback.read_text())
         write(out / ("resume-prompt.json" if args.resume else "prompt.json"), {"prompt": prompt, "model": runner.MODEL})
         result = agent.run_conversation(prompt, conversation_history=history)
