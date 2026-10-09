@@ -22,6 +22,7 @@ import {
   GraduationCap,
   GripVertical,
   Check,
+  Focus,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
@@ -50,6 +51,7 @@ const HermesChat = lazy(() => import('./hermes/HermesChat.jsx'));
 const AIQuizHome = lazy(() => import('./aiPractice/AIQuizHome.jsx'));
 const ExamReview = lazy(() => import('./examReview/ExamReview.jsx'));
 const Knowledge = lazy(() => import('./knowledge/Knowledge.jsx'));
+const InfoExtract = lazy(() => import('./infoExtract/InfoExtract.jsx'));
 
 // ---------------- date utils ----------------
 const pad = (n) => String(n).padStart(2, '0');
@@ -90,6 +92,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: '仪表盘' },
   { id: 'studyBoost', icon: Zap, label: '词语学习' },
   { id: 'knowledge', icon: GraduationCap, label: '知识点' },
+  { id: 'infoExtract', icon: Focus, label: '信息提取' },
   { id: 'copybook', icon: PenTool, label: '字帖练习' },
   { id: 'review', icon: BookMarked, label: '复习' },
   { id: 'flashcards', icon: Layers, label: '抽认卡' },
@@ -791,9 +794,11 @@ const AppInner = () => {
       <main className={`flex-1 flex flex-col overflow-hidden ${
         hermesFs
           ? 'bg-white'
-          : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
+          : activeTab === 'infoExtract'
+            ? ''
+            : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
       }`}>
-        <header className={`${hermesFs || activeTab === 'knowledge' ? 'hidden' : ''} h-24 flex items-center justify-between ${activeTab === 'studyBoost' ? 'px-4 sm:px-10' : 'px-10'}`}>
+        <header className={`${hermesFs || activeTab === 'knowledge' || activeTab === 'infoExtract' ? 'hidden' : ''} h-24 flex items-center justify-between ${activeTab === 'studyBoost' ? 'px-4 sm:px-10' : 'px-10'}`}>
           <div>
             <h2 className={`text-2xl font-black tracking-tight ${activeTab === 'studyBoost' ? 'whitespace-nowrap' : ''}`}>
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
@@ -821,9 +826,11 @@ const AppInner = () => {
               ? (hermesFs ? 'flex-1 overflow-hidden' : 'flex-1 overflow-hidden px-10 pb-6 pt-2')
               : activeTab === 'knowledge'
                 ? 'flex-1 min-h-0 overflow-hidden px-5 pb-2 pt-1 xl:px-8'
-                : activeTab === 'dashboard' || activeTab === 'studyBoost'
-                  ? 'flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-10 pt-4 space-y-10'
-                  : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
+                : activeTab === 'infoExtract'
+                  ? 'flex-1 overflow-hidden'
+                  : activeTab === 'dashboard' || activeTab === 'studyBoost'
+                    ? 'flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-10 pt-4 space-y-10'
+                    : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
           }
         >
           <Suspense fallback={<PageLoading />}>
@@ -848,6 +855,8 @@ const AppInner = () => {
               <Knowledge onSeedHermes={seedHermes} active={activeTab === 'knowledge'} />
             </RetainedPage>
           </div>
+
+          {activeTab === 'infoExtract' && <InfoExtract />}
 
           {activeTab === 'copybook' && <Copybook />}
 

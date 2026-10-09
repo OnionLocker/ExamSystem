@@ -18,6 +18,7 @@ import { attachHermesWs, hermesRouter } from './routes/hermesChat.js';
 import kaodianRouter from './routes/kaodian.js';
 import knowledgeContentRouter from './routes/knowledgeContent.js';
 import dailyPlansRouter from './routes/dailyPlans.js';
+import infoExtractRouter from './routes/infoExtract.js';
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use('/api/hermes',          hermesRouter);
 app.use('/api/kaodian',         kaodianRouter);
 app.use('/api/knowledge-content', knowledgeContentRouter);
 app.use('/api/daily-plans',     dailyPlansRouter);
+app.use('/api/info-extract',    infoExtractRouter);
 
 app.use((err, _req, res, _next) => {
   console.error('[api error]', err);
