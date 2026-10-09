@@ -134,6 +134,9 @@ function loadWords() {
     });
   }
   entries = [...unique.values()];
+  for (const entry of entries) {
+    if (!entry.wordType && entry.handoutPage) entry.wordType = 'idiom';
+  }
   return { entries, diagnostics };
 }
 

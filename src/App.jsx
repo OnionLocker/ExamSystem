@@ -88,7 +88,7 @@ const readHermesFs = () => {
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: '仪表盘' },
-  { id: 'studyBoost', icon: Zap, label: '成语学习' },
+  { id: 'studyBoost', icon: Zap, label: '词语学习' },
   { id: 'knowledge', icon: GraduationCap, label: '知识点' },
   { id: 'copybook', icon: PenTool, label: '字帖练习' },
   { id: 'review', icon: BookMarked, label: '复习' },
@@ -797,7 +797,7 @@ const AppInner = () => {
           <div>
             <h2 className={`text-2xl font-black tracking-tight ${activeTab === 'studyBoost' ? 'whitespace-nowrap' : ''}`}>
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
-              {activeTab === 'studyBoost' && '成语学习'}
+              {activeTab === 'studyBoost' && '词语学习'}
               {activeTab === 'copybook' && '申论字帖与 AI 图像比对'}
               {activeTab === 'review' && '知识点复习'}
               {activeTab === 'flashcards' && '抽认卡'}

@@ -3,6 +3,19 @@ import { readFileSync } from 'node:fs';
 import { createServer } from 'vite';
 import { IDIOM_GROUPS, GROUP_WORDS, CURATED_WORDS } from '../src/studyBoost/idiomGroups.js';
 import { emptyLearning, learningState, recordAnswer, groupQuestion, groupProgress, mergeLegacyStats } from '../src/studyBoost/idiomLearning.js';
+import { validatePack, validateEntry } from '../src/studyBoost/vocabSchema.js';
+const foundation = JSON.parse(readFileSync(new URL('../src/studyBoost/vocab-packs/word-foundation.json', import.meta.url)));
+assert(validatePack(foundation).ok);
+assert(!validatePack({ ...foundation, groups: [{ ...foundation.groups[0], members: ['不存在', '诉说'] }] }).ok);
+assert(!validatePack({ ...foundation, groups: [{ ...foundation.groups[0], quiz: { stem: '没有空格', answer: '诉说' } }] }).ok);
+assert(!validatePack({ ...foundation, groups: [{ ...foundation.groups[0], quiz: { stem: '这里____那里____', answer: foundation.groups[0].members[0], reason: '双空不能用单选作答。' } }] }).ok);
+assert.equal(foundation.entries.length, 220);
+assert.equal(foundation.groups.length, 76);
+assert.equal(foundation.entries.filter(e => e.id.startsWith('words-expansion-20260928:')).length, 132);
+assert(!foundation.groups.some(g => g.id === 'vocab-expand-visit'));
+assert(validateEntry({ id: 'bad', word: '测试', explanation: '测试', wordType: '__proto__' }).length);
+assert(validateEntry({ id: 'bad', word: '测试', explanation: '测试', publicSources: [{ title: 'bad', url: 'javascript:alert(1)' }] }).length);
+assert(validateEntry({ id: 'bad', word: '测试', explanation: '测试', quizKinds: ['unknown'] }).length);
 
 const words = new Map(GROUP_WORDS.map(w => [w.word, w]));
 const lookup = word => words.get(word);
@@ -90,6 +103,25 @@ try {
   assert.deepEqual(searchWords(' 高屋见甄 '), searchWords('高屋建瓴'));
   assert.equal(normalizeWordSearch('__proto__'), '__proto__');
   assert.equal(lookupWord('高屋见甄'), null, 'typo is not a vocabulary entry');
+  const baseWords = JSON.parse(readFileSync(new URL('../src/copybook/words_data_clean.json', import.meta.url)));
+  for (const entry of foundation.entries) {
+    const previous = baseWords.find(w => w.word === entry.word && w.usable !== false);
+    if (previous) assert.equal(lookupWord(entry.word).id, previous.id, `${entry.word}: preserve existing history identity`);
+  }
+  assert.equal(lookupWord('有的放矢').wordType, 'idiom');
+  for (const entry of foundation.entries) {
+    const loaded = lookupWord(entry.word);
+    assert.equal(loaded.wordType, entry.wordType);
+    assert.equal(loaded.explanation, entry.explanation);
+    assert(loaded.collocations.length && loaded.exampleSource === '原创例句');
+    assert.deepEqual(loaded.quizKinds, ['meaning', 'reverse']);
+    assert.equal(buildQuestionOfKind(loaded, QUESTION_KINDS.find(k => k.id === 'example'), ALL_WORDS), null, 'do not automatically turn overlapping synonyms into context options');
+  }
+  assert.equal(lookupWord('规律性').wordType, 'word', 'real words are not limited to two characters');
+  assert.equal(lookupWord('提高效率').wordType, 'collocation', 'four characters do not imply an idiom');
+  assert(lookupWord('诉说').references.some(r => r.region === '广东' && r.year === 2024 && r.number === 16));
+  assert(lookupWord('规律性').references.some(r => r.region === '广东' && r.year === 2025 && r.number === 16));
+  assert.equal(lookupWord('提高效率').references.length, 0, 'editorial collocations do not acquire fabricated exam sources');
   const original = IDIOM_GROUPS.map(g => g.id);
   const shuffled = shuffle(original, () => 0);
   assert.equal(new Set(shuffled).size, original.length);

@@ -1,6 +1,13 @@
 // 教研辨析与原创小测；真题出处由 build-idiom-evidence.mjs 单独提取。
 // member: [词语, 核心含义, 适用对象/辨析, 原创例句]
 import { ADDITIONAL_GROUPS, STANDALONE_WORDS, REVIEW_QUIZZES } from './idiomSupplement.js';
+import wordFoundation from './vocab-packs/word-foundation.json' with { type: 'json' };
+import { validatePack } from './vocabSchema.js';
+const foundationValid = validatePack(wordFoundation).ok;
+const foundationWords = new Map((foundationValid ? wordFoundation.entries : []).map(w => [w.word, w]));
+const foundationGroups = foundationValid ? (wordFoundation.groups || []).map(g => ({ ...g,
+  members: g.members.map(word => { const w = foundationWords.get(word); return [word, w.explanation, w.usage, w.examples[0]]; }),
+})) : [];
 export const IDIOM_GROUPS = [
   { id: 'target', title: '找准对象与解决问题', axis: '目标 / 要害 / 症结 / 个体差异', members: [
     ['有的放矢', '说话、做事有明确的目标和针对性。', '侧重目标明确；不直接强调办法能解决具体病因。', '先摸清企业诉求，政策宣讲才能有的放矢。'],
@@ -161,11 +168,14 @@ export const IDIOM_GROUPS = [
     ['实至名归', '具备相应本领或业绩后，获得与之相称的声誉。', '关注实际成就与名誉相称；名不是泛指所有结果。', '团队凭多年研究成果获得这一奖项，可谓实至名归。'],
   ], quiz: { stem: '过去当地没有夜间托育机构。随着夜班职工的托育需求增加，一种全新的夜间托育服务____。', answer: '应运而生', reason: '“过去没有”“需求增加”“全新的服务”对应适应需要而产生。水到渠成和顺理成章不直接表示服务诞生，实至名归需要成就与声誉相对应。' } },
   ...ADDITIONAL_GROUPS,
+  ...foundationGroups,
 ].map(group => ({ ...group, quizzes: [...(group.quizzes || []), ...(REVIEW_QUIZZES[group.id] ? [REVIEW_QUIZZES[group.id]] : [])] }));
 
 export const GROUP_WORDS = IDIOM_GROUPS.flatMap(g => g.members.map(([word, explanation, usage, example]) => ({
   id: `idiom-${word}`, word, explanation, usage, examples: [example], category: '成组辨析',
-  rivals: g.members.map(m => m[0]).filter(w => w !== word), publicSources: g.publicSources || [], source: '成语辨析教研整理', usable: true, curated: true,
+  wordType: 'idiom', exampleSource: '原创例句',
+  rivals: g.members.map(m => m[0]).filter(w => w !== word), publicSources: g.publicSources || [], source: '词语辨析教研整理', usable: true, curated: true,
+  ...(foundationWords.get(word) || {}),
 })));
 
 export const CURATED_WORDS = [...STANDALONE_WORDS, ...GROUP_WORDS];

@@ -73,6 +73,11 @@ UI 上提示，不会报错中断。
 | `antonyms` | string[] | — | 反义词，展示在解析里 |
 | `tags` | string[] | — | 自由标签 |
 | `category` | string | — | 陷阱归类 |
+| `wordType` | string | 类型筛选 | `word` 实词（含双音及三字词）、`idiom` 成语熟语、`collocation` 固定搭配；未核定的不填，显示为其他积累。不能按四字长度判断成语 |
+| `collocations` | string[] | 学习卡展示 | 常见搭配，不宣称唯一合法搭配 |
+| `publicSources` | object[] | 来源展示 | `{title, url, kind?}`；链接仅接受 http(s)，明确词义参考还是选词参考 |
+| `exampleSource` | string | 来源展示 | 原创例句须标为 `原创例句`，不得标为原书例句或真题 |
+| `quizKinds` | string[] | 限制自动组题 | 使用已有题型 id；如 `['meaning', 'reverse']`。容易互换的近义词不要直接把例句转成随机语境单选 |
 
 数组字段（`cloze` / `examples` / `synonyms` / `rivals` / `antonyms` / `tags`）
 在合并时取**并集去重**，不会覆盖已有内容。多个 pack 可以叠加。
@@ -186,6 +191,32 @@ UI 上提示，不会报错中断。
 主词库本身由 `npm run clean:vocab` 从原始 PDF 解析结果生成，
 **不要手改 `words_data_clean.json`**——它会被重新生成覆盖。
 所有外部内容都走 pack。
+
+### 第一期词语学习（2026-09-28）
+
+`word-foundation.json` 包含 72 个实词和 16 个固定搭配；与旧词按词名合并并保留旧 ID。
+词条资料可继续使用现有 append/enrich 机制。新增 `collocations` 合并时取并集；
+`publicSources`、`quizKinds` 等整体覆盖，不改动历史记录键。
+
+本包另有 27 个 `groups`，通过 `idiomGroups.js` 的显式导入接入原有成组学习。
+组格式为 `{id, title, axis, members: ['词名', ...], quiz, quizzes: [...]}`；
+每个小测含 `{stem, answer, reason, options?}`，词名必须属于本包。
+新增组要提供至少两道不同侧重的小测，运行 `node scripts/test-idiom-learning.mjs`。
+其他新包目前自动加载词条；如要新增辨析组，须同时在 `idiomGroups.js` 接入，不能只放文件后假定组已生效。
+
+词典释义取自实际读取的公开资料，参考记录保存在 `data/manual-vocabulary-20260928/sources.json`。
+搭配、释义概括、例句和小测均属于教研整理，广东标签只来自本地真题文件的试卷和题号证据。
+更新证据用 `node scripts/build-idiom-evidence.mjs`；`wordCoverage` 统计两字及以上选项词，
+保留旧 `gdCoverage` 的四字以上口径，避免把实词和成语覆盖数混为一谈。
+
+### 第二批扩展（2026-09-28）
+
+同一词包新增 132 个实词、49 组辨析，累计 204 个实词、16 个固定搭配、76 组辨析。
+每组有两道原创小测；题干只允许一个 `____`，且不能包含答案本身。
+新增词条的词典查询记录保存在 `data/manual-vocabulary-expansion-20260928/sources.json`：
+130 条附已读取的词典链接；“趋缓”“激活”未在该词典查到独立词条，只标为教研整理。
+“做客／作客”在词典中有交叉义项，已从单选题库移除。
+例句、搭配、小测仍为教研整理，不表示真题原文或唯一合法搭配。
 
 ---
 

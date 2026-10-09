@@ -12,6 +12,7 @@ for (const file of fs.readdirSync(path.join(root, 'src/studyBoost/vocab-packs'))
 const evidence = {};
 const papers = [];
 const gdCandidates = new Set();
+const wordCandidates = new Set();
 for (const file of fs.readdirSync(path.join(root, 'data/zhenti')).sort()) {
   if (!/^202[3-6].*\.json$/.test(file)) continue;
   const paper = read(path.join(root, 'data/zhenti', file));
@@ -27,6 +28,7 @@ for (const file of fs.readdirSync(path.join(root, 'data/zhenti')).sort()) {
         for (const token of terms) {
           if (words.has(token)) hits.add(token);
           if (file.includes('广东') && /^[\u3400-\u9fff，,]{4,}$/.test(token)) gdCandidates.add(token);
+          if (file.includes('广东') && /^[\u3400-\u9fff，,]{2,}$/.test(token)) wordCandidates.add(token);
         }
       }
     }
@@ -40,6 +42,8 @@ for (const file of fs.readdirSync(path.join(root, 'data/zhenti')).sort()) {
   }
 }
 const output = { generated_at: new Date().toISOString().slice(0, 10), scope: '本地2023—2026年回忆版逻辑填空选项；按试卷题号去重，不代表全网考频', papers,
+  wordCoverage: { scope: '已收集广东卷中两字及以上选项词和完整联句；含实词、虚词与成语', candidates: wordCandidates.size,
+    included: [...wordCandidates].filter(w => words.has(w)).length, missing: [...wordCandidates].filter(w => !words.has(w)) },
   gdCoverage: { scope: '已收集广东卷中四字及以上选项词和完整联句；不等于全考纲覆盖', candidates: gdCandidates.size,
     included: [...gdCandidates].filter(w => words.has(w)).length, missing: [...gdCandidates].filter(w => !words.has(w)) }, words: evidence };
 const target = path.join(root, 'src/studyBoost/idiomEvidence.json');

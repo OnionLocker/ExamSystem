@@ -1,0 +1,8548 @@
+{
+  "pack_id": "word-foundation-20260928",
+  "generator": "Codex 教研整理",
+  "created_at": "2026-09-28",
+  "mode": "append",
+  "notes": "第一期：广东2023—2026年回忆版选项实词、常用易混实词及固定搭配。例句和小测原创；词义参考与真题选项出现记录分开。固定搭配为常用组合，不宣称排斥其他合法搭配。第二批扩展：补充常用实词辨析、常见搭配及原创例句、小测；已有词条保留原ID。",
+  "entries": [
+    {
+      "id": "words-20260928:诉说",
+      "word": "诉说",
+      "wordType": "word",
+      "explanation": "把事情、经历等说出来。",
+      "usage": "重在叙述，可以讲经历和遭遇；不必涉及倾吐心声。",
+      "examples": [
+        "他向来访者诉说当年建桥的经历。"
+      ],
+      "collocations": [
+        "诉说经历",
+        "诉说往事"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：訴說",
+          "url": "https://www.moedict.tw/uni/%E8%A8%B4%E8%AA%AA",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "倾诉",
+        "倾听",
+        "传达"
+      ]
+    },
+    {
+      "id": "words-20260928:倾诉",
+      "word": "倾诉",
+      "wordType": "word",
+      "explanation": "把心里的话充分说出来。",
+      "usage": "常用于心声、苦衷、思念等内心感受；“倾”突出尽情吐露。",
+      "examples": [
+        "她终于向朋友倾诉了积压多年的苦衷。"
+      ],
+      "collocations": [
+        "倾诉心声",
+        "倾诉苦衷"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傾訴",
+          "url": "https://www.moedict.tw/uni/%E5%82%BE%E8%A8%B4",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "诉说",
+        "倾听",
+        "传达"
+      ]
+    },
+    {
+      "id": "words-20260928:倾听",
+      "word": "倾听",
+      "wordType": "word",
+      "explanation": "集中注意力，认真地听。",
+      "usage": "主体是接收话语的一方，不是说话者。",
+      "examples": [
+        "接访人员认真倾听居民的意见。"
+      ],
+      "collocations": [
+        "倾听意见",
+        "倾听心声"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傾聽",
+          "url": "https://www.moedict.tw/uni/%E5%82%BE%E8%81%BD",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "诉说",
+        "倾诉",
+        "传达"
+      ]
+    },
+    {
+      "id": "words-20260928:传达",
+      "word": "传达",
+      "wordType": "word",
+      "explanation": "把一方的意思、消息等转告给另一方。",
+      "usage": "强调信息的传递；可搭配通知、要求、精神。",
+      "examples": [
+        "联络员把会议要求传达给各小组。"
+      ],
+      "collocations": [
+        "传达通知",
+        "传达要求"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傳達",
+          "url": "https://www.moedict.tw/uni/%E5%82%B3%E9%81%94",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "诉说",
+        "倾诉",
+        "倾听"
+      ]
+    },
+    {
+      "id": "words-20260928:融洽",
+      "word": "融洽",
+      "wordType": "word",
+      "explanation": "彼此感情好，相处协调和睦。",
+      "usage": "常说气氛或关系和睦；不等于联系频繁紧密。",
+      "examples": [
+        "邻里相处融洽，遇事互相帮助。"
+      ],
+      "collocations": [
+        "关系融洽",
+        "气氛融洽"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：融洽",
+          "url": "https://www.moedict.tw/uni/%E8%9E%8D%E6%B4%BD",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "和谐",
+        "密切",
+        "稳定"
+      ]
+    },
+    {
+      "id": "words-20260928:和谐",
+      "word": "和谐",
+      "wordType": "word",
+      "explanation": "各部分配合适当、协调一致。",
+      "usage": "适用范围较广，可说关系、声音、色彩等协调。",
+      "examples": [
+        "画面的冷暖色调搭配得十分和谐。"
+      ],
+      "collocations": [
+        "社会和谐",
+        "色彩和谐"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：和諧",
+          "url": "https://www.moedict.tw/uni/%E5%92%8C%E8%AB%A7",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "融洽",
+        "密切",
+        "稳定"
+      ]
+    },
+    {
+      "id": "words-20260928:密切",
+      "word": "密切",
+      "wordType": "word",
+      "explanation": "关系近、联系紧，或关注得细致紧迫。",
+      "usage": "可说关系密切、密切关注；联系紧不必相处和睦。",
+      "examples": [
+        "监测人员密切关注水位变化。"
+      ],
+      "collocations": [
+        "密切联系",
+        "密切关注"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：密切",
+          "url": "https://www.moedict.tw/uni/%E5%AF%86%E5%88%87",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "融洽",
+        "和谐",
+        "稳定"
+      ]
+    },
+    {
+      "id": "words-20260928:稳定",
+      "word": "稳定",
+      "wordType": "word",
+      "explanation": "状态保持相对不变，不轻易波动。",
+      "usage": "可作形容词，也可作动词；重点是少变动而非感情好。",
+      "examples": [
+        "经过检修，设备运行趋于稳定。"
+      ],
+      "collocations": [
+        "保持稳定",
+        "稳定预期"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：穩定",
+          "url": "https://www.moedict.tw/uni/%E7%A9%A9%E5%AE%9A",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "融洽",
+        "和谐",
+        "密切"
+      ]
+    },
+    {
+      "id": "words-20260928:凝聚",
+      "word": "凝聚",
+      "wordType": "word",
+      "explanation": "聚集在一起，也指把分散的力量汇集起来。",
+      "usage": "常搭配力量、共识、心血；强调聚合过程。",
+      "examples": [
+        "共同目标把大家的力量凝聚起来。"
+      ],
+      "collocations": [
+        "凝聚力量",
+        "凝聚共识"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：凝聚",
+          "url": "https://www.moedict.tw/uni/%E5%87%9D%E8%81%9A",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "包容",
+        "一致",
+        "团结"
+      ]
+    },
+    {
+      "id": "words-20260928:包容",
+      "word": "包容",
+      "wordType": "word",
+      "explanation": "容纳不同的人、事物或意见。",
+      "usage": "重在允许差异存在，不要求所有意见都相同。",
+      "examples": [
+        "讨论应包容不同观点，允许充分表达。"
+      ],
+      "collocations": [
+        "包容差异",
+        "兼收包容"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：包容",
+          "url": "https://www.moedict.tw/uni/%E5%8C%85%E5%AE%B9",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "凝聚",
+        "一致",
+        "团结"
+      ]
+    },
+    {
+      "id": "words-20260928:一致",
+      "word": "一致",
+      "wordType": "word",
+      "explanation": "在方向、意见、步调等方面相同。",
+      "usage": "重点是没有分歧；不等于能够容纳差异。",
+      "examples": [
+        "讨论后，成员对修改方案的意见一致。"
+      ],
+      "collocations": [
+        "意见一致",
+        "步调一致"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：一致",
+          "url": "https://www.moedict.tw/uni/%E4%B8%80%E8%87%B4",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "凝聚",
+        "包容",
+        "团结"
+      ]
+    },
+    {
+      "id": "words-20260928:团结",
+      "word": "团结",
+      "wordType": "word",
+      "explanation": "为了共同目标联合起来、互相协作。",
+      "usage": "强调人与人、集体之间的联合与合作。",
+      "examples": [
+        "队员们团结协作，共同完成抢修。"
+      ],
+      "collocations": [
+        "团结协作",
+        "团结群众"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：團結",
+          "url": "https://www.moedict.tw/uni/%E5%9C%98%E7%B5%90",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "凝聚",
+        "包容",
+        "一致"
+      ]
+    },
+    {
+      "id": "words-20260928:核心",
+      "word": "核心",
+      "wordType": "word",
+      "explanation": "事物最中心、最关键的部分。",
+      "usage": "着眼于系统中的关键环节，不泛指承载它的形式。",
+      "examples": [
+        "算法是这套识别系统的核心。"
+      ],
+      "collocations": [
+        "核心环节",
+        "核心问题"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：核心",
+          "url": "https://www.moedict.tw/uni/%E6%A0%B8%E5%BF%83",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "根本",
+        "载体",
+        "导向"
+      ]
+    },
+    {
+      "id": "words-20260928:根本",
+      "word": "根本",
+      "wordType": "word",
+      "explanation": "事物赖以成立的基础或最重要的依据。",
+      "usage": "常说根本原因、根本任务；与核心有交叉，须结合句子。",
+      "examples": [
+        "诚信是合作的根本。"
+      ],
+      "collocations": [
+        "根本原因",
+        "根本任务"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：根本",
+          "url": "https://www.moedict.tw/uni/%E6%A0%B9%E6%9C%AC",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "核心",
+        "载体",
+        "导向"
+      ]
+    },
+    {
+      "id": "words-20260928:载体",
+      "word": "载体",
+      "wordType": "word",
+      "explanation": "承载、传递某种内容或信息的事物。",
+      "usage": "着眼于内容依托的媒介或形式。",
+      "examples": [
+        "地方戏曲是乡土文化的重要载体。"
+      ],
+      "collocations": [
+        "文化载体",
+        "信息载体"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：載體",
+          "url": "https://www.moedict.tw/uni/%E8%BC%89%E9%AB%94",
+          "kind": "媒介义参考；文化载体为本地真题语境的教研概括"
+        }
+      ],
+      "rivals": [
+        "核心",
+        "根本",
+        "导向"
+      ]
+    },
+    {
+      "id": "words-20260928:导向",
+      "word": "导向",
+      "wordType": "word",
+      "explanation": "引导前进或选择的方向。",
+      "usage": "常用于价值、政策、评价等所指引的方向。",
+      "examples": [
+        "评价制度应树立重实绩的导向。"
+      ],
+      "collocations": [
+        "价值导向",
+        "问题导向"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：導向",
+          "url": "https://www.moedict.tw/uni/%E5%B0%8E%E5%90%91",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "核心",
+        "根本",
+        "载体"
+      ]
+    },
+    {
+      "id": "words-20260928:简短",
+      "word": "简短",
+      "wordType": "word",
+      "explanation": "内容、话语或篇幅不长。",
+      "usage": "常修饰发言、说明、文字；不直接表示速度快。",
+      "examples": [
+        "主持人作了简短的开场介绍。"
+      ],
+      "collocations": [
+        "简短发言",
+        "简短说明"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：簡短",
+          "url": "https://www.moedict.tw/uni/%E7%B0%A1%E7%9F%AD",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "迅速",
+        "简易",
+        "短暂"
+      ]
+    },
+    {
+      "id": "words-20260928:迅速",
+      "word": "迅速",
+      "wordType": "word",
+      "explanation": "速度快，用时少。",
+      "usage": "常修饰行动、反应；重点是快，不是内容少。",
+      "examples": [
+        "接到报告后，抢修人员迅速到场。"
+      ],
+      "collocations": [
+        "迅速反应",
+        "迅速行动"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：迅速",
+          "url": "https://www.moedict.tw/uni/%E8%BF%85%E9%80%9F",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "简短",
+        "简易",
+        "短暂"
+      ]
+    },
+    {
+      "id": "words-20260928:简易",
+      "word": "简易",
+      "wordType": "word",
+      "explanation": "简单而容易，或构造不复杂。",
+      "usage": "常修饰程序、装置、方法；不等于持续时间短。",
+      "examples": [
+        "工人利用现有材料搭起简易棚屋。"
+      ],
+      "collocations": [
+        "简易程序",
+        "简易装置"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：簡易",
+          "url": "https://www.moedict.tw/uni/%E7%B0%A1%E6%98%93",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "简短",
+        "迅速",
+        "短暂"
+      ]
+    },
+    {
+      "id": "words-20260928:短暂",
+      "word": "短暂",
+      "wordType": "word",
+      "explanation": "持续的时间很短。",
+      "usage": "可修饰停留、休息、瞬间；不是篇幅概念。",
+      "examples": [
+        "列车只在小站作短暂的停留。"
+      ],
+      "collocations": [
+        "短暂停留",
+        "短暂休息"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：短暫",
+          "url": "https://www.moedict.tw/uni/%E7%9F%AD%E6%9A%AB",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "简短",
+        "迅速",
+        "简易"
+      ]
+    },
+    {
+      "id": "words-20260928:繁杂",
+      "word": "繁杂",
+      "wordType": "word",
+      "explanation": "事情或内容很多而且杂乱。",
+      "usage": "重在多与杂；不必具有复杂的内在关系。",
+      "examples": [
+        "整理这些来源不一的材料是一项繁杂的工作。"
+      ],
+      "collocations": [
+        "事务繁杂",
+        "内容繁杂"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：繁雜",
+          "url": "https://www.moedict.tw/uni/%E7%B9%81%E9%9B%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "冗长",
+        "复杂",
+        "漫长"
+      ]
+    },
+    {
+      "id": "words-20260928:冗长",
+      "word": "冗长",
+      "wordType": "word",
+      "explanation": "话语、文章等过长，显得多余拖沓。",
+      "usage": "通常带负面评价；不只是客观地说时间长。",
+      "examples": [
+        "删去重复段落后，报告不再冗长。"
+      ],
+      "collocations": [
+        "冗长叙述",
+        "篇幅冗长"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：冗長",
+          "url": "https://www.moedict.tw/uni/%E5%86%97%E9%95%B7",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "繁杂",
+        "复杂",
+        "漫长"
+      ]
+    },
+    {
+      "id": "words-20260928:复杂",
+      "word": "复杂",
+      "wordType": "word",
+      "explanation": "因素或关系多，彼此交错，不容易理解处理。",
+      "usage": "强调结构和关系；数量多不必复杂。",
+      "examples": [
+        "故障涉及多个部件，原因较为复杂。"
+      ],
+      "collocations": [
+        "关系复杂",
+        "结构复杂"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：複雜",
+          "url": "https://www.moedict.tw/uni/%E8%A4%87%E9%9B%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "繁杂",
+        "冗长",
+        "漫长"
+      ]
+    },
+    {
+      "id": "words-20260928:漫长",
+      "word": "漫长",
+      "wordType": "word",
+      "explanation": "时间很长，也可形容路程很长。",
+      "usage": "重在延续长度，常含主观感受；不必有内容重复。",
+      "examples": [
+        "他们经历了漫长的等待。"
+      ],
+      "collocations": [
+        "漫长等待",
+        "漫长旅途"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：漫長",
+          "url": "https://www.moedict.tw/uni/%E6%BC%AB%E9%95%B7",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "繁杂",
+        "冗长",
+        "复杂"
+      ]
+    },
+    {
+      "id": "words-20260928:改造",
+      "word": "改造",
+      "wordType": "word",
+      "explanation": "改变原有状态、结构或性质，使适应新的需要。",
+      "usage": "常指对旧设备、环境、观念等进行改变。",
+      "examples": [
+        "旧仓库经过改造，成为社区图书馆。"
+      ],
+      "collocations": [
+        "改造设备",
+        "改造旧城"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：改造",
+          "url": "https://www.moedict.tw/uni/%E6%94%B9%E9%80%A0",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "盘活",
+        "发掘",
+        "优化"
+      ]
+    },
+    {
+      "id": "words-20260928:盘活",
+      "word": "盘活",
+      "wordType": "word",
+      "explanation": "让闲置或低效使用的存量资源重新发挥作用。",
+      "usage": "强调资源已经存在，重点是使它运转、产生效益。",
+      "examples": [
+        "共享使用使长期闲置的会议室得到盘活。"
+      ],
+      "collocations": [
+        "盘活存量",
+        "盘活闲置资产"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "改造",
+        "发掘",
+        "优化"
+      ]
+    },
+    {
+      "id": "words-20260928:发掘",
+      "word": "发掘",
+      "wordType": "word",
+      "explanation": "挖掘地下事物，也比喻发现并揭示潜藏的价值。",
+      "usage": "可搭配遗址、人才、潜力；重在找出原来未显露的东西。",
+      "examples": [
+        "这次调查发掘了古村落的文化价值。"
+      ],
+      "collocations": [
+        "发掘遗址",
+        "发掘潜力"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：發掘",
+          "url": "https://www.moedict.tw/uni/%E7%99%BC%E6%8E%98",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "改造",
+        "盘活",
+        "优化"
+      ]
+    },
+    {
+      "id": "words-20260928:优化",
+      "word": "优化",
+      "wordType": "word",
+      "explanation": "通过调整使结构、配置、方案等变得更合理或更好。",
+      "usage": "强调在原有基础上改进；不一定针对闲置资源。",
+      "examples": [
+        "团队重新安排工序，优化了生产流程。"
+      ],
+      "collocations": [
+        "优化配置",
+        "优化流程"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "改造",
+        "盘活",
+        "发掘"
+      ]
+    },
+    {
+      "id": "words-20260928:规律性",
+      "word": "规律性",
+      "wordType": "word",
+      "explanation": "事物的联系或发展变化呈现出可重复、可把握的规则。",
+      "usage": "侧重稳定联系；不是每个现象都必定发生。",
+      "examples": [
+        "连续观测帮助研究者把握潮汐变化的规律性。"
+      ],
+      "collocations": [
+        "把握规律性",
+        "认识规律性"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "趋势性",
+        "必然性"
+      ]
+    },
+    {
+      "id": "words-20260928:趋势性",
+      "word": "趋势性",
+      "wordType": "word",
+      "explanation": "事物发展表现出的方向性。",
+      "usage": "侧重未来走向；不能直接当作确定无疑的结果。",
+      "examples": [
+        "苗头变化常能提供趋势性信号。"
+      ],
+      "collocations": [
+        "趋势性变化",
+        "趋势性信号"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "规律性",
+        "必然性"
+      ]
+    },
+    {
+      "id": "words-20260928:必然性",
+      "word": "必然性",
+      "wordType": "word",
+      "explanation": "在一定条件下，事物发生或发展具有不可避免的性质。",
+      "usage": "判断需说明条件，不能把“可能”直接说成“必然”。",
+      "examples": [
+        "只有说明约束条件，才能讨论结果出现的必然性。"
+      ],
+      "collocations": [
+        "历史必然性",
+        "认识必然性"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "规律性",
+        "趋势性"
+      ]
+    },
+    {
+      "id": "words-20260928:进入",
+      "word": "进入",
+      "wordType": "word",
+      "explanation": "到某个范围里面，或开始处于某种状态。",
+      "usage": "适用较广，方向是由外到内。",
+      "examples": [
+        "访客登记后进入展厅。"
+      ],
+      "collocations": [
+        "进入场馆",
+        "进入阶段"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：進入",
+          "url": "https://www.moedict.tw/uni/%E9%80%B2%E5%85%A5",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "迈向",
+        "步入",
+        "挺进"
+      ]
+    },
+    {
+      "id": "words-20260928:迈向",
+      "word": "迈向",
+      "wordType": "word",
+      "explanation": "迈步朝某个目标或方向前进。",
+      "usage": "强调朝向目标，不必表示已经到达。",
+      "examples": [
+        "团队正迈向更高的技术目标。"
+      ],
+      "collocations": [
+        "迈向未来",
+        "迈向目标"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：邁向",
+          "url": "https://www.moedict.tw/uni/%E9%82%81%E5%90%91",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "进入",
+        "步入",
+        "挺进"
+      ]
+    },
+    {
+      "id": "words-20260928:步入",
+      "word": "步入",
+      "wordType": "word",
+      "explanation": "走进某处，也比喻进入某种阶段或境地。",
+      "usage": "常搭配阶段、时期；与进入在许多语境中可以互换。",
+      "examples": [
+        "研究工作逐步步入验证阶段。"
+      ],
+      "collocations": [
+        "步入正轨",
+        "步入阶段"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "进入",
+        "迈向",
+        "挺进"
+      ]
+    },
+    {
+      "id": "words-20260928:挺进",
+      "word": "挺进",
+      "wordType": "word",
+      "explanation": "队伍等勇敢、坚定地向前推进。",
+      "usage": "常含克服阻力、进军目标的意味，语气较强。",
+      "examples": [
+        "救援队连夜向受灾最重的山区挺进。"
+      ],
+      "collocations": [
+        "向前挺进",
+        "挺进山区"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：挺進",
+          "url": "https://www.moedict.tw/uni/%E6%8C%BA%E9%80%B2",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "进入",
+        "迈向",
+        "步入"
+      ]
+    },
+    {
+      "id": "words-20260928:弥漫",
+      "word": "弥漫",
+      "wordType": "word",
+      "explanation": "烟雾、气味等向四周扩散，充满空间。",
+      "usage": "也可写气氛、情绪；重在扩散并充满。",
+      "examples": [
+        "晨雾弥漫山谷，远处山峰若隐若现。"
+      ],
+      "collocations": [
+        "烟雾弥漫",
+        "气氛弥漫"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：瀰漫",
+          "url": "https://www.moedict.tw/uni/%E7%80%B0%E6%BC%AB",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "交织",
+        "充斥",
+        "遍布"
+      ]
+    },
+    {
+      "id": "words-20260928:交织",
+      "word": "交织",
+      "wordType": "word",
+      "explanation": "相互穿插、交错在一起。",
+      "usage": "常用于因素、情绪、线索；不是单纯到处都有。",
+      "examples": [
+        "喜悦与不舍交织在一起。"
+      ],
+      "collocations": [
+        "情绪交织",
+        "因素交织"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：交織",
+          "url": "https://www.moedict.tw/uni/%E4%BA%A4%E7%B9%94",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "弥漫",
+        "充斥",
+        "遍布"
+      ]
+    },
+    {
+      "id": "words-20260928:充斥",
+      "word": "充斥",
+      "wordType": "word",
+      "explanation": "大量充满，多用于不受欢迎的事物。",
+      "usage": "通常带贬义，注意语境评价；不宜无条件用于赞美。",
+      "examples": [
+        "劣质广告充斥页面，干扰了正常阅读。"
+      ],
+      "collocations": [
+        "充斥谣言",
+        "充斥市场"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：充斥",
+          "url": "https://www.moedict.tw/uni/%E5%85%85%E6%96%A5",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "弥漫",
+        "交织",
+        "遍布"
+      ]
+    },
+    {
+      "id": "words-20260928:遍布",
+      "word": "遍布",
+      "wordType": "word",
+      "explanation": "分布在各处。",
+      "usage": "强调分布范围广，不要求连续覆盖或相互交错。",
+      "examples": [
+        "服务网点遍布各个乡镇。"
+      ],
+      "collocations": [
+        "网点遍布",
+        "遍布各地"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：遍布",
+          "url": "https://www.moedict.tw/uni/%E9%81%8D%E5%B8%83",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "弥漫",
+        "交织",
+        "充斥"
+      ]
+    },
+    {
+      "id": "words-20260928:升华",
+      "word": "升华",
+      "wordType": "word",
+      "explanation": "比喻思想、情感等得到提炼，达到更高境界。",
+      "usage": "也有物理义；抽象用法强调层次提升，不等于单纯数量增加。",
+      "examples": [
+        "亲身参与使他对责任的认识得到升华。"
+      ],
+      "collocations": [
+        "情感升华",
+        "思想升华"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：昇華",
+          "url": "https://www.moedict.tw/uni/%E6%98%87%E8%8F%AF",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "丰富",
+        "扩展",
+        "深化"
+      ]
+    },
+    {
+      "id": "words-20260928:丰富",
+      "word": "丰富",
+      "wordType": "word",
+      "explanation": "内容或种类多，也指使内容充实。",
+      "usage": "重在增添内容、种类或经验。",
+      "examples": [
+        "新增口述史材料丰富了展览内容。"
+      ],
+      "collocations": [
+        "丰富内容",
+        "丰富经验"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：豐富",
+          "url": "https://www.moedict.tw/uni/%E8%B1%90%E5%AF%8C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "升华",
+        "扩展",
+        "深化"
+      ]
+    },
+    {
+      "id": "words-20260928:扩展",
+      "word": "扩展",
+      "wordType": "word",
+      "explanation": "向外扩大范围或规模。",
+      "usage": "重在广度，可搭配领域、范围、功能。",
+      "examples": [
+        "服务范围从城区扩展到周边乡镇。"
+      ],
+      "collocations": [
+        "扩展范围",
+        "扩展领域"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：擴展",
+          "url": "https://www.moedict.tw/uni/%E6%93%B4%E5%B1%95",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "升华",
+        "丰富",
+        "深化"
+      ]
+    },
+    {
+      "id": "words-20260928:深化",
+      "word": "深化",
+      "wordType": "word",
+      "explanation": "使理解、程度或工作向更深层次发展。",
+      "usage": "重在深度；不等于覆盖面扩大。",
+      "examples": [
+        "对细节的追问深化了学生的理解。"
+      ],
+      "collocations": [
+        "深化认识",
+        "深化改革"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：深化",
+          "url": "https://www.moedict.tw/uni/%E6%B7%B1%E5%8C%96",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "升华",
+        "丰富",
+        "扩展"
+      ]
+    },
+    {
+      "id": "words-20260928:明确",
+      "word": "明确",
+      "wordType": "word",
+      "explanation": "清楚而确定，也指使要求、方向等清楚确定。",
+      "usage": "可作动词，常说明确责任、明确目标。",
+      "examples": [
+        "会议进一步明确了各组的职责。"
+      ],
+      "collocations": [
+        "明确目标",
+        "明确责任"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：明確",
+          "url": "https://www.moedict.tw/uni/%E6%98%8E%E7%A2%BA",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "清晰",
+        "宽阔",
+        "通达"
+      ]
+    },
+    {
+      "id": "words-20260928:清晰",
+      "word": "清晰",
+      "wordType": "word",
+      "explanation": "看得或听得清楚，也指思路、条理清楚。",
+      "usage": "常描述呈现或认识状态；不直接作“确定职责”的动词。",
+      "examples": [
+        "修复后，影像中的人物轮廓更加清晰。"
+      ],
+      "collocations": [
+        "图像清晰",
+        "思路清晰"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：清晰",
+          "url": "https://www.moedict.tw/uni/%E6%B8%85%E6%99%B0",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "明确",
+        "宽阔",
+        "通达"
+      ]
+    },
+    {
+      "id": "words-20260928:宽阔",
+      "word": "宽阔",
+      "wordType": "word",
+      "explanation": "横向空间大，开阔。",
+      "usage": "常形容道路、水面、视野；不直接表示道路能否通达。",
+      "examples": [
+        "新修的道路比原先更加宽阔。"
+      ],
+      "collocations": [
+        "道路宽阔",
+        "水面宽阔"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：寬闊",
+          "url": "https://www.moedict.tw/uni/%E5%AF%AC%E9%97%8A",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "明确",
+        "清晰",
+        "通达"
+      ]
+    },
+    {
+      "id": "words-20260928:通达",
+      "word": "通达",
+      "wordType": "word",
+      "explanation": "通行或到达没有阻碍，也指通晓事理。",
+      "usage": "写交通时强调可达、畅通，不是单指道路宽度。",
+      "examples": [
+        "新桥建成后，两岸交通更加通达。"
+      ],
+      "collocations": [
+        "交通通达",
+        "通达事理"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：通達",
+          "url": "https://www.moedict.tw/uni/%E9%80%9A%E9%81%94",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "明确",
+        "清晰",
+        "宽阔"
+      ]
+    },
+    {
+      "id": "words-20260928:修补",
+      "word": "修补",
+      "wordType": "word",
+      "explanation": "修理破损的地方，使之完整。",
+      "usage": "常搭配屋顶、器物、漏洞；也可作比喻。",
+      "examples": [
+        "工人及时修补了漏雨的屋顶。"
+      ],
+      "collocations": [
+        "修补屋顶",
+        "修补漏洞"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：修補",
+          "url": "https://www.moedict.tw/uni/%E4%BF%AE%E8%A3%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "弥合",
+        "跨越",
+        "消弭"
+      ]
+    },
+    {
+      "id": "words-20260928:弥合",
+      "word": "弥合",
+      "wordType": "word",
+      "explanation": "使裂缝、隔阂、分歧等合拢或消除。",
+      "usage": "侧重双方间的裂隙缩小、关系修复。",
+      "examples": [
+        "多轮坦诚交流有助于弥合双方分歧。"
+      ],
+      "collocations": [
+        "弥合分歧",
+        "弥合裂痕"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；词义与搭配为教研概括",
+      "rivals": [
+        "修补",
+        "跨越",
+        "消弭"
+      ]
+    },
+    {
+      "id": "words-20260928:跨越",
+      "word": "跨越",
+      "wordType": "word",
+      "explanation": "越过界限、障碍或某段距离。",
+      "usage": "强调越过去，不一定使障碍本身消失。",
+      "examples": [
+        "这座桥帮助行人跨越河道。"
+      ],
+      "collocations": [
+        "跨越障碍",
+        "跨越鸿沟"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：跨越",
+          "url": "https://www.moedict.tw/uni/%E8%B7%A8%E8%B6%8A",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "修补",
+        "弥合",
+        "消弭"
+      ]
+    },
+    {
+      "id": "words-20260928:消弭",
+      "word": "消弭",
+      "wordType": "word",
+      "explanation": "消除祸患、争端等，使其不再存在。",
+      "usage": "常用于负面事物；不只是从障碍上越过。",
+      "examples": [
+        "完善沟通机制有助于消弭误解。"
+      ],
+      "collocations": [
+        "消弭隐患",
+        "消弭争端"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：消弭",
+          "url": "https://www.moedict.tw/uni/%E6%B6%88%E5%BC%AD",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "修补",
+        "弥合",
+        "跨越"
+      ]
+    },
+    {
+      "id": "words-20260928:权利",
+      "word": "权利",
+      "wordType": "word",
+      "explanation": "依法或依规则享有的权益、自由与资格。",
+      "usage": "常与享有、保障、维护搭配，如受教育权利。",
+      "examples": [
+        "依法保障每个人的受教育权利。"
+      ],
+      "collocations": [
+        "享有权利",
+        "保障权利"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：權利",
+          "url": "https://www.moedict.tw/uni/%E6%AC%8A%E5%88%A9",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "权力"
+      ]
+    },
+    {
+      "id": "words-20260928:权力",
+      "word": "权力",
+      "wordType": "word",
+      "explanation": "能够支配、管理或决定事务的力量与权限。",
+      "usage": "常与行使、监督、约束搭配，强调支配和管理。",
+      "examples": [
+        "公共权力的行使必须受到监督。"
+      ],
+      "collocations": [
+        "行使权力",
+        "监督权力"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：權力",
+          "url": "https://www.moedict.tw/uni/%E6%AC%8A%E5%8A%9B",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "权利"
+      ]
+    },
+    {
+      "id": "words-20260928:考查",
+      "word": "考查",
+      "wordType": "word",
+      "explanation": "通过检查、测试等了解或评定情况。",
+      "usage": "常用于知识、能力、成绩；重在检验评价。",
+      "examples": [
+        "这道题考查考生整合信息的能力。"
+      ],
+      "collocations": [
+        "考查能力",
+        "考查知识"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：考查",
+          "url": "https://www.moedict.tw/uni/%E8%80%83%E6%9F%A5",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "考察"
+      ]
+    },
+    {
+      "id": "words-20260928:考察",
+      "word": "考察",
+      "wordType": "word",
+      "explanation": "通过实地观察、调查研究了解事物。",
+      "usage": "常用于现场、项目、环境；重在观察研究。",
+      "examples": [
+        "调研组赴现场考察河道整治情况。"
+      ],
+      "collocations": [
+        "实地考察",
+        "考察项目"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：考察",
+          "url": "https://www.moedict.tw/uni/%E8%80%83%E5%AF%9F",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "考查"
+      ]
+    },
+    {
+      "id": "words-20260928:质疑",
+      "word": "质疑",
+      "wordType": "word",
+      "explanation": "提出疑问，要求说明或论证。",
+      "usage": "可主动提出问题；并不等于已经否定对方。",
+      "examples": [
+        "评审专家对样本的代表性提出质疑。"
+      ],
+      "collocations": [
+        "提出质疑",
+        "质疑依据"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：質疑",
+          "url": "https://www.moedict.tw/uni/%E8%B3%AA%E7%96%91",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "置疑"
+      ]
+    },
+    {
+      "id": "words-20260928:置疑",
+      "word": "置疑",
+      "wordType": "word",
+      "explanation": "表示怀疑，常用于否定式。",
+      "usage": "常见“不容置疑”“无可置疑”；注意常用句式，不等于绝无其他用法。",
+      "examples": [
+        "事实已经反复核实，其真实性不容置疑。"
+      ],
+      "collocations": [
+        "不容置疑",
+        "无可置疑"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：置疑",
+          "url": "https://www.moedict.tw/uni/%E7%BD%AE%E7%96%91",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "质疑"
+      ]
+    },
+    {
+      "id": "words-20260928:推托",
+      "word": "推托",
+      "wordType": "word",
+      "explanation": "借故拒绝或不接受某项事情。",
+      "usage": "常说借故推托邀请、请求；突出用借口拒绝。",
+      "examples": [
+        "他以行程已满为由推托了邀请。"
+      ],
+      "collocations": [
+        "借故推托",
+        "推托邀请"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：推託",
+          "url": "https://www.moedict.tw/uni/%E6%8E%A8%E8%A8%97",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "推脱"
+      ]
+    },
+    {
+      "id": "words-20260928:推脱",
+      "word": "推脱",
+      "wordType": "word",
+      "explanation": "推卸自己应承担的责任等。",
+      "usage": "常搭配责任、过错；与推托有交叉，按本句侧重判断。",
+      "examples": [
+        "出了差错应主动说明，不能推脱责任。"
+      ],
+      "collocations": [
+        "推脱责任",
+        "无法推脱"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：推脫",
+          "url": "https://www.moedict.tw/uni/%E6%8E%A8%E8%84%AB",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "推托"
+      ]
+    },
+    {
+      "id": "words-20260928:弥补",
+      "word": "弥补",
+      "wordType": "word",
+      "explanation": "把缺陷、不足或损失补回来。",
+      "usage": "常搭配不足、缺陷、损失；重在补救已有欠缺。",
+      "examples": [
+        "新增训练用来弥补基础环节的不足。"
+      ],
+      "collocations": [
+        "弥补不足",
+        "弥补损失"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：彌補",
+          "url": "https://www.moedict.tw/uni/%E5%BD%8C%E8%A3%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "填补"
+      ]
+    },
+    {
+      "id": "words-20260928:填补",
+      "word": "填补",
+      "wordType": "word",
+      "explanation": "把空白、空缺补上。",
+      "usage": "常搭配空白、缺额；重在原来缺少的位置或内容。",
+      "examples": [
+        "这项研究填补了该领域的资料空白。"
+      ],
+      "collocations": [
+        "填补空白",
+        "填补缺额"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：填補",
+          "url": "https://www.moedict.tw/uni/%E5%A1%AB%E8%A3%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "弥补"
+      ]
+    },
+    {
+      "id": "words-20260928:变换",
+      "word": "变换",
+      "wordType": "word",
+      "explanation": "把一种形式、内容或位置换成另一种。",
+      "usage": "常搭配方式、角度、队形，突出可以辨认的切换。",
+      "examples": [
+        "摄影师不断变换拍摄角度。"
+      ],
+      "collocations": [
+        "变换方式",
+        "变换角度"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：變換",
+          "url": "https://www.moedict.tw/uni/%E8%AE%8A%E6%8F%9B",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "变幻"
+      ]
+    },
+    {
+      "id": "words-20260928:变幻",
+      "word": "变幻",
+      "wordType": "word",
+      "explanation": "无规则地变化，难以预料。",
+      "usage": "常用于风云、光影、局势，突出不确定或难以捉摸。",
+      "examples": [
+        "山间云影变幻，片刻就换了一番景象。"
+      ],
+      "collocations": [
+        "风云变幻",
+        "变幻莫测"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：變幻",
+          "url": "https://www.moedict.tw/uni/%E8%AE%8A%E5%B9%BB",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "变换"
+      ]
+    },
+    {
+      "id": "words-20260928:原形",
+      "word": "原形",
+      "wordType": "word",
+      "explanation": "原来的形状或真实面目。",
+      "usage": "常见现出原形、原形毕露；不表示创作的取材对象。",
+      "examples": [
+        "伪装被识破后，骗局终于显出了原形。"
+      ],
+      "collocations": [
+        "现出原形",
+        "原形毕露"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：原形",
+          "url": "https://www.moedict.tw/uni/%E5%8E%9F%E5%BD%A2",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "原型"
+      ]
+    },
+    {
+      "id": "words-20260928:原型",
+      "word": "原型",
+      "wordType": "word",
+      "explanation": "最初的模型，或文艺创作据以塑造形象的真实对象。",
+      "usage": "可搭配人物原型、产品原型，重在模型或依据。",
+      "examples": [
+        "小说中的人物以一位乡村教师为原型。"
+      ],
+      "collocations": [
+        "人物原型",
+        "产品原型"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：原型",
+          "url": "https://www.moedict.tw/uni/%E5%8E%9F%E5%9E%8B",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "原形"
+      ]
+    },
+    {
+      "id": "words-20260928:法制",
+      "word": "法制",
+      "wordType": "word",
+      "explanation": "法律及相关制度的总称。",
+      "usage": "重在制度体系，常说法制建设；不等于具体执法行为。",
+      "examples": [
+        "法制建设需要完善相互衔接的制度规范。"
+      ],
+      "collocations": [
+        "法制建设",
+        "法制体系"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：法制",
+          "url": "https://www.moedict.tw/uni/%E6%B3%95%E5%88%B6",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "法治"
+      ]
+    },
+    {
+      "id": "words-20260928:法治",
+      "word": "法治",
+      "wordType": "word",
+      "explanation": "依照法律治理国家和社会的理念、原则与方式。",
+      "usage": "重在依法治理，常说法治精神、法治思维。",
+      "examples": [
+        "行政人员应当运用法治思维处理问题。"
+      ],
+      "collocations": [
+        "法治思维",
+        "法治精神"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：法治",
+          "url": "https://www.moedict.tw/uni/%E6%B3%95%E6%B2%BB",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "法制"
+      ]
+    },
+    {
+      "id": "words-20260928:保障",
+      "word": "保障",
+      "wordType": "word",
+      "explanation": "保护已有权益、条件等，使不受损害或能够正常实现。",
+      "usage": "常搭配权益、民生、供应；强调保护和支持条件。",
+      "examples": [
+        "无障碍设施有助于保障残障人士的出行权益。"
+      ],
+      "collocations": [
+        "保障权益",
+        "保障供应"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：保障",
+          "url": "https://www.moedict.tw/uni/%E4%BF%9D%E9%9A%9C",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "保证"
+      ]
+    },
+    {
+      "id": "words-20260928:保证",
+      "word": "保证",
+      "wordType": "word",
+      "explanation": "担保、承诺做到某事，或确保某种要求得到满足。",
+      "usage": "可说作出保证、保证完成；也可与质量、供应搭配，不能绝对割裂。",
+      "examples": [
+        "负责人作出保证，将按时完成检修。"
+      ],
+      "collocations": [
+        "作出保证",
+        "保证完成"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：保證",
+          "url": "https://www.moedict.tw/uni/%E4%BF%9D%E8%AD%89",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "保障"
+      ]
+    },
+    {
+      "id": "words-20260928:严格",
+      "word": "严格",
+      "wordType": "word",
+      "explanation": "遵守标准、要求认真，不放松。",
+      "usage": "常说严格要求、严格执行；通常不包含要求不合理之意。",
+      "examples": [
+        "工作人员严格执行检验标准。"
+      ],
+      "collocations": [
+        "严格执行",
+        "严格要求"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：嚴格",
+          "url": "https://www.moedict.tw/uni/%E5%9A%B4%E6%A0%BC",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "严苛",
+        "严密"
+      ]
+    },
+    {
+      "id": "words-20260928:严苛",
+      "word": "严苛",
+      "wordType": "word",
+      "explanation": "要求严格到苛刻的程度。",
+      "usage": "常含要求过高、不近情理的评价，语气比严格更重。",
+      "examples": [
+        "只允许一次试错也没有的条件过于严苛。"
+      ],
+      "collocations": [
+        "条件严苛",
+        "要求严苛"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：嚴苛",
+          "url": "https://www.moedict.tw/uni/%E5%9A%B4%E8%8B%9B",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "严格",
+        "严密"
+      ]
+    },
+    {
+      "id": "words-20260928:严密",
+      "word": "严密",
+      "wordType": "word",
+      "explanation": "周全紧密，没有疏漏。",
+      "usage": "常搭配逻辑、组织、防护，重在无漏洞。",
+      "examples": [
+        "论证层层衔接，逻辑严密。"
+      ],
+      "collocations": [
+        "逻辑严密",
+        "组织严密"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第一期·教研整理；已核对词典核心义",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：嚴密",
+          "url": "https://www.moedict.tw/uni/%E5%9A%B4%E5%AF%86",
+          "kind": "词义参考；搭配与例句为教研整理"
+        }
+      ],
+      "rivals": [
+        "严格",
+        "严苛"
+      ]
+    },
+    {
+      "id": "words-20260928:取得成效",
+      "word": "取得成效",
+      "wordType": "collocation",
+      "explanation": "工作获得实际效果。",
+      "usage": "成效强调实施后的效果；“取得”搭配成果、成绩、成效。",
+      "examples": [
+        "流程优化已经取得成效，等候时间明显缩短。"
+      ],
+      "collocations": [
+        "取得成效",
+        "取得成果"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "积累经验",
+        "夯实基础",
+        "提升能力"
+      ]
+    },
+    {
+      "id": "words-20260928:积累经验",
+      "word": "积累经验",
+      "wordType": "collocation",
+      "explanation": "在反复实践中逐步增加认识和做法。",
+      "usage": "经验重在实践中逐渐获得；不直接等于已经取得成果。",
+      "examples": [
+        "年轻教师通过多次公开课积累经验。"
+      ],
+      "collocations": [
+        "积累经验",
+        "积累知识"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "取得成效",
+        "夯实基础",
+        "提升能力"
+      ]
+    },
+    {
+      "id": "words-20260928:夯实基础",
+      "word": "夯实基础",
+      "wordType": "collocation",
+      "explanation": "使已有基础更加牢固。",
+      "usage": "基础强调后续发展的支撑；夯实着眼于稳固。",
+      "examples": [
+        "先补齐基本技能，才能夯实基础。"
+      ],
+      "collocations": [
+        "夯实基础",
+        "夯实根基"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "取得成效",
+        "积累经验",
+        "提升能力"
+      ]
+    },
+    {
+      "id": "words-20260928:提升能力",
+      "word": "提升能力",
+      "wordType": "collocation",
+      "explanation": "使做事或解决问题的本领提高。",
+      "usage": "能力强调主体的本领；提升着眼于水平向上。",
+      "examples": [
+        "针对性训练有助于提升能力。"
+      ],
+      "collocations": [
+        "提升能力",
+        "提升水平"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "取得成效",
+        "积累经验",
+        "夯实基础"
+      ]
+    },
+    {
+      "id": "words-20260928:提高效率",
+      "word": "提高效率",
+      "wordType": "collocation",
+      "explanation": "使单位时间或单位投入所完成的工作增加。",
+      "usage": "效率看投入与产出的关系；不只看投入总量。",
+      "examples": [
+        "减少重复录入，有助于提高效率。"
+      ],
+      "collocations": [
+        "提高效率",
+        "提升效率"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "降低成本",
+        "整合资源",
+        "补齐短板"
+      ]
+    },
+    {
+      "id": "words-20260928:降低成本",
+      "word": "降低成本",
+      "wordType": "collocation",
+      "explanation": "减少完成某项活动所需的费用或耗费。",
+      "usage": "成本是投入端；不必同时提高产量。",
+      "examples": [
+        "统一采购可以降低成本。"
+      ],
+      "collocations": [
+        "降低成本",
+        "节约成本"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "提高效率",
+        "整合资源",
+        "补齐短板"
+      ]
+    },
+    {
+      "id": "words-20260928:整合资源",
+      "word": "整合资源",
+      "wordType": "collocation",
+      "explanation": "把分散的资源组织、协调起来使用。",
+      "usage": "整合强调重新组合；不等于增加资源总量。",
+      "examples": [
+        "相邻学校共享场地，整合资源开展活动。"
+      ],
+      "collocations": [
+        "整合资源",
+        "整合力量"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "提高效率",
+        "降低成本",
+        "补齐短板"
+      ]
+    },
+    {
+      "id": "words-20260928:补齐短板",
+      "word": "补齐短板",
+      "wordType": "collocation",
+      "explanation": "补足发展中薄弱或欠缺的部分。",
+      "usage": "短板强调限制整体表现的弱项。",
+      "examples": [
+        "针对薄弱环节开展训练，逐步补齐短板。"
+      ],
+      "collocations": [
+        "补齐短板",
+        "补强弱项"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "提高效率",
+        "降低成本",
+        "整合资源"
+      ]
+    },
+    {
+      "id": "words-20260928:化解矛盾",
+      "word": "化解矛盾",
+      "wordType": "collocation",
+      "explanation": "使对立、冲突得到缓和或消除。",
+      "usage": "对象是对立关系，重点是缓和冲突。",
+      "examples": [
+        "面对争执，调解员先了解诉求，再化解矛盾。"
+      ],
+      "collocations": [
+        "化解矛盾",
+        "化解分歧"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "防范风险",
+        "解决问题",
+        "找准症结"
+      ]
+    },
+    {
+      "id": "words-20260928:防范风险",
+      "word": "防范风险",
+      "wordType": "collocation",
+      "explanation": "预先采取措施，防止不利情况发生或扩大。",
+      "usage": "重点在事前预防；风险尚不一定成为现实损失。",
+      "examples": [
+        "定期排查设备隐患，有助于防范风险。"
+      ],
+      "collocations": [
+        "防范风险",
+        "防范隐患"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "化解矛盾",
+        "解决问题",
+        "找准症结"
+      ]
+    },
+    {
+      "id": "words-20260928:解决问题",
+      "word": "解决问题",
+      "wordType": "collocation",
+      "explanation": "处理已经存在的困难或疑问，使其得到回应。",
+      "usage": "问题范围较广；解决强调得到处理结果。",
+      "examples": [
+        "部门协调处理，及时解决问题。"
+      ],
+      "collocations": [
+        "解决问题",
+        "解决困难"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "化解矛盾",
+        "防范风险",
+        "找准症结"
+      ]
+    },
+    {
+      "id": "words-20260928:找准症结",
+      "word": "找准症结",
+      "wordType": "collocation",
+      "explanation": "准确发现问题的关键原因或卡点。",
+      "usage": "先诊断原因，未必已经完成治理。",
+      "examples": [
+        "分析每个环节的记录，才能找准症结。"
+      ],
+      "collocations": [
+        "找准症结",
+        "找准原因"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "化解矛盾",
+        "防范风险",
+        "解决问题"
+      ]
+    },
+    {
+      "id": "words-20260928:落实政策",
+      "word": "落实政策",
+      "wordType": "collocation",
+      "explanation": "把政策要求具体执行到实际工作中。",
+      "usage": "落点是要求转成行动；不只是出台文件。",
+      "examples": [
+        "把补贴发到符合条件的群众手中，才能落实政策。"
+      ],
+      "collocations": [
+        "落实政策",
+        "落实措施"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "推进改革",
+        "完善机制",
+        "履行职责"
+      ]
+    },
+    {
+      "id": "words-20260928:推进改革",
+      "word": "推进改革",
+      "wordType": "collocation",
+      "explanation": "推动制度或做法的变革向前发展。",
+      "usage": "推进强调进程；不直接保证所有目标已经实现。",
+      "examples": [
+        "试点经验为进一步推进改革提供了依据。"
+      ],
+      "collocations": [
+        "推进改革",
+        "推进工作"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "落实政策",
+        "完善机制",
+        "履行职责"
+      ]
+    },
+    {
+      "id": "words-20260928:完善机制",
+      "word": "完善机制",
+      "wordType": "collocation",
+      "explanation": "使一套运行、协调或保障办法更周全。",
+      "usage": "完善强调补充改进已有安排，未必从零建立。",
+      "examples": [
+        "针对衔接漏洞，相关部门继续完善机制。"
+      ],
+      "collocations": [
+        "完善机制",
+        "完善制度"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "落实政策",
+        "推进改革",
+        "履行职责"
+      ]
+    },
+    {
+      "id": "words-20260928:履行职责",
+      "word": "履行职责",
+      "wordType": "collocation",
+      "explanation": "实际承担并完成自己应负的职务责任。",
+      "usage": "履行强调按应承担的责任行动。",
+      "examples": [
+        "岗位人员须依法履行职责。"
+      ],
+      "collocations": [
+        "履行职责",
+        "履行义务"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "固定搭配",
+      "source": "常用搭配教研整理；例句与小测原创",
+      "rivals": [
+        "落实政策",
+        "推进改革",
+        "完善机制"
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:分辨",
+      "word": "分辨",
+      "wordType": "word",
+      "explanation": "辨别事物的不同之处。",
+      "usage": "重在认清、区分；可搭配是非、方向、真假。",
+      "examples": [
+        "即使隔得很远，他也能分辨出两种鸟鸣。"
+      ],
+      "collocations": [
+        "分辨真假",
+        "分辨方向"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "分辩"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：分辨",
+          "url": "https://www.moedict.tw/uni/%E5%88%86%E8%BE%A8",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:分辩",
+      "word": "分辩",
+      "wordType": "word",
+      "explanation": "用语言说明理由，为自己或他人辩白。",
+      "usage": "重在争辩、解释；“辩”与说话有关。",
+      "examples": [
+        "他想说明迟到的原因，却没有得到分辩的机会。"
+      ],
+      "collocations": [
+        "无从分辩",
+        "容人分辩"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "分辨"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：分辯",
+          "url": "https://www.moedict.tw/uni/%E5%88%86%E8%BE%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:树立",
+      "word": "树立",
+      "wordType": "word",
+      "explanation": "建立某种观念、风气、榜样等。",
+      "usage": "多用于抽象对象，强调形成并确立。",
+      "examples": [
+        "志愿者以实际行动树立了良好榜样。"
+      ],
+      "collocations": [
+        "树立观念",
+        "树立榜样"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "竖立"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：樹立",
+          "url": "https://www.moedict.tw/uni/%E6%A8%B9%E7%AB%8B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:竖立",
+      "word": "竖立",
+      "wordType": "word",
+      "explanation": "使物体与地面垂直地立着。",
+      "usage": "多用于杆、牌、碑等具体物体。",
+      "examples": [
+        "工作人员在入口竖立了一块指示牌。"
+      ],
+      "collocations": [
+        "竖立标牌",
+        "竖立石碑"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "树立"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：豎立",
+          "url": "https://www.moedict.tw/uni/%E8%B1%8E%E7%AB%8B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:启用",
+      "word": "启用",
+      "wordType": "word",
+      "explanation": "开始使用；也有任用的义项。",
+      "usage": "启用设备、系统、印章是典型搭配；不能仅凭宾语是人就绝对排除启用。",
+      "examples": [
+        "新的检票系统将于下月启用。"
+      ],
+      "collocations": [
+        "启用设备",
+        "启用系统"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：啟用",
+          "url": "https://www.moedict.tw/uni/%E5%95%9F%E7%94%A8",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:起用",
+      "word": "起用",
+      "wordType": "word",
+      "explanation": "任用某人，也指重新任用已退职或免职的人。",
+      "usage": "常说起用新人，也可指重新任用已退职或免职的人。",
+      "examples": [
+        "剧团大胆起用青年演员担任主角。"
+      ],
+      "collocations": [
+        "起用新人",
+        "重新起用"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：起用",
+          "url": "https://www.moedict.tw/uni/%E8%B5%B7%E7%94%A8",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:截止",
+      "word": "截止",
+      "wordType": "word",
+      "explanation": "到某个期限停止。",
+      "usage": "可说报名截止、截止日期；作谓语时常表示活动停止。",
+      "examples": [
+        "本轮报名已经截止，系统不再受理申请。"
+      ],
+      "collocations": [
+        "报名截止",
+        "截止日期"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "截至"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：截止",
+          "url": "https://www.moedict.tw/uni/%E6%88%AA%E6%AD%A2",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:截至",
+      "word": "截至",
+      "wordType": "word",
+      "explanation": "到某个时间为止。",
+      "usage": "通常后接时间，常用于说明统计范围或进展。",
+      "examples": [
+        "截至周五，已有三百人完成登记。"
+      ],
+      "collocations": [
+        "截至目前",
+        "截至月底"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "截止"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：截至",
+          "url": "https://www.moedict.tw/uni/%E6%88%AA%E8%87%B3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:制定",
+      "word": "制定",
+      "wordType": "word",
+      "explanation": "通过研究决定，形成规章、计划、方针等。",
+      "usage": "强调形成可遵循的安排或规范。",
+      "examples": [
+        "委员会根据实际需要制定管理办法。"
+      ],
+      "collocations": [
+        "制定规则",
+        "制定计划"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "修订",
+        "废止"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：制定",
+          "url": "https://www.moedict.tw/uni/%E5%88%B6%E5%AE%9A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:修订",
+      "word": "修订",
+      "wordType": "word",
+      "explanation": "对已有文件、书籍、规则等进行修改订正。",
+      "usage": "以已有文本为基础，突出改动和订正。",
+      "examples": [
+        "编写组根据新资料修订教材。"
+      ],
+      "collocations": [
+        "修订章程",
+        "修订教材"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "制定",
+        "废止"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：修訂",
+          "url": "https://www.moedict.tw/uni/%E4%BF%AE%E8%A8%82",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:废止",
+      "word": "废止",
+      "wordType": "word",
+      "explanation": "取消某种制度或规定的效力，不再实行。",
+      "usage": "常用于法律、规章、制度，重点是停止效力。",
+      "examples": [
+        "不再适用的旧规定已依法废止。"
+      ],
+      "collocations": [
+        "废止规定",
+        "废止制度"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "制定",
+        "修订"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：廢止",
+          "url": "https://www.moedict.tw/uni/%E5%BB%A2%E6%AD%A2",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:颁布",
+      "word": "颁布",
+      "wordType": "word",
+      "explanation": "由有权机关正式公布法令、条例等。",
+      "usage": "常搭配法律、条例，带有正式颁行意味。",
+      "examples": [
+        "有关机关依法颁布新的管理条例。"
+      ],
+      "collocations": [
+        "颁布法令",
+        "颁布条例"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "颁发",
+        "公布"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：頒布",
+          "url": "https://www.moedict.tw/uni/%E9%A0%92%E5%B8%83",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:颁发",
+      "word": "颁发",
+      "wordType": "word",
+      "explanation": "正式授予或发给奖项、证书等。",
+      "usage": "强调把具体荣誉或凭证授予对象。",
+      "examples": [
+        "主办方向获奖者颁发证书。"
+      ],
+      "collocations": [
+        "颁发证书",
+        "颁发奖章"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "颁布",
+        "公布"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：頒發",
+          "url": "https://www.moedict.tw/uni/%E9%A0%92%E7%99%BC",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:公布",
+      "word": "公布",
+      "wordType": "word",
+      "explanation": "向公众发布，使大家知道。",
+      "usage": "适用范围广，可搭配成绩、名单、结果；不只用于法规。",
+      "examples": [
+        "学校将在网上公布录取结果。"
+      ],
+      "collocations": [
+        "公布成绩",
+        "公布名单"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "颁布",
+        "颁发"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：公布",
+          "url": "https://www.moedict.tw/uni/%E5%85%AC%E5%B8%83",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:抚养",
+      "word": "抚养",
+      "wordType": "word",
+      "explanation": "照料、养育，通常用于长辈对晚辈。",
+      "usage": "常指对子女的生活照顾和培养。",
+      "examples": [
+        "父母共同承担抚养子女的责任。"
+      ],
+      "collocations": [
+        "抚养子女",
+        "抚养成人"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "赡养"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：撫養",
+          "url": "https://www.moedict.tw/uni/%E6%92%AB%E9%A4%8A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:赡养",
+      "word": "赡养",
+      "wordType": "word",
+      "explanation": "供给生活所需，通常指子女供养父母或晚辈供养老人。",
+      "usage": "对象一般是长辈，不能与抚养子女混用。",
+      "examples": [
+        "成年子女应依法承担赡养老人的义务。"
+      ],
+      "collocations": [
+        "赡养父母",
+        "赡养老人"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "抚养"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：贍養",
+          "url": "https://www.moedict.tw/uni/%E8%B4%8D%E9%A4%8A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:协调",
+      "word": "协调",
+      "wordType": "word",
+      "explanation": "使各方面配合适当，或指配合得适当。",
+      "usage": "重在关系、步调相合，不必发生正式商谈。",
+      "examples": [
+        "联络组负责协调不同部门的工作进度。"
+      ],
+      "collocations": [
+        "协调关系",
+        "协调进度"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "协作",
+        "协商"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：協調",
+          "url": "https://www.moedict.tw/uni/%E5%8D%94%E8%AA%BF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:协作",
+      "word": "协作",
+      "wordType": "word",
+      "explanation": "若干人或组织共同配合完成任务。",
+      "usage": "重在分工合作的行动。",
+      "examples": [
+        "三个实验室分工协作，共同完成样品分析。"
+      ],
+      "collocations": [
+        "分工协作",
+        "团队协作"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "协调",
+        "协商"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：協作",
+          "url": "https://www.moedict.tw/uni/%E5%8D%94%E4%BD%9C",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:协商",
+      "word": "协商",
+      "wordType": "word",
+      "explanation": "共同商量，以求取得一致意见。",
+      "usage": "重在沟通意见、商量办法的过程。",
+      "examples": [
+        "双方就费用分担问题进行协商。"
+      ],
+      "collocations": [
+        "平等协商",
+        "协商解决"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "协调",
+        "协作"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：協商",
+          "url": "https://www.moedict.tw/uni/%E5%8D%94%E5%95%86",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:沟通",
+      "word": "沟通",
+      "wordType": "word",
+      "explanation": "使相互连通，也指交流思想、消息等。",
+      "usage": "通常为中性，常用于信息和意见的交流。",
+      "examples": [
+        "工作人员及时沟通信息，避免重复安排。"
+      ],
+      "collocations": [
+        "沟通信息",
+        "沟通意见"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "勾通"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：溝通",
+          "url": "https://www.moedict.tw/uni/%E6%BA%9D%E9%80%9A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:勾通",
+      "word": "勾通",
+      "wordType": "word",
+      "explanation": "暗中串通，进行不正当的活动。",
+      "usage": "贬义，不能把正常合作称为勾通。",
+      "examples": [
+        "不法商家勾通内部人员伪造记录。"
+      ],
+      "collocations": [
+        "暗中勾通",
+        "勾通作弊"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "沟通"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：勾通",
+          "url": "https://www.moedict.tw/uni/%E5%8B%BE%E9%80%9A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:编辑",
+      "word": "编辑",
+      "wordType": "word",
+      "explanation": "搜集、整理、加工材料，使适合发表或出版；也指从事此工作的人。",
+      "usage": "常用于稿件、刊物，也有图像、视频加工等用法。",
+      "examples": [
+        "他负责编辑这一期的专题稿件。"
+      ],
+      "collocations": [
+        "编辑稿件",
+        "编辑刊物"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "编纂",
+        "编造"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：編輯",
+          "url": "https://www.moedict.tw/uni/%E7%B7%A8%E8%BC%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:编纂",
+      "word": "编纂",
+      "wordType": "word",
+      "explanation": "搜集、整理资料，编写成为书籍。",
+      "usage": "常用于词典、史书、地方志等系统性著作。",
+      "examples": [
+        "专家共同编纂地方志。"
+      ],
+      "collocations": [
+        "编纂词典",
+        "编纂史书"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "编辑",
+        "编造"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：編纂",
+          "url": "https://www.moedict.tw/uni/%E7%B7%A8%E7%BA%82",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:编造",
+      "word": "编造",
+      "wordType": "word",
+      "explanation": "凭空虚构、捏造；也可指按资料编制表册。",
+      "usage": "搭配谎言、故事时突出虚构；不能把所有编造都解释成造谣。",
+      "examples": [
+        "他编造借口，企图掩盖失误。"
+      ],
+      "collocations": [
+        "编造谎言",
+        "编造借口"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "编辑",
+        "编纂"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：編造",
+          "url": "https://www.moedict.tw/uni/%E7%B7%A8%E9%80%A0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:传承",
+      "word": "传承",
+      "wordType": "word",
+      "explanation": "承接前人的事物并使其继续流传。",
+      "usage": "常搭配文化、技艺、精神，重在代际延续。",
+      "examples": [
+        "老艺人与青年学徒共同传承地方戏曲。"
+      ],
+      "collocations": [
+        "传承文化",
+        "传承技艺"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "传授"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傳承",
+          "url": "https://www.moedict.tw/uni/%E5%82%B3%E6%89%BF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:传授",
+      "word": "传授",
+      "wordType": "word",
+      "explanation": "把知识、技能等教给别人。",
+      "usage": "突出具体的教学、讲解行为。",
+      "examples": [
+        "师傅向学徒传授木工技法。"
+      ],
+      "collocations": [
+        "传授知识",
+        "传授技艺"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "传承"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傳授",
+          "url": "https://www.moedict.tw/uni/%E5%82%B3%E6%8E%88",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:传诵",
+      "word": "传诵",
+      "wordType": "word",
+      "explanation": "辗转传述、诵读，使作品或言语流传。",
+      "usage": "常搭配诗文、名句，重在诵读和传播。",
+      "examples": [
+        "这首诗被人们广泛传诵。"
+      ],
+      "collocations": [
+        "传诵诗篇",
+        "广为传诵"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "传颂"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傳誦",
+          "url": "https://www.moedict.tw/uni/%E5%82%B3%E8%AA%A6",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:传颂",
+      "word": "传颂",
+      "wordType": "word",
+      "explanation": "传扬、赞颂人物或事迹。",
+      "usage": "常搭配事迹、功绩，重在赞美。",
+      "examples": [
+        "救援队的英勇事迹在当地传颂。"
+      ],
+      "collocations": [
+        "传颂事迹",
+        "传颂功绩"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "传诵"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：傳頌",
+          "url": "https://www.moedict.tw/uni/%E5%82%B3%E9%A0%8C",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:威信",
+      "word": "威信",
+      "wordType": "word",
+      "explanation": "使人敬重、信服的力量或信誉。",
+      "usage": "常说树立威信、威信受损，重在他人是否信服。",
+      "examples": [
+        "他公正处理事务，逐渐建立起威信。"
+      ],
+      "collocations": [
+        "树立威信",
+        "维护威信"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "威望"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：威信",
+          "url": "https://www.moedict.tw/uni/%E5%A8%81%E4%BF%A1",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:威望",
+      "word": "威望",
+      "wordType": "word",
+      "explanation": "令人敬重的名声和声望。",
+      "usage": "常说享有威望，重在社会评价和声誉；可与威信有交叉。",
+      "examples": [
+        "这位长期服务乡村的医生享有很高威望。"
+      ],
+      "collocations": [
+        "享有威望",
+        "社会威望"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "威信"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：威望",
+          "url": "https://www.moedict.tw/uni/%E5%A8%81%E6%9C%9B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:推测",
+      "word": "推测",
+      "wordType": "word",
+      "explanation": "根据已有情况猜想未知情况。",
+      "usage": "强调估计和可能性，证据程度须由语境判断。",
+      "examples": [
+        "目前资料不足，只能推测故障的大致原因。"
+      ],
+      "collocations": [
+        "推测原因",
+        "合理推测"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "推断",
+        "观测"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：推測",
+          "url": "https://www.moedict.tw/uni/%E6%8E%A8%E6%B8%AC",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:推断",
+      "word": "推断",
+      "wordType": "word",
+      "explanation": "依据事实或前提，经过推理作出判断。",
+      "usage": "重在推理过程；结论仍可能需要验证。",
+      "examples": [
+        "研究者根据多项迹象推断迁徙路线。"
+      ],
+      "collocations": [
+        "推断结论",
+        "推断原因"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "推测",
+        "观测"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：推斷",
+          "url": "https://www.moedict.tw/uni/%E6%8E%A8%E6%96%B7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:观测",
+      "word": "观测",
+      "wordType": "word",
+      "explanation": "通过观察、测量获取现象或数据。",
+      "usage": "重在直接观察测量，不是仅凭资料猜想。",
+      "examples": [
+        "工作人员用仪器观测水位变化。"
+      ],
+      "collocations": [
+        "观测水位",
+        "观测天象"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "推测",
+        "推断"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：觀測",
+          "url": "https://www.moedict.tw/uni/%E8%A7%80%E6%B8%AC",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:追溯",
+      "word": "追溯",
+      "wordType": "word",
+      "explanation": "逆着时间或线索寻找事物的来源。",
+      "usage": "常搭配源头、历史、根源，方向是回到起点。",
+      "examples": [
+        "这项习俗的源头可追溯到数百年前。"
+      ],
+      "collocations": [
+        "追溯源头",
+        "追溯历史"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "追踪",
+        "追究"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：追溯",
+          "url": "https://www.moedict.tw/uni/%E8%BF%BD%E6%BA%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:追踪",
+      "word": "追踪",
+      "wordType": "word",
+      "explanation": "跟随踪迹寻找，或持续跟进事物的发展。",
+      "usage": "常搭配行踪、变化、进展，突出跟随线索。",
+      "examples": [
+        "研究人员连续多年追踪样本的变化。"
+      ],
+      "collocations": [
+        "追踪行踪",
+        "追踪变化"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "追溯",
+        "追究"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：追蹤",
+          "url": "https://www.moedict.tw/uni/%E8%BF%BD%E8%B9%A4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:追究",
+      "word": "追究",
+      "wordType": "word",
+      "explanation": "深入查问原因或责任等。",
+      "usage": "常搭配责任、原因；侧重查明、深究。",
+      "examples": [
+        "对违反规定的行为，应依法追究责任。"
+      ],
+      "collocations": [
+        "追究责任",
+        "追究缘由"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "追溯",
+        "追踪"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：追究",
+          "url": "https://www.moedict.tw/uni/%E8%BF%BD%E7%A9%B6",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:淘汰",
+      "word": "淘汰",
+      "wordType": "word",
+      "explanation": "在选择或竞争中去掉不合要求者。",
+      "usage": "常搭配落后产能、旧设备、不合格者，重在筛选更新。",
+      "examples": [
+        "不符合安全标准的旧设备逐步淘汰。"
+      ],
+      "collocations": [
+        "淘汰落后产能",
+        "淘汰旧设备"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "剔除",
+        "根除"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：淘汰",
+          "url": "https://www.moedict.tw/uni/%E6%B7%98%E6%B1%B0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:剔除",
+      "word": "剔除",
+      "wordType": "word",
+      "explanation": "把不合适或多余的部分挑出、去掉。",
+      "usage": "常用于杂质、重复项、异常数据，强调从整体中挑出。",
+      "examples": [
+        "统计前先剔除重复记录。"
+      ],
+      "collocations": [
+        "剔除杂质",
+        "剔除重复项"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "淘汰",
+        "根除"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：剔除",
+          "url": "https://www.moedict.tw/uni/%E5%89%94%E9%99%A4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:根除",
+      "word": "根除",
+      "wordType": "word",
+      "explanation": "从根本上除掉，不留后患。",
+      "usage": "常用于弊病、病根、隐患，程度较强。",
+      "examples": [
+        "整治既要处理表象，也要努力根除弊病。"
+      ],
+      "collocations": [
+        "根除弊病",
+        "根除病害"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "淘汰",
+        "剔除"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：根除",
+          "url": "https://www.moedict.tw/uni/%E6%A0%B9%E9%99%A4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:澄清",
+      "word": "澄清",
+      "wordType": "word",
+      "explanation": "使混乱或不明的情况清楚，也指使液体杂质沉淀而清亮。",
+      "usage": "常搭配事实、误解，重在消除混淆。",
+      "examples": [
+        "发布完整记录后，相关误解得到澄清。"
+      ],
+      "collocations": [
+        "澄清事实",
+        "澄清误解"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "阐释",
+        "阐发"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：澄清",
+          "url": "https://www.moedict.tw/uni/%E6%BE%84%E6%B8%85",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:阐释",
+      "word": "阐释",
+      "wordType": "word",
+      "explanation": "解释说明某种含义或道理。",
+      "usage": "常搭配含义、思想、内涵，重在解释其意。",
+      "examples": [
+        "讲解员用通俗语言阐释文物的文化内涵。"
+      ],
+      "collocations": [
+        "阐释含义",
+        "阐释内涵"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "澄清",
+        "阐发"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：闡釋",
+          "url": "https://www.moedict.tw/uni/%E9%97%A1%E9%87%8B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:阐发",
+      "word": "阐发",
+      "wordType": "word",
+      "explanation": "阐明并发挥、展开道理或见解。",
+      "usage": "常搭配思想、观点，突出展开说明；与阐释可能交叉。",
+      "examples": [
+        "论文结合新材料阐发了独到见解。"
+      ],
+      "collocations": [
+        "阐发思想",
+        "阐发见解"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "澄清",
+        "阐释"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：闡發",
+          "url": "https://www.moedict.tw/uni/%E9%97%A1%E7%99%BC",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:隐晦",
+      "word": "隐晦",
+      "wordType": "word",
+      "explanation": "意思不明显，表达不直白。",
+      "usage": "常形容言辞、态度或文意；不等于内容本身深奥。",
+      "examples": [
+        "文章用隐晦的措辞表达批评。"
+      ],
+      "collocations": [
+        "措辞隐晦",
+        "含义隐晦"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "隐蔽",
+        "晦涩"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：隱晦",
+          "url": "https://www.moedict.tw/uni/%E9%9A%B1%E6%99%A6",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:隐蔽",
+      "word": "隐蔽",
+      "wordType": "word",
+      "explanation": "不易被察觉，或把事物藏起来。",
+      "usage": "常用于位置、行动、风险，侧重不易发现。",
+      "examples": [
+        "观察点设在一处隐蔽的山洞。"
+      ],
+      "collocations": [
+        "位置隐蔽",
+        "隐蔽行动"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "隐晦",
+        "晦涩"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：隱蔽",
+          "url": "https://www.moedict.tw/uni/%E9%9A%B1%E8%94%BD",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:晦涩",
+      "word": "晦涩",
+      "wordType": "word",
+      "explanation": "文字、表达等不易理解，不够明白流畅。",
+      "usage": "常用于文辞、术语；重点是理解困难。",
+      "examples": [
+        "说明书术语堆砌，文字晦涩难懂。"
+      ],
+      "collocations": [
+        "文辞晦涩",
+        "晦涩难懂"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "隐晦",
+        "隐蔽"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：晦澀",
+          "url": "https://www.moedict.tw/uni/%E6%99%A6%E6%BE%80",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:简洁",
+      "word": "简洁",
+      "wordType": "word",
+      "explanation": "说话、行文等简明扼要，没有多余内容。",
+      "usage": "重在表达精炼，也可形容设计不繁复。",
+      "examples": [
+        "报告语言简洁，重点一目了然。"
+      ],
+      "collocations": [
+        "语言简洁",
+        "表达简洁"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "简捷",
+        "俭朴"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：簡潔",
+          "url": "https://www.moedict.tw/uni/%E7%B0%A1%E6%BD%94",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:简捷",
+      "word": "简捷",
+      "wordType": "word",
+      "explanation": "简单而便捷。",
+      "usage": "常用于方法、手续、步骤，重在省事方便。",
+      "examples": [
+        "新的办理方式更加简捷。"
+      ],
+      "collocations": [
+        "方法简捷",
+        "手续简捷"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "简洁",
+        "俭朴"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：簡捷",
+          "url": "https://www.moedict.tw/uni/%E7%B0%A1%E6%8D%B7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:俭朴",
+      "word": "俭朴",
+      "wordType": "word",
+      "explanation": "生活节省、朴素，不奢侈。",
+      "usage": "常用于生活作风、衣着，重在节俭。",
+      "examples": [
+        "他生活俭朴，从不铺张浪费。"
+      ],
+      "collocations": [
+        "生活俭朴",
+        "作风俭朴"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "简洁",
+        "简捷"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：儉樸",
+          "url": "https://www.moedict.tw/uni/%E5%84%89%E6%A8%B8",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:准确",
+      "word": "准确",
+      "wordType": "word",
+      "explanation": "符合实际或标准，没有差错。",
+      "usage": "常搭配数据、判断、表达，重在结果正确。",
+      "examples": [
+        "复核后，报表中的数字准确无误。"
+      ],
+      "collocations": [
+        "数据准确",
+        "判断准确"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "精密",
+        "严谨"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：準確",
+          "url": "https://www.moedict.tw/uni/%E6%BA%96%E7%A2%BA",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:精密",
+      "word": "精密",
+      "wordType": "word",
+      "explanation": "细致、精确，误差很小或结构细密。",
+      "usage": "常形容仪器、测量、构造，不只表示结论正确。",
+      "examples": [
+        "精密仪器需要恒温保存。"
+      ],
+      "collocations": [
+        "精密仪器",
+        "精密测量"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "准确",
+        "严谨"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：精密",
+          "url": "https://www.moedict.tw/uni/%E7%B2%BE%E5%AF%86",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:严谨",
+      "word": "严谨",
+      "wordType": "word",
+      "explanation": "做事、思考等细致严格，谨慎周密。",
+      "usage": "常形容态度、学风、论证，也可用于结构。",
+      "examples": [
+        "他治学严谨，引用资料都认真核对。"
+      ],
+      "collocations": [
+        "治学严谨",
+        "态度严谨"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "准确",
+        "精密"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：嚴謹",
+          "url": "https://www.moedict.tw/uni/%E5%9A%B4%E8%AC%B9",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:腐蚀",
+      "word": "腐蚀",
+      "wordType": "word",
+      "explanation": "使物质因化学等作用逐渐损坏，也比喻不良影响侵害思想。",
+      "usage": "常搭配金属、思想；化学作用是典型语境。",
+      "examples": [
+        "盐分会加速金属构件的腐蚀。"
+      ],
+      "collocations": [
+        "腐蚀金属",
+        "腐蚀思想"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "侵蚀",
+        "冲刷"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：腐蝕",
+          "url": "https://www.moedict.tw/uni/%E8%85%90%E8%9D%95",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:侵蚀",
+      "word": "侵蚀",
+      "wordType": "word",
+      "explanation": "逐渐侵害、削弱或蚀损。",
+      "usage": "可用于地表、肌体、利益等，着眼于侵入后的损耗。",
+      "examples": [
+        "不合理收费不断侵蚀企业利润。"
+      ],
+      "collocations": [
+        "侵蚀地表",
+        "侵蚀利润"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "腐蚀",
+        "冲刷"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：侵蝕",
+          "url": "https://www.moedict.tw/uni/%E4%BE%B5%E8%9D%95",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:冲刷",
+      "word": "冲刷",
+      "wordType": "word",
+      "explanation": "水流冲击，使表面物质被带走或被清洗。",
+      "usage": "突出水流冲击，可与侵蚀构成过程和结果的联系。",
+      "examples": [
+        "洪水持续冲刷堤岸。"
+      ],
+      "collocations": [
+        "冲刷河岸",
+        "冲刷泥沙"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "腐蚀",
+        "侵蚀"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：沖刷",
+          "url": "https://www.moedict.tw/uni/%E6%B2%96%E5%88%B7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:赔偿",
+      "word": "赔偿",
+      "wordType": "word",
+      "explanation": "因造成他人损失而给予相应补偿。",
+      "usage": "常涉及侵害、违约及责任；不能只凭给钱就判断。",
+      "examples": [
+        "损坏借来的设备，应按约承担赔偿责任。"
+      ],
+      "collocations": [
+        "赔偿损失",
+        "赔偿责任"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "补偿",
+        "偿还"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：賠償",
+          "url": "https://www.moedict.tw/uni/%E8%B3%A0%E5%84%9F",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:补偿",
+      "word": "补偿",
+      "wordType": "word",
+      "explanation": "补足消耗、损失或欠缺的部分。",
+      "usage": "范围较广，不一定以行为人有过错为前提。",
+      "examples": [
+        "休息有助于补偿工作中的体力消耗。"
+      ],
+      "collocations": [
+        "补偿消耗",
+        "补偿损失"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "赔偿",
+        "偿还"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：補償",
+          "url": "https://www.moedict.tw/uni/%E8%A3%9C%E5%84%9F",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:偿还",
+      "word": "偿还",
+      "wordType": "word",
+      "explanation": "把所欠的财物或债务归还。",
+      "usage": "常搭配借款、债务，重点是欠债后归还。",
+      "examples": [
+        "公司按期偿还银行贷款。"
+      ],
+      "collocations": [
+        "偿还债务",
+        "偿还贷款"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "赔偿",
+        "补偿"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：償還",
+          "url": "https://www.moedict.tw/uni/%E5%84%9F%E9%82%84",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:取消",
+      "word": "取消",
+      "wordType": "word",
+      "explanation": "使原有安排、资格或约定等不再存在。",
+      "usage": "常用于活动、预约、资格，适用范围广。",
+      "examples": [
+        "由于大风，原定的露天演出取消了。"
+      ],
+      "collocations": [
+        "取消活动",
+        "取消预约"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "取缔",
+        "撤销"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：取消",
+          "url": "https://www.moedict.tw/uni/%E5%8F%96%E6%B6%88",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:取缔",
+      "word": "取缔",
+      "wordType": "word",
+      "explanation": "由有关机关依法禁止、关闭不合法的活动或组织等。",
+      "usage": "带有权力机关禁止违法事项的意味，不是一般改期。",
+      "examples": [
+        "执法部门依法取缔无证经营场所。"
+      ],
+      "collocations": [
+        "依法取缔",
+        "取缔非法组织"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "取消",
+        "撤销"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：取締",
+          "url": "https://www.moedict.tw/uni/%E5%8F%96%E7%B7%A0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:撤销",
+      "word": "撤销",
+      "wordType": "word",
+      "explanation": "撤回并使原有决定、处分、机构等失效。",
+      "usage": "常见撤销处分、撤销决定；强调原来已有正式决定。",
+      "examples": [
+        "复核发现认定有误，原处分被撤销。"
+      ],
+      "collocations": [
+        "撤销处分",
+        "撤销决定"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "取消",
+        "取缔"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：撤銷",
+          "url": "https://www.moedict.tw/uni/%E6%92%A4%E9%8A%B7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:迟缓",
+      "word": "迟缓",
+      "wordType": "word",
+      "explanation": "缓慢，不迅速。",
+      "usage": "常搭配反应、动作、进展，描述速度偏慢。",
+      "examples": [
+        "设备老化后，响应变得迟缓。"
+      ],
+      "collocations": [
+        "反应迟缓",
+        "动作迟缓"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "急剧",
+        "趋缓"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：遲緩",
+          "url": "https://www.moedict.tw/uni/%E9%81%B2%E7%B7%A9",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:急剧",
+      "word": "急剧",
+      "wordType": "word",
+      "explanation": "迅速而剧烈地变化。",
+      "usage": "常修饰增加、下降、恶化，兼有快和幅度大的意味。",
+      "examples": [
+        "冷空气到来后，气温急剧下降。"
+      ],
+      "collocations": [
+        "急剧下降",
+        "急剧变化"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "迟缓",
+        "趋缓"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：急劇",
+          "url": "https://www.moedict.tw/uni/%E6%80%A5%E5%8A%87",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:趋缓",
+      "word": "趋缓",
+      "wordType": "word",
+      "explanation": "逐渐朝缓慢、缓和的方向变化。",
+      "usage": "描述趋势，不表示已经完全停止。",
+      "examples": [
+        "需求增速在连续几个月后趋缓。"
+      ],
+      "collocations": [
+        "增速趋缓",
+        "走势趋缓"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "迟缓",
+        "急剧"
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:激励",
+      "word": "激励",
+      "wordType": "word",
+      "explanation": "激发、鼓励，使人产生行动的动力。",
+      "usage": "常用于斗志、进取行为，突出动力增强。",
+      "examples": [
+        "榜样的经历激励着年轻人继续努力。"
+      ],
+      "collocations": [
+        "激励斗志",
+        "激励创新"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "鞭策",
+        "约束"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：激勵",
+          "url": "https://www.moedict.tw/uni/%E6%BF%80%E5%8B%B5",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:鞭策",
+      "word": "鞭策",
+      "wordType": "word",
+      "explanation": "比喻督促、推动人努力向前。",
+      "usage": "常用于自我要求和他人督促；原指驱马的鞭子。",
+      "examples": [
+        "这次失误不断鞭策他改进工作。"
+      ],
+      "collocations": [
+        "自我鞭策",
+        "鞭策后进"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "激励",
+        "约束"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：鞭策",
+          "url": "https://www.moedict.tw/uni/%E9%9E%AD%E7%AD%96",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:约束",
+      "word": "约束",
+      "wordType": "word",
+      "explanation": "限制、管束，使行为不越出一定范围。",
+      "usage": "常用于行为、权力、条件，重在边界限制。",
+      "examples": [
+        "规则对所有参与者的行为形成约束。"
+      ],
+      "collocations": [
+        "约束行为",
+        "约束权力"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "激励",
+        "鞭策"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：約束",
+          "url": "https://www.moedict.tw/uni/%E7%B4%84%E6%9D%9F",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:犹豫",
+      "word": "犹豫",
+      "wordType": "word",
+      "explanation": "迟疑不决，拿不定主意。",
+      "usage": "强调决定尚未作出，常见犹豫不决。",
+      "examples": [
+        "两种方案各有利弊，他一时犹豫不决。"
+      ],
+      "collocations": [
+        "犹豫不决",
+        "毫不犹豫"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "踌躇",
+        "果断"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：猶豫",
+          "url": "https://www.moedict.tw/uni/%E7%8C%B6%E8%B1%AB",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:踌躇",
+      "word": "踌躇",
+      "wordType": "word",
+      "explanation": "犹豫、迟疑；也可用于得意满足的样子。",
+      "usage": "单用可与犹豫相近；“踌躇满志”中的含义不能照搬成迟疑。",
+      "examples": [
+        "他踌躇片刻，最终还是说出了实情。"
+      ],
+      "collocations": [
+        "踌躇不前",
+        "踌躇满志"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "犹豫",
+        "果断"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：躊躇",
+          "url": "https://www.moedict.tw/uni/%E8%BA%8A%E8%BA%87",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:果断",
+      "word": "果断",
+      "wordType": "word",
+      "explanation": "作决定迅速而坚决。",
+      "usage": "常评价处事方式，不等于草率或不思考。",
+      "examples": [
+        "情况危急，队长果断决定撤离。"
+      ],
+      "collocations": [
+        "处事果断",
+        "果断决策"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "犹豫",
+        "踌躇"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：果斷",
+          "url": "https://www.moedict.tw/uni/%E6%9E%9C%E6%96%B7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:调节",
+      "word": "调节",
+      "wordType": "word",
+      "explanation": "调整、控制，使达到合适状态。",
+      "usage": "常搭配温度、节奏、供需，着眼于状态变化。",
+      "examples": [
+        "设备可以自动调节室内温度。"
+      ],
+      "collocations": [
+        "调节温度",
+        "调节节奏"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "调剂",
+        "调解"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：調節",
+          "url": "https://www.moedict.tw/uni/%E8%AA%BF%E7%AF%80",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:调剂",
+      "word": "调剂",
+      "wordType": "word",
+      "explanation": "把多的和少的、有的和没有的加以调配。",
+      "usage": "常搭配余缺、物资，也指配制药剂。",
+      "examples": [
+        "学校之间调剂闲置器材。"
+      ],
+      "collocations": [
+        "调剂余缺",
+        "调剂物资"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "调节",
+        "调解"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：調劑",
+          "url": "https://www.moedict.tw/uni/%E8%AA%BF%E5%8A%91",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:调解",
+      "word": "调解",
+      "wordType": "word",
+      "explanation": "居中劝说、协调，使争执双方消除纠纷。",
+      "usage": "对象常为矛盾、纠纷，强调第三方劝解。",
+      "examples": [
+        "社区工作人员帮助调解邻里纠纷。"
+      ],
+      "collocations": [
+        "调解纠纷",
+        "调解争端"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "调节",
+        "调剂"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：調解",
+          "url": "https://www.moedict.tw/uni/%E8%AA%BF%E8%A7%A3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:目标",
+      "word": "目标",
+      "wordType": "word",
+      "explanation": "行动所指向的对象或预期达到的状态。",
+      "usage": "可具体量化，也可抽象；不一定与目的完全互斥。",
+      "examples": [
+        "团队把缩短等候时间作为改进目标。"
+      ],
+      "collocations": [
+        "确立目标",
+        "实现目标"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "目的",
+        "指标"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：目標",
+          "url": "https://www.moedict.tw/uni/%E7%9B%AE%E6%A8%99",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:目的",
+      "word": "目的",
+      "wordType": "word",
+      "explanation": "想要达到的意图、结果。",
+      "usage": "常回答为什么做某事；与目标有交叉。",
+      "examples": [
+        "这次调查的目的是了解实际需求。"
+      ],
+      "collocations": [
+        "达到目的",
+        "调查目的"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "目标",
+        "指标"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：目的",
+          "url": "https://www.moedict.tw/uni/%E7%9B%AE%E7%9A%84",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:指标",
+      "word": "指标",
+      "wordType": "word",
+      "explanation": "反映或衡量某种状况、要求的具体标准或数值。",
+      "usage": "常用作考核、统计依据；不能与所有目标等同。",
+      "examples": [
+        "能耗是评价设备效率的一项指标。"
+      ],
+      "collocations": [
+        "考核指标",
+        "统计指标"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "目标",
+        "目的"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：指標",
+          "url": "https://www.moedict.tw/uni/%E6%8C%87%E6%A8%99",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:涵养",
+      "word": "涵养",
+      "wordType": "word",
+      "explanation": "滋润、蓄积；也指身心修养。",
+      "usage": "可说涵养水源、涵养品格；作名词可说很有涵养。",
+      "examples": [
+        "保护湿地有助于涵养水源。"
+      ],
+      "collocations": [
+        "涵养水源",
+        "涵养品格"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "滋养",
+        "培养"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：涵養",
+          "url": "https://www.moedict.tw/uni/%E6%B6%B5%E9%A4%8A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:滋养",
+      "word": "滋养",
+      "wordType": "word",
+      "explanation": "供给养分，使得到营养或精神上的润泽。",
+      "usage": "常搭配身体、心灵、生命，突出养分供给。",
+      "examples": [
+        "丰富的阅读滋养了孩子的心灵。"
+      ],
+      "collocations": [
+        "滋养身体",
+        "滋养心灵"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "涵养",
+        "培养"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：滋養",
+          "url": "https://www.moedict.tw/uni/%E6%BB%8B%E9%A4%8A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:培养",
+      "word": "培养",
+      "wordType": "word",
+      "explanation": "通过教育、训练等使人或事物成长发展。",
+      "usage": "常搭配人才、能力、习惯，也可用于微生物等。",
+      "examples": [
+        "学校重视培养学生独立思考的习惯。"
+      ],
+      "collocations": [
+        "培养人才",
+        "培养习惯"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "涵养",
+        "滋养"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：培養",
+          "url": "https://www.moedict.tw/uni/%E5%9F%B9%E9%A4%8A",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:体现",
+      "word": "体现",
+      "wordType": "word",
+      "explanation": "某种性质、思想等在具体事物上表现出来。",
+      "usage": "常搭配价值、特色、精神，强调抽象属性具体呈现。",
+      "examples": [
+        "细致的服务体现了对居民的尊重。"
+      ],
+      "collocations": [
+        "体现价值",
+        "体现特色"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "蕴含",
+        "兑现"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：體現",
+          "url": "https://www.moedict.tw/uni/%E9%AB%94%E7%8F%BE",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:蕴含",
+      "word": "蕴含",
+      "wordType": "word",
+      "explanation": "包含、内含某种内容或意义。",
+      "usage": "常搭配道理、意义、潜力，强调内容在其中。",
+      "examples": [
+        "简单的故事蕴含着深刻道理。"
+      ],
+      "collocations": [
+        "蕴含道理",
+        "蕴含意义"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "体现",
+        "兑现"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：蘊含",
+          "url": "https://www.moedict.tw/uni/%E8%98%8A%E5%90%AB",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:兑现",
+      "word": "兑现",
+      "wordType": "word",
+      "explanation": "凭票据换取现款，也指把承诺实际履行。",
+      "usage": "常搭配承诺、诺言、奖励，强调从许诺转为事实。",
+      "examples": [
+        "他按时兑现了承诺。"
+      ],
+      "collocations": [
+        "兑现承诺",
+        "兑现诺言"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "体现",
+        "蕴含"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：兌現",
+          "url": "https://www.moedict.tw/uni/%E5%85%8C%E7%8F%BE",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:挖掘",
+      "word": "挖掘",
+      "wordType": "word",
+      "explanation": "向下挖，也比喻深入寻找、发现潜藏的东西。",
+      "usage": "常搭配资源、潜力、价值；与发掘有交叉。",
+      "examples": [
+        "研究者深入挖掘旧档案中的历史线索。"
+      ],
+      "collocations": [
+        "挖掘潜力",
+        "挖掘价值"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "激发",
+        "激活"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：挖掘",
+          "url": "https://www.moedict.tw/uni/%E6%8C%96%E6%8E%98",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:激发",
+      "word": "激发",
+      "wordType": "word",
+      "explanation": "刺激、引发某种情感、力量或愿望。",
+      "usage": "常搭配热情、兴趣、创造力，重在触动引起。",
+      "examples": [
+        "有趣的问题激发了学生的探索兴趣。"
+      ],
+      "collocations": [
+        "激发兴趣",
+        "激发热情"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "挖掘",
+        "激活"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：激發",
+          "url": "https://www.moedict.tw/uni/%E6%BF%80%E7%99%BC",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:激活",
+      "word": "激活",
+      "wordType": "word",
+      "explanation": "使原本不活跃或休眠的状态变得活跃。",
+      "usage": "常搭配细胞、账户、活力；强调由未启动到活动。",
+      "examples": [
+        "完成验证后即可激活账户。"
+      ],
+      "collocations": [
+        "激活账户",
+        "激活活力"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "挖掘",
+        "激发"
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:塑造",
+      "word": "塑造",
+      "wordType": "word",
+      "explanation": "用可塑材料制作形象，也指培养、形成某种形象。",
+      "usage": "常搭配人物、形象、品格，突出形象形成。",
+      "examples": [
+        "小说成功塑造了一位乡村教师的形象。"
+      ],
+      "collocations": [
+        "塑造形象",
+        "塑造人物"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "营造",
+        "铸造"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：塑造",
+          "url": "https://www.moedict.tw/uni/%E5%A1%91%E9%80%A0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:营造",
+      "word": "营造",
+      "wordType": "word",
+      "explanation": "建造房屋等，也比喻有意形成环境、氛围。",
+      "usage": "常搭配氛围、环境；不只指建筑施工。",
+      "examples": [
+        "社区努力营造互助友爱的氛围。"
+      ],
+      "collocations": [
+        "营造氛围",
+        "营造环境"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "塑造",
+        "铸造"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：營造",
+          "url": "https://www.moedict.tw/uni/%E7%87%9F%E9%80%A0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:铸造",
+      "word": "铸造",
+      "wordType": "word",
+      "explanation": "把熔化的金属注入模型，凝固成器物；也可比喻造就。",
+      "usage": "实义指金属成型工艺，注意与雕刻、塑形区分。",
+      "examples": [
+        "工厂采用新工艺铸造零件。"
+      ],
+      "collocations": [
+        "铸造零件",
+        "铸造器件"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "塑造",
+        "营造"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：鑄造",
+          "url": "https://www.moedict.tw/uni/%E9%91%84%E9%80%A0",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:制约",
+      "word": "制约",
+      "wordType": "word",
+      "explanation": "一种因素对另一种因素起限制、约束作用。",
+      "usage": "常说资源制约发展、相互制约，突出限制关系。",
+      "examples": [
+        "运输条件制约了产品销售范围。"
+      ],
+      "collocations": [
+        "制约发展",
+        "相互制约"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "掣肘",
+        "牵挂"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：制約",
+          "url": "https://www.moedict.tw/uni/%E5%88%B6%E7%B4%84",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:掣肘",
+      "word": "掣肘",
+      "wordType": "word",
+      "explanation": "比喻从旁牵制、干扰，使事情难以开展。",
+      "usage": "多用于行动受到牵制，通常带不利评价。",
+      "examples": [
+        "职责重叠导致各方相互掣肘。"
+      ],
+      "collocations": [
+        "相互掣肘",
+        "受到掣肘"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "制约",
+        "牵挂"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：掣肘",
+          "url": "https://www.moedict.tw/uni/%E6%8E%A3%E8%82%98",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:牵挂",
+      "word": "牵挂",
+      "wordType": "word",
+      "explanation": "心中挂念，放心不下。",
+      "usage": "对象常为人或事，属于情感状态。",
+      "examples": [
+        "远行的孩子始终牵挂着家中的老人。"
+      ],
+      "collocations": [
+        "心中牵挂",
+        "牵挂亲人"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "制约",
+        "掣肘"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：牽掛",
+          "url": "https://www.moedict.tw/uni/%E7%89%BD%E6%8E%9B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:校正",
+      "word": "校正",
+      "wordType": "word",
+      "explanation": "校对并改正错误，也指调整仪器使符合标准。",
+      "usage": "常搭配文字、数据、仪器；与矫正在部分调整语境中有交叉。",
+      "examples": [
+        "编辑逐页校正书稿中的错字。"
+      ],
+      "collocations": [
+        "校正文字",
+        "校正仪器"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "矫正"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：校正",
+          "url": "https://www.moedict.tw/uni/%E6%A0%A1%E6%AD%A3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:矫正",
+      "word": "矫正",
+      "wordType": "word",
+      "explanation": "纠正偏差、不正常的状态或习惯。",
+      "usage": "常搭配姿势、口音、视力、行为，重在纠偏。",
+      "examples": [
+        "训练师帮助他矫正错误的站姿。"
+      ],
+      "collocations": [
+        "矫正姿势",
+        "矫正口音"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "校正"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：矯正",
+          "url": "https://www.moedict.tw/uni/%E7%9F%AF%E6%AD%A3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:熟悉",
+      "word": "熟悉",
+      "wordType": "word",
+      "explanation": "知道得清楚、详细。",
+      "usage": "常用于情况、环境、面孔，重点在了解。",
+      "examples": [
+        "他熟悉社区每条街巷的情况。"
+      ],
+      "collocations": [
+        "熟悉环境",
+        "熟悉情况"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "熟习"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：熟悉",
+          "url": "https://www.moedict.tw/uni/%E7%86%9F%E6%82%89",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:熟习",
+      "word": "熟习",
+      "wordType": "word",
+      "explanation": "学习或练习得很熟练。",
+      "usage": "常用于技艺、操作等，重点在练习掌握；与熟悉可有交叉。",
+      "examples": [
+        "新员工通过反复练习熟习设备操作。"
+      ],
+      "collocations": [
+        "熟习技艺",
+        "熟习操作"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "熟悉"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：熟習",
+          "url": "https://www.moedict.tw/uni/%E7%86%9F%E7%BF%92",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:处世",
+      "word": "处世",
+      "wordType": "word",
+      "explanation": "在社会上与人相处、交往。",
+      "usage": "常说为人处世，重在人际态度与行为方式。",
+      "examples": [
+        "诚实守信是他处世的准则。"
+      ],
+      "collocations": [
+        "为人处世",
+        "处世态度"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "处事"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：處世",
+          "url": "https://www.moedict.tw/uni/%E8%99%95%E4%B8%96",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:处事",
+      "word": "处事",
+      "wordType": "word",
+      "explanation": "处理事务，解决事情。",
+      "usage": "常说处事果断、处事公正，重在办事。",
+      "examples": [
+        "面对突发情况，她处事沉着。"
+      ],
+      "collocations": [
+        "处事公正",
+        "处事果断"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "处世"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：處事",
+          "url": "https://www.moedict.tw/uni/%E8%99%95%E4%BA%8B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:度过",
+      "word": "度过",
+      "wordType": "word",
+      "explanation": "经过某一段时间或经历某种处境。",
+      "usage": "常搭配假期、童年、岁月；重在时间经历。",
+      "examples": [
+        "他们在乡村度过了一个充实的暑假。"
+      ],
+      "collocations": [
+        "度过假期",
+        "度过童年"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "渡过"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：度過",
+          "url": "https://www.moedict.tw/uni/%E5%BA%A6%E9%81%8E",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:渡过",
+      "word": "渡过",
+      "wordType": "word",
+      "explanation": "从水的一岸到另一岸，也可比喻越过难关。",
+      "usage": "典型对象是江河；难关可作比喻对象。",
+      "examples": [
+        "队员乘船渡过河流。"
+      ],
+      "collocations": [
+        "渡过江河",
+        "渡过难关"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "度过"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：渡過",
+          "url": "https://www.moedict.tw/uni/%E6%B8%A1%E9%81%8E",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:长年",
+      "word": "长年",
+      "wordType": "word",
+      "explanation": "多年，长期。",
+      "usage": "突出时间延续长，如长年积累；与常年有交叉。",
+      "examples": [
+        "长年的野外工作让他积累了丰富经验。"
+      ],
+      "collocations": [
+        "长年累月",
+        "长年积累"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "常年"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：長年",
+          "url": "https://www.moedict.tw/uni/%E9%95%B7%E5%B9%B4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:常年",
+      "word": "常年",
+      "wordType": "word",
+      "explanation": "整年、长期经常如此；也指平常年份。",
+      "usage": "可与特殊年份相对，如常年产量。",
+      "examples": [
+        "今年雨水偏少，产量低于常年。"
+      ],
+      "collocations": [
+        "常年产量",
+        "常年开放"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "长年"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：常年",
+          "url": "https://www.moedict.tw/uni/%E5%B8%B8%E5%B9%B4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:点缀",
+      "word": "点缀",
+      "wordType": "word",
+      "explanation": "加以装饰，使更好看，也指起装饰作用的事物。",
+      "usage": "通常指适量增添，不等于全面覆盖。",
+      "examples": [
+        "几盆绿植点缀着走廊。"
+      ],
+      "collocations": [
+        "点缀空间",
+        "点缀生活"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "渲染",
+        "夸大"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：點綴",
+          "url": "https://www.moedict.tw/uni/%E9%BB%9E%E7%B6%B4",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:渲染",
+      "word": "渲染",
+      "wordType": "word",
+      "explanation": "画画时用水墨或色彩烘托，也指用文字等突出气氛或特点。",
+      "usage": "可中性也可带贬义，要看是否过分铺陈。",
+      "examples": [
+        "影片通过光影渲染紧张气氛。"
+      ],
+      "collocations": [
+        "渲染气氛",
+        "渲染情绪"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "点缀",
+        "夸大"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：渲染",
+          "url": "https://www.moedict.tw/uni/%E6%B8%B2%E6%9F%93",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:夸大",
+      "word": "夸大",
+      "wordType": "word",
+      "explanation": "把事情说得超过实际程度。",
+      "usage": "强调失真，常与作用、成绩、危害搭配。",
+      "examples": [
+        "介绍成果时不能夸大实际效果。"
+      ],
+      "collocations": [
+        "夸大成绩",
+        "夸大作用"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "点缀",
+        "渲染"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：誇大",
+          "url": "https://www.moedict.tw/uni/%E8%AA%87%E5%A4%A7",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:艰苦",
+      "word": "艰苦",
+      "wordType": "word",
+      "explanation": "环境、生活或工作条件困难而辛苦。",
+      "usage": "常说条件艰苦、艰苦奋斗，侧重困难处境。",
+      "examples": [
+        "队员在艰苦的野外条件下坚持工作。"
+      ],
+      "collocations": [
+        "条件艰苦",
+        "艰苦奋斗"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "坚苦"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：艱苦",
+          "url": "https://www.moedict.tw/uni/%E8%89%B1%E8%8B%A6",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:坚苦",
+      "word": "坚苦",
+      "wordType": "word",
+      "explanation": "坚忍刻苦，能承受困难而不动摇。",
+      "usage": "常见坚苦卓绝，侧重人的意志和努力。",
+      "examples": [
+        "他以坚苦卓绝的努力完成研究。"
+      ],
+      "collocations": [
+        "坚苦卓绝",
+        "坚苦自励"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "艰苦"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：堅苦",
+          "url": "https://www.moedict.tw/uni/%E5%A0%85%E8%8B%A6",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:聆听",
+      "word": "聆听",
+      "wordType": "word",
+      "explanation": "认真地听取。",
+      "usage": "常用于教诲、讲话、音乐，语体较庄重；不以是否恭敬作硬性区分。",
+      "examples": [
+        "学生安静地聆听老人的讲述。"
+      ],
+      "collocations": [
+        "聆听教诲",
+        "聆听讲述"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "凝视"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：聆聽",
+          "url": "https://www.moedict.tw/uni/%E8%81%86%E8%81%BD",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:谛听",
+      "word": "谛听",
+      "wordType": "word",
+      "explanation": "仔细、专注地听。",
+      "usage": "突出仔细听辨细微声音，与聆听的常见语境有交叉。",
+      "examples": [
+        "他屏息谛听远处细微的脚步声。"
+      ],
+      "collocations": [
+        "凝神谛听",
+        "谛听声响"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "凝视"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：諦聽",
+          "url": "https://www.moedict.tw/uni/%E8%AB%A6%E8%81%BD",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:凝视",
+      "word": "凝视",
+      "wordType": "word",
+      "explanation": "集中目光，专注地看。",
+      "usage": "感知方式是看，不能直接说凝视声音。",
+      "examples": [
+        "她久久凝视着照片中的故乡。"
+      ],
+      "collocations": [
+        "凝视远方",
+        "凝视照片"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "聆听",
+        "谛听"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：凝視",
+          "url": "https://www.moedict.tw/uni/%E5%87%9D%E8%A6%96",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:鉴赏",
+      "word": "鉴赏",
+      "wordType": "word",
+      "explanation": "鉴别、品评并欣赏艺术品等。",
+      "usage": "常搭配作品、书画，含辨别优劣的意味。",
+      "examples": [
+        "课程训练学生鉴赏古典诗歌。"
+      ],
+      "collocations": [
+        "鉴赏书画",
+        "鉴赏作品"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "观赏",
+        "奖赏"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：鑒賞",
+          "url": "https://www.moedict.tw/uni/%E9%91%92%E8%B3%9E",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:观赏",
+      "word": "观赏",
+      "wordType": "word",
+      "explanation": "观看、欣赏景物或表演等。",
+      "usage": "重在观看欣赏，不必作专业品评。",
+      "examples": [
+        "游客在步道上观赏春花。"
+      ],
+      "collocations": [
+        "观赏风景",
+        "观赏表演"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "鉴赏",
+        "奖赏"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：觀賞",
+          "url": "https://www.moedict.tw/uni/%E8%A7%80%E8%B3%9E",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:奖赏",
+      "word": "奖赏",
+      "wordType": "word",
+      "explanation": "因表现、功劳等给予奖励。",
+      "usage": "可作动词或名词，不表示看或欣赏。",
+      "examples": [
+        "对表现突出的志愿者给予奖赏。"
+      ],
+      "collocations": [
+        "给予奖赏",
+        "获得奖赏"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "鉴赏",
+        "观赏"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：獎賞",
+          "url": "https://www.moedict.tw/uni/%E7%8D%8E%E8%B3%9E",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:起源",
+      "word": "起源",
+      "wordType": "word",
+      "explanation": "事物开始发生、形成的根由或过程。",
+      "usage": "常搭配文明、习俗、生命，重点是最初形成。",
+      "examples": [
+        "研究者试图探明这项习俗的起源。"
+      ],
+      "collocations": [
+        "文明起源",
+        "习俗起源"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "来源",
+        "资源"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：起源",
+          "url": "https://www.moedict.tw/uni/%E8%B5%B7%E6%BA%90",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:来源",
+      "word": "来源",
+      "wordType": "word",
+      "explanation": "事物从哪里来，或产生、获得的渠道。",
+      "usage": "常搭配材料、信息、资金，未必追问最初诞生。",
+      "examples": [
+        "报告注明了每项数据的来源。"
+      ],
+      "collocations": [
+        "信息来源",
+        "资金来源"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "起源",
+        "资源"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：來源",
+          "url": "https://www.moedict.tw/uni/%E4%BE%86%E6%BA%90",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:资源",
+      "word": "资源",
+      "wordType": "word",
+      "explanation": "可供利用的物质、能源、知识、人力等条件。",
+      "usage": "重在可以利用的要素，不是询问从何而来。",
+      "examples": [
+        "当地水力资源较为丰富。"
+      ],
+      "collocations": [
+        "自然资源",
+        "人力资源"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "起源",
+        "来源"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：資源",
+          "url": "https://www.moedict.tw/uni/%E8%B3%87%E6%BA%90",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:愿景",
+      "word": "愿景",
+      "wordType": "word",
+      "explanation": "希望在未来实现的景象或目标。",
+      "usage": "带有主观期望，不保证一定实现。",
+      "examples": [
+        "居民共同描绘社区发展的愿景。"
+      ],
+      "collocations": [
+        "共同愿景",
+        "发展愿景"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "前景",
+        "背景"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：願景",
+          "url": "https://www.moedict.tw/uni/%E9%A1%98%E6%99%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:前景",
+      "word": "前景",
+      "wordType": "word",
+      "explanation": "未来可能出现的景象、情况或发展趋势。",
+      "usage": "着眼于对未来状况的判断，未必是主观愿望。",
+      "examples": [
+        "新技术的应用前景受到关注。"
+      ],
+      "collocations": [
+        "发展前景",
+        "应用前景"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "愿景",
+        "背景"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：前景",
+          "url": "https://www.moedict.tw/uni/%E5%89%8D%E6%99%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:背景",
+      "word": "背景",
+      "wordType": "word",
+      "explanation": "事物所处的环境、条件或衬托事物的景物。",
+      "usage": "常搭配时代、社会、历史，通常用于解释现状。",
+      "examples": [
+        "理解作品需要了解其时代背景。"
+      ],
+      "collocations": [
+        "时代背景",
+        "历史背景"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "愿景",
+        "前景"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：背景",
+          "url": "https://www.moedict.tw/uni/%E8%83%8C%E6%99%AF",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:范围",
+      "word": "范围",
+      "wordType": "word",
+      "explanation": "一定边界以内所涉及的区域或内容。",
+      "usage": "可用于空间、职责、讨论内容，重在边界。",
+      "examples": [
+        "这项问题超出了本次讨论的范围。"
+      ],
+      "collocations": [
+        "职责范围",
+        "讨论范围"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "范畴",
+        "规模"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：範圍",
+          "url": "https://www.moedict.tw/uni/%E7%AF%84%E5%9C%8D",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:范畴",
+      "word": "范畴",
+      "wordType": "word",
+      "explanation": "具有共同性质的事物所属的类别或概念领域。",
+      "usage": "常见属于某一范畴，偏向分类归属。",
+      "examples": [
+        "这项研究属于语言学范畴。"
+      ],
+      "collocations": [
+        "学术范畴",
+        "概念范畴"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "范围",
+        "规模"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：範疇",
+          "url": "https://www.moedict.tw/uni/%E7%AF%84%E7%96%87",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:规模",
+      "word": "规模",
+      "wordType": "word",
+      "explanation": "事物、组织或活动的大小、数量和布局程度。",
+      "usage": "常用大、小形容，不单指区域边界。",
+      "examples": [
+        "项目规模根据实际需求确定。"
+      ],
+      "collocations": [
+        "项目规模",
+        "生产规模"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "范围",
+        "范畴"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：規模",
+          "url": "https://www.moedict.tw/uni/%E8%A6%8F%E6%A8%A1",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:路径",
+      "word": "路径",
+      "wordType": "word",
+      "explanation": "道路、路线，也比喻行动或发展的具体路线。",
+      "usage": "常搭配技术、发展、传播，强调经过的路线。",
+      "examples": [
+        "研究团队绘制了污染物的迁移路径。"
+      ],
+      "collocations": [
+        "迁移路径",
+        "发展路径"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "途径",
+        "捷径"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：路徑",
+          "url": "https://www.moedict.tw/uni/%E8%B7%AF%E5%BE%91",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:途径",
+      "word": "途径",
+      "wordType": "word",
+      "explanation": "道路，也指达到目的的方法或渠道。",
+      "usage": "常搭配解决、获取、实现，与路径有交叉。",
+      "examples": [
+        "可以通过多种途径获取公开资料。"
+      ],
+      "collocations": [
+        "获取途径",
+        "解决途径"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "路径",
+        "捷径"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：途徑",
+          "url": "https://www.moedict.tw/uni/%E9%80%94%E5%BE%91",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:捷径",
+      "word": "捷径",
+      "wordType": "word",
+      "explanation": "比一般道路更近、更快的路线或办法。",
+      "usage": "突出省时省力；不一定是投机取巧。",
+      "examples": [
+        "学习基本功没有一蹴而就的捷径。"
+      ],
+      "collocations": [
+        "寻找捷径",
+        "成功捷径"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "路径",
+        "途径"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：捷徑",
+          "url": "https://www.moedict.tw/uni/%E6%8D%B7%E5%BE%91",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:本质",
+      "word": "本质",
+      "wordType": "word",
+      "explanation": "事物自身固有、决定其性质的根本属性。",
+      "usage": "着眼于根本性质，常与表面表现相对。",
+      "examples": [
+        "分析问题要透过现象认识本质。"
+      ],
+      "collocations": [
+        "认识本质",
+        "本质特征"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "现象",
+        "表象"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：本質",
+          "url": "https://www.moedict.tw/uni/%E6%9C%AC%E8%B3%AA",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:现象",
+      "word": "现象",
+      "wordType": "word",
+      "explanation": "事物在发展变化中显露出来、可以观察到的表现。",
+      "usage": "可以真实反映某些方面，不等于假象。",
+      "examples": [
+        "研究者记录了实验中的异常现象。"
+      ],
+      "collocations": [
+        "观察现象",
+        "社会现象"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "本质",
+        "表象"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：現象",
+          "url": "https://www.moedict.tw/uni/%E7%8F%BE%E8%B1%A1",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:表象",
+      "word": "表象",
+      "wordType": "word",
+      "explanation": "事物呈现的外在形象，也可指头脑中再现的感性形象。",
+      "usage": "外在表现义不必等于虚假，要结合语境。",
+      "examples": [
+        "判断不能只停留在繁荣的表象上。"
+      ],
+      "collocations": [
+        "停留表象",
+        "外在表象"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "本质",
+        "现象"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：表象",
+          "url": "https://www.moedict.tw/uni/%E8%A1%A8%E8%B1%A1",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:公平",
+      "word": "公平",
+      "wordType": "word",
+      "explanation": "处理事情不偏私，机会、权利或负担等安排合理。",
+      "usage": "常用于竞争、机会、分配，强调不偏不倚。",
+      "examples": [
+        "所有申请人享有公平竞争的机会。"
+      ],
+      "collocations": [
+        "公平竞争",
+        "机会公平"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "公正",
+        "公允"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：公平",
+          "url": "https://www.moedict.tw/uni/%E5%85%AC%E5%B9%B3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:公正",
+      "word": "公正",
+      "wordType": "word",
+      "explanation": "处理事务、作出判断不偏私，符合原则。",
+      "usage": "常搭配司法、裁判、立场，与公平有交叉。",
+      "examples": [
+        "评委应独立、公正地评价作品。"
+      ],
+      "collocations": [
+        "公正裁判",
+        "公正立场"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "公平",
+        "公允"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：公正",
+          "url": "https://www.moedict.tw/uni/%E5%85%AC%E6%AD%A3",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:公允",
+      "word": "公允",
+      "wordType": "word",
+      "explanation": "评价、判断等公平而恰当。",
+      "usage": "常见评价公允、持论公允；偏重评论恰当。",
+      "examples": [
+        "这篇评论兼顾优缺点，评价较为公允。"
+      ],
+      "collocations": [
+        "评价公允",
+        "持论公允"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "公平",
+        "公正"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：公允",
+          "url": "https://www.moedict.tw/uni/%E5%85%AC%E5%85%81",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:形式",
+      "word": "形式",
+      "wordType": "word",
+      "explanation": "事物的外在表现方式或组织方式。",
+      "usage": "常与内容相对，也可指活动采用的方式。",
+      "examples": [
+        "同一内容可以采用不同形式呈现。"
+      ],
+      "collocations": [
+        "组织形式",
+        "表现形式"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "形势",
+        "形态"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：形式",
+          "url": "https://www.moedict.tw/uni/%E5%BD%A2%E5%BC%8F",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:形势",
+      "word": "形势",
+      "wordType": "word",
+      "explanation": "事物发展所处的状况、趋势和局面。",
+      "usage": "常搭配经济、安全、发展，强调局势。",
+      "examples": [
+        "报告分析了当前的经济形势。"
+      ],
+      "collocations": [
+        "经济形势",
+        "安全形势"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "形式",
+        "形态"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：形勢",
+          "url": "https://www.moedict.tw/uni/%E5%BD%A2%E5%8B%A2",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    },
+    {
+      "id": "words-expansion-20260928:形态",
+      "word": "形态",
+      "wordType": "word",
+      "explanation": "事物的形状、姿态或存在样态。",
+      "usage": "可用于生物、物质、社会等具体或抽象样态。",
+      "examples": [
+        "显微镜下可以观察细胞形态。"
+      ],
+      "collocations": [
+        "细胞形态",
+        "物质形态"
+      ],
+      "exampleSource": "原创例句",
+      "quizKinds": [
+        "meaning",
+        "reverse"
+      ],
+      "category": "实词辨析",
+      "source": "词语学习第二批·教研整理",
+      "rivals": [
+        "形式",
+        "形势"
+      ],
+      "publicSources": [
+        {
+          "title": "教育部《重编国语辞典修订本》（萌典开放数据）：形態",
+          "url": "https://www.moedict.tw/uni/%E5%BD%A2%E6%85%8B",
+          "kind": "词义参考；搭配、例句与小测为教研整理"
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "id": "vocab-expression",
+      "title": "说出来，还是听进去",
+      "axis": "陈述 / 倾吐心声 / 认真听 / 转告",
+      "members": [
+        "诉说",
+        "倾诉",
+        "倾听",
+        "传达"
+      ],
+      "quiz": {
+        "stem": "她一直把委屈藏在心里，直到与老友独处时，才敞开心扉，把全部苦衷向对方____出来。",
+        "answer": "倾诉",
+        "reason": "敞开心扉、全部苦衷突出尽情吐露内心；诉说偏叙述，倾听是听，传达是转告。"
+      },
+      "quizzes": [
+        {
+          "stem": "居民正在讲述困难，接访人员没有打断，而是专心____，逐条记录。",
+          "answer": "倾听",
+          "reason": "主体在认真接收他人的话语，其他三词都侧重说或转告。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-relation",
+      "title": "关系融洽与关系密切",
+      "axis": "相处和睦 / 协调均衡 / 联系紧 / 状态稳",
+      "members": [
+        "融洽",
+        "和谐",
+        "密切",
+        "稳定"
+      ],
+      "quiz": {
+        "stem": "这套装置连续运行半年，各项指标波动很小，性能十分____。",
+        "answer": "稳定",
+        "reason": "指标少波动对应状态稳定；融洽说相处，和谐说协调，密切说联系或关注。"
+      },
+      "quizzes": [
+        {
+          "stem": "汛期水位变化很快，值班人员必须____关注监测数据，一有异常立即报告。",
+          "answer": "密切",
+          "reason": "与“关注”形成常用搭配，突出紧密、细致地留意。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-collective",
+      "title": "聚在一起与容纳差异",
+      "axis": "聚合力量 / 容纳不同 / 没有分歧 / 联合协作",
+      "members": [
+        "凝聚",
+        "包容",
+        "一致",
+        "团结"
+      ],
+      "quiz": {
+        "stem": "每个人都投了赞成票，没有反对或保留意见，最终表决结果____。",
+        "answer": "一致",
+        "reason": "没有分歧对应一致；其他词不直接表示意见相同。"
+      },
+      "quizzes": [
+        {
+          "stem": "面对不同的研究路径，负责人允许各组保留特色、充分探索，体现了对差异的____。",
+          "answer": "包容",
+          "reason": "允许不同意见与路径并存，重点是容纳差异；不是要求一致。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-role",
+      "title": "中心、根基、承载与方向",
+      "axis": "中心环节 / 基础所在 / 承载形式 / 引导方向",
+      "members": [
+        "核心",
+        "根本",
+        "载体",
+        "导向"
+      ],
+      "quiz": {
+        "stem": "这些故事通过木偶戏传承下来，木偶戏在这里充当了文化传播的____。",
+        "answer": "载体",
+        "reason": "句子问的是文化依托何种形式传播，落点是承载内容的形式。"
+      },
+      "quizzes": [
+        {
+          "stem": "考核奖励哪些行为，就会引导大家重视哪些行为，因此必须把握好评价的____。",
+          "answer": "导向",
+          "reason": "奖惩引导行为选择，强调所指引的方向。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-short",
+      "title": "短的是篇幅，还是时间",
+      "axis": "篇幅少 / 速度快 / 难度低 / 持续短",
+      "members": [
+        "简短",
+        "迅速",
+        "简易",
+        "短暂"
+      ],
+      "quiz": {
+        "stem": "这份说明只有两句话，篇幅十分____，读者一眼就能看完。",
+        "answer": "简短",
+        "reason": "明确限定篇幅不长；迅速是速度，简易是难度或构造，短暂是持续时间。"
+      },
+      "quizzes": [
+        {
+          "stem": "两班车之间只隔几分钟，旅客只能在站台上作____停留。",
+          "answer": "短暂",
+          "reason": "几分钟说明停留持续时间很短。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-long",
+      "title": "多而杂、结构复杂与时间长",
+      "axis": "数量杂 / 篇幅拖沓 / 关系交错 / 历时久",
+      "members": [
+        "繁杂",
+        "冗长",
+        "复杂",
+        "漫长"
+      ],
+      "quiz": {
+        "stem": "发言不断重复已经说过的细节，迟迟切不到主题，听众觉得内容十分____。",
+        "answer": "冗长",
+        "reason": "重复、拖沓是评价核心，不是单纯历时长。"
+      },
+      "quizzes": [
+        {
+          "stem": "从清晨一直等到深夜，大家终于结束了这段____的等待。",
+          "answer": "漫长",
+          "reason": "等待持续很久，直接落在时间延续上；无须假定结构复杂或叙述重复。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-resources",
+      "title": "改变旧物与释放已有价值",
+      "axis": "改变形态 / 用活存量 / 找出潜力 / 改善配置",
+      "members": [
+        "改造",
+        "盘活",
+        "发掘",
+        "优化"
+      ],
+      "quiz": {
+        "stem": "厂房已经具备使用条件，却长期空置；把它出租给创业团队，首先是为了____存量资产。",
+        "answer": "盘活",
+        "reason": "已具备条件却闲置，落点是让已有资产发挥作用，不必改变厂房结构。"
+      },
+      "quizzes": [
+        {
+          "stem": "考古队在新发现的遗址开展系统____，逐层清理地下遗存。",
+          "answer": "发掘",
+          "reason": "地下遗址的挖掘是明确的考古语境，其他词不表示这一行为。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-properties",
+      "title": "规律、趋势与必然",
+      "axis": "重复中的联系 / 发展的方向 / 发生的确定性",
+      "members": [
+        "规律性",
+        "趋势性",
+        "必然性"
+      ],
+      "quiz": {
+        "stem": "研究首先要从连续出现的苗头中辨认发展方向，把握变化的____。",
+        "answer": "趋势性",
+        "reason": "发展方向、苗头指向走向；不能由此直接断言必然发生。"
+      },
+      "quizzes": [
+        {
+          "stem": "某种联系在不同样本中反复出现，研究者进一步检验这种变化是否具有____。",
+          "answer": "规律性",
+          "reason": "反复出现、跨样本检验重在联系是否有规则，不是在预言必然结果。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-advance",
+      "title": "到达内部与朝目标前行",
+      "axis": "入内 / 面向目标 / 走入阶段 / 坚定进军",
+      "members": [
+        "进入",
+        "迈向",
+        "步入",
+        "挺进"
+      ],
+      "quiz": {
+        "stem": "若只突出“朝某个目标前行”，不表示已经到达目标，最直接的词是____。",
+        "answer": "迈向",
+        "reason": "这是侧重点辨析；迈向直接标示朝向，进入、步入侧重入内，挺进还突出坚定进军。"
+      },
+      "quizzes": [
+        {
+          "stem": "若要突出队伍迎着阻力坚定进军的力度，而非一般走入某处，宜用____。",
+          "answer": "挺进",
+          "reason": "挺进带有较强的进军意味；不把进入与步入在普通语境中强行分成对错。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-spread",
+      "title": "充满、交错与散布",
+      "axis": "向四周扩散 / 交叉结合 / 大量充满 / 分布各处",
+      "members": [
+        "弥漫",
+        "交织",
+        "充斥",
+        "遍布"
+      ],
+      "quiz": {
+        "stem": "离别时，重逢的喜悦与即将分别的不舍____在一起，难以分开。",
+        "answer": "交织",
+        "reason": "两种情绪相互交错，强调彼此关系，其他词主要说充满或分布。"
+      },
+      "quizzes": [
+        {
+          "stem": "各乡镇都有服务站，网点____全县，彼此之间并不相邻。",
+          "answer": "遍布",
+          "reason": "分散在各处对应分布广；不是气味扩散，也不含负面评价。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-develop",
+      "title": "提高境界、增加内容与加深认识",
+      "axis": "境界提升 / 内容充实 / 范围扩大 / 程度加深",
+      "members": [
+        "升华",
+        "丰富",
+        "扩展",
+        "深化"
+      ],
+      "quiz": {
+        "stem": "原来服务仅限城区，如今覆盖周边乡镇，服务范围进一步____。",
+        "answer": "扩展",
+        "reason": "城区到周边乡镇是范围扩大，落点在广度。"
+      },
+      "quizzes": [
+        {
+          "stem": "课程没有增加新的主题，而是持续追问原理，使学生对同一问题的认识不断____。",
+          "answer": "深化",
+          "reason": "主题不增、理解加深，突出深度，不是增加内容或范围。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-clear",
+      "title": "清楚、宽广与通畅",
+      "axis": "要求确定 / 呈现清楚 / 空间宽 / 通行无阻",
+      "members": [
+        "明确",
+        "清晰",
+        "宽阔",
+        "通达"
+      ],
+      "quiz": {
+        "stem": "会议要求各部门进一步____责任分工，把谁来牵头、谁来配合写进清单。",
+        "answer": "明确",
+        "reason": "此处需要能带宾语“责任分工”的动词，表示使其清楚确定。"
+      },
+      "quizzes": [
+        {
+          "stem": "道路虽然不宽，却连接着多个村落，四通八达，说明当地交通较为____。",
+          "answer": "通达",
+          "reason": "不宽排除了宽阔；连接多处强调可达和通畅。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-repair",
+      "title": "修复缺损、合拢隔阂与消除隐患",
+      "axis": "补破损 / 合拢裂痕 / 越过障碍 / 消除事端",
+      "members": [
+        "修补",
+        "弥合",
+        "跨越",
+        "消弭"
+      ],
+      "quiz": {
+        "stem": "沟渠仍然保留，工作人员架设便桥，让行人能够____这道障碍。",
+        "answer": "跨越",
+        "reason": "障碍未被修复或消除，行人只是越过它。"
+      },
+      "quizzes": [
+        {
+          "stem": "这项工作的目标是让潜在祸患彻底消失，而不是仅设法绕过去，即____隐患。",
+          "answer": "消弭",
+          "reason": "消弭强调消除；跨越是越过，弥合常指裂隙，修补侧重破损部分。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-rights",
+      "title": "享有什么与支配什么",
+      "axis": "依法享有的利益 / 支配或管理的力量",
+      "members": [
+        "权利",
+        "权力"
+      ],
+      "quiz": {
+        "stem": "法律保障公民依法享有受教育的____。",
+        "answer": "权利",
+        "reason": "受教育属于依法享有的权益，不是支配管理他人的权限。"
+      },
+      "quizzes": [
+        {
+          "stem": "公共机构行使的管理____必须有明确边界，并接受监督。",
+          "answer": "权力",
+          "reason": "管理、行使、监督对应支配或管理事务的权限。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-inspect",
+      "title": "检验能力与实地调查",
+      "axis": "评价检验 / 观察研究",
+      "members": [
+        "考查",
+        "考察"
+      ],
+      "quiz": {
+        "stem": "本次测验通过一道综合题____学生运用公式的能力。",
+        "answer": "考查",
+        "reason": "测验评价能力，重在检查、检验。"
+      },
+      "quizzes": [
+        {
+          "stem": "为掌握沿线地形，设计团队先到山区进行实地____。",
+          "answer": "考察",
+          "reason": "到现场观察、研究地形，对应考察。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-proof",
+      "title": "提出疑问与表示怀疑",
+      "axis": "提出问题 / 对结论怀疑",
+      "members": [
+        "质疑",
+        "置疑"
+      ],
+      "quiz": {
+        "stem": "讨论鼓励大家对缺少证据的观点提出____，要求补充论证。",
+        "answer": "质疑",
+        "reason": "“提出质疑”表示发问、要求说明；不能机械拼成提出置疑。"
+      },
+      "quizzes": [
+        {
+          "stem": "多项独立实验得出了相同结果，这一事实的可靠性无可____。",
+          "answer": "置疑",
+          "reason": "“无可置疑”是常用说法，表示没有可以怀疑之处。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-excuse",
+      "title": "拒绝邀约与推卸责任",
+      "axis": "借口拒绝 / 推卸责任",
+      "members": [
+        "推托",
+        "推脱"
+      ],
+      "quiz": {
+        "stem": "如果重点是“借故拒绝一项邀请”，最直接对应的词是____。",
+        "answer": "推托",
+        "reason": "重点在借口拒绝；不把两词有交叉的真实用例一概判错。"
+      },
+      "quizzes": [
+        {
+          "stem": "事故发生后，他试图把自己的责任全部推给别人，一味____责任。",
+          "answer": "推脱",
+          "reason": "句子强调卸下本应承担的责任。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-fill",
+      "title": "补足空缺与弥补不足",
+      "axis": "不足损失 / 空白缺额",
+      "members": [
+        "弥补",
+        "填补"
+      ],
+      "quiz": {
+        "stem": "此前当地没有这一领域的系统资料，新编手册____了这项空白。",
+        "answer": "填补",
+        "reason": "原来没有相应内容，使用填补空白。"
+      },
+      "quizzes": [
+        {
+          "stem": "这笔赔偿可以____部分经济损失，但无法挽回逝去的时间。",
+          "answer": "弥补",
+          "reason": "补救已发生的经济损失，对应弥补。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-form",
+      "title": "改变形式与变化莫测",
+      "axis": "形式切换 / 不确定的变化",
+      "members": [
+        "变换",
+        "变幻"
+      ],
+      "quiz": {
+        "stem": "为了看清物体背面，他把观察角度从正面____到侧面。",
+        "answer": "变换",
+        "reason": "明确从一种角度换成另一种，是形式或位置切换。"
+      },
+      "quizzes": [
+        {
+          "stem": "这里的云雾忽聚忽散，形态____莫测。",
+          "answer": "变幻",
+          "reason": "忽聚忽散、难以预料对应变幻莫测。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-origin",
+      "title": "原来面目与创作模型",
+      "axis": "本来面目 / 原始模型",
+      "members": [
+        "原形",
+        "原型"
+      ],
+      "quiz": {
+        "stem": "小说人物虽经艺术加工，但仍以作者的老师为____。",
+        "answer": "原型",
+        "reason": "真实人物作为创作依据，是人物原型。"
+      },
+      "quizzes": [
+        {
+          "stem": "假面具被揭下，这个骗局的____终于暴露。",
+          "answer": "原形",
+          "reason": "伪装下面的真实面目是原形。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-laws",
+      "title": "制度与治理方式",
+      "axis": "法律制度 / 依法治理",
+      "members": [
+        "法制",
+        "法治"
+      ],
+      "quiz": {
+        "stem": "若定义只指一个国家的法律及相关制度的总称，对应____。",
+        "answer": "法制",
+        "reason": "这是制度体系概念；法治强调依法律治理。"
+      },
+      "quizzes": [
+        {
+          "stem": "这里强调任何主体都应依法办事，运用法律治理社会，这一原则称为____。",
+          "answer": "法治",
+          "reason": "核心是依法治理的理念与原则。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-guarantee",
+      "title": "保障权益与保证结果",
+      "axis": "提供保护条件 / 承诺确保",
+      "members": [
+        "保障",
+        "保证"
+      ],
+      "quiz": {
+        "stem": "负责人郑重作出____，承诺在月底前完成任务。",
+        "answer": "保证",
+        "reason": "“作出保证”是承诺；保障不表示一项口头承诺。"
+      },
+      "quizzes": [
+        {
+          "stem": "若释义强调“提供保护和条件，使权益不受损害”，最直接对应____。",
+          "answer": "保障",
+          "reason": "保护权益和提供实现条件是保障的核心侧重。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-standard",
+      "title": "一般标准与严格条件",
+      "axis": "标准提高 / 条件严密 / 要求过苛",
+      "members": [
+        "严格",
+        "严苛",
+        "严密"
+      ],
+      "quiz": {
+        "stem": "各环节相互衔接，前提与结论之间没有漏洞，这套论证逻辑____。",
+        "answer": "严密",
+        "reason": "评价逻辑无漏洞，而非执行标准认真或要求过分。"
+      },
+      "quizzes": [
+        {
+          "stem": "要求刚入职者一天掌握全部复杂技能，完全不留学习时间，这种条件显得过于____。",
+          "answer": "严苛",
+          "reason": "题干明确批评不近情理、要求过高。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-collocation-achievement",
+      "title": "成效、经验、基础与能力",
+      "axis": "取得 / 积累 / 夯实 / 提升",
+      "members": [
+        "取得成效",
+        "积累经验",
+        "夯实基础",
+        "提升能力"
+      ],
+      "quiz": {
+        "stem": "要表达“反复实践使认识和做法逐渐增多”，最贴切的搭配是____。",
+        "answer": "积累经验",
+        "reason": "关键词是反复实践、逐渐增多，对应经验的积累。"
+      },
+      "quizzes": [
+        {
+          "stem": "要表达“让支撑后续发展的根基更加稳固”，宜用____。",
+          "answer": "夯实基础",
+          "reason": "稳固根基对应夯实基础，而非泛指能力提高或已有成效。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-collocation-efficiency",
+      "title": "效率、成本、资源与短板",
+      "axis": "提高 / 降低 / 整合 / 补齐",
+      "members": [
+        "提高效率",
+        "降低成本",
+        "整合资源",
+        "补齐短板"
+      ],
+      "quiz": {
+        "stem": "原先分属三个部门的设备与场地现在统一调配使用，这项做法直接体现了____。",
+        "answer": "整合资源",
+        "reason": "题干只给出分散要素重新组织使用，未直接说明成本或效率的变化。"
+      },
+      "quizzes": [
+        {
+          "stem": "采购量和质量不变，采用同样标准的供货方案后采购费用减少，直接体现了____。",
+          "answer": "降低成本",
+          "reason": "已知结果是费用减少，不足以断言单位时间产出增加。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-collocation-problem",
+      "title": "矛盾、风险、问题与症结",
+      "axis": "化解 / 防范 / 解决 / 找准",
+      "members": [
+        "化解矛盾",
+        "防范风险",
+        "解决问题",
+        "找准症结"
+      ],
+      "quiz": {
+        "stem": "损失尚未发生，单位先设置预警阈值并制定应急预案，这主要是为了____。",
+        "answer": "防范风险",
+        "reason": "尚未发生、预警预案强调事前防止不利情况。"
+      },
+      "quizzes": [
+        {
+          "stem": "维修人员暂不动手更换零件，先逐项检测，确定故障究竟卡在哪个环节，目的是____。",
+          "answer": "找准症结",
+          "reason": "当前任务是诊断关键原因，尚未给出修复结果。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-collocation-policy",
+      "title": "政策、改革、机制与职责",
+      "axis": "落实 / 推进 / 完善 / 履行",
+      "members": [
+        "落实政策",
+        "推进改革",
+        "完善机制",
+        "履行职责"
+      ],
+      "quiz": {
+        "stem": "面对岗位上依法应承担的任务，工作人员必须认真____，不能推卸。",
+        "answer": "履行职责",
+        "reason": "岗位责任与实际承担相对应。"
+      },
+      "quizzes": [
+        {
+          "stem": "既有协作办法仍有信息衔接漏洞，补上反馈和复核环节，主要是在____。",
+          "answer": "完善机制",
+          "reason": "对已有运行安排补足漏洞，是使机制更周全。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-distinguish",
+      "title": "分清差别与解释争辩",
+      "axis": "辨别 / 辩白",
+      "members": [
+        "分辨",
+        "分辩"
+      ],
+      "quiz": {
+        "stem": "这两份材料外观相同，要仔细核对编号，才能____真伪。",
+        "answer": "分辨",
+        "reason": "真伪是需要辨别的差异，并非为某人解释争辩。"
+      },
+      "quizzes": [
+        {
+          "stem": "别人认定是他弄丢了文件，他还没来得及开口____，就被打断了。",
+          "answer": "分辩",
+          "reason": "开口说明自己并无过错，强调用语言辩白。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-erect",
+      "title": "建立观念与把物体立起来",
+      "axis": "抽象建立 / 实物直立",
+      "members": [
+        "树立",
+        "竖立"
+      ],
+      "quiz": {
+        "stem": "学校希望通过榜样教育，帮助学生____正确的劳动观念。",
+        "answer": "树立",
+        "reason": "观念是抽象对象，此处表示建立观念。"
+      },
+      "quizzes": [
+        {
+          "stem": "施工人员把倒下的电线杆重新____起来。",
+          "answer": "竖立",
+          "reason": "电线杆由倒伏恢复到直立状态，是具体物体的放置。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-appoint",
+      "title": "开始使用与开始任用",
+      "axis": "设备投入使用 / 人员得到任用",
+      "members": [
+        "启用",
+        "起用"
+      ],
+      "quiz": {
+        "stem": "经过调试，新建的电子票务系统今天正式____。",
+        "answer": "启用",
+        "reason": "对象是系统，表示开始使用。"
+      },
+      "quizzes": [
+        {
+          "stem": "这位经理退休多年后，再次被公司____，负责新项目。",
+          "answer": "起用",
+          "reason": "退休后重新任用是起用的典型义项；启用在部分词典中也有任用义，不作绝对划分。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-deadline",
+      "title": "结束时点与到某时为止",
+      "axis": "到时停止 / 统计到某时",
+      "members": [
+        "截止",
+        "截至"
+      ],
+      "quiz": {
+        "stem": "____今天上午十点，现场共收到申请五十份。",
+        "answer": "截至",
+        "reason": "后接统计时间，说明计算到何时为止。"
+      },
+      "quizzes": [
+        {
+          "stem": "报名昨晚已经____，今天提交的申请不再受理。",
+          "answer": "截止",
+          "reason": "这里作谓语，表示报名活动到期停止。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-rules",
+      "title": "制定新规则与修改旧规则",
+      "axis": "形成规则 / 修改原文 / 停止效力",
+      "members": [
+        "制定",
+        "修订",
+        "废止"
+      ],
+      "quiz": {
+        "stem": "这项旧规定已被新办法取代，主管部门宣布将其正式____。",
+        "answer": "废止",
+        "reason": "取代后不再有效，重点是停止旧规定的效力。"
+      },
+      "quizzes": [
+        {
+          "stem": "教材总体结构不变，只依据新发现修改其中几处错误，这次工作属于____教材。",
+          "answer": "修订",
+          "reason": "已有文本基础上的修改订正，区别于从无到有形成规则。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-announce",
+      "title": "颁行法规与公布结果",
+      "axis": "正式颁行 / 授予发给 / 向公众宣布",
+      "members": [
+        "颁布",
+        "颁发",
+        "公布"
+      ],
+      "quiz": {
+        "stem": "比赛结束后，主办方向优胜选手____奖杯和证书。",
+        "answer": "颁发",
+        "reason": "对象是授给获奖者的具体奖杯和证书。"
+      },
+      "quizzes": [
+        {
+          "stem": "考试结束后，学校将通过网站____成绩，供考生查询。",
+          "answer": "公布",
+          "reason": "此处是公开结果，不是颁行法令或授予证书。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-support",
+      "title": "养育子女与供养老人",
+      "axis": "养育未成年者 / 供养老人",
+      "members": [
+        "抚养",
+        "赡养"
+      ],
+      "quiz": {
+        "stem": "父母离婚后，双方仍须依法承担____未成年子女的责任。",
+        "answer": "抚养",
+        "reason": "长辈照料、养育未成年子女，对应抚养。"
+      },
+      "quizzes": [
+        {
+          "stem": "成年子女不能以工作繁忙为由，拒绝履行____年迈父母的义务。",
+          "answer": "赡养",
+          "reason": "晚辈供养老年长辈，对应赡养。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-cooperate",
+      "title": "关系协调与共同商议",
+      "axis": "配合适当 / 分工合作 / 商量意见",
+      "members": [
+        "协调",
+        "协作",
+        "协商"
+      ],
+      "quiz": {
+        "stem": "双方尚未决定费用如何分担，准备坐下来充分交换意见，再作决定，需要先进行____。",
+        "answer": "协商",
+        "reason": "尚在共同商量阶段，重点是交换意见而非分工执行。"
+      },
+      "quizzes": [
+        {
+          "stem": "方案已经确定，三个小组分别测量、记录、校核，分工____完成任务。",
+          "answer": "协作",
+          "reason": "明确分工后共同执行任务，强调合作行动。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-connect",
+      "title": "交流联系与暗中串通",
+      "axis": "建立联系 / 不正当串通",
+      "members": [
+        "沟通",
+        "勾通"
+      ],
+      "quiz": {
+        "stem": "为减少误会，双方应坦诚____，及时说明各自的想法。",
+        "answer": "沟通",
+        "reason": "正常交流意见，语境没有不正当串通。"
+      },
+      "quizzes": [
+        {
+          "stem": "调查发现，他们暗中____，合谋伪造投标材料。",
+          "answer": "勾通",
+          "reason": "暗中合谋作假，有明确贬义。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-records",
+      "title": "编辑出版与编造材料",
+      "axis": "整理出版 / 编写成书 / 虚构捏造",
+      "members": [
+        "编辑",
+        "编纂",
+        "编造"
+      ],
+      "quiz": {
+        "stem": "事情根本没有发生，他却凭空____出一段经历，拿来欺骗调查人员。",
+        "answer": "编造",
+        "reason": "凭空虚构、用来欺骗，区别于整理已有资料。"
+      },
+      "quizzes": [
+        {
+          "stem": "项目组搜集历代文献，准备____一部系统的地方志。",
+          "answer": "编纂",
+          "reason": "搜集资料编写成系统著作，地方志是典型对象；编辑范围较广，此处强调编写成书。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-heritage",
+      "title": "文化传续与教授知识",
+      "axis": "承接传播 / 教给他人",
+      "members": [
+        "传承",
+        "传授"
+      ],
+      "quiz": {
+        "stem": "这里强调老师把一套操作方法直接教给学生，这个教学动作叫作____。",
+        "answer": "传授",
+        "reason": "关键词是教给别人；传承强调承接、延续，不直接等同于一次教学。"
+      },
+      "quizzes": [
+        {
+          "stem": "若强调一种文化被一代代承接并继续流传，而非单次课堂教学，应说文化____。",
+          "answer": "传承",
+          "reason": "代际延续是辨析重点。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-praise",
+      "title": "流传诵读与赞美颂扬",
+      "axis": "诵读传播 / 赞美传播",
+      "members": [
+        "传诵",
+        "传颂"
+      ],
+      "quiz": {
+        "stem": "如果重点是“把诗句反复诵读并传播开来”，应选____。",
+        "answer": "传诵",
+        "reason": "诵读传播突出“诵”，不要求对人物功绩作赞美。"
+      },
+      "quizzes": [
+        {
+          "stem": "如果重点是“传扬并赞美英雄的功绩”，应选____。",
+          "answer": "传颂",
+          "reason": "赞美功绩突出“颂”，不是单纯诵读文字。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-reputation",
+      "title": "使人信服与社会声望",
+      "axis": "信服力 / 名望",
+      "members": [
+        "威信",
+        "威望"
+      ],
+      "quiz": {
+        "stem": "词义辨析中，若重点是“使大家愿意信服的力量或信誉”，更直接对应____。",
+        "answer": "威信",
+        "reason": "此题按定义侧重判断；威望侧重令人敬重的名声。"
+      },
+      "quizzes": [
+        {
+          "stem": "若定义强调“在社会上享有的名声和声望”，更直接对应____。",
+          "answer": "威望",
+          "reason": "强调名望本身，不把二者实际用法的交叉绝对割裂。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-survey",
+      "title": "推测、推断与直接观测",
+      "axis": "猜测可能 / 依据推论 / 实际观察",
+      "members": [
+        "推测",
+        "推断",
+        "观测"
+      ],
+      "quiz": {
+        "stem": "工作人员把仪器放入河道，定时读出水位数值，正在____水位。",
+        "answer": "观测",
+        "reason": "使用仪器直接获取数据，区别于推理或猜想。"
+      },
+      "quizzes": [
+        {
+          "stem": "若定义明确强调“依据已知事实，经过推理作出判断”，最直接对应____。",
+          "answer": "推断",
+          "reason": "推理并作出判断是定义重点；不把推断说成绝对可靠。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-trace",
+      "title": "追溯源头与跟踪进展",
+      "axis": "逆向寻找 / 随进展观察 / 深究",
+      "members": [
+        "追溯",
+        "追踪",
+        "追究"
+      ],
+      "quiz": {
+        "stem": "档案研究试图把事件的来龙去脉一直向前查找，____其最初的起因。",
+        "answer": "追溯",
+        "reason": "向过去寻找源头，区别于跟进后续变化。"
+      },
+      "quizzes": [
+        {
+          "stem": "对造成严重损失的失职行为，要依法____相关人员的责任。",
+          "answer": "追究",
+          "reason": "“责任”与查明、追责相连，使用追究。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-remove",
+      "title": "淘汰、筛除与彻底除掉",
+      "axis": "竞争筛去 / 挑出剔去 / 除掉根源",
+      "members": [
+        "淘汰",
+        "剔除",
+        "根除"
+      ],
+      "quiz": {
+        "stem": "如果要求不是暂时压住现象，而是从根本上除去病根，应说____弊病。",
+        "answer": "根除",
+        "reason": "从根本上除掉是根除的定义。"
+      },
+      "quizzes": [
+        {
+          "stem": "筛选时，把表格中重复的三行从其余有效记录里单独挑出删去，这叫____重复项。",
+          "answer": "剔除",
+          "reason": "从集合中挑出不合适部分，是剔除；不强调竞争更新或病根。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-claim",
+      "title": "澄清、阐释与阐发",
+      "axis": "消除模糊 / 解释意义 / 展开说明",
+      "members": [
+        "澄清",
+        "阐释",
+        "阐发"
+      ],
+      "quiz": {
+        "stem": "被误传的消息终于有了完整证据，发布方及时____事实，消除混淆。",
+        "answer": "澄清",
+        "reason": "消除误传与混淆是关键，并非展开一种理论。"
+      },
+      "quizzes": [
+        {
+          "stem": "若定义特别包含“阐明并进一步发挥、展开”，而非一般解释其含义，较直接对应____。",
+          "answer": "阐发",
+          "reason": "“发”在此有发挥、展开之意；这是定义侧重辨析。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-hidden",
+      "title": "含蓄表达与隐秘深奥",
+      "axis": "不直白 / 不易察觉 / 难以理解",
+      "members": [
+        "隐晦",
+        "隐蔽",
+        "晦涩"
+      ],
+      "quiz": {
+        "stem": "观察点位于灌木遮挡的山洞中，外面的人很难发现，位置十分____。",
+        "answer": "隐蔽",
+        "reason": "难被发现说的是位置，不是语言是否直白或难懂。"
+      },
+      "quizzes": [
+        {
+          "stem": "句子塞满生僻术语，读者反复阅读也不明白，文字十分____。",
+          "answer": "晦涩",
+          "reason": "难于理解是核心，不必推断作者有意含蓄表达。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-concise",
+      "title": "语言简练、办法便捷与生活俭朴",
+      "axis": "表达精炼 / 方法简单 / 节省朴素",
+      "members": [
+        "简洁",
+        "简捷",
+        "俭朴"
+      ],
+      "quiz": {
+        "stem": "他不追求昂贵衣物，日常吃穿从简，生活十分____。",
+        "answer": "俭朴",
+        "reason": "节省、不奢侈是生活作风，与语言和方法无关。"
+      },
+      "quizzes": [
+        {
+          "stem": "这段文字删去了赘述，用很少的话说清重点，表达更加____。",
+          "answer": "简洁",
+          "reason": "强调文字不啰嗦、内容精炼，选择简洁。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-precise",
+      "title": "准确无误与细致严整",
+      "axis": "符合实际 / 细微精确 / 认真严密",
+      "members": [
+        "准确",
+        "精密",
+        "严谨"
+      ],
+      "quiz": {
+        "stem": "若释义只要求“与实际或标准相符，没有差错”，最直接对应____。",
+        "answer": "准确",
+        "reason": "这是正确性标准，不等于仪器结构精细或个人态度认真。"
+      },
+      "quizzes": [
+        {
+          "stem": "若重点是研究者处处审慎、治学不放松要求的作风，应说治学____。",
+          "answer": "严谨",
+          "reason": "治学作风对应严谨；精密常说仪器构造，准确侧重判断结果。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-nature",
+      "title": "自然侵害与地表改造",
+      "axis": "逐渐损坏 / 外力侵入蚀损 / 水流冲击",
+      "members": [
+        "腐蚀",
+        "侵蚀",
+        "冲刷"
+      ],
+      "quiz": {
+        "stem": "如果定义中特别强调“水流冲击并带走表面物质”这一动作，最直接对应____。",
+        "answer": "冲刷",
+        "reason": "水流冲击是明确过程；侵蚀范围更广，腐蚀典型指化学损坏。"
+      },
+      "quizzes": [
+        {
+          "stem": "若用来比喻不良思想逐渐使人的品格变坏，常说精神上的____。",
+          "answer": "腐蚀",
+          "reason": "此题对应腐蚀思想、品格的常见比喻义；不是水流冲洗。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-money",
+      "title": "损失赔付、缺损补足与费用偿还",
+      "axis": "损害责任 / 补足损失 / 归还款项",
+      "members": [
+        "赔偿",
+        "补偿",
+        "偿还"
+      ],
+      "quiz": {
+        "stem": "他按借款合同约定，将本金和利息如数____给出借人。",
+        "answer": "偿还",
+        "reason": "对象是此前所欠借款，重点是归还债务。"
+      },
+      "quizzes": [
+        {
+          "stem": "若强调“因自身行为损坏他人财物而承担的损害责任”，较直接说____责任。",
+          "answer": "赔偿",
+          "reason": "造成他人损失并承担责任是赔偿的典型含义；补偿的范围更宽。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-market",
+      "title": "取消、取缔与撤销",
+      "axis": "停止安排 / 依法禁止 / 撤回原决定",
+      "members": [
+        "取消",
+        "取缔",
+        "撤销"
+      ],
+      "quiz": {
+        "stem": "查明该场所长期无证经营后，执法部门依法予以____。",
+        "answer": "取缔",
+        "reason": "执法机关禁止非法经营，是取缔的特定语境。"
+      },
+      "quizzes": [
+        {
+          "stem": "如果重点是“把已经作出的处分决定撤回，使其失效”，最直接对应____。",
+          "answer": "撤销",
+          "reason": "既有正式处分被撤回，是撤销；不只是一般安排改变。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-speed",
+      "title": "行动迟缓与形势突变",
+      "axis": "行动慢 / 突然加剧 / 逐步放慢",
+      "members": [
+        "迟缓",
+        "急剧",
+        "趋缓"
+      ],
+      "quiz": {
+        "stem": "气温在一小时内下降十多度，变化既快又大，可说气温____下降。",
+        "answer": "急剧",
+        "reason": "快速且剧烈的变化对应急剧。"
+      },
+      "quizzes": [
+        {
+          "stem": "增长率从百分之十逐步降到百分之八、百分之六，但总量仍在增加，说明增速____。",
+          "answer": "趋缓",
+          "reason": "增长没有停止，但速度逐步放慢，体现趋缓的趋势。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-motivation",
+      "title": "激发行动、鞭策与制约",
+      "axis": "激励推动 / 督促前进 / 加以限制",
+      "members": [
+        "激励",
+        "鞭策",
+        "约束"
+      ],
+      "quiz": {
+        "stem": "若强调制度给行为划定边界，防止越界，制度发挥的是____作用。",
+        "answer": "约束",
+        "reason": "划界、限制对应约束，不是鼓励行动。"
+      },
+      "quizzes": [
+        {
+          "stem": "若词义特别包含“像用鞭赶马那样督促人前进”的比喻，应选____。",
+          "answer": "鞭策",
+          "reason": "此题辨析比喻来源和督促意味，不把一般鼓励与督促绝对分开。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-decision",
+      "title": "犹豫、踌躇与果断",
+      "axis": "拿不定主意 / 志得意满的固定用法 / 决断迅速",
+      "members": [
+        "犹豫",
+        "踌躇",
+        "果断"
+      ],
+      "quiz": {
+        "stem": "局势突然变化，负责人迅速作出明确决定，没有拖延，处事十分____。",
+        "answer": "果断",
+        "reason": "迅速且坚决地决断，区别于犹豫迟疑。"
+      },
+      "quizzes": [
+        {
+          "stem": "“____满志”形容对自己的现状或成就感到得意、满足，横线处应填哪个词？",
+          "answer": "踌躇",
+          "reason": "踌躇有得意满足的用法，不能将这一固定表达解释成拿不定主意。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-settle",
+      "title": "调节参数、调剂余缺与调解争端",
+      "axis": "调整状态 / 调配余缺 / 排解纠纷",
+      "members": [
+        "调节",
+        "调剂",
+        "调解"
+      ],
+      "quiz": {
+        "stem": "甲校器材有余，乙校不足，教育部门将两校物资相互____，以补足缺口。",
+        "answer": "调剂",
+        "reason": "针对有余和不足重新调配，突出余缺互补。"
+      },
+      "quizzes": [
+        {
+          "stem": "双方因噪声发生争执，社区人员居中劝说、帮助达成协议，正在____纠纷。",
+          "answer": "调解",
+          "reason": "居中排解争执，对应调解。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-goals",
+      "title": "目标、目的与指标",
+      "axis": "所向对象 / 想达到的意图 / 衡量标准",
+      "members": [
+        "目标",
+        "目的",
+        "指标"
+      ],
+      "quiz": {
+        "stem": "“单位产值能耗”被用来衡量生产效率，它是一项统计____。",
+        "answer": "指标",
+        "reason": "给定的是衡量状况的具体标准。"
+      },
+      "quizzes": [
+        {
+          "stem": "若提问是“为什么进行这次调查”，主要是在询问调查的____。",
+          "answer": "目的",
+          "reason": "此题以意图为重点；不是要求列出用于衡量的数值。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-nurture",
+      "title": "涵养、滋养与培养",
+      "axis": "修养蓄积 / 营养润泽 / 教育成长",
+      "members": [
+        "涵养",
+        "滋养",
+        "培养"
+      ],
+      "quiz": {
+        "stem": "若作为名词表示一个人在待人接物中体现出的修养，通常说他很有____。",
+        "answer": "涵养",
+        "reason": "此处是名词义“修养”，不表示供给营养或教育训练。"
+      },
+      "quizzes": [
+        {
+          "stem": "教师通过持续训练，使学生逐渐形成独立思考的习惯，这种教育过程称为____。",
+          "answer": "培养",
+          "reason": "教育、训练使习惯形成，直接对应培养。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-embody",
+      "title": "表现属性与实际履约",
+      "axis": "属性显现 / 内含于中 / 实际履约",
+      "members": [
+        "体现",
+        "蕴含",
+        "兑现"
+      ],
+      "quiz": {
+        "stem": "当初答应提供的补助已足额发放，部门用实际行动____了承诺。",
+        "answer": "兑现",
+        "reason": "承诺已经付诸实施，突出履约。"
+      },
+      "quizzes": [
+        {
+          "stem": "若定义强调“某种道理或意义包含在事物内部”，最直接对应____。",
+          "answer": "蕴含",
+          "reason": "内含是蕴含的核心侧重；体现突出具体表现出来。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-potential",
+      "title": "挖掘价值与激发活力",
+      "axis": "发现潜藏 / 触动引发 / 使有活力",
+      "members": [
+        "挖掘",
+        "激发",
+        "激活"
+      ],
+      "quiz": {
+        "stem": "新账户尚不能使用，完成身份验证后才能____账户。",
+        "answer": "激活",
+        "reason": "由未启用到可用的状态切换，使用激活。"
+      },
+      "quizzes": [
+        {
+          "stem": "若释义着重于“触动并引起某种兴趣或情感”，最直接对应____。",
+          "answer": "激发",
+          "reason": "重点是引起兴趣或情感；挖掘是深入寻找，激活侧重使活动起来。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-shape",
+      "title": "塑造、营造与铸造",
+      "axis": "形成形象 / 建设氛围 / 熔炼成型",
+      "members": [
+        "塑造",
+        "营造",
+        "铸造"
+      ],
+      "quiz": {
+        "stem": "工人将熔化的金属液注入模型，冷却后得到所需零件，这一工艺叫____。",
+        "answer": "铸造",
+        "reason": "金属熔液入模成型，属于铸造。"
+      },
+      "quizzes": [
+        {
+          "stem": "若强调主动形成一个便于交流的环境，常说____良好的讨论氛围。",
+          "answer": "营造",
+          "reason": "氛围、环境是营造的常见对象。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-constraint",
+      "title": "外部限制与心中牵挂",
+      "axis": "相互限制 / 牵制拖累 / 挂念",
+      "members": [
+        "制约",
+        "掣肘",
+        "牵挂"
+      ],
+      "quiz": {
+        "stem": "远在外地的她总放心不下独居的母亲，时时____家中情况。",
+        "answer": "牵挂",
+        "reason": "放心不下、挂念是情感意义。"
+      },
+      "quizzes": [
+        {
+          "stem": "若特别指“从旁牵制、干扰，使工作不能顺利展开”，最直接对应____。",
+          "answer": "掣肘",
+          "reason": "侧重点是旁人的牵制干扰；制约是更广的限制关系。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-proofread",
+      "title": "文字校对与行为纠正",
+      "axis": "订正文本 / 纠正偏差",
+      "members": [
+        "校正",
+        "矫正"
+      ],
+      "quiz": {
+        "stem": "编辑对照原稿，把排印时出现的错别字逐一____。",
+        "answer": "校正",
+        "reason": "对照原稿校对文字中的错误，是校正。"
+      },
+      "quizzes": [
+        {
+          "stem": "教练通过训练纠正学员长期形成的不良站姿，帮助他____姿势。",
+          "answer": "矫正",
+          "reason": "不正常姿势的纠偏，常用矫正。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-skill",
+      "title": "熟知情况与熟练掌握",
+      "axis": "了解得清楚 / 技能练得熟",
+      "members": [
+        "熟悉",
+        "熟习"
+      ],
+      "quiz": {
+        "stem": "若释义只说“对情况知道得清楚、详细”，更直接对应____。",
+        "answer": "熟悉",
+        "reason": "了解清楚是熟悉的核心义。"
+      },
+      "quizzes": [
+        {
+          "stem": "若强调“经过学习和练习，已把技艺练得熟练”，更直接对应____。",
+          "answer": "熟习",
+          "reason": "练习后掌握熟练是熟习的核心义，不能仅用字形差别判题。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-conduct",
+      "title": "待人处世与处理事务",
+      "axis": "对待世人 / 办理事务",
+      "members": [
+        "处世",
+        "处事"
+      ],
+      "quiz": {
+        "stem": "词义辨析中，若强调“在社会上与人相处、交往”，应选____。",
+        "answer": "处世",
+        "reason": "人际交往是处世的重点。"
+      },
+      "quizzes": [
+        {
+          "stem": "若重点是“办理事务、解决具体事情”，应选____。",
+          "answer": "处事",
+          "reason": "处理事情是处事的重点。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-travel",
+      "title": "时间经过与水域横越",
+      "axis": "时间经历 / 从水上过去",
+      "members": [
+        "度过",
+        "渡过"
+      ],
+      "quiz": {
+        "stem": "孩子们在图书馆活动中____了一个快乐的假期。",
+        "answer": "度过",
+        "reason": "假期是一段时间，使用度过。"
+      },
+      "quizzes": [
+        {
+          "stem": "河上没有桥，大家只能乘小船____这条河。",
+          "answer": "渡过",
+          "reason": "从水域一岸到另一岸，使用渡过。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-continuous",
+      "title": "时间长久与全年常态",
+      "axis": "多年 / 经常整年",
+      "members": [
+        "长年",
+        "常年"
+      ],
+      "quiz": {
+        "stem": "今年收成与历年平均产量相比偏低，仅达到____产量的八成。",
+        "answer": "常年",
+        "reason": "此处取平常年份这一义项。"
+      },
+      "quizzes": [
+        {
+          "stem": "这位研究员____累月地在野外观测，积累了大量一手资料。",
+          "answer": "长年",
+          "reason": "长年累月强调时间长久，不是平均年份的统计概念。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-ornament",
+      "title": "点缀、渲染与夸大",
+      "axis": "少量装饰 / 烘托强化 / 说得过大",
+      "members": [
+        "点缀",
+        "渲染",
+        "夸大"
+      ],
+      "quiz": {
+        "stem": "效果只提高一点，宣传却说成提高十倍，这是____效果。",
+        "answer": "夸大",
+        "reason": "明确超过事实，属于失真地放大。"
+      },
+      "quizzes": [
+        {
+          "stem": "走廊主体不变，只摆放几盆花作装饰，是用花卉____空间。",
+          "answer": "点缀",
+          "reason": "少量装饰、增加美感对应点缀。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-difficulty",
+      "title": "客观环境艰难与意志坚忍",
+      "axis": "生活条件苦 / 意志坚定耐苦",
+      "members": [
+        "艰苦",
+        "坚苦"
+      ],
+      "quiz": {
+        "stem": "住所漏雨、食物紧缺、道路不通，说明当地生活条件十分____。",
+        "answer": "艰苦",
+        "reason": "直接描述客观条件困难。"
+      },
+      "quizzes": [
+        {
+          "stem": "若定义专指“意志坚忍，刻苦自励”，对应____。",
+          "answer": "坚苦",
+          "reason": "此题辨析人的坚忍刻苦，与客观环境困苦的侧重点不同。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-respect",
+      "title": "聆听、谛听与凝视",
+      "axis": "认真听取 / 仔细听辨 / 专注地看",
+      "members": [
+        "聆听",
+        "谛听",
+        "凝视"
+      ],
+      "quiz": {
+        "stem": "她目光停留在老照片上，很久没有移开，一直____着照片。",
+        "answer": "凝视",
+        "reason": "用目光专注地看，区别于听。"
+      },
+      "quizzes": [
+        {
+          "stem": "他屏住呼吸，仔细____远处几乎听不见的脚步声。",
+          "answer": "谛听",
+          "reason": "仔细听辨细微声响，是谛听的典型语境；聆听也有认真听取之义。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-spectacle",
+      "title": "鉴赏、观赏与奖赏",
+      "axis": "品评欣赏 / 观看欣赏 / 奖励",
+      "members": [
+        "鉴赏",
+        "观赏",
+        "奖赏"
+      ],
+      "quiz": {
+        "stem": "为表彰贡献，机构决定给优秀团队一定____。",
+        "answer": "奖赏",
+        "reason": "因贡献给予奖励，使用奖赏。"
+      },
+      "quizzes": [
+        {
+          "stem": "如果重点是“辨别、品评艺术作品的优劣并欣赏”，最直接对应____。",
+          "answer": "鉴赏",
+          "reason": "包含鉴别品评这一层，区别于一般观看欣赏。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-source",
+      "title": "起源、来源与资源",
+      "axis": "开始形成 / 从何处来 / 可利用条件",
+      "members": [
+        "起源",
+        "来源",
+        "资源"
+      ],
+      "quiz": {
+        "stem": "煤炭、水能和可利用的矿产，属于自然____。",
+        "answer": "资源",
+        "reason": "可供利用的自然要素是资源。"
+      },
+      "quizzes": [
+        {
+          "stem": "若释义专指“某个事物最初如何发生形成”，强调它的____。",
+          "answer": "起源",
+          "reason": "最初形成是起源的侧重，来源更广地表示来处或渠道。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-future",
+      "title": "愿景、前景与背景",
+      "axis": "希望实现 / 未来状况 / 既有环境",
+      "members": [
+        "愿景",
+        "前景",
+        "背景"
+      ],
+      "quiz": {
+        "stem": "若描述的是大家希望未来共同实现的理想图景，应称为共同____。",
+        "answer": "愿景",
+        "reason": "主观希望实现的未来状态是愿景。"
+      },
+      "quizzes": [
+        {
+          "stem": "研究一项制度为何在当时出现，需要了解那个时期的历史____。",
+          "answer": "背景",
+          "reason": "解释发生条件与环境，属于背景。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-space",
+      "title": "范围、范畴与规模",
+      "axis": "边界所及 / 概念类别 / 大小程度",
+      "members": [
+        "范围",
+        "范畴",
+        "规模"
+      ],
+      "quiz": {
+        "stem": "如果比较的是两家企业的产量、人员数量和总体大小，比较的是企业____。",
+        "answer": "规模",
+        "reason": "着眼于体量和大小，使用规模。"
+      },
+      "quizzes": [
+        {
+          "stem": "如果问题是“这一概念属于哪一类事物或哪个学科领域”，重点在其所属____。",
+          "answer": "范畴",
+          "reason": "分类或概念归属是范畴的侧重点。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-implement",
+      "title": "路径、途径与捷径",
+      "axis": "经过路线 / 实现方法 / 较近快的路",
+      "members": [
+        "路径",
+        "途径",
+        "捷径"
+      ],
+      "quiz": {
+        "stem": "若特指比通常办法更省时间、更快到达的路线或办法，应选____。",
+        "answer": "捷径",
+        "reason": "近、快是捷径区别于一般路径和途径的特征。"
+      },
+      "quizzes": [
+        {
+          "stem": "若仅概括“达到目的的方法或渠道”，更直接对应____。",
+          "answer": "途径",
+          "reason": "这是方法渠道义的定义；不强行判定路径在所有比喻语境中都不可用。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-basics",
+      "title": "本质、现象与表象",
+      "axis": "根本性质 / 可观察表现 / 外在印象",
+      "members": [
+        "本质",
+        "现象",
+        "表象"
+      ],
+      "quiz": {
+        "stem": "如果定义要求“决定事物性质的根本属性”，应选____。",
+        "answer": "本质",
+        "reason": "根本属性区别于外在表现。"
+      },
+      "quizzes": [
+        {
+          "stem": "若专指“头脑中再现的、并非此刻直接感知的感性形象”，对应____。",
+          "answer": "表象",
+          "reason": "这里采用表象的心理学义，不是一般外部现象。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-justice",
+      "title": "公平、公正与公允",
+      "axis": "机会待遇相宜 / 判断无私 / 评价恰当",
+      "members": [
+        "公平",
+        "公正",
+        "公允"
+      ],
+      "quiz": {
+        "stem": "这篇评论兼顾正反两方面，分析透彻，持论____。",
+        "answer": "公允",
+        "reason": "按固定搭配侧重识别；公平、公正与公允在意义上存在交叉。"
+      },
+      "quizzes": [
+        {
+          "stem": "若专门强调竞争者享有同等参赛机会，通常说机会____。",
+          "answer": "公平",
+          "reason": "机会公平是此处的常用表达；不借此把几个近义词绝对划开。"
+        }
+      ]
+    },
+    {
+      "id": "vocab-expand-shape2",
+      "title": "形式、形势与形态",
+      "axis": "表现方式 / 发展局面 / 外在样态",
+      "members": [
+        "形式",
+        "形势",
+        "形态"
+      ],
+      "quiz": {
+        "stem": "要判断当前经济发展的总体状况及走向，需要分析经济____。",
+        "answer": "形势",
+        "reason": "经济局面和走向对应形势。"
+      },
+      "quizzes": [
+        {
+          "stem": "在显微镜下观察细胞是圆形还是长条形，观察的是细胞____。",
+          "answer": "形态",
+          "reason": "着眼于细胞具体形状。"
+        }
+      ]
+    }
+  ]
+}

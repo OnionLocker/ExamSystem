@@ -97,6 +97,8 @@ export const KIND_BY_ID = new Map(QUESTION_KINDS.map((k) => [k.id, k]));
 
 /** 词条是否具备出某题型所需的字段 */
 export function entrySupports(entry, kind) {
+  // Editorial cards with overlapping synonyms use reviewed group quizzes for context practice.
+  if (entry.quizKinds && !entry.quizKinds.includes(kind.id)) return false;
   return kind.requires.every((f) => {
     const v = entry[f];
     if (Array.isArray(v)) return v.length > 0;

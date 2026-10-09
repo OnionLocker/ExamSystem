@@ -26,7 +26,14 @@ export const ENTRY_FIELDS = {
   examples: 'string[]?',     // 完整例句（含该词，不挖空）
   tags: 'string[]?',
   source: 'string?',         // 来源标记，便于溯源与回滚
+  wordType: 'word|idiom|collocation?', // 实词 / 成语熟语 / 固定搭配；未核定时不填
+  collocations: 'string[]?', // 常见搭配，不代表唯一合法搭配
+  publicSources: 'object[]?', // { title, url, kind? }，kind 标注词义或选词参考
+  exampleSource: 'string?',  // 原创例句或可追溯的引用来源
+  quizKinds: 'string[]?',    // 可选：限制自动组题；易互换词用审核过的组题练语境
 };
+
+export const WORD_TYPES = { word: '实词', idiom: '成语与熟语', collocation: '固定搭配' };
 
 /**
  * pack 文件格式（externally generated）：
@@ -58,6 +65,11 @@ export const ENRICHABLE_FIELDS = [
   'examples',
   'tags',
   'category',
+  'wordType',
+  'collocations',
+  'publicSources',
+  'exampleSource',
+  'quizKinds',
 ];
 
 /** 数组型字段：合并时做并集去重而非覆盖 */
@@ -69,6 +81,7 @@ export const MERGE_UNION_FIELDS = [
   'synonyms',
   'examples',
   'tags',
+  'collocations',
 ];
 
 /** 校验单个词条。
@@ -87,6 +100,13 @@ export function validateEntry(entry, { requireId = true, requireExplanation = tr
   for (const f of MERGE_UNION_FIELDS) {
     if (entry[f] !== undefined && !Array.isArray(entry[f])) errs.push(`${f} 必须是数组`);
   }
+  if (entry.wordType !== undefined && !Object.hasOwn(WORD_TYPES, entry.wordType)) errs.push('wordType 必须是 word | idiom | collocation');
+  if (entry.quizKinds !== undefined && (!Array.isArray(entry.quizKinds) || !entry.quizKinds.length || entry.quizKinds.some(k => !['meaning', 'reverse', 'cloze', 'usage', 'trap', 'example'].includes(k)))) errs.push('quizKinds 含无效题型');
+  if (Array.isArray(entry.collocations) && entry.collocations.some(s => typeof s !== 'string' || !s.trim())) errs.push('collocations 必须是非空字符串数组');
+  if (entry.exampleSource !== undefined && (typeof entry.exampleSource !== 'string' || !entry.exampleSource.trim())) errs.push('exampleSource 必须是非空字符串');
+  if (entry.publicSources !== undefined && (!Array.isArray(entry.publicSources) || entry.publicSources.some(s =>
+    !s || typeof s.title !== 'string' || !s.title.trim() || typeof s.url !== 'string' || !/^https?:\/\//.test(s.url)
+    || (s.kind !== undefined && typeof s.kind !== 'string')))) errs.push('publicSources 必须包含标题和 http(s) 来源链接');
   if (entry.cloze) {
     for (const c of entry.cloze) {
       if (typeof c !== 'string') { errs.push('cloze 元素必须是字符串'); break; }
@@ -130,6 +150,39 @@ export function validatePack(pack) {
       if (unknown.length) warnings.push(`entries[${i}]: 忽略不可 enrich 的字段 ${unknown.join(', ')}`);
     }
   });
+
+  if (pack.groups !== undefined) {
+    if (!Array.isArray(pack.groups)) errors.push('groups 必须是数组');
+    else {
+      const words = new Set(pack.entries.map(e => e?.word));
+      const ids = new Set();
+      for (const g of pack.groups) {
+        if (!g || typeof g.id !== 'string' || !g.id.trim() || ids.has(g.id)
+          || typeof g.title !== 'string' || !g.title.trim() || typeof g.axis !== 'string' || !g.axis.trim()) {
+          errors.push('辨析组缺少 id/title/axis 或 id 重复');
+          continue;
+        }
+        ids.add(g.id);
+        if (!Array.isArray(g.members) || g.members.length < 2 || g.members.length > 4
+          || new Set(g.members).size !== g.members.length || g.members.some(w => !words.has(w))) {
+          errors.push(`${g.id}: members 须为本包内 2—4 个不同词语`);
+          continue;
+        }
+        if (g.members.some(word => {
+          const entry = pack.entries.find(e => e?.word === word);
+          return typeof entry?.usage !== 'string' || !entry.usage.trim()
+            || !Array.isArray(entry.examples) || typeof entry.examples[0] !== 'string' || !entry.examples[0].includes(word);
+        })) errors.push(`${g.id}: 组内词语须有用法与包含词语的例句`);
+        if (g.quizzes !== undefined && !Array.isArray(g.quizzes)) { errors.push(`${g.id}: quizzes 必须是数组`); continue; }
+        for (const q of [g.quiz, ...(g.quizzes || [])]) {
+          if (!q || !g.members.includes(q.answer) || typeof q.stem !== 'string' || q.stem.split('____').length !== 2
+            || q.stem.includes(q.answer) || typeof q.reason !== 'string' || !q.reason.trim()
+            || (q.options !== undefined && (!Array.isArray(q.options) || q.options.length < 2 || q.options.length > 4
+              || new Set(q.options).size !== q.options.length || !q.options.includes(q.answer) || q.options.some(w => !words.has(w))))) errors.push(`${g.id}: 小测答案、题干、解析或选项无效`);
+        }
+      }
+    }
+  }
 
   return { ok: errors.length === 0, errors, warnings };
 }
