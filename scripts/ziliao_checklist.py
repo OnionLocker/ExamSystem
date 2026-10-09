@@ -35,6 +35,8 @@ growth槽可问营业收入/利润额等绝对指标的同比增长率，不可�
 计算题解析须逐个写“X项：错误算式=结果”，程序会检查每个错误选项字母后紧跟算式；解析出现“计算失误/估算误差/粗心”即退回。
 数值选项两两相对差距须≥3%；比重、增长率、平均数类正确值不得是整数百分比，倍数类正确值不得是整数倍。
 图表篇至少两个只在图表出现的数据须写进本篇解析算式；年均增长题须用图中至少两个年份数据。
+问“高/低多少个百分点”的题，任何干扰项都不得等于两增速的相对比值（如7.4%与5.0%时的48.0%、1.48倍），否则按相对比较也成立形成双答案。
+细节查找、纯读数、读图排序（无需计算即可得出排名或数值）全卷至多1题。
 综合分析每题解析至少两处写出算式；百分点/累计/缺数据三类文字陷阱每篇至多一句、全卷至多两篇使用。
 解析中明确列出的纯数字算式须与写出的结果在展示精度内一致。按舍入后的增速反推基期，
 结果可能与图表直接给的上年数略有不同；不得把图表旧数伪写成反推算式的计算结果。
@@ -138,6 +140,14 @@ def _option_values(question):
     return values
 
 
+def _option_unit(option):
+    text = str(option.get("text") or "")
+    for unit in ("百分点", "倍", "%", "％"):
+        if unit in text:
+            return "%" if unit == "％" else unit
+    return ""
+
+
 def _decimals(text):
     found = set()
     for token in re.findall(r"\d+(?:\.\d+)?", str(text)):
@@ -165,6 +175,41 @@ KIND_STEM_RULES = {
 }
 
 
+def point_ratio_issues(question, kind=""):
+    """百分点问法里，等于两增速相对比值的选项按“相对高多少”读法也成立。"""
+    options = question.get("options") or []
+    option_text = " ".join(str(o.get("text") or "") for o in options)
+    if kind != "percentage_point" and "百分点" not in option_text:
+        return []
+    rates = {float(v) for v in re.findall(r"(\d+(?:\.\d+)?)\s*[%％]",
+                                         str(question.get("stem") or "") + str(question.get("explanation") or ""))}
+    issues = []
+    for option in options:
+        if option.get("key") == question.get("answer"):
+            continue
+        text = str(option.get("text") or "")
+        percent = re.search(r"(\d+(?:\.\d+)?)\s*[%％](?!\s*个?百分点)", text)
+        times = re.search(r"(\d+(?:\.\d+)?)\s*倍", text)
+        if not (percent or times):
+            continue
+        value = float((percent or times)[1])
+        digits = len((percent or times)[1].split(".")[1]) if "." in (percent or times)[1] else 0
+        tolerance = 0.5 * 10 ** -digits + 1e-9
+        for a in rates:
+            for b in rates:
+                if a == b or b <= 0 or value in (a, b):
+                    continue
+                target = a / b if times else (a / b - 1) * 100
+                if target > 0 and abs(target - value) <= tolerance:
+                    issues.append(f"{option.get('key')}项「{text}」等于{a:g}%与{b:g}%的相对比值，按相对比较也成立形成双答案；"
+                                  "百分点题干扰项改用不随读法成立的错误（如把百分点差写成“高X%”）")
+                    break
+            else:
+                continue
+            break
+    return issues
+
+
 def question_style_issues(question, calculation=None, slot=None):
     issues = []
     slot = slot or {}
@@ -174,6 +219,7 @@ def question_style_issues(question, calculation=None, slot=None):
     kind = str(slot.get("kind") or "")
     if VAGUE.search(explanation):
         issues.append(f"解析用「{VAGUE.search(explanation)[0]}」搪塞干扰项；写出该选项对应的错误算式")
+    issues.extend(point_ratio_issues(question, kind))
     if kind in KIND_STEM_RULES:
         pattern, message = KIND_STEM_RULES[kind]
         blob = stem + (" ".join(str(o.get("text")) for o in question.get("options") or []) if kind == "percentage_point" else "")
@@ -196,8 +242,11 @@ def question_style_issues(question, calculation=None, slot=None):
             issues.append(f"解析未写出干扰项{'、'.join(missing)}的错误算式（格式如“{missing[0]}项：错误算式=结果”）")
         values = _option_values(question)
         if len(values) == 4:
+            units = {str(o.get("key")): _option_unit(o) for o in question.get("options") or []}
             ordered = sorted(values.items(), key=lambda kv: kv[1])
             for (k1, v1), (k2, v2) in zip(ordered, ordered[1:]):
+                if units.get(k1) != units.get(k2):
+                    continue
                 scale = max(abs(v1), abs(v2))
                 if scale and abs(v2 - v1) / scale < 0.03:
                     issues.append(f"选项{k1}与{k2}过近（{v1:g}与{v2:g}，相对差<3%），需精算才能区分；拉开选项间距")
@@ -220,6 +269,18 @@ TRAP_PATTERNS = {
     "累计当当年": lambda t: "累计" in t,
     "缺数据无法比较": lambda t: bool(re.search(r"(?:无法|不能)(?:比较|判断|得出|确定|计算|求出)|未(?:给出|提及|提供)|缺少|缺乏|没有给出", t)),
 }
+
+
+LOOKUP_STEM = re.compile(r"排在?第[一二三四五六七八九十\d]+位|排名第|位列第|排序|(?:最多|最少|最大|最小|最高|最低)的(?:是|为)|为多少|是多少")
+
+
+def _is_lookup(question, slot):
+    family = question.get("family") or slot.get("family")
+    if family == "detail":
+        return True
+    if family == "judge":
+        return False
+    return bool(LOOKUP_STEM.search(str(question.get("stem") or ""))) and not ARITH.search(str(question.get("explanation") or ""))
 
 
 def paper_issues(materials, questions, slots=None):
@@ -260,6 +321,9 @@ def paper_issues(materials, questions, slots=None):
                     errors.append(f"{question.get('external_id')}: 综合分析同时依赖{'、'.join(hits)}文字陷阱；每篇至多一类")
                 if hits:
                     trap_papers.append(mid)
+    lookups = [q.get("external_id") for q in questions if _is_lookup(q, slot_by_id.get(q.get("external_id"), {}))]
+    if len(questions) == 20 and len(lookups) > 1:
+        errors.append(f"{'、'.join(map(str, lookups))}: 细节查找/读数/读图排序全卷至多1题，当前{len(lookups)}题；改为需计算的题型")
     if len(set(trap_papers)) > 2:
         errors.append(f"{'、'.join(sorted(set(trap_papers)))}: 综合分析有{len(set(trap_papers))}篇依赖百分点/累计/缺数据文字陷阱，全卷至多两篇")
     return errors

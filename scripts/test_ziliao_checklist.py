@@ -85,6 +85,35 @@ def main():
     assert any("图表独有数据" in s for s in paper_issues([chart], [unused], slots[:1]))
     print("PASS: placeholder places, artificial scope, vague distractors, close options, kind keywords, chart usage, judge traps")
 
+    point = {"external_id": "p-M01-Q4", "family": "growth", "answer": "B",
+             "stem": "2024年外贸货物吞吐量同比增速比内贸货物吞吐量同比增速：",
+             "options": [{"key": "A", "text": "高1.6个百分点"}, {"key": "B", "text": "高2.4个百分点"},
+                         {"key": "C", "text": "高3.2个百分点"}, {"key": "D", "text": "高48.0%"}],
+             "explanation": "外贸增长7.4%，内贸增长5.0%，7.4%-5.0%=2.4个百分点。A项：误取1.6个百分点；"
+                            "C项：1.6×2=3.2；D项：(7.4-5.0)/5.0=48.0%。"}
+    point_slot = {"family": "growth", "kind": "percentage_point"}
+    assert any("相对比值" in s for s in question_style_issues(point, slot=point_slot))
+    ratio = deepcopy(point)
+    ratio["options"][3]["text"] = "是内贸的1.48倍"
+    assert any("相对比值" in s for s in question_style_issues(ratio, slot=point_slot))
+    unit = deepcopy(point)
+    unit["options"][3]["text"] = "高2.4%"
+    unit["explanation"] = unit["explanation"].replace("D项：(7.4-5.0)/5.0=48.0%", "D项：7.4-5.0=2.4，混淆百分点与百分比")
+    assert not question_style_issues(unit, slot=point_slot), question_style_issues(unit, slot=point_slot)
+
+    def q(mid, n, family, stem, explanation="由材料直接读出。"):
+        return {"external_id": f"x-M{mid:02d}-Q{n}", "material_id": f"x-M{mid:02d}", "family": family,
+                "stem": stem, "explanation": explanation}
+    paper = [q(m, n, "judge" if n == 5 else "growth", "同比增长约多少", "(12.4-11.2)/11.2≈10.7%")
+             for m in range(1, 5) for n in range(1, 6)]
+    paper[0] = q(1, 1, "detail", "深圳港集装箱吞吐量为多少万标准箱？")
+    assert not any("读图排序" in s for s in paper_issues([], paper))
+    paper[15] = q(4, 1, "share_add", "床位数排在第二位的是：", "城区13115张、松山湖8056张，第二位为松山湖。")
+    assert any("读图排序" in s for s in paper_issues([], paper))
+    paper[15] = q(4, 1, "growth", "同比增量最多的是：", "2024年：218.4-191.8=26.6亿元，最多。")
+    assert not any("读图排序" in s for s in paper_issues([], paper))
+    print("PASS: percentage-point distractor equal to relative ratio, paper-wide lookup/sort limit")
+
 
 if __name__ == "__main__":
     main()

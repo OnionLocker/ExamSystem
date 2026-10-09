@@ -19,7 +19,7 @@ class QuotaTest(unittest.TestCase):
         self.assertEqual(len(slots), 20)
         tracks.validate_gd_quota(slots)
         counts = tracks.family_counts(slots)
-        self.assertLessEqual(counts["detail"], 2)
+        self.assertLessEqual(counts["detail"], 1)
         self.assertEqual(counts["judge"], 4)
         self.assertEqual([s["family"] for s in slots[4::5]], ["judge"] * 4)
         kinds = [s["kind"] for s in slots]
@@ -47,8 +47,8 @@ class QuotaTest(unittest.TestCase):
 
     def test_over_mix_rejected(self):
         slots = tracks.gd_slots_20()
-        slots[0]["family"] = "mix_pull"
         slots[2]["family"] = "mix_pull"
+        slots[3]["family"] = "mix_pull"
         with self.assertRaisesRegex(ValueError, "混合或拉动|mix_pull"):
             tracks.validate_gd_quota(slots)
 
@@ -181,9 +181,9 @@ class DifficultyAndExplainTest(unittest.TestCase):
         self.assertEqual(tracks.infer_family_from_question({"stem": "根据资料，下列说法有误的是"}), "judge")
         self.assertEqual(tracks.infer_family_from_question({"stem": "资料未提及的是"}), "detail")
         questions = (
-            [{"stem": "未提及的是"}] * 2
+            [{"stem": "未提及的是"}]
             + [{"stem": "下列说法正确的是"}] * 4
-            + [{"stem": "占全省的比重"}] * 4
+            + [{"stem": "占全省的比重"}] * 5
             + [{"stem": "同比增长"}] * 4
             + [{"tags": ["资料分析-ABRX类-基期量计算与比较"]}] * 2
             + [{"tags": ["资料分析-比较类-双线法与增量比较"]}] * 2
@@ -191,7 +191,7 @@ class DifficultyAndExplainTest(unittest.TestCase):
         )
         tracks.validate_gd_question_mix(questions)
         with self.assertRaisesRegex(ValueError, "细节查找"):
-            tracks.validate_gd_question_mix([{"stem": "未提及的是"}] * 3 + questions[2:19])
+            tracks.validate_gd_question_mix([{"stem": "未提及的是"}] * 2 + questions[1:19])
 
     def test_chart_match_is_hook_only(self):
         self.assertFalse(tracks.CHART_MATCH_HOOK["implemented"])

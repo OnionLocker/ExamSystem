@@ -65,7 +65,7 @@ GD_DESIGN_RULES += "\n" + QUESTION_RULES
 
 GD_PAPER_RULES = """轨A整套要求（targeted_drill为true时只按指定槽位）：
 整套覆盖间隔增长率、年均增长、倍数、比重变化、平均数、基期量、增长量、增长率、比重、混合增长率、百分点与综合分析；
-同一题型至多3题，细节查找/纯读数全卷至多2题；综合问法按槽位跨篇轮换，四道综合题的考查组合互不相同。
+同一题型至多3题，细节查找/读数/读图排序全卷至多1题；综合问法按槽位跨篇轮换，四道综合题的考查组合互不相同。
 四篇主题互不相同，使用广东省及其地市真实地名，不用G省、S市、某省等占位。
 每篇图表至少两个取数点仅在图表出现并进入计算。分项展示值之和与合计保留真实舍入差，不写四舍五入附注。"""
 
@@ -79,7 +79,7 @@ FAMILY_MIX_PULL = "mix_pull"
 
 # 轨 A 20 题配额：family 是审核员可判别的大类，kind 是用户要求覆盖的具体题型。
 GD_QUOTA = {
-    FAMILY_DETAIL: (1, 2),
+    FAMILY_DETAIL: (1, 1),
     FAMILY_JUDGE: (4, 4),
     FAMILY_SHARE_ADD: (2, 4),
     FAMILY_GROWTH: (4, 6),
@@ -115,7 +115,7 @@ KIND_FAMILY = {
 }
 REQUIRED_KINDS = tuple(KIND_LABELS)
 KIND_MAX = 3
-DETAIL_MAX = 2
+DETAIL_MAX = 1
 
 # 闸门认的四种综合判断（generation_gate._judge_form）。四篇 Q5 各用一种，禁止全写成「正确/有误」。
 GD_JUDGE_FORMS = (
@@ -246,14 +246,14 @@ def judge_slot_fields(material_index: int) -> dict:
 
 
 def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
-    """4×5 粤考槽位：覆盖12类计算/定位题型+4道综合，同类≤3、细节≤2；每篇Q5综合且问法与组合跨篇轮换。"""
+    """4×5 粤考槽位：覆盖12类计算/定位题型+4道综合，同类≤3、细节≤1；每篇Q5综合且问法与组合跨篇轮换。"""
     s = lambda family, tag, kind, brief: _slot(family, tag, brief, paper_tier, kind)
     slots = [
         # M01 长文字
         s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "文字定位：直接找出某个具体数值或分类归属，一步可得，不做计算，不设人为口径陷阱"),
         s(FAMILY_BASE_SHARE, ZILIAO_BASE, KIND_BASE, "基期量：由现期量和同比增速反推上年值；干扰项写出现期×(1-r)、现期×(1+r)等错误算式"),
         s(FAMILY_GROWTH, ZILIAO_DELTA, KIND_DELTA, "增长量：已知现期与增速求增长量A×r/(1+r)；干扰项含误用A×r"),
-        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_POINT, "百分点：两项增速或比率之差、或某增速比上年提高/回落多少个百分点；选项用“个百分点”，干扰项含相除得到的百分比"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_POINT, "百分点：两项增速或比率之差、或某增速比上年提高/回落多少个百分点；选项用“个百分点”。干扰项不得等于两增速的相对比值（如7.4%/5.0%-1=48%或1.48倍），否则按相对比较也成立；混淆单位的干扰项写成“高X%”且X等于百分点差"),
         s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
         # M02 表格
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "现期比重：表中某分项占合计比重；正确值不是整数百分比"),
@@ -268,7 +268,7 @@ def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
         s(FAMILY_BASE_SHARE, ZILIAO_SHARE_DIFF, KIND_SHARE_CHANGE, "比重变化：某部分占整体比重比上年上升/下降多少个百分点或判断升降，用a/b×(r1-r2)/(1+r1)；干扰项含直接相减两增速"),
         s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
         # M04 双系列柱图
-        s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "读图定位：直接从图中读出某类别数值或排第一的类别，一步可得"),
+        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数：用图中某类别数值与正文给出的对应数量求平均数（如每个机构、每名人员对应量），或比较两类别平均数；不出读图排序题，正确值不是整数"),
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "比重：某城市或类别占合计比重，合计由正文给出或图中求和；正确值不是整数百分比"),
         s(FAMILY_MIX_PULL, ZILIAO_MIX, KIND_MIX, "混合增长率：两部分合计的增长率，介于两部分增速之间且偏向基数大的一方；干扰项含两增速简单平均"),
         s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率：由图中两年数值求某类别增长率，或在至多4个类别中比较增长率"),
