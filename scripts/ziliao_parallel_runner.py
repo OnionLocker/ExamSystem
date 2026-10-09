@@ -96,7 +96,7 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
 分项穷尽时，现期之和、各自反推的基期之和须在各数字的四舍五入精度内与总量一致；部分列示须说明范围。
 合计和分项恰好相等也合理；不能为制造毛数故意改总量，不能用舍入掩盖超出精度范围的差异。
 不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
-本批槽位需要反推金额，所有金额及其增速必须同为现价名义口径，并在附注简明说明；不得添加不变价增速来规避总分自洽检查。
+本批槽位需要反推金额，所有金额及其增速必须同为现价名义口径；不得添加不变价增速来规避总分自洽检查。面向考生的材料不要写「按现价计算」或「因四舍五入，分项之和与总计略有差异」这类注。
     format为chart时只能返回bars figure，format为table时只能返回table figure，format为text时kind必须为none，绝不返回mixed。bars的categories为4-10个且每个series.values等长非空数字数组；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
 严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"none或table或bars","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}}}}}}。"""
 

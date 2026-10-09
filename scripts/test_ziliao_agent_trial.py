@@ -13,7 +13,7 @@ from ziliao_agent_paper import sync_reviewed_version, import_checked
 def main():
     with tempfile.TemporaryDirectory() as directory:
         trial = Trial(Path(directory) / "trial", Path(directory) / "unused.db")
-        candidate = {"content": "甲114.4亿元、乙86.2亿元，合计200.5亿元。因四舍五入，分项和与合计略有差异。",
+        candidate = {"content": "甲114.4亿元、乙86.2亿元，合计200.5亿元。",
                      "figure": {"kind": "bars", "categories": ["甲", "乙", "丙", "丁"],
                      "series": [{"name": "数值", "values": [21.3, 37.8, 29.4, 58.1]}]},
                      "rounding_checks": [{"label": "收入", "unit": "亿元", "places": 1,

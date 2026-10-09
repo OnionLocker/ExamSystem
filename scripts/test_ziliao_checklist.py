@@ -5,12 +5,15 @@ from ziliao_checklist import rounding_issues, question_style_issues, explanation
 
 
 def main():
-    material = {"content": "收入合计200.5亿元，其中甲114.4亿元、乙86.2亿元。因四舍五入，分项之和略有差异。",
+    material = {"content": "收入合计200.5亿元，其中甲114.4亿元、乙86.2亿元。",
                 "rounding_checks": [{"label": "收入", "unit": "亿元", "places": 1,
                                     "parts": [{"label": "甲", "raw": "114.36", "shown": "114.4"},
                                               {"label": "乙", "raw": "86.16", "shown": "86.2"}],
                                     "total": {"label": "合计", "raw": "200.52", "shown": "200.5"}}]}
     assert not rounding_issues(material)
+    noted = deepcopy(material)
+    noted["content"] += "注：涉及金额及增速均按现价计算；部分数据因四舍五入，分项之和与总计略有差异。"
+    assert any("附注" in s for s in rounding_issues(noted))
     fake = deepcopy(material)
     fake["rounding_checks"][0]["total"]["raw"] = "200.53"
     assert any("底层分项" in s for s in rounding_issues(fake))
@@ -18,7 +21,7 @@ def main():
     fake["rounding_checks"][0]["parts"][0]["shown"] = "114.3"
     assert any("舍入" in s for s in rounding_issues(fake))
     fake = deepcopy(material)
-    fake["content"] = "收入合计200.6亿元，其中甲114.4亿元、乙86.2亿元。因四舍五入，略有差异。"
+    fake["content"] = "收入合计200.6亿元，其中甲114.4亿元、乙86.2亿元。"
     fake["rounding_checks"][0]["total"] = {"label": "合计", "raw": "200.62", "shown": "200.6"}
     fake["rounding_checks"][0]["parts"][0]["raw"] = "114.44"
     fake["rounding_checks"][0]["parts"][1]["raw"] = "86.18"

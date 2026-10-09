@@ -215,7 +215,7 @@ def review_ziliao_material(material: dict, plan: dict | None = None) -> dict:
     if material.get("rounding_checks"):
         design += ("核验rounding_checks里每个指标的年份、单位、穷尽范围和shown数值都对应实际正文/图表，"
                    "不能凭台账自称一致就通过。totals对象额外返回ledger_matches=true/false；"
-                   "逐组列出展示分项和减合计的差值，检查实际舍入缺口及注释一致性。"
+                   "逐组列出展示分项和减合计的差值，检查实际舍入缺口。现价口径或四舍五入分项差异的附注视为不自然并REJECT。"
                    "同时核查台账之外的总分和基期关系。")
     review = call_flash(ZILIAO_MATERIAL_SYSTEM + ZILIAO_INFERENCE_RULES + ZILIAO_FIGURE_RULES + design,
                         json.dumps(material, ensure_ascii=False))
