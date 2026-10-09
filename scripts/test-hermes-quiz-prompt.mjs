@@ -40,15 +40,27 @@ const table = buildQuizPrompt({ text: '只练表格资料分析，出5题', proj
 assert.match(table.quizNudge, /--formats table/);
 assert.match(table.quizNudge, /--track gd/);
 
-const paper = buildQuizPrompt({ text: '给我出一整套资料分析，均衡一点', projectRoot });
-assert.match(paper.quizNudge, /--track gd --count 20 --materials 4 --difficulty mid/);
-assert.doesNotMatch(paper.quizNudge, /--formats chart/);
-assert.match(paper.quizNudge, /粤考日练/);
+for (const text of [
+  '给我出一整套资料分析，均衡一点',
+  '出一套广东省考资料分析',
+  '来20道资料分析题',
+  '资料分析出四篇题',
+  '给我出广东省考资料分析题',
+  '资料分析来一套经典计算加练',
+]) {
+  const { wantsQuiz, quizNudge } = buildQuizPrompt({ text, projectRoot });
+  assert.equal(wantsQuiz, true, text);
+  assert.match(quizNudge, /scripts\/ziliao_agent_paper\.py --output-dir \/home\/ubuntu\/ExamSystem\/data\/manual-ziliao-agent-paper/, text);
+  assert.match(quizNudge, /--workers 2 --import/, text);
+  assert.match(quizNudge, /资料分析整套必须走 agent-paper 高质量通道/, text);
+  assert.match(quizNudge, /禁止用 parallel runner/, text);
+  assert.doesNotMatch(quizNudge, /python3 \S*ziliao_parallel_runner\.py/, text);
+}
 
-const classic = buildQuizPrompt({ text: '资料分析来一套经典计算加练', projectRoot });
-assert.match(classic.quizNudge, /--track classic --count 20 --materials 4 --difficulty mid/);
-assert.match(classic.quizNudge, /经典计算加练/);
-assert.match(classic.quizNudge, /不要标成广东省考综合训练/);
+const voice = buildQuizPrompt({ audio: true, projectRoot }).quizNudge;
+assert.match(voice, /资料分析整套（20题、4篇、“一套\/整套”、广东省考\/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套/);
+assert.match(voice, /scripts\/ziliao_agent_paper\.py/);
+assert.doesNotMatch(voice, /资料分析共享材料和确定性图表走 ziliao_parallel_runner\.py/);
 
 const defaultZiliao = buildQuizPrompt({ text: '资料分析出5题', projectRoot });
 assert.match(defaultZiliao.quizNudge, /--track gd --count 5 --materials 1 --difficulty mid --formats chart/);

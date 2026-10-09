@@ -34,7 +34,8 @@ python3 /home/ubuntu/ExamSystem/scripts/kaodian_profile.py --record '模块-一�
 - 正式生成必须 terminal 后台运行，`background=true`、`notify_on_complete=true`。脚本负责出题、独立盲解、考官审核、补题、签收据和入库；不要自己写 questions.json、手跑 generation_gate/import-batch，失败不得绕过。等待后台 JSON 的 status=success 后才能报告 batch_id 和实际 imported 数量，“已开始”不代表完成。
 - 批次号必须唯一，不能覆盖已有题。显示名称由脚本按当前目录生成：父级用 `广东省考行测-{模块}-{父知识点}-{难度}-{YYYYMMDD}`，指定子考法则在父级后、难度前追加该子点当前全名。难度用“简单／中等／困难／综合”之一；easy/mid/hard 分别对应前三档，多档混合或 auto 用“综合”（不承诺各档配额）。不简写知识点、不把“综合”粘到知识点名、不显示“自主难度”；父级配额卷不冒充首个子点，加入当天计划也不覆盖名称。
 - 政治理论、常识判断先按 `quiz-pipeline/references/politics-common-workflow.md` 核验权威原文，运行 `policy_sources.py status`；缺源先补源，不能靠模型记忆或搜索摘要编造事实。政治支持判断/单选/多选，常识为单选。
-- 图形推理、空间推理、科学推理使用粉笔/已有外采真题，不启动图题生成器或实验模式。资料分析的共享材料和确定性图表使用 `ziliao_parallel_runner.py`，按用户题量执行；不自动恢复日练。
+- 图形推理、空间推理、科学推理使用粉笔/已有外采真题，不启动图题生成器或实验模式。
+- 资料分析整套必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套：凡是 20 题、4 篇、“一套/整套”、广东省考/默认难度的资料分析请求（语音或文字、网页或 TUI）一律后台运行 `scripts/ziliao_agent_paper.py --workers 2 --import`（完整命令见 `quiz-pipeline/SKILL.md`「默认粤考整套」），成功须 passed=true 且 imported=20。`ziliao_parallel_runner.py` 只做单篇 5 题或指定资料考点专项（至多 2 篇 10 题），脚本会拒绝整套请求，并同样强制资料清单硬检查。不自动恢复日练。
 - 对话默认不打印新题题干、选项或答案；成功直接按回执简报批次和题量，不再查库确认；如报难度，用actual_difficulty_counts说明实际分布，不能把请求hard说成实际全hard。失败原样说明脚本错误。工具连续失败两次停止；上游错误或回答截断必须告知，等用户要求继续，不静默重试。
 
 # 复盘与质量反馈

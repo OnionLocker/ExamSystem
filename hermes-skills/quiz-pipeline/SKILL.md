@@ -1,7 +1,7 @@
 ---
 name: quiz-pipeline
 description: >
-  文字专项、政治理论和常识调 quiz_lite.py；政治常识先核对权威原文；资料分析默认整套调 ziliao_agent_paper.py，单篇/指定配额/经典轨调 ziliao_parallel_runner.py。禁止在会话里写 questions.json、
+  文字专项、政治理论和常识调 quiz_lite.py；政治常识先核对权威原文；资料分析整套必须调 ziliao_agent_paper.py（禁止用 parallel runner 出整套），仅单篇5题/指定考点专项调 ziliao_parallel_runner.py。禁止在会话里写 questions.json、
   禁止手跑 generation_gate / import-batch。触发词：出题、来几题、测测我、刷题、专项。
 version: 4.1.0
 author: local
@@ -166,7 +166,7 @@ python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' \
 
 ### 默认粤考整套：Hermes 工具子 Agent
 
-用户要“一套/整套/均衡/日练/广东省考资料分析”，且未指定不同题量、考点配额、图表形态或 easy/hard 时，默认轨 A、mid、4篇20题，使用下面的新入口。每篇为隔离的 Hermes AIAgent/Gemini 上下文，默认最多同时运行2篇。必须后台执行，环境变量只从已有环境文件加载，禁止打印密钥。
+**资料分析整套必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套。** 用户要求宁要质不要量：凡是 20 题、4 篇、“一套/整套/均衡/日练”、广东省考/默认难度的资料分析请求，不论语音还是文字、网页还是 TUI，一律使用下面的入口（固定轨 A、mid、4篇20题）。用户同时提到经典计算、图表形态或 easy/hard 时，整套仍走本入口，并说明整套只提供这一高质量版本。每篇为隔离的 Hermes AIAgent/Gemini 上下文，默认最多同时运行2篇。必须后台执行，环境变量只从已有环境文件加载，禁止打印密钥。
 
     cd /home/ubuntu/ExamSystem
     set -a
@@ -182,14 +182,15 @@ python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' \
 - 脚本自动完成按篇出题、工具计算、自主修复、整套审核以及校验后入库。成功必须是退出码0、passed=true、error为空且imported=20；审核通过但入库失败不能宣称题库已更新。
 - 用户明确要求只验收、不入库时，去掉 --import，成功返回 imported=0。
 - 材料变更会作废该篇旧题和回执；单题错误局部修复，整套问题自动返回对应worker。不得手改题、手跑闸门或降低标准放行。
-- 保留所有失败及回修证据。达到预算上限如实报告；不得悄悄换旧runner再出一套冒充新流程成功。
+- 保留所有失败及回修证据。达到预算上限如实报告；不得悄悄换旧runner再出一套冒充新流程成功（旧runner也会直接拒绝整套）。
+- 脚本内置的质量约束（不用 Hermes 另行转述）：每套覆盖间隔增长率、年均增长、倍数、比重变化、平均数、基期量、增长量、增长率、比重、混合增长率、百分点和 4 道综合分析；同一题型 ≤3 题，细节查找/纯读数 ≤2 题；四篇主题从农业、文旅、港口、科创、就业、能源、数字经济、海洋经济等池中轮换并避开上一套；真实广东地名；图表至少两个数据进入计算；干扰项须写出错误算式；选项相对差 ≥3%；四道综合题考查组合互不相同。
 - 四图选一仍未实现，不启用 chart_match 或假选项图。单个成功批次不代表以后零重试。
 - 这是按需出题，不恢复每日自动调度。用户当前要审核已有批次时只读审核，不重新生成。
 - 运行说明与产物见 docs/ziliao-agent-workflow.md。
 
-### 单篇、显式配额或经典计算：原入口
+### 单篇或指定考点专项：快速通道（内部工具）
 
-纯文字单题可用 quiz_lite.py，每题须自带全部数据。用户明确指定某知识点、单篇、不同题量、形态、easy/hard 或 classic 时，仍走下面入口，严格服从指定范围，不能强改成新入口的固定20题：
+纯文字单题可用 quiz_lite.py，每题须自带全部数据。`ziliao_parallel_runner.py` 已降为单篇/专项工具：不指定考点时只出 1 篇 ≤5 题；指定资料考点（--tag/--blueprint）至多 2 篇 10 题；20 题/4 篇等整套请求会被脚本直接拒绝。它与整套入口执行相同的资料清单硬检查。用户要 6–19 题非专项时，说明只提供单篇 5 题或高质量整套 20 题，请用户选择：
 
 
 ```bash
@@ -199,11 +200,11 @@ python3 /home/ubuntu/ExamSystem/scripts/ziliao_parallel_runner.py \
 ```
 
 - 支持 `--blueprint` 编排，标签仍使用资料分析白名单，`brief` 指定细分情形，不新造资料标签。
-- 双轨：`--track gd`（默认，粤考日练）按近年粤考配额出细节/排除/综合正误；`--track classic` 才保留混合/拉动等教材技法，source 必须是「经典计算加练-…」，不得再标「广东省考综合训练」。默认日练/用户说广东省考只走轨 A。
-- 题量 1–20，每篇 1–5 题，材料 1–4 篇；`--formats` 按篇传 `text,table,chart`，chart 为程序渲染柱图。轨 A 整套默认 `text,table,chart,chart`，M01 为长文字。
+- 双轨：`--track gd`（默认，粤考日练）；`--track classic` 才保留混合/拉动等教材技法，source 必须是「经典计算加练-…」，不得再标「广东省考综合训练」。两轨都只能出单篇或专项。
+- 不指定考点：1 篇 ≤5 题；指定考点：至多 2 篇 10 题；`--formats` 按篇传 `text,table,chart`，chart 为程序渲染柱图。
 - 模型走 Gemini：`ZILIAO_GEMINI_MODEL` / `DAILY_GEMINI_MODEL` / 默认 `gemini-3.8-flash-high`，密钥只读 `CLIPROXY_API_KEY`。可先 `--plan-only` 核对配额。
 - 资料分析按篇隔离上下文：每篇 5 题由一个独立篇级 worker 负责，先冻结材料和结构化数据，再生成该篇题目；其他篇草稿不得传入该 worker。
-- 用户只点“柱状图/柱图”时只传 `--track gd --count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。默认轨A整套使用上节工具子Agent入口；本节只承接明确的专项/配额/难度/形态或经典轨请求。只有用户明确要经典计算加练时才 `--track classic`。
+- 用户只点“柱状图/柱图”时只传 `--track gd --count 5 --materials 1 --formats chart`；只点表格或纯文字时分别传 `--formats table` / `--formats text`。整套一律使用上节 agent-paper 入口；本节只承接单篇或指定考点专项。只有用户明确要经典计算加练单篇时才 `--track classic`。
 - 单题质量失败只回炉该题，保留冻结材料和其余题；只有材料数据、单位或图表本身不自洽时才重出整篇。不要因一题失败丢弃整篇。
 - 质量门返回具体 `question_id` 时，脚本最多按题号修复并重签两轮；视觉质检失败时按图片对应的材料编号局部重做该篇及其题目，最多重试三轮；只有超过上限或无法定位失败对象时才结束批次。不要让一次图表排版失败直接丢弃其他篇。
 - 未指定批次号时自动分配唯一编号；显式编号重复则拒绝，不覆盖原题。
