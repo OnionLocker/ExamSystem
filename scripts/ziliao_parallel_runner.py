@@ -34,6 +34,8 @@ from ziliao_tracks import (
     GD_DESIGN_RULES,
     GD_PAPER_RULES,
 )
+from ziliao_checklist import (VERSION as CHECKLIST_VERSION, MATERIAL_RULES, material_text_issues,
+                              question_style_issues, rounding_issues)
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = resolve_gemini_model()
@@ -90,15 +92,15 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{track_material_rules(track, item)}
 本批难度 {frame.get('difficulty', 'mid')}。方向与已确认考点：{json.dumps(item, ensure_ascii=False)}。生成一篇数据足够、篇幅适当的原创统计材料。
 {ZILIAO_INFERENCE_RULES}
-材料自洽，所有题目所需数字必须来自正文或结构化图表。使用G省、H省或全国，不用“某省”。
+材料自洽，所有题目所需数字必须来自正文或结构化图表。地名用广东省及其地市真实名称（如广东省、深圳、广州、佛山、东莞），禁止G省、S市、某省等占位。
 {ZILIAO_FIGURE_RULES}
 先确定独立的底层数，再计算总量、合计、占比和总增速，禁止独立随机编造互相约束的统计数。
 分项穷尽时，现期之和、各自反推的基期之和须在各数字的四舍五入精度内与总量一致；部分列示须说明范围。
-合计和分项恰好相等也合理；不能为制造毛数故意改总量，不能用舍入掩盖超出精度范围的差异。
+至少一组穷尽分项的展示值之和与合计保留真实舍入差，不要正好相等；不能为制造毛数故意改总量，不能用舍入掩盖超出精度范围的差异。
 不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
 本批槽位需要反推金额，所有金额及其增速必须同为现价名义口径；不得添加不变价增速来规避总分自洽检查。面向考生的材料不要写「按现价计算」或「因四舍五入，分项之和与总计略有差异」这类注。
     format为chart时只能返回bars figure，format为table时只能返回table figure，format为text时kind必须为none，绝不返回mixed。bars的categories为4-10个且每个series.values等长非空数字数组；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
-严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"none或table或bars","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}}}}}}。"""
+严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"none或table或bars","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}},"rounding_checks":[]}}}}。"""
 
 def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=None) -> str:
     slot = slot or {}
@@ -269,6 +271,7 @@ def question_errors(question: dict, calculation: dict, material: dict, plan: dic
         errors.append(f"综合判断题干必须包含「{expected_stem}」")
     if expected_form and classify_judge_form(stem) != expected_form:
         errors.append(f"综合判断形式须为{expected_form}，实际{classify_judge_form(stem) or '未识别'}")
+    errors.extend(question_style_issues({**question, "family": question.get("family") or slot.get("family")}, calculation, slot))
     return errors
 
 def paper_call(material: dict, plan: dict, batch_id: str) -> dict:
@@ -498,7 +501,7 @@ def failed_data_material_ids(batch_dir: Path) -> set[str]:
 
 
 def material_call(frame: dict, item: dict, batch_id: str, batch_dir: Path | None = None) -> dict:
-    prompt = material_prompt(frame, item, batch_id)
+    prompt = material_prompt(frame, item, batch_id) + "\n" + MATERIAL_RULES
     track = frame.get("track") or TRACK_GD
     required_kind = {"chart": "bars", "table": "table", "text": "none"}[str(item.get("format") or "text")]
     repair = f"\n这是第{{attempt}}次修复。format={item.get('format')}，figure.kind必须严格等于 {required_kind}。只输出完整JSON；不要把图表改成文字，不要输出mixed。数字禁止整万配整十人均，图序列禁止等差或等差增量。"
@@ -512,7 +515,8 @@ def material_call(frame: dict, item: dict, batch_id: str, batch_dir: Path | None
         errors = ([f"材料结构不完整或图形类型不符，必须为{required_kind}"]
                   if not valid_material(result) or kind != required_kind else
                   material_realism_errors(material, track=track,
-                      long_text=track == TRACK_GD and item.get("id") == "M01" and item.get("format") == "text"))
+                      long_text=track == TRACK_GD and item.get("id") == "M01" and item.get("format") == "text")
+                  + rounding_issues(material) + material_text_issues(material))
         review = {"verdict": "REJECT", "issues": errors} if errors else review_ziliao_material(material, item)
         attempts.append({"material": material, "stage": "local" if errors else "independent", "review": review})
         if batch_dir is not None:
@@ -550,6 +554,9 @@ def parse_args(argv=None):
     n = args.materials if args.materials is not None else math.ceil(count / 5)
     if not 1 <= count <= 20 or not 1 <= n <= 4 or not n <= count <= n * 5:
         parser.error("题量须1–20，每篇1–5题，材料须1–4篇")
+    if count > 10 or n > 2 or (not slots and n != 1):
+        parser.error("快速通道只做单篇或专项（不指定考点时只出1篇≤5题；指定考点至多2篇10题）。"
+                     "整套资料分析必须走高质量通道 scripts/ziliao_agent_paper.py，禁止用本脚本出整套")
     targeted = bool(slots) or count != 20
     formats = args.formats.split(',') if args.formats else default_formats(args.track, n, targeted)
     if len(formats) != n or any(f not in {"text", "table", "chart"} for f in formats):
@@ -654,7 +661,7 @@ def main(argv=None) -> int:
     if args.targeted:
         constraints.update(answer_max_per_letter=args.total, answer_min_letters=1)
     if per_item: constraints["tag_counts"] = dict(Counter(s["tag"] for s in per_item))
-    manifest={"batch_id":batch_id,"source":source,"region":"广东-模拟" if args.track == TRACK_GD else "经典计算-模拟","year":int(today[:4]),"license":"仅用于学习与题库内部评测","created_at":today,"kind":"ai-generated","difficulty_tier":args.difficulty,"generation":{"style_marker":"GONGKAO-STYLE-v2-split","model":MODEL,"batch_constraints":constraints,"kaofa_canon":run.get("kaofa_canon",{}),"evaluation_contexts":[]}}
+    manifest={"batch_id":batch_id,"source":source,"region":"广东-模拟" if args.track == TRACK_GD else "经典计算-模拟","year":int(today[:4]),"license":"仅用于学习与题库内部评测","created_at":today,"kind":"ai-generated","difficulty_tier":args.difficulty,"generation":{"style_marker":"GONGKAO-STYLE-v2-split","model":MODEL,"ziliao_checklist":CHECKLIST_VERSION,"batch_constraints":constraints,"kaofa_canon":run.get("kaofa_canon",{}),"evaluation_contexts":[]}}
     for name,data in [("framework.json",frame),("manifest.json",manifest),("materials.json",materials),("questions.json",questions),("calculations.json",{"questions":calculations})]: (out/name).write_text(json.dumps(data,ensure_ascii=False,indent=2))
     env = {**os.environ, "EXAM_DB": str(args.db)}
     marks["question_count"] = len(questions)

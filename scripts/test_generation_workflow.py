@@ -103,22 +103,22 @@ class ZiliaoWorkflow(unittest.TestCase):
         args = ziliao.parse_args(self.argv)
         self.assertEqual((args.total, args.difficulty, args.formats), (2, "easy", ["text"]))
         self.assertEqual(args.slots[0]["tag"], ziliao.TAGS[1])
-        self.assertNotEqual(ziliao.parse_args([]).batch_id, ziliao.parse_args([]).batch_id)
+        single = ["--count", "5", "--materials", "1"]
+        self.assertNotEqual(ziliao.parse_args(single).batch_id, ziliao.parse_args(single).batch_id)
         for extra in (["--count", "0"], ["--count", "21"], ["--formats", "mixed"], ["--materials", "3"], ["--batch-id", "../bad"]):
             with self.subTest(extra=extra), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                 ziliao.parse_args(self.argv + extra)
 
-    def test_default_track_a_quota_and_plan_only(self):
-        args = ziliao.parse_args([])
+    def test_full_papers_are_refused_and_single_paper_plan_only(self):
+        for argv in ([], ["--track", "classic"], ["--count", "20", "--materials", "4"], ["--count", "10", "--materials", "2"]):
+            with self.subTest(argv=argv), contextlib.redirect_stderr(io.StringIO()) as err, self.assertRaises(SystemExit):
+                ziliao.parse_args(argv)
+            self.assertIn("ziliao_agent_paper.py", err.getvalue())
+        args = ziliao.parse_args(["--count", "5", "--materials", "1"])
         self.assertEqual(args.track, "gd")
-        self.assertEqual(args.formats, ["text", "table", "chart", "chart"])
-        self.assertFalse(args.targeted)
         self.assertEqual(args.slots[4]["family"], "judge")
-        classic = ziliao.parse_args(["--track", "classic"])
-        self.assertEqual(classic.formats, ["chart", "table", "text", "chart"])
-        self.assertTrue(all(slot["family"] == "classic" for slot in classic.slots))
         with contextlib.redirect_stdout(io.StringIO()) as out:
-            self.assertEqual(ziliao.main(["--plan-only", "--track", "gd"]), 0)
+            self.assertEqual(ziliao.main(["--plan-only", "--track", "gd", "--count", "5", "--materials", "1"]), 0)
         plan = json.loads(out.getvalue())
         self.assertEqual(plan["track"], "gd")
         self.assertTrue(plan["source"].startswith("粤考日练-"))

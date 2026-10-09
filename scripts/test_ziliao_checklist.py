@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Regression cases reported in the user's audit; no network or model calls."""
 from copy import deepcopy
-from ziliao_checklist import rounding_issues, question_style_issues, explanation_math_issues
+from ziliao_checklist import (rounding_issues, question_style_issues, explanation_math_issues,
+                              material_text_issues, paper_issues)
 
 
 def main():
@@ -42,6 +43,47 @@ def main():
     assert not explanation_math_issues("9.2%+6.2%+9.2%×6.2%=15.4%+0.5704%≈15.97%")
     assert not explanation_math_issues("0.6405×0.7%/1.049≈0.43个百分点")
     print("PASS: genuine rounding, fake rounding, percentage-point wording, integer mixture, unsupported charts")
+
+    assert any("占位地名" in s for s in material_text_issues({"content": "G省港口吞吐量12.4亿吨。"}))
+    assert any("真实地名" in s for s in material_text_issues({"content": "全省港口吞吐量12.4亿吨。"}))
+    assert any("人造口径句" in s for s in material_text_issues({"content": "广东省本次统计范围严格限定为规上企业。"}))
+    assert any("过整" in s for s in material_text_issues({"content": "深圳增长12%、15%、20%、8.6%。"}))
+    assert not material_text_issues({"content": "广东省港口货物吞吐量21.36亿吨，增长3.4%，其中广州港6.85亿吨、深圳港3.12亿吨。"})
+
+    slot = {"family": "growth", "kind": "growth_rate"}
+    good = {"family": "growth", "stem": "2025年深圳港集装箱吞吐量同比增长约多少？", "answer": "B",
+            "options": [{"key": "A", "text": "4.2%"}, {"key": "B", "text": "6.7%"},
+                        {"key": "C", "text": "7.9%"}, {"key": "D", "text": "9.4%"}],
+            "explanation": "(3312.6-3104.5)/3104.5≈6.7%，选B。A项：(3312.6-3180)/3180≈4.2%取错基期；"
+                           "C项：(3312.6-3070)/3070≈7.9%取错年份；D项：(3312.6-3028)/3028≈9.4%取错行。"}
+    assert not question_style_issues(good, slot=slot), question_style_issues(good, slot=slot)
+    vague = deepcopy(good)
+    vague["explanation"] = "(3312.6-3104.5)/3104.5≈6.7%，选B。A、C、D项为计算失误所致。"
+    issues = question_style_issues(vague, slot=slot)
+    assert any("计算失误" in s for s in issues) and any("干扰项" in s for s in issues)
+    close = deepcopy(good)
+    close["options"][0]["text"] = "6.6%"
+    assert any("过近" in s for s in question_style_issues(close, slot=slot))
+    whole = deepcopy(good)
+    whole["options"][1]["text"] = "25.0%"
+    assert any("整数百分比" in s for s in question_style_issues(whole, slot={"family": "growth", "kind": "share"}))
+    assert any("年均" in s for s in question_style_issues(good, slot={"family": "avg_cmp", "kind": "annual_growth"}))
+    assert any("间隔增长率" in s for s in question_style_issues(good, slot={"family": "growth", "kind": "interval_growth"}))
+
+    chart = {"external_id": "b-M03", "content": "广东省快递业务量持续增长。",
+             "figure": {"kind": "bars", "categories": ["2021年", "2022年", "2023年", "2024年", "2025年"],
+                        "series": [{"name": "业务量", "values": [295.6, 301.2, 338.9, 362.4, 401.7]}]}}
+    annual = {"external_id": "b-M03-Q1", "material_id": "b-M03", "family": "avg_cmp",
+              "explanation": "(401.7-295.6)/4≈26.5亿件。"}
+    judge = {"external_id": "b-M03-Q5", "material_id": "b-M03", "family": "judge",
+             "explanation": "①362.4-338.9=23.5；②材料未给出2020年数据，无法比较；③累计值不能当当年。"}
+    slots = [{"kind": "annual_growth", "family": "avg_cmp"}, {"kind": "judge", "family": "judge"}]
+    assert not paper_issues([chart], [annual, dict(judge, explanation="①362.4-338.9=23.5；②401.7÷295.6≈1.36。")], slots)
+    found = paper_issues([chart], [annual, judge], slots)
+    assert any("文字陷阱" in s for s in found), found
+    unused = dict(annual, explanation="增长约26亿件。")
+    assert any("图表独有数据" in s for s in paper_issues([chart], [unused], slots[:1]))
+    print("PASS: placeholder places, artificial scope, vague distractors, close options, kind keywords, chart usage, judge traps")
 
 
 if __name__ == "__main__":
