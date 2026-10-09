@@ -32,7 +32,7 @@
 .knowledge-markdown li { padding-left: .2rem; margin: .55rem 0; }
 .knowledge-markdown strong { font-weight: 750; color: #282d24; }
 .knowledge-markdown blockquote { background: #f0f1e5; border-left: 3px solid #7a8862; border-radius: 0 10px 10px 0; padding: .5rem 1.2rem; margin: 1.5rem 0; color: #515c40; }
-.knowledge-markdown .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 16px 12px; margin: 1.3rem 0; background: #e9dcc0; border-radius: 10px; }
+.knowledge-markdown .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; padding: 16px 12px; margin: 1.3rem 0; background: #e9dcc0; border-radius: 10px; text-align: center; }
 .knowledge-markdown .katex { font-size: 1.13em; white-space: normal; }
 .knowledge-markdown .katex-display .katex { white-space: nowrap; }
 .knowledge-table { overflow-x: auto; margin: 1.25rem 0; }
@@ -40,7 +40,8 @@
 .knowledge-table th, .knowledge-table td { border-bottom: 1px solid #e7ddc8; padding: 12px; text-align: left; }
 .knowledge-table th { background: #f0ebdc; font-weight: 750; }
 .knowledge-markdown pre { overflow-x: auto; padding: 16px; background: #f1eddf; border-radius: 10px; }
-.knowledge-markdown img { max-width: 100%; height: auto; }
+.knowledge-markdown img { display: block; margin: 1.5rem auto; max-width: 100%; height: auto; }
+.knowledge-markdown.knowledge-paper > * { max-width: 46rem; margin-left: auto; margin-right: auto; }
 .knowledge-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 12px; margin-top: 20px; }
 .knowledge-methods > button { display: flex; align-items: flex-start; gap: 14px; background: #ecdfc1; border: 1px solid #d1c09a; border-radius: 15px; text-align: left; padding: 21px 18px; }
 .knowledge-methods > button:hover { background: #f4e9d0; border-color: #9b8451; }

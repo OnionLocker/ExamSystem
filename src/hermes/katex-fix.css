@@ -48,6 +48,14 @@
   white-space: nowrap;
 }
 
+/* Hermes 回复里的独立公式：与知识点页同款公式底 */
+.katex-inline-host .katex-display {
+  padding: 14px 12px;
+  background: #e9dcc0;
+  border-radius: 10px;
+  text-align: center;
+}
+
 .katex-error {
   white-space: pre-wrap;
   word-break: break-all;
