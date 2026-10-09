@@ -19,7 +19,7 @@ from collections import Counter
 
 import ziliao_parallel_runner as runner
 from generation_gate import verify
-from ziliao_checklist import VERSION, MATERIAL_RULES, QUESTION_RULES, rounding_issues, question_style_issues
+from ziliao_checklist import VERSION, MATERIAL_RULES, QUESTION_RULES, rounding_issues, material_text_issues, paper_issues
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("materials.json", "questions.json", "calculations.json", "manifest.json", ".gate.json")
@@ -116,7 +116,8 @@ class Trial:
         kind = {"chart": "bars", "table": "table", "text": "none"}[self.plan["format"]]
         if not candidate["content"] or (candidate["figure"] or {}).get("kind") != kind or not runner.valid_material({"material": candidate}):
             raise ValueError(f"须非空正文和指定figure.kind={kind}")
-        errors = runner.material_realism_errors(candidate, track="gd", long_text=self.plan["format"] == "text") + rounding_issues(candidate)
+        errors = (runner.material_realism_errors(candidate, track="gd", long_text=self.plan["format"] == "text")
+                  + rounding_issues(candidate) + material_text_issues(candidate) + self.figure_shape_issues(candidate))
         if errors:
             return {"ok": False, "issues": [{"target": self.material_id, "rule": "material_checklist",
                     "message": e, "repair": "修复材料及台账后重新submit_material；禁止放宽容差"} for e in errors]}
@@ -136,6 +137,17 @@ class Trial:
         self.save()
         return {"ok": True, "material": candidate, "questions_reset": True,
                 "next": runner.paper_prompt(candidate, self.plan, self.out.name)}
+
+    def figure_shape_issues(self, candidate):
+        figure = candidate.get("figure") or {}
+        shape = self.plan.get("figure_shape")
+        if shape == "years":
+            years = [c for c in figure.get("categories") or [] if re.fullmatch(r"20\d{2}年?", str(c).strip())]
+            if len(years) < 5 or len(years) != len(figure.get("categories") or []):
+                return ["本篇柱图须为连续5—6个年份的时间序列（categories为年份），供年均增长与增长量题使用"]
+        if shape == "two_series" and len(figure.get("series") or []) < 2:
+            return ["本篇柱图须为4—8个城市或类别的两年数值（两个同单位series），供比重、增长率与混合增长率题使用"]
+        return []
 
     def put_questions(self, questions, calculations):
         if not self.material:
@@ -164,7 +176,6 @@ class Trial:
                                             [s for k, s in qs.items() if k != qid])
             if q.get("family") != slot["family"]:
                 issues.append("family 不符槽位")
-            issues.extend(question_style_issues(q, cs[qid]))
             if issues:
                 errors[qid] = issues
         if errors:
@@ -180,6 +191,10 @@ class Trial:
             raise ValueError("先保存完整五题")
         if self.gate_attempts >= 6:
             raise ValueError("整篇审核预算已用完，停止并报告失败")
+        local = paper_issues([self.material], [self.questions[k] for k in sorted(self.questions)], self.plan["slots"])
+        if local:
+            return {"ok": False, "issues": [{"rule": "paper_checklist", "message": m,
+                    "repair": "按提示局部put_questions；不消耗整篇审核次数"} for m in local]}
         self.gate_attempts += 1
         self.invalidate()
         snapshot = self.out / "gate-attempts" / str(self.gate_attempts)

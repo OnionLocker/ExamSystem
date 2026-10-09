@@ -187,9 +187,12 @@ ZILIAO_QUALITY_RULES = """
 material_consistent：正文、图表总分项/增长/单位/范围是否自洽，若错须false且issues给具体数据。
 slot_match：按实际解题动作核对requested_slot的family、主标签和brief；classic按主标签和brief。
 actual_family取 detail/share_add/growth/base_share/avg_cmp/mix_pull/judge：
-detail仅定位/分类/口径，不计算平均、增量、比重；四陈述混合判断归judge。
-share_add为现期比重或简单加减；growth为增量/增速；base_share为基期/两期比重；
-avg_cmp为平均/跨年比较；mix_pull为混合/拉动。不要把所有读图题都算detail。
+detail仅定位/读数/分类，不计算平均、增量、比重；四陈述混合判断归judge。
+share_add为现期比重、倍数/比值或简单加减；growth为增长量/增长率/百分点差/间隔增长率；
+base_share为基期量/两期比重变化；avg_cmp为平均数/平均数增长/年均增长/跨年比较；mix_pull为混合增长率/拉动。
+不要把所有读图题都算detail。requested_slot.kind_label是本题必须考的具体题型，slot_match须同时核对。
+每个干扰项须对应可复现的错误算法且解析写出算式，空话（计算失误/估算误差）判不通过；
+选项需精算才能区分（相对差<3%）、分子分母口径不一致、依赖材料外常识均判不通过。
 actual_difficulty按最终题目评1-5：1直接定位/分类；2单一加减除法或简单趋势；
 3多步计算/多点筛选；4多口径综合、四陈述或有实质额外步骤；5明显复杂的组合。
 不要单因题型名字或请求mid而给固定分，也不要为配额故意提高认知负担。
@@ -209,9 +212,10 @@ def review_ziliao_material(material: dict, plan: dict | None = None) -> dict:
     design = ""
     if plan and plan.get("track") == "gd":
         design = (track_material_rules("gd", plan) +
-                  "核查naturalness时列出正文口径句、两个背景指标、半给指标、有图表时的图表独有取数点；"
-                  "naturalness对象额外返回body_scope_quote，逐字引用正文中的完整统计边界句（不得引用注/附注）；"
-                  "正文没有就填空并REJECT。缺失则不通过。半给的背景指标不构成事实缺漏；尚未出题，不要求预测哪些指标最终入题。")
+                  "本篇计划：" + json.dumps({k: plan.get(k) for k in ("theme", "region", "question_plan")}, ensure_ascii=False) +
+                  "核查naturalness时检查行文是否像真实统计公报：出现“本次统计范围严格限定为”等人造口径句、命题提示、"
+                  "G省/S市等占位地名即REJECT；检查材料能否支撑计划中各题型所需数据。"
+                  "totals还须核对子项不超过母项、地区之和不超过全省、比重合计合理、同一数字前后一致。尚未出题，不要求预测哪些指标最终入题。")
     if material.get("rounding_checks"):
         design += ("核验rounding_checks里每个指标的年份、单位、穷尽范围和shown数值都对应实际正文/图表，"
                    "不能凭台账自称一致就通过。totals对象额外返回ledger_matches=true/false；"
@@ -230,13 +234,6 @@ def review_ziliao_material(material: dict, plan: dict | None = None) -> dict:
     )):
         review["verdict"] = "REJECT"
         review.setdefault("issues", []).append("材料核验不全或不通过")
-    if plan and plan.get("track") == "gd":
-        naturalness = checks.get("naturalness")
-        quote = naturalness.get("body_scope_quote") if isinstance(naturalness, dict) else None
-        body = re.split(r"(?:^|\n)\s*(?:附注|注)(?:[：:①（(]|\s*$)", str(material.get("content") or ""), maxsplit=1)[0]
-        if not isinstance(quote, str) or len(quote.strip()) < 8 or quote.strip() not in body:
-            review["verdict"] = "REJECT"
-            review.setdefault("issues", []).append("缺少可核对的正文统计边界原句；把范围说明自然写入正文，不能只放注脚")
     return review
 
 

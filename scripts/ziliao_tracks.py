@@ -44,28 +44,30 @@ ZILIAO_FIGURE_RULES = """渲染能力：bars只画同单位series.values柱形�
 不支持柱顶另标增速、折线、双轴或混合单位。若题目需要增长率，写在正文，明确为正文给出，
 图标题仅描述实际柱形指标，禁止宣称图中有未编码的百分比或标注。本规则优先于框架中的图形建议。"""
 
-GD_DESIGN_RULES = """粤考轨A命题与验收：
-细节槽只做定位或口径辨析，实际难度1–2；统计边界须在正文出现，不能仅靠注脚原句复读选出答案。
-正文中的整句范围说明也不能照抄成正确项；采用具体指标归属、经营活动或跨段定位来应用边界。
+GD_DESIGN_RULES = """粤考轨A命题与验收（难度偏易到中，宁要质不要量）：
+每题按槽位kind考对应题型，不得换考法；同一篇五题求的未知量和公式互不相同。
+细节槽只做直接定位或读数，实际难度1–2；不得设计人为口径陷阱，不得复读材料中的范围说明当正确项。
 比较/平均题若需逐个求比值，题干明确限定最多4个候选主体；选项只有4个不等于题干已限定。
-多行表先用阈值筛选再比较；可凭柱高、大小关系或简单相减解决的读图比较不按行数机械拒绝。
 已知本期量A及本期增速r、求本期增长量时，须有误用A*r的干扰项；预测下一期增加量时A*r是正确算法。
 两期比重差须有直接相减两增速a-b的干扰项（明确以百分点表述）；错误路径不能碰巧也等于正确答案。
-综合题四陈述须覆盖时间偷换、跨年累计与当年、缺数不能比较、百分比与百分点、统计范围这五类中的至少三类。
-覆盖指实际考查该辨析，真陈述也可覆盖；不能把所有错误都写成材料未提及，或仅凭陷阱词判错。
-requested_slot/槽位指定的required_trap必须实际出现并在解析中辨析；percent_vs_point须有明确误用百分比/百分点的陈述。
-若有图表，本篇至少一道题必须取用图表独有的数据，正文不得逐项复述它；允许其他题用正文或表文结合。
-每篇保留至少两个不作为计算目标的背景指标，允许用于细节选项；至少一个指标只给部分信息，不能误判为材料缺漏。
-禁止用额外基期、混合或拉动计算挤占细节槽，禁止规划尚未支持的chart_match或四幅选项图。"""
+每个干扰项都对应一条可复现的错误算法（如基期现期倒置、漏乘(1+r)、增速直接相加、取错年份或行列），
+解析逐项写出“X项：错误算式=结果”；禁止用“计算失误”“估算误差”“粗心”等空话解释干扰项。
+选项间距合理：数值选项两两相对差距至少3%，不得出现需精算才能区分的近选项（如15.3%与15.5%）。
+正确值避免恰好整数百分比或整数倍；所有判断只依据材料数据，不依赖材料外常识或政策知识。
+分子分母口径一致（同年份、同范围、同单位）；材料内部自洽，子项不超过母项，比重合计合理。
+综合题四陈述以数据核算为主（估算比较、多步计算、真假混合），每句都要写出核算过程；
+“百分点与百分比混淆”“累计当当年”“缺数据无法比较”这类文字陷阱每篇至多一句，全卷合计至多两句。
+若有图表，本篇至少两个只在图表出现的数据进入题目计算，并在解析算式中写出；多年序列用于年均或增长量计算。
+禁止规划尚未支持的chart_match或四幅选项图。"""
 
 from ziliao_checklist import QUESTION_RULES
 GD_DESIGN_RULES += "\n" + QUESTION_RULES
 
 GD_PAPER_RULES = """轨A整套要求（targeted_drill为true时只按指定槽位）：
-至少一道未提及具体数值或统计口径不包括的细节题；综合问法按槽位跨篇轮换。
-四篇主题轮换，避免重复新能源高速增长模板；全套综合题至少一次实际考查统计范围、一次百分比与百分点。
-每篇图表至少一个取数点仅在图表出现。背景指标不必完全闲置，可作细节题选项，但不能全部成为计算目标。
-按材料的舍入精度核对总分关系，分项恰好相加等于合计本身不是缺陷。"""
+整套覆盖间隔增长率、年均增长、倍数、比重变化、平均数、基期量、增长量、增长率、比重、混合增长率、百分点与综合分析；
+同一题型至多3题，细节查找/纯读数全卷至多2题；综合问法按槽位跨篇轮换，四道综合题的考查组合互不相同。
+四篇主题互不相同，使用广东省及其地市真实地名，不用G省、S市、某省等占位。
+每篇图表至少两个取数点仅在图表出现并进入计算。分项展示值之和与合计保留真实舍入差，不写四舍五入附注。"""
 
 FAMILY_DETAIL = "detail"
 FAMILY_JUDGE = "judge"
@@ -75,16 +77,45 @@ FAMILY_BASE_SHARE = "base_share"
 FAMILY_AVG_CMP = "avg_cmp"
 FAMILY_MIX_PULL = "mix_pull"
 
-# 轨 A 20 题配额（可微调，精神不变）
+# 轨 A 20 题配额：family 是审核员可判别的大类，kind 是用户要求覆盖的具体题型。
 GD_QUOTA = {
-    FAMILY_DETAIL: (3, 4),
+    FAMILY_DETAIL: (1, 2),
     FAMILY_JUDGE: (4, 4),
-    FAMILY_SHARE_ADD: (3, 4),
-    FAMILY_GROWTH: (3, 3),
-    FAMILY_BASE_SHARE: (2, 2),
-    FAMILY_AVG_CMP: (2, 2),
-    FAMILY_MIX_PULL: (0, 2),
+    FAMILY_SHARE_ADD: (2, 4),
+    FAMILY_GROWTH: (4, 6),
+    FAMILY_BASE_SHARE: (2, 3),
+    FAMILY_AVG_CMP: (2, 3),
+    FAMILY_MIX_PULL: (1, 2),
 }
+
+KIND_DETAIL = "detail_lookup"
+KIND_BASE = "base_value"
+KIND_DELTA = "growth_amount"
+KIND_RATE = "growth_rate"
+KIND_POINT = "percentage_point"
+KIND_SHARE = "share"
+KIND_SHARE_CHANGE = "share_change"
+KIND_MULTIPLE = "multiple"
+KIND_AVERAGE = "average"
+KIND_ANNUAL = "annual_growth"
+KIND_INTERVAL = "interval_growth"
+KIND_MIX = "mixed_growth"
+KIND_JUDGE = "judge"
+KIND_LABELS = {
+    KIND_DETAIL: "细节查找/读数", KIND_BASE: "基期量", KIND_DELTA: "增长量", KIND_RATE: "增长率",
+    KIND_POINT: "百分点", KIND_SHARE: "比重", KIND_SHARE_CHANGE: "比重变化", KIND_MULTIPLE: "倍数",
+    KIND_AVERAGE: "平均数/平均数增长", KIND_ANNUAL: "年均增长", KIND_INTERVAL: "间隔增长率",
+    KIND_MIX: "混合增长率", KIND_JUDGE: "综合分析",
+}
+KIND_FAMILY = {
+    KIND_DETAIL: FAMILY_DETAIL, KIND_BASE: FAMILY_BASE_SHARE, KIND_DELTA: FAMILY_GROWTH,
+    KIND_RATE: FAMILY_GROWTH, KIND_POINT: FAMILY_GROWTH, KIND_SHARE: FAMILY_SHARE_ADD,
+    KIND_SHARE_CHANGE: FAMILY_BASE_SHARE, KIND_MULTIPLE: FAMILY_SHARE_ADD, KIND_AVERAGE: FAMILY_AVG_CMP,
+    KIND_ANNUAL: FAMILY_AVG_CMP, KIND_INTERVAL: FAMILY_GROWTH, KIND_MIX: FAMILY_MIX_PULL, KIND_JUDGE: FAMILY_JUDGE,
+}
+REQUIRED_KINDS = tuple(KIND_LABELS)
+KIND_MAX = 3
+DETAIL_MAX = 2
 
 # 闸门认的四种综合判断（generation_gate._judge_form）。四篇 Q5 各用一种，禁止全写成「正确/有误」。
 GD_JUDGE_FORMS = (
@@ -149,8 +180,8 @@ def has_gemini_credentials() -> bool:
     return False
 
 
-def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid") -> dict:
-    return {
+def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid", kind: str | None = None) -> dict:
+    slot = {
         "tag": tag,
         "count": 1,
         "family": family,
@@ -158,6 +189,10 @@ def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid") -> dict:
         "difficulty": paper_tier,
         "difficulty_score": difficulty_score(family, paper_tier),
     }
+    if kind:
+        slot["kind"] = kind
+        slot["kind_label"] = KIND_LABELS[kind]
+    return slot
 
 
 def difficulty_score(family: str, paper_tier: str = "mid") -> int:
@@ -187,67 +222,88 @@ def classify_judge_form(stem: str) -> str:
     return ""
 
 
+GD_JUDGE_MIXES = (
+    "估算比较：四句中至少两句需估算比较大小或排序（如两项增长量、两个比重孰高），其余为直接计算；不考口径陷阱。",
+    "多步计算：至少两句需两步及以上计算（如先反推基期再求比重、先求平均数再比较）；不能推出的那句须由计算得出，不能是“材料未提及”。",
+    "正误混合：四句都依据图表与正文数据核算，正确的有2–3句，覆盖趋势判断、增长量或年均比较；不得用“缺数据无法比较”。",
+    "估算+多步混合：四句分别涉及比重比较、增速比较、增长量估算、倍数或平均数；至多一句百分点与百分比辨析。",
+)
+
+
 def judge_slot_fields(material_index: int) -> dict:
     spec = GD_JUDGE_FORMS[material_index % len(GD_JUDGE_FORMS)]
+    mix = GD_JUDGE_MIXES[material_index % len(GD_JUDGE_MIXES)]
     return {
         "judge_form": spec["form"],
         "judge_stem": spec["stem"],
+        "judge_mix": mix,
         "brief": (
-            f"综合正误。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
+            f"综合分析。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
             "禁止改成「下列说法正确的是」或「下列说法有误的是」。"
-            "四陈述考察时间、口径、范围和可推断边界；错误项必须确实不成立，不机械套陷阱词。"
+            f"本篇组合——{mix}每句解析写出核算算式；错误项必须确实不成立。"
         ),
     }
 
 
 def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
-    """4×5 粤考日练槽位：M01 长文 3 细节/综合 + 2 轻量计算；每篇 Q5 综合正误且问法跨篇轮换。"""
-    s = lambda family, tag, brief: _slot(family, tag, brief, paper_tier)
+    """4×5 粤考槽位：覆盖12类计算/定位题型+4道综合，同类≤3、细节≤2；每篇Q5综合且问法与组合跨篇轮换。"""
+    s = lambda family, tag, kind, brief: _slot(family, tag, brief, paper_tier, kind)
     slots = [
         # M01 长文字
-        s(FAMILY_DETAIL, ZILIAO_QI, "文字细节定位：主题/分类/口径，直接找数，勿大计算"),
-        s(FAMILY_DETAIL, ZILIAO_QI, "细节排除：未提及/不包括；利用材料里用不到的干扰指标"),
-        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或简单加减，一步可算，可用成数/区间"),
-        s(FAMILY_GROWTH, ZILIAO_DELTA, "增长量或简单增长率，一步到两步"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
-        # M02 表
-        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或表内简单加减"),
-        s(FAMILY_GROWTH, ZILIAO_RATE, "同比增长率计算或区间判断"),
-        s(FAMILY_BASE_SHARE, ZILIAO_BASE, "基期量，或由现期与增速反推"),
-        s(FAMILY_AVG_CMP, ZILIAO_AVG, "平均数或年均增量；比较则枚举范围内全部点"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
-        # M03 图
-        s(FAMILY_SHARE_ADD, ZILIAO_QI, "简单加减或现期量查找，真正读图"),
-        s(FAMILY_GROWTH, ZILIAO_DELTA, "增长量，读图序列"),
-        s(FAMILY_BASE_SHARE, ZILIAO_SHARE_DIFF, "基期比重或两期比重差"),
-        s(FAMILY_AVG_CMP, ZILIAO_CMP, "比较类：枚举题干年份范围内全部点，禁止漏年"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
-        # M04 图：补足细节 + 至多 1 道混合/拉动
-        s(FAMILY_DETAIL, ZILIAO_QI, "读图细节定位或排除"),
-        s(FAMILY_DETAIL, ZILIAO_QI, "细节排除或口径辨析，可含未给出不能比"),
-        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重，一步"),
-        s(FAMILY_MIX_PULL, ZILIAO_MIX, "混合增速或拉动/贡献率，整套至多 1–2 道，不要再叠第二道"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
+        s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "文字定位：直接找出某个具体数值或分类归属，一步可得，不做计算，不设人为口径陷阱"),
+        s(FAMILY_BASE_SHARE, ZILIAO_BASE, KIND_BASE, "基期量：由现期量和同比增速反推上年值；干扰项写出现期×(1-r)、现期×(1+r)等错误算式"),
+        s(FAMILY_GROWTH, ZILIAO_DELTA, KIND_DELTA, "增长量：已知现期与增速求增长量A×r/(1+r)；干扰项含误用A×r"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_POINT, "百分点：两项增速或比率之差、或某增速比上年提高/回落多少个百分点；选项用“个百分点”，干扰项含相除得到的百分比"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
+        # M02 表格
+        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "现期比重：表中某分项占合计比重；正确值不是整数百分比"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率：由表中两年数值计算同比增长率，或在至多4项中比较增长率"),
+        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数或平均数增长率：如户均、人均、单位产出及其同比增速(a-b)/(1+b)"),
+        s(FAMILY_SHARE_ADD, ZILIAO_QI, KIND_MULTIPLE, "倍数：现期倍数或基期倍数（A是B的多少倍），基期倍数须各自反推；正确值不是整数倍"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
+        # M03 多年柱图
+        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_ANNUAL, "年均增长：用图中首末年份数据求年均增长量或年均增长率，年份差n须正确；题干含“年均”"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_INTERVAL, "间隔增长率：正文给某指标连续两年同比增速r1、r2，求现期比两年前增长百分之几R=r1+r2+r1×r2；解析写明“间隔增长率”，干扰项含r1+r2"),
+        s(FAMILY_GROWTH, ZILIAO_DELTA, KIND_DELTA, "增长量：读图中相邻年份数值相减，或求增长量最多的年份（枚举范围内全部年份）"),
+        s(FAMILY_BASE_SHARE, ZILIAO_SHARE_DIFF, KIND_SHARE_CHANGE, "比重变化：某部分占整体比重比上年上升/下降多少个百分点或判断升降，用a/b×(r1-r2)/(1+r1)；干扰项含直接相减两增速"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
+        # M04 双系列柱图
+        s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "读图定位：直接从图中读出某类别数值或排第一的类别，一步可得"),
+        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "比重：某城市或类别占合计比重，合计由正文给出或图中求和；正确值不是整数百分比"),
+        s(FAMILY_MIX_PULL, ZILIAO_MIX, KIND_MIX, "混合增长率：两部分合计的增长率，介于两部分增速之间且偏向基数大的一方；干扰项含两增速简单平均"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率：由图中两年数值求某类别增长率，或在至多4个类别中比较增长率"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
     ]
     for material_index, slot_index in enumerate((4, 9, 14, 19)):
         slots[slot_index].update(judge_slot_fields(material_index))
-    slots[0]["brief"] = "正文口径辨析：边界在正文出现，选项用具体指标判断是否纳入，不能复读注脚"
-    slots[1]["brief"] = "细节排除：资料未提及具体数值；区分完成率与金额、跨年累计与当年新增"
-    slots[9]["required_trap"] = "scope"
-    slots[9]["brief"] += " 至少一句实际考查统计范围，明确能推出与不能推出的边界。"
-    slots[19]["required_trap"] = "percent_vs_point"
-    slots[19]["brief"] += " 至少一句误用百分比与百分点，材料须提供可辨析的比率或增速变化。"
     return slots
 
 
+def validate_gd_kinds(slots: list[dict]) -> None:
+    kinds = Counter(str(slot.get("kind") or "") for slot in slots)
+    missing = [KIND_LABELS[k] for k in REQUIRED_KINDS if not kinds.get(k)]
+    if missing:
+        raise ValueError(f"轨A整套缺少题型：{'、'.join(missing)}")
+    over = [f"{KIND_LABELS.get(k, k)}{n}题" for k, n in kinds.items() if k != KIND_JUDGE and n > KIND_MAX]
+    if over:
+        raise ValueError(f"轨A同一题型至多{KIND_MAX}题：{'、'.join(over)}")
+    if kinds.get(KIND_DETAIL, 0) > DETAIL_MAX:
+        raise ValueError(f"轨A细节查找/读数至多{DETAIL_MAX}题")
+    if kinds.get(KIND_JUDGE, 0) != 4:
+        raise ValueError("轨A须有4道综合分析")
+    for slot in slots:
+        if slot.get("kind") and KIND_FAMILY.get(slot["kind"]) != slot.get("family"):
+            raise ValueError(f"槽位kind与family不一致：{slot.get('kind')}")
+
+
 def gd_slots_5(paper_tier: str = "mid") -> list[dict]:
-    s = lambda family, tag, brief: _slot(family, tag, brief, paper_tier)
+    s = lambda family, tag, kind, brief: _slot(family, tag, brief, paper_tier, kind)
     slots = [
-        s(FAMILY_DETAIL, ZILIAO_QI, "文字或图表细节定位/排除"),
-        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, "现期比重或简单加减"),
-        s(FAMILY_GROWTH, ZILIAO_RATE, "增长率或增长量"),
-        s(FAMILY_AVG_CMP, ZILIAO_CMP, "比较或平均；比较须枚举范围内全部点"),
-        s(FAMILY_JUDGE, ZILIAO_CMP, ""),
+        s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "文字或图表直接定位/读数"),
+        s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "现期比重；正确值不是整数百分比"),
+        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率"),
+        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数或平均数增长率"),
+        s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
     ]
     slots[-1].update(judge_slot_fields(0))
     return slots
@@ -319,12 +375,9 @@ def validate_gd_quota(slots: list[dict], *, count: int | None = None) -> None:
             raise ValueError(f"轨A配额不符：{family} 应为 {lo}–{hi}，实际 {got}")
     if counts.get(FAMILY_MIX_PULL, 0) > 2:
         raise ValueError("轨A混合或拉动至多 1–2 道")
-    long_text = slots[:5]
-    light = {FAMILY_SHARE_ADD, FAMILY_GROWTH, FAMILY_BASE_SHARE, FAMILY_AVG_CMP}
-    detail_judge = sum(1 for slot in long_text if slot.get("family") in {FAMILY_DETAIL, FAMILY_JUDGE})
-    calc = sum(1 for slot in long_text if slot.get("family") in light)
-    if detail_judge < 3 or calc < 2:
-        raise ValueError("轨A至少1篇长文字：3 综合/细节 + 2 轻量计算（默认 M01）")
+    validate_gd_kinds(slots)
+    if len({slot.get("judge_mix") for slot in slots[4::5]}) < 4:
+        raise ValueError("轨A四道综合分析须使用互不相同的考查组合")
     if sum(1 for slot in slots[4::5] if slot.get("family") == FAMILY_JUDGE) < 4:
         raise ValueError("轨A每篇第5题须为综合正误")
     forms = [classify_judge_form(slot.get("judge_stem") or "") for slot in slots[4::5]]
@@ -555,8 +608,8 @@ def validate_gd_question_mix(questions: list[dict]) -> None:
     detail = counts.get(FAMILY_DETAIL, 0)
     judge = counts.get(FAMILY_JUDGE, 0)
     mix = counts.get(FAMILY_MIX_PULL, 0)
-    if detail < 3:
-        raise ValueError(f"轨A须含细节定位/排除 3–4 道，当前 {detail}")
+    if detail > DETAIL_MAX:
+        raise ValueError(f"轨A细节查找/读数至多 {DETAIL_MAX} 道，当前 {detail}")
     if judge < 4:
         raise ValueError(f"轨A须含综合正误 4 道（每篇第5题），当前 {judge}")
     if mix > 2:
@@ -583,15 +636,13 @@ def track_framework_rules(track: str) -> str:
             "不要写成广东省考综合训练。数字避免整万配整十人均，图序列禁止等差增量。"
         )
     return (
-        "本批是「粤考日练」轨A，对照近年粤考卷面：文字细节定位/排除、轻量计算、每篇末题综合正误。"
-        "禁止按教材 10 类×2 硬凑混合/拉动。默认 4 篇形态 text/table/chart/chart；"
-        "M01 必须是长文字（350–700字），含 1–2 个本题用不到的干扰指标或冗余句。"
+        "本批是「粤考日练」轨A，对照近年粤考卷面：以计算题为主、少量直接定位、每篇末题综合分析，难度偏易到中。"
+        "默认 4 篇形态 text/table/chart/chart；M01 为长文字（350–750字）。"
         "图序列禁止等差或等差增量；禁止总计整万+人均整十。"
         "难度按秒杀找数/一步/两步/四陈述综合拉开，禁止全员 difficulty=3。"
-        "四篇 Q5 综合正误的题干已写在槽位 judge_stem：属实、不能推出、正确的有、能够推出，禁止四篇都写成「下列说法正确/有误的是」。"
-        "各篇question_plan明确预留正文口径句、两个背景指标、一个半给指标；有图表则指定一个只在图表出现的取数点。"
-        "按required_trap为综合题准备真实可辨析的信息。禁止九主体全表人均排序，禁止chart_match。"
-        "主题优先财政收支、社零、外贸、工业分区域、就业工资、固投结构，四篇不要重复。"
+        "四篇 Q5 综合分析的题干已写在槽位 judge_stem：属实、不能推出、正确的有、能够推出，组合见 judge_mix，禁止四篇都写成「下列说法正确/有误的是」。"
+        "各篇question_plan按五个槽位kind预留所需数据；有图表则至少两个只在图表出现的取数点进入计算。"
+        "禁止九主体全表人均排序，禁止chart_match。主题按计划给定，四篇互不相同；地名用广东省及其地市真实名称。"
     )
 
 
@@ -603,23 +654,19 @@ def track_material_rules(track: str, item: dict) -> str:
     )
     if track == TRACK_GD:
         extra += (
-            "按同一底层数计算分项、总量及比率，再分别四舍五入；允许真实舍入差异，不强制造缺口。"
+            "按同一底层数计算分项、总量及比率，再分别四舍五入；至少一组穷尽分项的展示值之和与合计存在真实舍入差，不要正好相等。"
             "容差随小数位和分项数量确定，不能统一放宽0.1–0.3。不要把现价口径或四舍五入分项差异写成附注。"
-            "百分比避免整十整五扎堆，优先使至少三分之一带一位小数且整数个位不是0或5；不要为了比例造不合理数据。"
+            "百分比避免整十整五扎堆，至少三分之二带一位小数；比值类结果不要恰好是整数百分比。"
             "时间序列也避免近似恒定差分及连续三年接近翻倍的模板，不给每年增长一个固定步长。"
             "图表金额按合适单位保留小数精度，避免整列粗取整；企业家数等离散计数仍用整数。"
-            "每篇正文自然写明一个统计范围边界；背景指标至少两个，并至少一个只给完成率不提供金额、"
-            "或只给明确跨年累计而不提供当年新增。半给指标缺少的值也不能从其他数字反推；已有实际额和完成率不算半给。"
-            "不要在面向考生的材料中写命题用途。"
-            "图表保留至少一个不在正文复述的指标取数点。槽位要求percent_vs_point时给出比率/增速的两期变化供辨析。"
+            "材料内部自洽：子行业不超过母行业，地区之和不超过全省，比重合计不超过100%，同一数字前后一致；"
+            "分子分母同年份同范围同单位。不依赖材料外常识。"
+            "地名使用计划给定的广东省或地市真实名称，禁止G省、S市、某省、甲市等占位。"
+            "禁止“本次统计范围严格限定为”“仅限于”这类人为设置的口径句和命题提示；按统计公报自然行文。"
+            "图表保留至少两个不在正文复述、且会进入计算的取数点。"
         )
     if track == TRACK_GD and str(item.get("id") or "") == "M01":
-        return extra + (
-            "M01 写成统计公报式长文：先总述再「其中/分区域看」，3–5 段、350–700 字；"
-            "至少注入两个本题不必用到的干扰指标（如同期另一行业、计划完成率）。"
-        )
-    if track == TRACK_GD:
-        return extra + "正文保留足够冗余句和未入题指标，供细节排除命题。"
+        return extra + "M01 写成统计公报式长文：先总述再「其中/分领域看」，3–5 段、350–750 字，数据密度适中。"
     return extra
 
 
@@ -634,21 +681,24 @@ def track_question_rules(track: str, slot: dict, index: int) -> str:
             if stem else
             "题干须使用槽位指定的综合判断句，不得四篇同一句。"
         )
+        mix = str(slot.get("judge_mix") or "四句以数据核算为主，至多一句文字陷阱。")
         return (
-            "本题必须是综合正误。" + locked +
-            "四陈述覆盖时间、跨年累计、缺数、范围、百分比/百分点中至少三类，计数题把陈述放题干。"
-            "不要出混合增速或拉动专名题。计算清单可写正确项=1、错项=0。"
+            "本题必须是综合分析。" + locked + "考查组合：" + mix +
+            "计数题把陈述放题干。每句解析写出取数与算式。计算清单可写正确项=1、错项=0。"
         )
+    kind = str(slot.get("kind") or "")
+    head = f"本题题型={slot.get('kind_label') or kind}，按此考法出题。" if kind else ""
     if family == FAMILY_DETAIL:
-        return (
-            "本题是细节定位或排除：主题/分为几类/未提及/不包括。错误项来自张冠李戴或材料未给出。"
-            "只找数、分类或辨析口径，不得计算人均、增长量、比重，也不得偷换成四陈述综合判断。计算清单可写正确项=1、错项=0。"
+        return head + (
+            "本题是直接定位或读数：找出具体数值、类别或排名第一项，一步可得。错误项来自相邻数据或张冠李戴。"
+            "不得计算人均、增长量、比重，不设人为口径陷阱，也不得偷换成四陈述综合判断。计算清单可写正确项=1、错项=0。"
         )
+    tail = "每个干扰项写出对应错误算式及结果；选项两两相对差距至少3%；正确值不是整数百分比或整数倍。"
     if family == FAMILY_AVG_CMP or "比较" in str(slot.get("brief") or ""):
-        return "比较类解析必须覆盖题干完整范围；需逐项求比值时题干明确限定至多4个主体，先收窄范围再完整核验。"
+        return head + "比较类解析必须覆盖题干完整范围；需逐项求比值时题干明确限定至多4个主体。" + tail
     if track == TRACK_GD and family == FAMILY_MIX_PULL:
-        return "整套至多 1–2 道混合或拉动，本题若出则保持一道，解析保留干扰项对应的误用公式。"
-    return "错误选项对应真实粗心路径：基期现期倒置、百分点混淆、取错行列。"
+        return head + "混合增长率按两部分基期量加权，解析保留干扰项对应的误用公式（如简单平均）。" + tail
+    return head + "错误选项对应真实错误路径：基期现期倒置、漏乘(1+r)、增速直接相加减、取错年份或行列。" + tail
 
 
 def render_option_figures(question: dict, image_dir: Path, renderer=None) -> bool:

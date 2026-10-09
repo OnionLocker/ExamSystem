@@ -19,17 +19,24 @@ class QuotaTest(unittest.TestCase):
         self.assertEqual(len(slots), 20)
         tracks.validate_gd_quota(slots)
         counts = tracks.family_counts(slots)
-        self.assertTrue(3 <= counts["detail"] <= 4)
+        self.assertLessEqual(counts["detail"], 2)
         self.assertEqual(counts["judge"], 4)
-        self.assertTrue(3 <= counts["share_add"] <= 4)
-        self.assertEqual(counts["growth"], 3)
-        self.assertEqual(counts["base_share"], 2)
-        self.assertEqual(counts["avg_cmp"], 2)
-        self.assertTrue(1 <= counts["mix_pull"] <= 2)
         self.assertEqual([s["family"] for s in slots[4::5]], ["judge"] * 4)
-        long = slots[:5]
-        self.assertGreaterEqual(sum(s["family"] in {"detail", "judge"} for s in long), 3)
-        self.assertGreaterEqual(sum(s["family"] in {"share_add", "growth"} for s in long), 2)
+        kinds = [s["kind"] for s in slots]
+        self.assertEqual(set(kinds), set(tracks.REQUIRED_KINDS))
+        self.assertTrue(all(kinds.count(k) <= 3 for k in set(kinds) if k != tracks.KIND_JUDGE))
+        self.assertEqual(len({s["judge_mix"] for s in slots[4::5]}), 4)
+
+    def test_kind_quota_rejects_missing_or_excess(self):
+        slots = tracks.gd_slots_20()
+        slots[11].update(kind=tracks.KIND_RATE)
+        with self.assertRaisesRegex(ValueError, "间隔增长率"):
+            tracks.validate_gd_quota(slots)
+        slots = tracks.gd_slots_20()
+        slots[12].update(kind=tracks.KIND_RATE)
+        slots[16].update(kind=tracks.KIND_RATE)
+        with self.assertRaisesRegex(ValueError, "同一题型至多3题"):
+            tracks.validate_gd_kinds(slots)
 
     def test_classic_20_is_ten_by_two(self):
         slots = tracks.classic_slots(20, 4)
@@ -75,7 +82,11 @@ class LabelTest(unittest.TestCase):
 class RealismTest(unittest.TestCase):
     def test_material_retry_records_local_rejection(self):
         import ziliao_parallel_runner as runner
-        valid = {"material": {"content": "收入123.4亿元。", "figure": {"kind": "none"}}}
+        valid = {"material": {"content": "深圳市收入合计200.5亿元，其中甲114.4亿元、乙86.2亿元。", "figure": {"kind": "none"},
+                              "rounding_checks": [{"label": "收入", "unit": "亿元", "places": 1,
+                                                   "parts": [{"label": "甲", "raw": "114.36", "shown": "114.4"},
+                                                             {"label": "乙", "raw": "86.16", "shown": "86.2"}],
+                                                   "total": {"label": "合计", "raw": "200.52", "shown": "200.5"}}]}}
         with tempfile.TemporaryDirectory() as tmp, patch.object(runner, "call", side_effect=[{"material": {}}, valid]), patch.object(
             runner, "review_ziliao_material", return_value={"verdict": "PASS", "issues": []}
         ) as reviewer:
@@ -170,15 +181,17 @@ class DifficultyAndExplainTest(unittest.TestCase):
         self.assertEqual(tracks.infer_family_from_question({"stem": "根据资料，下列说法有误的是"}), "judge")
         self.assertEqual(tracks.infer_family_from_question({"stem": "资料未提及的是"}), "detail")
         questions = (
-            [{"stem": "未提及的是"}] * 3
+            [{"stem": "未提及的是"}] * 2
             + [{"stem": "下列说法正确的是"}] * 4
             + [{"stem": "占全省的比重"}] * 4
-            + [{"stem": "同比增长"}] * 3
+            + [{"stem": "同比增长"}] * 4
             + [{"tags": ["资料分析-ABRX类-基期量计算与比较"]}] * 2
             + [{"tags": ["资料分析-比较类-双线法与增量比较"]}] * 2
             + [{"tags": [ZILIAO_MIX]}] * 2
         )
         tracks.validate_gd_question_mix(questions)
+        with self.assertRaisesRegex(ValueError, "细节查找"):
+            tracks.validate_gd_question_mix([{"stem": "未提及的是"}] * 3 + questions[2:19])
 
     def test_chart_match_is_hook_only(self):
         self.assertFalse(tracks.CHART_MATCH_HOOK["implemented"])
@@ -243,8 +256,7 @@ class JudgeFormTest(unittest.TestCase):
     def test_gd_design_survives_question_repair(self):
         import ziliao_parallel_runner as runner
         slots = tracks.gd_slots_20()
-        self.assertEqual(slots[9]["required_trap"], "scope")
-        self.assertEqual(slots[19]["required_trap"], "percent_vs_point")
+        self.assertNotIn("required_trap", slots[9])
         plan = {"id": "M04", "track": "gd", "slots": slots[15:20], "count": 5}
         material = {"content": "比率从8.6%下降到6.3%。", "external_id": "b-M04", "figure": {}}
         q = {"external_id": "b-M04-Q5"}
@@ -253,7 +265,7 @@ class JudgeFormTest(unittest.TestCase):
                    runner.question_repair_prompt(material, plan, q, {}, "修正解析")]
         for prompt in prompts:
             self.assertIn(tracks.GD_DESIGN_RULES, prompt)
-            self.assertIn("percent_vs_point", prompt)
+            self.assertIn("估算+多步混合", prompt)
             self.assertIn("能够从上述资料中推出的是", prompt)
         plan["track"] = "classic"
         self.assertNotIn(tracks.GD_DESIGN_RULES, runner.paper_prompt(material, plan, "b"))

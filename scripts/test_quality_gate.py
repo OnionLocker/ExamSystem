@@ -59,14 +59,11 @@ def test_ziliao_review_fails_closed() -> None:
         assert qo.ziliao_review_issues(q, good | change), change
     with patch.object(qo, "call_flash", return_value={"verdict": "PASS", "checks": {}, "issues": []}):
         assert qo.review_ziliao_material({})["verdict"] == "REJECT"
-    scope = "统计范围仅包括限额以上零售企业，不含个体经营户。"
     material_review = {"verdict": "PASS", "issues": [], "checks": {
         k: {"ok": True, "reason": "已核对"} for k in ("totals", "growth", "scope_units", "text_figure", "naturalness")}}
-    material_review["checks"]["naturalness"]["body_scope_quote"] = scope
-    for content, expected in [("收入124.6亿元。\n注：" + scope, "REJECT"),
-                              (scope + "收入124.6亿元。\n注：金额为现价。", "PASS")]:
-        with patch.object(qo, "call_flash", return_value=material_review | {"issues": []}):
-            assert qo.review_ziliao_material({"content": content}, {"track": "gd"})["verdict"] == expected
+    # A natural bulletin no longer needs an artificial "统计范围限定" sentence to pass.
+    with patch.object(qo, "call_flash", return_value=material_review | {"issues": []}):
+        assert qo.review_ziliao_material({"content": "深圳市收入124.6亿元。"}, {"track": "gd"})["verdict"] == "PASS"
     q["requested_slot"]["track"] = "gd"
     assert qo.ziliao_review_issues(q, good)  # Missing design evidence cannot pass.
     designed = good | {"design_check": {"ok": True, "reason": "正文口径应用，一步辨析"}}

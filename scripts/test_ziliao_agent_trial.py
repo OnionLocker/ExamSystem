@@ -13,7 +13,7 @@ from ziliao_agent_paper import sync_reviewed_version, import_checked
 def main():
     with tempfile.TemporaryDirectory() as directory:
         trial = Trial(Path(directory) / "trial", Path(directory) / "unused.db")
-        candidate = {"content": "甲114.4亿元、乙86.2亿元，合计200.5亿元。",
+        candidate = {"content": "广州市甲114.4亿元、乙86.2亿元，合计200.5亿元。",
                      "figure": {"kind": "bars", "categories": ["甲", "乙", "丙", "丁"],
                      "series": [{"name": "数值", "values": [21.3, 37.8, 29.4, 58.1]}]},
                      "rounding_checks": [{"label": "收入", "unit": "亿元", "places": 1,
@@ -22,6 +22,12 @@ def main():
                        "total": {"label": "合计", "raw": "200.52", "shown": "200.5"}}]}
         with patch("ziliao_agent_trial.runner.review_ziliao_material", return_value={"verdict": "PASS"}), \
              patch("ziliao_agent_trial.runner.render_material"):
+            placeholder = dict(candidate, content=candidate["content"].replace("广州市", "G省"))
+            assert "占位地名" in json.dumps(trial.submit_material(placeholder), ensure_ascii=False)
+            trial.plan["figure_shape"] = "years"
+            assert "时间序列" in json.dumps(trial.submit_material(candidate), ensure_ascii=False)
+            trial.plan["figure_shape"] = None
+            assert trial.material_reviews == 0
             assert trial.submit_material(candidate)["ok"]
             (trial.out / ".gate.json").write_text("old receipt")
             with patch("ziliao_agent_trial.runner.review_ziliao_material", return_value={"verdict": "REJECT"}):
