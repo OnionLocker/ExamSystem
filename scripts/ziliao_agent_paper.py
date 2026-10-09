@@ -6,6 +6,7 @@ import datetime as dt
 import json
 import os
 from pathlib import Path
+import random
 import shutil
 import subprocess
 import sys
@@ -18,6 +19,43 @@ from generation_gate import verify
 from ziliao_agent_trial import write
 
 ROOT = Path(__file__).resolve().parents[1]
+THEME_POOL = (
+    "农业农村经济与主要农产品产量", "文化和旅游消费与接待游客", "港口货物与集装箱吞吐量", "研发投入与专利授权",
+    "城镇新增就业与常住人口", "电力生产与能源消费", "数字经济核心产业与软件信息服务", "海洋生产总值与海洋产业",
+    "快递业务量与邮政物流", "新能源汽车与充电设施", "医疗卫生机构与床位人员", "金融机构存贷款",
+)
+OLD_SKELETON = ("财政", "工业", "外贸", "进出口", "社会消费品零售")
+REGIONS = ("广东省", "深圳市", "广州市", "佛山市", "东莞市", "珠海市", "惠州市", "中山市", "江门市", "湛江市", "汕头市")
+MATERIAL_PLANS = (
+    {"figure_shape": None,
+     "question_plan": "长文字统计公报式材料（3–5段，350–750字）：给出总量与多个分项的现期值和同比增速（供基期量、增长量），"
+                      "两项可比较的增速或比率及其上年值（供百分点题），以及能做估算比较的几组数据。"},
+    {"figure_shape": None,
+     "question_plan": "表格至少6行×4列：各分项现期值、上年值或同比增速，以及可求平均数的第二指标（如企业数、人数、面积），"
+                      "含合计行，分项展示值之和与合计保留真实舍入差；供比重、增长率、平均数、倍数题。"},
+    {"figure_shape": "years",
+     "question_plan": "柱图为连续5–6年同一指标的时间序列（categories为年份），供年均增长与增长量；正文另给某细分指标连续两年同比增速"
+                      "（供间隔增长率），以及该细分指标与总量的现期值和增速（供比重变化）。"},
+    {"figure_shape": "two_series",
+     "question_plan": "柱图为4–8个广东地市或类别的两年数值（两个同单位series，如2024年、2025年），供读图、比重、增长率；"
+                      "正文给两部分（如两类业务或两个区域）各自的现期值和增速，供混合增长率。"},
+)
+
+
+def recent_themes(output_dir):
+    """Themes of the most recent earlier batch, so consecutive papers do not reuse a combination."""
+    plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
+    if not plans:
+        return set()
+    latest = plans[-1].parent
+    return {json.loads(p.read_text()).get("theme_key") for p in latest.glob("M0[1-4]-plan.json")}
+
+
+def pick_themes(output_dir, rng):
+    used = recent_themes(output_dir)
+    fresh = [t for t in THEME_POOL if t not in used]
+    pool = fresh if len(fresh) >= 4 else list(THEME_POOL)
+    return rng.sample(pool, 4)
 
 
 def import_checked(out, db):
@@ -70,13 +108,21 @@ def main():
     out.mkdir(parents=True, exist_ok=bool(args.resume))
     (out / "images").mkdir(exist_ok=bool(args.resume))
     slots = runner.auto_slots(20, 4, "mid", "gd")
-    themes = ["财政收支与民生支出", "工业分行业营业收入与利润额", "货物进出口与分地区结构", "社会消费品零售与城乡结构"]
+    runner.validate_gd_quota(slots, count=20)
+    rng = random.Random(batch_id)
+    themes = pick_themes(args.output_dir.resolve(), rng)
+    regions = ["广东省"] + rng.sample(REGIONS[1:], 3)
     plans = [{"id": f"M{i+1:02}", "track": "gd", "difficulty": "mid", "format": kind,
-              "theme": themes[i], "count": 5, "slots": slots[i*5:(i+1)*5],
-              "focus": "真实公报信息组织；综合问法按槽位锁定；显示数从高精度底数独立舍入",
-              "question_plan": ("增长率槽只问收入/利润额同比率，不问利润率的相对增长率。" if i == 1 else
-                                "混合槽不得机械反推整数配比，若问混合总增速则正文不能直接给出总增速。" if i == 3 else ""),
+              "theme": f"{regions[i]}{themes[i]}", "theme_key": themes[i], "region": regions[i],
+              "count": 5, "slots": slots[i*5:(i+1)*5],
+              "focus": ("真实统计公报信息组织，地名用真实广东地名；难度偏易到中；显示数从高精度底数独立舍入；"
+                        "四篇主题互不相同，不写财政、工业、外贸、社零老骨架"),
+              "question_plan": MATERIAL_PLANS[i]["question_plan"]
+                               + "五题题型依次为：" + "、".join(s["kind_label"] for s in slots[i*5:(i+1)*5]) + "。",
+              "figure_shape": MATERIAL_PLANS[i]["figure_shape"],
               "chart_tasks": []} for i, kind in enumerate(runner.default_formats("gd", 4, False))]
+    if any(word in plan["theme"] for plan in plans for word in OLD_SKELETON):
+        raise ValueError("主题落入财政/工业/外贸/社零老骨架")
     if args.resume:
         previous = json.loads((out / "paper-summary.json").read_text())
         shutil.copy2(out / "paper-summary.json", out / f"paper-summary-before-{len(previous['full_gate_rounds'])}.json")
