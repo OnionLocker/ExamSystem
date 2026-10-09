@@ -43,6 +43,13 @@ function saveKaodianCache(items, aliases) {
   }
 }
 
+function leafParts(leaf) {
+  const flat = (items) => items.flatMap((ext) => ext.children?.length ? flat(ext.children)
+    : !ext.contentNode || ext.row ? [ext.row || null] : []);
+  const parts = leaf.extensions?.length ? flat(leaf.extensions) : [];
+  return parts.length ? parts : leaf.hits || [];
+}
+
 const emptyOverrides = () => ({ cards: {}, extras: {} });
 
 const loadOverrides = () => {
@@ -357,6 +364,7 @@ function TypeCard({ t, title, open, onToggle, rows, override, onSave, onDelete, 
             <MasteryBar
               row={row}
               kind={hits.length > 1 ? 'rollup' : undefined}
+              parts={hits}
               pending={scoresPending}
               hint={[row?.mastery_note, masteryHint(row), hits.length > 1 ? `${hits.length} 个相关考点` : ''].filter(Boolean).join(' · ')}
             />
@@ -591,6 +599,7 @@ function FenbiTree({ modules, selectedTag, onSelect, filterScored, scoresPending
                               <MasteryBar
                                 row={leaf.row}
                                 kind={leaf.score_kind}
+                                parts={leafParts(leaf)}
                                 pending={scoresPending}
                                 hint={leaf.row ? masteryHint(leaf.row) : ''}
                               />
@@ -881,7 +890,6 @@ export default function Knowledge({ onSeedHermes, active = true }) {
             </div>
 
             <div ref={detailRef} className="min-h-0 min-w-0 overflow-y-auto overscroll-contain space-y-3 pr-1">
-              <Assessment rows={shownAssessments} pending={!scoresReady} error={scoresError} />
               {selectedRoot ? <ContentPanel key={`${selectedRoot.tag}:${learningTag}`} rootTag={selectedRoot.tag} learningTag={learningTag} selectedTag={selectedTag} onSelect={setSelectedTag} active={active && view === 'tree'} onDiscuss={discussContent}
                 legacy={types.some(t => t.custom || overrides.cards[t.id]) ? <details className="mt-5"><summary className="cursor-pointer text-sm text-slate-500 py-3">原有自定义卡片与笔记（已保留）</summary>{types.filter(t => t.custom || overrides.cards[t.id]).map(t => <TypeCard key={t.id} t={t} open={openId === t.id} onToggle={() => setOpenId(openId === t.id ? '' : t.id)} rows={rows} override={overrides.cards[t.id]} onSave={patch => saveCard(t.id, patch, t.custom)} onDelete={t.custom ? () => removeExtra(t.id) : undefined} scoresPending={!scoresReady} />)}</details> : null}
               /> : <>
@@ -931,6 +939,7 @@ export default function Knowledge({ onSeedHermes, active = true }) {
                   ))}
                 </section>
               )}
+              <Assessment rows={shownAssessments} pending={!scoresReady} error={scoresError} />
             </div>
           </div>
         </>

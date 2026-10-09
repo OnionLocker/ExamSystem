@@ -633,6 +633,15 @@ def record(conn, kaodian, module, subtype, is_correct, elapsed_ms=0, source="her
             raise ValueError("practice answer not found")
         is_correct, elapsed_ms, source = answer[0], (answer[1] or 0) * 1000, "practice"
     kaodian, module, subtype = resolve_kaodian(conn, kaodian, module, subtype)
+    if practice_lock and question_id is not None:
+        # 复盘常只写到三级标签；题目自身挂在其下的子考法时，证据必须落到子考法，
+        # 否则父级拿到全部样本、子考法一直“待评估”。
+        q = conn.execute("SELECT tags FROM questions WHERE id=?", (int(question_id),)).fetchone()
+        own = primary_tag(q[0]) if q else ""
+        if own:
+            own_canonical, own_module, own_subtype = resolve_kaodian(conn, own)
+            if own_canonical.startswith(kaodian + "-"):
+                kaodian, module, subtype = own_canonical, own_module, own_subtype
     c = 1 if is_correct else 0
     source = source if source in SOURCE_WEIGHTS else "hermes"
     if session_id is not None:
@@ -1081,7 +1090,11 @@ if __name__ == "__main__":
             if not added:
                 print(f"already recorded -> session {session_id} item {item}")
             else:
-                stored, _, _ = resolve_kaodian(conn, tag, module, subtype)
+                stored = conn.execute(
+                    "SELECT kaodian FROM kaodian_events WHERE session_id=? AND question_id=? "
+                    "AND evidence_type='practice' ORDER BY id DESC LIMIT 1",
+                    (practice_id, item),
+                ).fetchone()[0] if practice_id is not None else resolve_kaodian(conn, tag, module, subtype)[0]
                 row = conn.execute(
                     "SELECT mastery, mastery_confidence, mastery_samples FROM kaodian_profile WHERE kaodian=?",
                     (stored,),
