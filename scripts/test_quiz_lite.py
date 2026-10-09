@@ -47,10 +47,12 @@ class FakeModel:
         self.blind = blind
         self.examiner = examiner
         self.writer_prompts = []
+        self.writer_schemas = []
 
-    def __call__(self, system, prompt, temperature, timeout):
+    def __call__(self, system, prompt, temperature, timeout, *, schema=None):
         if system == quiz_lite.WRITER_SYSTEM:
             self.writer_prompts.append(prompt)
+            self.writer_schemas.append(schema)
             return {"questions": self.writer_rounds.pop(0)}
         table = self.blind if system in (quiz_lite.BLIND_SYSTEM, quiz_quantity.BLIND) else self.examiner
         return {"questions": [dict(row, id=qid) for qid, row in table.items()]}
@@ -278,6 +280,39 @@ class LocalChecks(unittest.TestCase):
 
 
 class UpstreamFailures(unittest.TestCase):
+    def test_quantity_structured_output_never_salvages_multiple_drafts(self):
+        draft = {'questions': [question(1)]}
+        encoded = json.dumps(draft)
+        tool = {'function': {'name': 'submit_questions', 'arguments': encoded}}
+        messages = [
+            ({'content': '修改草稿', 'tool_calls': [tool]}, True),
+            ({'content': encoded}, True),
+            ({'content': encoded + encoded}, False),
+            ({'content': encoded + '\n再次检查第1题：修改题干'}, False),
+            ({'tool_calls': [tool, tool]}, False),
+            ({'content': encoded, 'tool_calls': [{'function': {
+                'name': 'submit_questions', 'arguments': encoded + encoded}}]}, False),
+        ]
+        for message, valid in messages:
+            response = MagicMock()
+            response.__enter__.return_value.read.return_value = json.dumps({'choices': [{
+                'finish_reason': 'stop', 'message': message,
+            }]}).encode()
+            with self.subTest(message=message), patch.object(quiz_lite, 'api_key', return_value='test'), \
+                    patch.object(quiz_lite.urllib.request, 'urlopen', return_value=response) as request:
+                if valid:
+                    self.assertEqual(quiz_lite.call(quiz_lite.WRITER_SYSTEM, 'prompt', 0.5, 1,
+                                                   schema=quiz_quantity.WRITER_SCHEMA), draft)
+                else:
+                    with self.assertRaisesRegex(RuntimeError, '无法解析.*未自动重试'):
+                        quiz_lite.call(quiz_lite.WRITER_SYSTEM, 'prompt', 0.5, 1,
+                                       schema=quiz_quantity.WRITER_SCHEMA)
+                request.assert_called_once()
+                body = json.loads(request.call_args.args[0].data)
+                self.assertEqual(body['tool_choice']['function']['name'], 'submit_questions')
+                self.assertEqual(body['tools'][0]['function']['parameters'], quiz_quantity.WRITER_SCHEMA)
+                self.assertNotIn('response_format', body)
+
     def test_structured_review_requires_one_valid_tool_result_without_retry(self):
         row = {'c0': 'REJECT 词义限制不成立，有自然用法反例'}
         tool = {'function': {'name': 'submit_review', 'arguments': json.dumps(row)}}
@@ -662,24 +697,37 @@ class PartialReissue(unittest.TestCase):
         quiz_lite.call = self.original_call
 
     def test_quantity_groups_keep_global_indices_and_actual_difficulty(self):
-        run = {**self.run, 'planned_count': 4, 'difficulty': None,
-               'slots': [{'tag': TAG, 'count': 4, 'difficulty': 'auto'}]}
+        run = {**self.run, 'planned_count': 10, 'difficulty': None,
+               'slots': [{'tag': TAG, 'count': 10, 'difficulty': 'auto',
+                          'brief': '广东省考难度，命题倾向，非硬性难度门槛'}]}
         stems = ['甲乙两队合作完成工程，甲单独需要十二天，乙十八天，合作多少天？',
                  '袋中红球三只蓝球五只，随机取出两个，颜色相同的概率是多少？',
                  '商品原价三百元，打八折再减二十元，实际售价为多少元？',
-                 '五名选手分数共一百六十分，最高四十五分，第二名至少多少分？']
+                 '五名选手分数共一百六十分，最高四十五分，第二名至少多少分？',
+                 '甲乙两车在相距三百公里的两地同时相向出发，何时相遇？',
+                 '六人随机排成一行，其中指定两人不相邻的排法有多少种？',
+                 '数列各项由前两项相加得到，前两项为一和二，第八项为多少？',
+                 '某班参加书法与绘画的人数分别为十八和二十，都参加的有六人，至少参加一项的有多少人？',
+                 '长方形的周长四十厘米，长比宽多四厘米，面积是多少平方厘米？',
+                 '三个部门共采购一百二十台电脑，其中研发部是行政部的两倍，销售部占多少台？']
         rows = [question(i + 1, stem=stem) for i, stem in enumerate(stems)]
-        fake = FakeModel([rows[:3], rows[3:]],
-                         {f'b_{i:02d}': blind_ok(tier='easy') for i in range(1, 5)},
-                         {f'b_{i:02d}': examiner_ok('easy' if i % 2 else 'mid') for i in range(1, 5)})
+        fake = FakeModel([rows[start:start + 3] for start in range(0, 10, 3)],
+                         {f'b_{i:02d}': blind_ok(tier='easy') for i in range(1, 11)},
+                         {f'b_{i:02d}': examiner_ok('easy' if i % 2 else 'mid') for i in range(1, 11)})
         quiz_lite.call = fake
         with tempfile.TemporaryDirectory() as tmp:
-            questions, _, _ = quiz_lite.build_batch(run, 1, 'test', Path(tmp))
+            questions, results, log = quiz_lite.build_batch(run, 1, 'test', Path(tmp))
             attempt = json.loads((Path(tmp) / 'attempt-1.json').read_text())
-        self.assertEqual([q['external_id'] for q in questions], ['b_01', 'b_02', 'b_03', 'b_04'])
-        self.assertEqual([q['difficulty'] for q in questions], [2, 3, 2, 3])
-        self.assertEqual([[i['index'] for i in g['items']] for g in attempt['groups']], [[1, 2, 3], [4]])
-        self.assertEqual(len(fake.writer_prompts), 2)
+            quiz_lite.write_batch(run, Path(tmp), questions, 'test')
+            quiz_lite.sign(Path(tmp), run, results, log)
+            self.assertTrue(verify(Path(tmp))['ok'])
+        self.assertEqual([q['external_id'] for q in questions], [f'b_{i:02d}' for i in range(1, 11)])
+        self.assertEqual([q['difficulty'] for q in questions], [2, 3] * 5)
+        self.assertEqual([[i['index'] for i in g['items']] for g in attempt['groups']],
+                         [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10]])
+        self.assertEqual(fake.writer_schemas, [quiz_quantity.WRITER_SCHEMA] * 4)
+        self.assertTrue(all('只调用一次submit_questions' in prompt for prompt in fake.writer_prompts))
+        self.assertTrue(all('非硬性难度门槛' in prompt for prompt in fake.writer_prompts))
 
     def test_quantity_groups_ignore_foreign_and_repeated_indices_without_changing_response(self):
         run = {**self.run, 'planned_count': 4, 'difficulty': None,
@@ -721,7 +769,7 @@ class PartialReissue(unittest.TestCase):
         # 第一轮第 2 题被盲解官否掉，第二轮同一个 id 必须换成一致的结论。
         rounds = {"n": 0}
 
-        def call(system, prompt, temperature, timeout):
+        def call(system, prompt, temperature, timeout, **kwargs):
             if system in (quiz_lite.BLIND_SYSTEM, quiz_quantity.BLIND):
                 rounds["n"] += 1
                 if rounds["n"] == 1:
@@ -731,7 +779,7 @@ class PartialReissue(unittest.TestCase):
                             dict(blind_ok("D"), id="b_02"),
                         ]
                     }
-            return fake(system, prompt, temperature, timeout)
+            return fake(system, prompt, temperature, timeout, **kwargs)
 
         quiz_lite.call = call
         questions, results, log = quiz_lite.build_batch(self.run, 3, "源")
@@ -801,7 +849,7 @@ class PartialReissue(unittest.TestCase):
                          {"b_01": blind_ok(), "b_02": blind_ok()}, {"b_01": examiner_ok(), "b_02": examiner_ok()})
         prompts = []
         rounds = 0
-        def call(system, prompt, temperature, timeout):
+        def call(system, prompt, temperature, timeout, **kwargs):
             nonlocal rounds
             if system in (quiz_lite.BLIND_SYSTEM, quiz_quantity.BLIND):
                 rounds += 1
@@ -809,7 +857,7 @@ class PartialReissue(unittest.TestCase):
                     return {"questions": [dict(blind_ok(), id="b_01"), dict(blind_ok("D"), id="b_02")]}
             if system in (quiz_lite.EXAMINER_SYSTEM, quiz_quantity.EXAMINER):
                 prompts.append(json.loads(prompt.split("\n", 1)[1]))
-            return fake(system, prompt, temperature, timeout)
+            return fake(system, prompt, temperature, timeout, **kwargs)
         quiz_lite.call = call
         quiz_lite.build_batch(self.run, 3, "源")
         self.assertEqual(len(prompts), 2)

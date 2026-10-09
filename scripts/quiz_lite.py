@@ -744,7 +744,10 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
             group = asks[start:start + group_size]
             prior = kept + [str(q.get('stem') or '') for q in draft['questions'] if isinstance(q, dict)]
             writer_options = {}
-            if run['module'] == '判断推理':
+            if run['module'] == '数量关系':
+                from quiz_quantity import WRITER_SCHEMA
+                writer_options['schema'] = WRITER_SCHEMA
+            elif run['module'] == '判断推理':
                 from quiz_reasoning import WRITER_SCHEMA
                 writer_options['schema'] = WRITER_SCHEMA
             response = call(WRITER_SYSTEM, writer_prompt(run, group, prior), 0.5, 600, **writer_options)

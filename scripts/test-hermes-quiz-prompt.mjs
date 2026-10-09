@@ -10,6 +10,9 @@ for (const text of [
   '翻译推理和真假推理各出两题',
   '只练标题填入题，给我3道easy题。',
   '常识判断的科技理论与成就，给我3道easy单选题。',
+  '给我出十题数量关系，广东省考难度',
+  '利润问题来十题，稍难一点',
+  '给我出十题利润问题，全部中等',
 ]) {
   const prompt = buildQuizPrompt({ text, projectRoot });
   assert.equal(prompt.wantsQuiz, true, text);
@@ -18,6 +21,10 @@ for (const text of [
   assert.match(prompt.quizNudge, /catalog 返回的稳定 tag/);
   assert.match(prompt.quizNudge, /数量未指定难度时省略/);
   assert.match(prompt.quizNudge, /不要自行补成全mid/);
+  assert.match(prompt.quizNudge, /数量日常练习默认auto/);
+  assert.match(prompt.quizNudge, /“广东省考难度”“贴近真题”“稍难一点”“多点基础题”都不是严格档位，保留auto/);
+  assert.match(prompt.quizNudge, /brief（注明非硬性难度门槛）/);
+  assert.match(prompt.quizNudge, /只有用户明确指定档位或难度配额/);
   assert.match(prompt.quizNudge, /言语同样未指定为auto/);
   assert.match(prompt.quizNudge, /难度只作命题倾向/);
   assert.match(prompt.quizNudge, /政治理论、常识判断也默认auto/);

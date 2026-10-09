@@ -1,9 +1,30 @@
 """数量文字题的命题与复算要求；目录、配额、补题和入库复用 quiz_lite。"""
 import json
 
+WRITER_SCHEMA = {
+    'type': 'object', 'required': ['questions'], 'additionalProperties': False,
+    'properties': {'questions': {'type': 'array', 'items': {
+        'type': 'object', 'required': ['index', 'stem', 'options', 'answer', 'analysis'],
+        'additionalProperties': False,
+        'properties': {
+            'index': {'type': 'integer'},
+            **{k: {'type': 'string'} for k in ('stem', 'analysis')},
+            'answer': {'type': 'string', 'enum': ['A', 'B', 'C', 'D']},
+            'unsuitable': {'type': 'boolean'},
+            'options': {'type': 'array', 'items': {
+                'type': 'object', 'required': ['key', 'text'], 'additionalProperties': False,
+                'properties': {'key': {'type': 'string', 'enum': ['A', 'B', 'C', 'D']},
+                               'text': {'type': 'string'}},
+            }},
+        },
+    }}},
+}
+
 DIFFICULTY = """数量难度按实际解题负担判断：easy为识别模型后直接计算；mid需要组织条件、转换关系或合理分类；
 hard需要多条件联动、关键构造或较复杂分类。结合该考点的常规解法说明依据，不能仅按题长、术语或条件个数分档。
 难度不是固定题型模板，不要求为了升档额外堆条件。目标auto表示用户未指定档位，可自然安排基础与进阶题，审核按实际难度标注；
+“广东省考难度、贴近真题、稍难一点、多点基础题”在auto下是命题倾向，不是档位或配额，不因评为easy或两位评级不同退题；
+不得把难度偏好转成brief_ok或style_ok的硬门槛。答案唯一、条件完整、解析正确和考点命中仍须严格核查。
 目标easy须为easy，目标mid须为mid，二者严格区分。目标hard允许实际mid或hard，但不接受easy；
 备考侧重掌握中等题，不为追求hard堆条件或反复拔高。actual_difficulty始终如实评定，不把mid改标hard。"""
 
@@ -59,7 +80,7 @@ def writer_prompt(run, asks, kept, cards):
         "sibling_topics是当前目录另列的相邻考点，不是候选出题范围；按关键求解任务区分，不能只换情境就冒充目标考点。",
         "只有用户明确要求同构训练时才固定结构；通常应有不同条件组合和问法，避免同场景只换数字。",
         "auto批次自主安排基础与进阶，不固定各档数量；同一子点的多道题须有不同的必要推理动作或所求关系，换场景、改数字不算变式。",
-        "对照本批已生成题干：先列出新题相对已有题改变的必要解题动作，再设计条件，避免同一公式连续直套。",
+        "设计时对照本批已生成题干，改变必要解题动作或所求关系，避免同一公式连续直套；不输出设计过程。",
         "要求hard时可出有训练价值的中等题或困难题；先完整设计解法，再反向确定题干数据，不必刻意拔高。",
         "难度来自目标考点的条件组织、关系转换或合理分类，不来自大数、术语和冗长计算，也不能为了升档偷换到相邻子点。",
         "用该点最短常规解法自查实际难度；仅识别模型后直接计算的easy不能充当mid或hard。设计后给出可复核的完整短解。",
@@ -70,7 +91,6 @@ def writer_prompt(run, asks, kept, cards):
         "纯文字，题干给足数据，模拟情境不冒充真实统计；不出需图才能理解的题。",
         "analysis给考生看，保留完整关键推导，不输出试算、自改答案等草稿。",
         "本批已生成题干（避免重复）：" + json.dumps(kept, ensure_ascii=False),
-        '只输出JSON：{"questions":[{"index":1,"stem":"...","options":[{"key":"A","text":"..."},'
-        '{"key":"B","text":"..."},{"key":"C","text":"..."},{"key":"D","text":"..."}],'
-        '"answer":"A","analysis":"..."}]}。确实无法满足指定考点或明确难度时可返回unsuitable:true。',
+        '完成设计与复算后，只调用一次submit_questions，按工具字段提交本组所有最终题目并保留items的全局index。',
+        '不在正文输出JSON、markdown、试算或修改稿，不提交多个版本；analysis不得用省略号占位。确实无法满足指定考点或明确难度时标记unsuitable:true。',
     ])
