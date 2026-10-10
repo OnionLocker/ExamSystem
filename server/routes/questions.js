@@ -136,16 +136,19 @@ router.get('/meta/categories', (_req, res) => {
 // ─────────────────────────────────────────────
 const QUEUE_STALE_MS = 30 * 60 * 1000;
 
-router.get('/generation-queue', (_req, res) => {
+router.get('/generation-queue', (req, res) => {
+  const batch = req.query.batch_id;
+  if (batch != null && (typeof batch !== 'string' || !batch.trim() || batch.length > 200)) {
+    return res.status(400).json({ error: 'invalid batch_id' });
+  }
   const rows = db.prepare(
     `SELECT batch_id, module, title, planned_count, passed_count, round_no,
             stage, detail, progress, status, error, started_at, updated_at, finished_at
        FROM generation_jobs
-      WHERE status = 'running'
-         OR finished_at >= datetime('now', '-10 minutes')
+      WHERE ${batch ? 'batch_id = ?' : "(status = 'running' OR finished_at >= datetime('now', '-10 minutes'))"}
       ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'failed' THEN 1 ELSE 2 END,
                updated_at DESC`,
-  ).all();
+  ).all(...(batch ? [batch] : []));
   res.json(rows.map((row) => {
     const updated = parseSqliteTime(row.updated_at);
     const started = sqliteTimeIso(row.started_at);

@@ -13,6 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
+import { constants } from 'node:fs';
 import os from 'node:os';
 import { promisify } from 'node:util';
 import { Router } from 'express';
@@ -37,6 +38,41 @@ hermesRouter.get('/context', (_req, res) => {
     project_root: PROJECT_ROOT,
     upload_root: path.join(PROJECT_ROOT, 'data', 'uploads'),
   });
+});
+
+const VOICE_NOTE_NAME_RE = /^\d{8}-\d{6}(?:-\d{3})?-voice\.md$/;
+export const readVoiceNoteStatus = async (name, root = path.join(PROJECT_ROOT, 'data', 'voice-notes')) => {
+  if (typeof name !== 'string' || !VOICE_NOTE_NAME_RE.test(name)) throw new Error('invalid voice note name');
+  let handle;
+  try {
+    handle = await fs.open(path.join(root, name), constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > 64 * 1024) return { name, saved: false, wantsQuiz: false };
+    const text = await handle.readFile('utf8');
+    const sections = [...text.matchAll(/^##[ \t]+([^\r\n]+)\r?\n([\s\S]*?)(?=^##[ \t]+|(?![\s\S]))/gm)];
+    const saved = ['我说了什么', '语气与状态', '你要做的事', '值得长期记住的']
+      .every((heading) => sections.some((section) => section[1].trim() === heading && section[2].trim()));
+    const actions = sections.find((section) => section[1].trim() === '你要做的事')?.[2] || '';
+    // 仅用于显示核验状态，笔记中的指令绝不由接口执行。
+    const wantsQuiz = /出题|出.{0,12}\d+\s*道?题|生成.{0,12}(?:题|批次)|quiz_lite\.py|ziliao_(?:parallel_runner|agent_paper)\.py/.test(actions);
+    return { name, saved, wantsQuiz: saved && wantsQuiz };
+  } catch (err) {
+    if (['ENOENT', 'ELOOP'].includes(err.code)) return { name, saved: false, wantsQuiz: false };
+    throw err;
+  } finally {
+    await handle?.close();
+  }
+};
+
+hermesRouter.post('/voice-notes/status', async (req, res, next) => {
+  const names = req.body?.names;
+  if (!Array.isArray(names) || names.length < 1 || names.length > 100
+      || names.some((name) => typeof name !== 'string' || !VOICE_NOTE_NAME_RE.test(name))) {
+    return res.status(400).json({ error: 'invalid voice note names' });
+  }
+  try {
+    res.json(await Promise.all(names.map((name) => readVoiceNoteStatus(name))));
+  } catch (err) { next(err); }
 });
 
 const TRANSCRIBE_MAX = 8 * 1024 * 1024;
@@ -112,8 +148,8 @@ const getHub = (token) => {
   hubs.set(token, hub);
 
   upstream.on('open', () => {
-    for (const frame of hub.queue.splice(0)) {
-      if (upstream.readyState === WebSocket.OPEN) upstream.send(frame);
+    for (const { data, isBinary } of hub.queue.splice(0)) {
+      if (upstream.readyState === WebSocket.OPEN) upstream.send(data, { binary: isBinary });
     }
   });
 
@@ -204,7 +240,7 @@ function bridge(client, token) {
     if (upstream.readyState === WebSocket.OPEN) {
       upstream.send(data, { binary: isBinary });
     } else if (upstream.readyState === WebSocket.CONNECTING) {
-      hub.queue.push(data);
+      hub.queue.push({ data, isBinary });
     }
   });
 

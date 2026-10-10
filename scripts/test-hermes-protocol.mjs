@@ -29,6 +29,19 @@ const deps = {
   isAudioLabel: () => false,
 };
 
+const leakedCall = 'call:default_api:write_file{content:出10道题,path:/tmp/note.md}';
+assert.doesNotMatch(visibleAssistantReply(leakedCall), /call:default_api|\/tmp\/note/);
+assert.match(visibleAssistantReply(leakedCall), /未确认/);
+assert.match(visibleAssistantReply(leakedCall, { streaming: true }), /核验/);
+assert.equal(visibleAssistantReply('call:def', { streaming: true }), '');
+const explainedCall = '例如 `call:default_api:write_file{...}` 是错误格式。';
+assert.equal(visibleAssistantReply(explainedCall), explainedCall);
+assert.equal(visibleAssistantReply('```text\n' + leakedCall + '\n```'), '```text\n' + leakedCall + '\n```');
+const recovered = finishAssistantMessage([
+  { role: 'assistant', streaming: true, content: leakedCall, tools: [] },
+], '本轮执行失败，请检查实际结果。', nextId);
+assert.equal(recovered[0].content, '本轮执行失败，请检查实际结果。');
+
 // 普通文字不能因为没挂复盘附件而被丢掉；执行页面实际的消息构造表达式。
 const chatSource = readFileSync(new URL('../src/hermes/HermesChat.jsx', import.meta.url), 'utf8');
 const submittedExpression = chatSource.match(/const submittedText = ([\s\S]*?);/)[1];

@@ -113,8 +113,16 @@ export const extractReview = (text) => {
 const REVIEW_HEADING_LINE_RE = /^###\s+\d+\s*[·．.]/m;
 const REVIEW_LEAK_RE = /第一件工具必须是|The user wants me to do a review|Let's carefully check the instructions|回复的第一行必须是|The user's voice message/;
 
-export const visibleAssistantReply = (content) => {
+const TEXT_TOOL_CALL_RE = /^\s*call:(?:default_api|functions):[A-Za-z_]\w*\s*[{(]/;
+export const hasTextToolCall = (content) => TEXT_TOOL_CALL_RE.test(String(content || ''));
+
+export const visibleAssistantReply = (content, { streaming = false } = {}) => {
   const raw = String(content || '');
+  if (hasTextToolCall(raw)) return streaming
+    ? '工具调用格式异常，正在恢复并核验执行结果。'
+    : '工具调用格式异常，本轮执行结果未确认。请核验笔记和出题任务后再重试。';
+  const prefix = raw.trimStart();
+  if (streaming && prefix && ['call:default_api:', 'call:functions:'].some((p) => p.startsWith(prefix) || prefix.startsWith(p))) return '';
   const heading = REVIEW_HEADING_LINE_RE.exec(raw);
   if (heading) {
     if (heading.index > 0 && REVIEW_LEAK_RE.test(raw.slice(0, heading.index))) {
@@ -289,7 +297,8 @@ export const finishAssistantMessage = (messages, finalText, nextId) => {
   const tools = (last.tools || []).map((tool) => (
     tool.done ? tool : { ...tool, done: true }
   ));
-  const content = last.content || finalText;
+  // complete 带的是权威终稿，可能替换恢复前已流出的错误工具文本。
+  const content = finalText || last.content;
   const previous = copy[copy.length - 1];
   if (sameFinal(previous, String(content || '').trim())) {
     bump('duplicate_start_complete_pair');

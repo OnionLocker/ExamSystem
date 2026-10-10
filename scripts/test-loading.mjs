@@ -90,12 +90,20 @@ assert.deepEqual(applied.map((x) => x.id), ['B', 'C']);
 // Real attachment delivery: legacy pasted images/drafts use image.attach_bytes.
 const deliverySource = chat.slice(chat.indexOf('    const deliver ='), chat.indexOf('\n    try {\n      const spokenText'));
 const methods = [];
-const deliver = new Function('gw', 'images', 'audio', 'imageMimeOf', `${deliverySource}\nreturn deliver;`)(
+const deliveryState = {
+  executionTurnRef: ref(null), activeStoredIdRef: ref('stored'), msgId: 'user-message',
+  buildQuizPrompt: () => ({ wantsQuiz: false }), text: '', projectRoot: '/project', review: null,
+  pendingVoiceNotesRef: ref(new Map()), notePath: '/project/data/voice-notes/20261011-010000-voice.md',
+};
+const deliver = new Function('gw', 'images', 'audio', 'imageMimeOf', 'state', `
+  const {executionTurnRef, activeStoredIdRef, msgId, buildQuizPrompt, text, projectRoot, review, pendingVoiceNotesRef, notePath} = state;
+  ${deliverySource}\nreturn deliver;`)(
   {request: async (method) => methods.push(method)},
-  [{name: 'paste.png', dataUrl: 'data:image/png;base64,AA=='}, {name: 'draft.png', hidden: true, dataUrl: 'data:image/png;base64,AA=='}, {name: 'paper.pdf', mime: 'application/pdf'}, {name: 'note.txt', mime: 'text/plain'}], null, imageMimeOf,
+  [{name: 'paste.png', dataUrl: 'data:image/png;base64,AA=='}, {name: 'draft.png', hidden: true, dataUrl: 'data:image/png;base64,AA=='}, {name: 'paper.pdf', mime: 'application/pdf'}, {name: 'note.txt', mime: 'text/plain'}], null, imageMimeOf, deliveryState,
 );
 await deliver('session', '请看图片');
 assert.deepEqual(methods, ['image.attach_bytes', 'image.attach_bytes', 'pdf.attach', 'file.attach', 'prompt.submit']);
+assert.equal(deliveryState.executionTurnRef.current.userMessageId, 'user-message');
 
 // Attach a review: bounded parallelism, question order, failed drafts and user images preserved.
 const attachSource = chat.slice(chat.indexOf('  const attachPractice ='), chat.indexOf('  // ---------- 带上某场真题复盘'));

@@ -1,0 +1,120 @@
+diff --git a/agent/turn_final_response.py b/agent/turn_final_response.py
+index 8b0c9b1493..89f27317d6 100644
+--- a/agent/turn_final_response.py
++++ b/agent/turn_final_response.py
+@@ -9,6 +9,7 @@ from __future__ import annotations
+
+ from dataclasses import dataclass
+ import logging
++import re
+ from typing import Any, Dict, Optional
+
+ from agent.message_metadata import append_message
+@@ -25,6 +26,7 @@ _REPETITION_STOPPED = repetition_copy(
+     "; refusing to return a",
+ )
+ logger = logging.getLogger("agent.conversation_loop")
++_TEXT_TOOL_CALL_RE = re.compile(r"^\s*call:(?:default_api|functions):[A-Za-z_]\w*\s*[\{(]")
+
+ # Ephemeral retry scaffolding rows popped before the final answer becomes durable.
+ _EPHEMERAL_SCAFFOLDING_FLAGS = (
+@@ -127,6 +129,45 @@ def finish_text_response(
+     # empty-response warnings on the final response path.
+     agent._mute_post_response = False
+
++    # Recover the wire contract only; text that resembles a call is never executed.
++    if finish_reason == "stop" and _TEXT_TOOL_CALL_RE.match(final_response):
++        retries = getattr(agent, "_dropped_toolcall_retries", 0)
++        if retries < 2:
++            agent._dropped_toolcall_retries = retries + 1
++            agent._emit_diagnostic_status(
++                f"Tool call arrived as text; requesting a structured call ({retries + 1}/2)."
++            )
++            retry_msg = agent._build_assistant_message(assistant_message, finish_reason)
++            retry_msg["_dropped_toolcall_nudge"] = True
++            append_message(messages, retry_msg)
++            append_message(messages, {
++                "role": "user",
++                "content": (
++                    "Your last response contained a tool call as ordinary text, which was not executed. "
++                    "Use the provided structured tool_calls interface to perform the requested action. "
++                    "Do not print call:default_api syntax or claim an action succeeded without its tool result. "
++                    "If you cannot issue a real tool call, report the failure plainly."
++                ),
++                "_dropped_toolcall_nudge": True,
++            })
++            agent._session_messages = messages
++            final_response = None
++            return _verdict("continue")
++        while messages and messages[-1].get("_dropped_toolcall_nudge"):
++            messages.pop()
++        agent._dropped_toolcall_retries = 0
++        final_response = (
++            "工具调用格式异常，恢复两次后仍未收到正式调用，本轮未完成。"
++            "笔记保存和出题结果均需核验；重发前请检查是否已有任务启动，避免重复执行。"
++        )
++        append_message(messages, {"role": "assistant", "content": final_response, "finish_reason": "stop"})
++        agent._session_messages = messages
++        agent._cleanup_task_resources(effective_task_id)
++        agent._persist_session(messages, conversation_history)
++        return _verdict("return", stamp_failure(
++            partial_result(messages, api_call_count, final_response, failed=True), "invalid_response", True,
++        ))
++
+     # Think-block-only / empty content: recovery path.
+     if not agent._has_content_after_think_block(final_response):
+         _ev = recover_empty_response(
+diff --git a/tests/agent/test_dropped_tool_call_recovery.py b/tests/agent/test_dropped_tool_call_recovery.py
+index 431a001995..c48fd5a293 100644
+--- a/tests/agent/test_dropped_tool_call_recovery.py
++++ b/tests/agent/test_dropped_tool_call_recovery.py
+@@ -67,6 +67,44 @@ def _dropped_tool_call_response(content: str):
+
+
+ class TestDroppedToolCallRecovery:
++    @pytest.mark.parametrize("recovered", [True, False])
++    def test_plain_text_tool_call_is_recovered_or_explicitly_failed(self, loop_agent, recovered):
++        from tests.agent.test_run_agent import _mock_response
++
++        leaked = "call:default_api:write_file{content:make 10 questions,path:/tmp/note.md}"
++        replies = [_mock_response(content=leaked, finish_reason="stop")]
++        if recovered:
++            replies.append(_mock_response(content="Actual execution is unconfirmed.", finish_reason="stop"))
++        else:
++            replies *= 8
++        loop_agent.client.chat.completions.create.side_effect = replies
++        with (
++            patch.object(loop_agent, "_persist_session"),
++            patch.object(loop_agent, "_save_trajectory"),
++            patch.object(loop_agent, "_cleanup_task_resources"),
++        ):
++            result = loop_agent.run_conversation("save the voice note and generate questions")
++        assert 2 <= loop_agent.client.chat.completions.create.call_count <= 3
++        assert leaked not in result["final_response"]
++        assert not any(leaked in str(m.get("content", "")) for m in result["messages"])
++        if not recovered:
++            assert result["failed"] is True
++            assert result["completed"] is False
++
++    def test_tool_call_example_in_prose_is_not_retried(self, loop_agent):
++        from tests.agent.test_run_agent import _mock_response
++
++        example = "For example, `call:default_api:write_file{...}` is not a real tool call."
++        loop_agent.client.chat.completions.create.return_value = _mock_response(content=example, finish_reason="stop")
++        with (
++            patch.object(loop_agent, "_persist_session"),
++            patch.object(loop_agent, "_save_trajectory"),
++            patch.object(loop_agent, "_cleanup_task_resources"),
++        ):
++            result = loop_agent.run_conversation("explain the syntax")
++        assert loop_agent.client.chat.completions.create.call_count == 1
++        assert result["final_response"] == example
++
+     def test_dropped_tool_call_reprompts_instead_of_exiting(self, loop_agent):
+         """finish_reason=tool_calls with an empty tool_calls array must
+         re-prompt the model to emit the call rather than exiting the loop
+@@ -191,4 +229,3 @@ class TestDroppedToolCallRecovery:
+             "_dropped_toolcall_nudge messages must be classified as "
+             "ephemeral scaffolding so they are never persisted."
+         )
+-

@@ -20,6 +20,7 @@ import MarkdownMessage from './MarkdownMessage.jsx';
 import ToolCard from './ToolCard.jsx';
 import { getToolActivity } from './toolActivity.js';
 import { buildQuizPrompt } from './quizPrompt.js';
+import { canDropVoiceContext, quizToolReceipt, verifyHermesExecution } from './hermesExecution.js';
 import QuotaBar from './QuotaBar.jsx';
 import HermesSidebar from './HermesSidebar.jsx';
 import HermesContextPickers from './HermesContextPickers.jsx';
@@ -283,7 +284,7 @@ const voiceNotePath = (projectRoot) => {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  return `${projectRoot}/data/voice-notes/${stamp}-voice.md`;
+  return `${projectRoot}/data/voice-notes/${stamp}-${String(d.getMilliseconds()).padStart(3, '0')}-voice.md`;
 };
 
 const fmtTokens = (n) => {
@@ -412,8 +413,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   }, [activeStoredId, messages, sessionLoading]);
 
   const practiceReviewRef = useRef(null);
-  // 这一轮带了录音：回合结束后要把运行时里的音频清掉，见 dropAudioFromContext
-  const voiceTurnRef = useRef(false);
+  // 未保存的笔记会阻止整会话音频清理。
+  const pendingVoiceNotesRef = useRef(new Map());
+  const executionTurnRef = useRef(null);
+  const verifyExecutionRef = useRef(null);
+  const executionTimersRef = useRef(new Map());
   // 连接是在挂载时建立的，事件回调拿不到后面定义的 dropAudioFromContext，用 ref 转一手
   const dropAudioContextRef = useRef(null);
   const pullRemoteSessionRef = useRef(null);
@@ -606,20 +610,19 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         setMessages((prev) => ensureStreamingAssistant(prev, uid));
         // 另一台设备提交的回合：事件可能先到，用 history/resume 补上对方的用户气泡
         if (!sendingRef.current) {
+          executionTurnRef.current = null;
           pullRemoteSessionOnEvent({ force: false });
         }
+        sendingRef.current = true;
       })),
       gw.on('message.complete', onActive((ev) => {
         const review = practiceReviewRef.current;
         if (ev.payload?.usage) setUsage(ev.payload.usage);
         finishStreaming(eventText(ev));
         practiceReviewRef.current = null;
-        // 录音已经用完，也已由模型写成口述笔记，现在把它从上下文里摘掉。
-        // 等一下再动手，免得撞上紧跟着的后台回执或工具事件。
-        if (voiceTurnRef.current) {
-          voiceTurnRef.current = false;
-          setTimeout(() => { void dropAudioContextRef.current?.(); }, 2000);
-        }
+        const turn = executionTurnRef.current;
+        if (turn?.live === sidRef.current) void verifyExecutionRef.current?.(turn);
+        if (ev.payload?.status && ev.payload.status !== 'complete') return;
         if (review?.kind !== 'practice' || review.profileReviewed) return;
         api(`/api/practice/sessions/${review.id}/review-complete`, { method: 'POST' })
           .then(() => api('/api/practice/sessions?limit=100'))
@@ -638,6 +641,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       })),
       gw.on('tool.complete', onActive((ev) => {
         const p = ev.payload || {};
+        const receipt = quizToolReceipt(p);
+        const turn = executionTurnRef.current;
+        if (receipt && turn?.live === sidRef.current) {
+          turn.receipts = [...turn.receipts, receipt];
+        }
         upsertTool({
           tool_id: p.tool_id, name: p.name || 'tool', args: p.args,
           result: p.result, duration_s: p.duration_s, done: true,
@@ -802,27 +810,65 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   // 录音只活在运行时的消息列表里，之后每一轮都要整包重传：一段 8 分钟的口述约
   // 2.7MB，说过三次就是每轮 3.8MB，今晚那次上游 EOF 就是这么撑出来的。
-  // 数据库只存文字，所以 close 掉运行时再 resume，历史照旧、音频归零（实测 39 条
-  // 消息一条不少）。语气已经由模型写进口述笔记，内容不会丢。
-  const dropAudioFromContext = useCallback(async () => {
+  // close/resume 会移除所有运行时录音，必须先核验本会话每份笔记，并防止跨会话清理。
+  const dropAudioFromContext = useCallback(async (expected) => {
     const gw = gwRef.current;
     const stored = activeStoredIdRef.current;
     const live = sidRef.current;
     if (!gw || gw.connectionState !== 'open' || !stored || !live) return;
-    if (sendingRef.current) return;
+    if (!canDropVoiceContext(expected, {
+      live, stored, sending: sendingRef.current, pending: pendingVoiceNotesRef.current.get(live),
+      turn: executionTurnRef.current,
+    })) return;
+    sendingRef.current = true;
     try {
       await gw.request('session.close', { session_id: live });
       const res = await gw.request('session.resume', { session_id: stored, cols: 100 });
+      pendingVoiceNotesRef.current.delete(live);
+      if (sidRef.current !== live || activeStoredIdRef.current !== stored) return;
       applyResume(res, stored, { allowSwitch: false });
       await refreshUsage(sidRef.current);
     } catch {
       /* 清不掉就算了，下一次会话回收时系统也会把音频丢掉 */
-    }
+    } finally { sendingRef.current = false; }
   }, [applyResume, refreshUsage]);
 
   useEffect(() => {
     dropAudioContextRef.current = dropAudioFromContext;
   }, [dropAudioFromContext]);
+
+  const verifyExecution = useCallback(async (turn, attempt = 0) => {
+    const { live, stored } = turn;
+    if (activeStoredIdRef.current !== stored) return;
+    const pending = pendingVoiceNotesRef.current.get(live) || [];
+    const result = await verifyHermesExecution({
+      noteNames: pending, receipts: turn.receipts, wantsQuiz: turn.wantsQuiz,
+    }, api);
+    if (activeStoredIdRef.current !== stored) return;
+    setMessages((prev) => {
+      const userAt = prev.findIndex((message) => message.id === turn.userMessageId);
+      if (userAt < 0) return prev;
+      let assistantAt = -1;
+      for (let i = userAt + 1; i < prev.length && prev[i].role !== 'user'; i++) {
+        if (prev[i].role === 'assistant') assistantAt = i;
+      }
+      return prev.map((message, i) => i === assistantAt ? { ...message, execution: result } : message);
+    });
+    if (result.allNotesSaved && (!result.quiz || ['done', 'failed'].includes(result.quiz.phase))) {
+      setTimeout(() => { void dropAudioContextRef.current?.({ live, stored, pending, turn }); }, 2000);
+    }
+    clearTimeout(executionTimersRef.current.get(turn.userMessageId));
+    if (result.quiz?.phase === 'running' && turn.receipts.some((r) => r.batchId) && attempt < 360) {
+      const timer = setTimeout(() => { void verifyExecutionRef.current?.(turn, attempt + 1); }, 5000);
+      executionTimersRef.current.set(turn.userMessageId, timer);
+    }
+  }, []);
+
+  useEffect(() => {
+    verifyExecutionRef.current = verifyExecution;
+    const timers = executionTimersRef.current;
+    return () => { for (const timer of timers.values()) clearTimeout(timer); };
+  }, [verifyExecution]);
 
   const resumeSession = useCallback((stored, { stick = false } = {}) => {
     const gw = gwRef.current;
@@ -1227,7 +1273,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const redoPacking = review?.kind === 'practice' && redoPackingRequested;
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     practiceReviewRef.current = redoPacking ? null : review;
-    voiceTurnRef.current = Boolean(audio);
+    const notePath = audio ? voiceNotePath(projectRoot) : null;
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
       : '对错和分数只认报告开头「判分（只认本表，来自答案 PDF）」那张表。禁止用录屏勾选、报告里的「差距」或自己心算改分数。';
@@ -1467,7 +1513,15 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           content_base64: audio.dataUrl,
           filename: audio.name,
         });
+        pendingVoiceNotesRef.current.set(target, [
+          ...(pendingVoiceNotesRef.current.get(target) || []), notePath.split('/').pop(),
+        ]);
       }
+      executionTurnRef.current = {
+        live: target, stored: activeStoredIdRef.current, userMessageId: msgId,
+        wantsQuiz: buildQuizPrompt({ text, audio: false, projectRoot }).wantsQuiz || review?.kind === 'debt',
+        receipts: [],
+      };
       await gw.request('prompt.submit', {
         session_id: target,
         text: outbound || (audio ? '请听这段口述' : '请查看我上传的附件'),
@@ -1484,7 +1538,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             '录音才是本轮指令。不要把时长标签当作用户正文。',
             // 录音本身不落库，会话一被回收就永远听不到了；而它留在运行时里，
             // 之后每一轮都要整包重传。所以听完先留一份文字底稿，再把音频丢掉。
-            `听完之后、回答之前，先把这段口述写成笔记存到 ${voiceNotePath(projectRoot)}（用 write_file，一次写完，不要先 ls 或读目录）。`,
+            `听完之后、回答之前，先把这段口述写成笔记存到 ${notePath}（用 write_file，一次写完，不要先 ls 或读目录）。`,
             '笔记用四段：`## 我说了什么`（逐条列要点，保留具体数字、题号和人名）、`## 语气与状态`（急躁/困惑/有把握/疲惫，以及听出来的犹豫或强调）、`## 你要做的事`（据此要执行的动作）、`## 值得长期记住的`（只写关于我这个人的稳定事实：目标、时间约束、学习习惯、明确偏好或纠正；没有就写"无"）。',
             '笔记控制在 600 字内，写完直接进入正常回答，不要向我复述笔记内容。',
             '如果这段口述里有该长期记住的事实，用 memory 工具写进 user 画像；只记稳定的，不记一次性情绪和进度流水。',
@@ -2417,12 +2471,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           )}
 
           {messages.map((m) => {
-            const reply = m.role === 'assistant' ? visibleAssistantReply(m.content) : m.content;
+            const reply = m.role === 'assistant' ? visibleAssistantReply(m.content, { streaming: m.streaming }) : m.content;
             const showUserText = Boolean(m.content) && !isAudioLabel(m.content);
             if (
               m.role === 'assistant'
               && !m.streaming
-              && !reply
+              && !reply && !m.execution?.voice && !m.execution?.quiz
               && !(showThinking && m.thinking)
               && !(m.tools?.length)
             ) return null;
@@ -2532,6 +2586,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                       scratchId={popout?.id === m.id ? undefined : scratchIdForMessage(m.id)}
                       practiceSessionId={practiceSessionForMessage(m.id)}
                     />
+                  )}
+                  {(m.execution?.voice || m.execution?.quiz?.text) && (
+                    <p className="mt-2 text-[0.8em] text-[#666] whitespace-pre-wrap break-words">
+                      {[m.execution.voice, m.execution.quiz?.text].filter(Boolean).join('\n')}
+                    </p>
                   )}
                 </div>
               )}
