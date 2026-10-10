@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { collectKnownWords, duplicateNameWarnings } from './add_vocab.mjs';
 import { validatePack } from '../src/studyBoost/vocabSchema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,6 +32,10 @@ if (!files.length) {
 const base = JSON.parse(fs.readFileSync(BASE, 'utf8'));
 const baseWords = new Set(base.map((w) => w.word));
 const baseIds = new Set(base.map((w) => String(w.id)));
+const { known, errors: corpusErrors } = collectKnownWords(ROOT);
+if (corpusErrors.length) {
+  for (const msg of corpusErrors) console.log(`⚠ 词名索引不完整: ${msg}`);
+}
 
 let failed = 0;
 
@@ -59,6 +64,8 @@ for (const file of files) {
     for (const e of pack.entries) {
       if (baseIds.has(String(e.id))) extra.push(`id 与主词库冲突: ${e.id}`);
     }
+    // 同名词换 id 时，前端仍按词名合并并覆盖旧字段。只警告，不让旧包校验失败。
+    extra.push(...duplicateNameWarnings(pack, file, known));
   }
 
   const allWarn = [...warnings, ...extra];

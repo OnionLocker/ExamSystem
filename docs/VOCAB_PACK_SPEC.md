@@ -8,6 +8,7 @@
 ```bash
 npm run validate:vocab-pack                 # 校验目录下所有 pack
 npm run validate:vocab-pack path/to/x.json  # 校验单个文件
+node scripts/add_vocab.mjs entries.json --dry-run   # 按词名去重，预览当日追加
 ```
 
 校验逻辑与前端装载逻辑共用 `src/studyBoost/vocabSchema.js`，所以
@@ -43,10 +44,14 @@ npm run validate:vocab-pack path/to/x.json  # 校验单个文件
 | mode | 用途 | 匹配方式 | 必填字段 |
 |---|---|---|---|
 | `enrich` | 给**已有词条**补字段（最常用） | 按 `word` 匹配（也可用 `id`） | `word` |
-| `append` | 新增**词库里没有的词** | 按 `id` 去重 | `id` `word` `explanation` |
+| `append` | 新增**词库里没有的词** | 按 `id` 去重；同词名仍会合并 | `id` `word` `explanation` |
 
 `enrich` 不需要知道内部 id，写 `word` 即可。匹配不到的条目会被跳过并在
 UI 上提示，不会报错中断。
+
+装载时如果两条词的 `id` 不同、词名相同，仍按词名合成一条：保留旧 `id`，
+释义等标量字段用后加载的词条覆盖，数组字段取并集。所以换一个 id 再 append
+同名词，不会新增一条，还会改掉已有字段。每日追加必须按词名跳过，见第 8 节。
 
 ---
 
@@ -114,6 +119,7 @@ UI 上提示，不会报错中断。
 - `page` 必须是数字
 - 同一个 pack 内 `id`/`word` 不能重复
 - `append` 的 `id` 不能与主词库冲突
+- `append` 的词名若与主词库、其它词包、辨析组、单列成语或讲义相同，`npm run validate:vocab-pack` 只给警告，不因此判定失败。旧包仍可装载；警告用来挡住「换 id 再追加同名词」
 
 ---
 
@@ -226,3 +232,66 @@ UI 上提示，不会报错中断。
 `src/studyBoost/questionKinds.js` 的 `QUESTION_KINDS` 数组里加一条即可，
 声明它需要哪些字段、题干怎么拼、选项文本取 `word` 还是 `explanation`。
 引擎和 UI 都不需要改动，题型开关会自动出现。
+
+---
+
+## 8. 每日追加
+
+新词不要手改 `src/copybook/words_data_clean.json`，也不要往旧包里换一个 id
+再塞同名词。用 `scripts/add_vocab.mjs` 按词名去重后写入当日词包。前端通过
+`import.meta.glob` 自动装载 `src/studyBoost/vocab-packs/*.json`，构建时打进
+`dist/`，`npm run build` 会原子替换页面，不用重启服务。
+
+```bash
+node scripts/add_vocab.mjs entries.json [--date YYYYMMDD] [--dry-run] [--build] [--commit]
+```
+
+| 参数 | 说明 |
+|---|---|
+| `entries.json` | 输入路径。内容是 JSON 数组 |
+| `--date YYYYMMDD` | 写入 `daily-YYYYMMDD.json`。省略时用 Asia/Shanghai 的今天 |
+| `--dry-run` | 只打印会新增和会跳过的词，不写文件 |
+| `--build` | 写入成功后依次跑 `npm run validate:vocab-pack <该文件>`、`node scripts/test-idiom-learning.mjs`、`npm run build` |
+| `--commit` | 只提交这一份词包并 `git pull --ff-only` 后推送 `main`。不带走工作区里其他人未提交的改动 |
+
+输入每条至少有 `word`、`wordType`、`explanation`。`wordType` 只能是 `word`、`idiom`、`collocation`。可选 `usage`、`examples`、`rivals`、`collocations`、`cloze`、`source`、`publicSources`、`exampleSource`。`cloze` 用 `____` 占位，句中不能含该词。其它字段会报错，并且整批不落盘。
+
+词名先去掉空白、再做全半角归一，然后和下面几处已有词名比对：
+
+- 主库 `src/copybook/words_data_clean.json`
+- `src/studyBoost/vocab-packs/*.json` 的词条，以及辨析组 `groups.members`
+- `idiomGroups.js`、`idiomSupplement.js` 里的组员和单列成语
+- `idiomHandout.json` 讲义
+
+输入内部同样去重。重名的跳过并列入 `skipped`，不覆盖旧字段。通过的词写入
+`src/studyBoost/vocab-packs/daily-YYYYMMDD.json`：`mode` 为 `append`，`pack_id`
+为 `daily-YYYYMMDD`，并带上 `generator`、`created_at`、`notes`。`id` 自动生成
+`daily-YYYYMMDD:词名`。当天文件已在就合并追加，仍然按词名去重。写入前调用
+`validatePack`，失败则不落盘。
+
+标准输出只有一行 JSON，供外部程序经 SSH 读取。`added` 是本次新词，`skipped`
+是跳过的词和原因，另外有文件路径、`build` 和 `commit` 的结果。
+
+```json
+[
+  {
+    "word": "日追加自测甲",
+    "wordType": "word",
+    "explanation": "仅作格式示例，不是正式词条。",
+    "usage": "写清适用对象或搭配限制。",
+    "examples": ["会议上用日追加自测甲说明了这项安排。"],
+    "cloze": ["他把这项安排____了一遍，大家才明白下一步。"],
+    "exampleSource": "原创例句"
+  },
+  {
+    "word": "日追加自测乙",
+    "wordType": "idiom",
+    "explanation": "仅作格式示例，不是正式词条。"
+  }
+]
+```
+
+```bash
+node scripts/add_vocab.mjs entries.json --dry-run
+node scripts/add_vocab.mjs entries.json --build --commit
+```
