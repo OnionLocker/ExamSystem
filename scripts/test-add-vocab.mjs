@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,6 +8,7 @@ import {
   ROOT,
   buildDailyPack,
   collectKnownWords,
+  commitPack,
   duplicateNameWarnings,
   normalizeWordName,
   parseYmd,
@@ -161,4 +162,39 @@ try {
   if (existsSync(target)) rmSync(target);
 }
 
-console.log('add_vocab 词名去重、dry-run 跳过已有词、同名警告不阻断：通过');
+const repo = mkdtempSync(join(tmpdir(), 'add-vocab-git-'));
+try {
+  const origin = join(repo, 'origin.git');
+  const work = join(repo, 'work');
+    const git = (cwd, args) => {
+      const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+      assert.equal(result.status, 0, `${args.join(' ')}\n${result.stderr || ''}${result.stdout || ''}`);
+      return (result.stdout || '').replace(/\n$/, '');
+    };
+  git(repo, ['init', '--bare', '-b', 'main', origin]);
+  git(repo, ['init', '-b', 'main', work]);
+  git(work, ['config', 'user.email', 'vocab-test@example.com']);
+  git(work, ['config', 'user.name', 'vocab-test']);
+  writeFileSync(join(work, 'README'), 'base\n');
+  git(work, ['add', '--', 'README']);
+  git(work, ['commit', '-m', 'init']);
+  git(work, ['remote', 'add', 'origin', origin]);
+  git(work, ['push', '-u', 'origin', 'main']);
+  writeFileSync(join(work, 'keep-me.txt'), '别人已暂存、不应进这次提交\n');
+  git(work, ['add', '--', 'keep-me.txt']);
+  writeFileSync(join(work, 'README'), 'base\n别人未暂存的修改\n');
+  const rel = 'src/studyBoost/vocab-packs/daily-20991231.json';
+  mkdirSync(join(work, 'src/studyBoost/vocab-packs'), { recursive: true });
+  writeFileSync(join(work, rel), '{"pack_id":"daily-20991231","mode":"append","entries":[]}\n');
+  const committed = commitPack(rel, 1, work);
+  assert.equal(committed.ok, true);
+  assert.equal(committed.pushed, true);
+  assert.equal(git(work, ['show', '--name-only', '--pretty=format:', 'HEAD']), rel);
+  assert.equal(git(work, ['rev-parse', 'HEAD']), git(origin, ['rev-parse', 'main']));
+  const status = git(work, ['status', '--porcelain']).split('\n').sort();
+  assert.deepEqual(status, [' M README', 'A  keep-me.txt']);
+} finally {
+  rmSync(repo, { recursive: true, force: true });
+}
+
+console.log('add_vocab 词名去重、dry-run 跳过已有词、新建词包可单独提交：通过');

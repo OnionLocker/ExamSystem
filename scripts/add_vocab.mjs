@@ -424,9 +424,9 @@ function emit(summary) {
   fs.writeSync(1, `${JSON.stringify(summary)}\n`);
 }
 
-function git(args) {
+function git(args, cwd = ROOT) {
   const result = spawnSync('git', args, {
-    cwd: ROOT,
+    cwd,
     encoding: 'utf8',
     env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
   });
@@ -457,17 +457,20 @@ function runBuild(relFile) {
   return { ok: true, steps };
 }
 
-function commitPack(relFile, count) {
-  const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+export function commitPack(relFile, count, cwd = ROOT) {
+  const run = (args) => git(args, cwd);
+  const branch = run(['rev-parse', '--abbrev-ref', 'HEAD']);
   if (branch !== 'main') {
     return { ok: false, pushed: false, error: `当前分支是 ${branch}，--commit 只在 main 上提交并推送` };
   }
-  git(['pull', '--ff-only', 'origin', 'main']);
-  const dirty = git(['status', '--porcelain', '--', relFile]);
+  run(['pull', '--ff-only', 'origin', 'main']);
+  const dirty = run(['status', '--porcelain', '--', relFile]);
   if (!dirty) return { ok: true, skipped: true, pushed: false, reason: '词包文件无变更' };
-  git(['commit', '-m', `词语学习：追加 ${count} 条到 ${path.basename(relFile)}`, '--', relFile]);
-  const hash = git(['rev-parse', 'HEAD']);
-  git(['push', 'origin', 'main']);
+  // 新建词包是未跟踪文件，不先 add 时 commit -- path 会报 pathspec did not match。
+  run(['add', '--', relFile]);
+  run(['commit', '-m', `词语学习：追加 ${count} 条到 ${path.basename(relFile)}`, '--only', '--', relFile]);
+  const hash = run(['rev-parse', 'HEAD']);
+  run(['push', 'origin', 'main']);
   return { ok: true, hash, pushed: true };
 }
 
