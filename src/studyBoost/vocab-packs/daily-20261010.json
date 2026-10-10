@@ -1,0 +1,568 @@
+{
+  "pack_id": "daily-20261010",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-10",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261010:单刀赴会",
+      "word": "单刀赴会",
+      "wordType": "idiom",
+      "explanation": "原指关羽只带一把刀、少数随从赴东吴之会；比喻只身冒险赴约，形容胆识过人。",
+      "usage": "强调孤身赴约、赴会的胆识；文中指1932年刘长春孤身代表中国参加奥运会。与“孤军奋战”不同，后者强调无援作战、处境艰难。",
+      "examples": [
+        "面对对方的围攻式谈判，他毫无惧色，单刀赴会，最终为企业争取到了合理条件。"
+      ],
+      "rivals": [
+        "孤军奋战"
+      ],
+      "cloze": [
+        "他只身前往谈判现场，颇有____的气概。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:惊艳",
+      "word": "惊艳",
+      "wordType": "word",
+      "explanation": "因美好出色而令人惊叹。",
+      "usage": "只用于正面的美、才华、表现；“惊诧”是惊讶诧异，中性偏负。",
+      "examples": [
+        "非遗传承人的精湛技艺在国际展会上惊艳了众多观众。"
+      ],
+      "rivals": [
+        "惊诧"
+      ],
+      "cloze": [
+        "这场融合传统与科技的演出____全场。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:反哺",
+      "word": "反哺",
+      "wordType": "word",
+      "explanation": "幼鸟长大后衔食喂母鸟；比喻回报、反过来促进来源方。",
+      "usage": "强调从对方处获益后反向支持，如“研发在中国、反哺全球”；“回馈”泛指报答、给予回报。",
+      "examples": [
+        "走出大山的青年学成归来，用所学知识反哺家乡发展。"
+      ],
+      "rivals": [
+        "回馈"
+      ],
+      "cloze": [
+        "城市发展起来后，要以工促农、以城____乡。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:压舱石",
+      "word": "压舱石",
+      "wordType": "word",
+      "explanation": "使船保持平稳的重物；比喻起根本稳定作用的基础力量。",
+      "usage": "重在“基础、底盘”；“稳定器”重在对冲波动，二者常连用，修饰实体经济、制造业、产业体系。",
+      "examples": [
+        "粮食安全是国家安全的压舱石。"
+      ],
+      "rivals": [
+        "稳定器"
+      ],
+      "cloze": [
+        "制造业是实体经济的____，决定着经济发展的底盘。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:稳定器",
+      "word": "稳定器",
+      "wordType": "word",
+      "explanation": "比喻在波动中起平抑、稳定作用的力量。",
+      "usage": "重在对冲波动、平抑起伏；“压舱石”重在根本基础。",
+      "examples": [
+        "在外部环境不确定性增加时，消费成为经济增长的稳定器。"
+      ],
+      "rivals": [
+        "压舱石"
+      ],
+      "cloze": [
+        "中国经济持续发挥着世界经济增长“____”的作用。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:正外部性",
+      "word": "正外部性",
+      "wordType": "collocation",
+      "explanation": "经济学术语：某主体的行为使他人或社会受益，却未获得相应补偿。",
+      "usage": "反义为“负外部性”（如污染）；申论中可用于论述“中国发展惠及世界”。",
+      "examples": [
+        "基础研究具有很强的正外部性，需要政府加大投入。"
+      ],
+      "rivals": [
+        "负外部性"
+      ],
+      "cloze": [
+        "企业开放专利，带动上下游共同进步，产生了显著的____。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:以武止戈",
+      "word": "以武止戈",
+      "wordType": "idiom",
+      "explanation": "源自《左传》“止戈为武”，意为用武力制止战争，真正的武是为了停止干戈。",
+      "usage": "褒义，体现和平理念；与“穷兵黩武”（滥用武力、好战）语义相反，注意感情色彩。",
+      "examples": [
+        "中华武术推崇以武止戈，习武的最高境界是修身养德、维护和平。"
+      ],
+      "rivals": [
+        "穷兵黩武"
+      ],
+      "cloze": [
+        "许多外国人练习武术，是因为赞赏____的文化理念。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:出圈",
+      "word": "出圈",
+      "wordType": "word",
+      "explanation": "指人物、话题突破原有小圈子，在更大范围引发关注（源自网络用语）。",
+      "usage": "多用于话题、作品、人物走红；“出格”指言行超出常规，多含贬义。",
+      "examples": [
+        "这部讲述基层干部的纪录片意外出圈，引发年轻观众热议。"
+      ],
+      "rivals": [
+        "出格"
+      ],
+      "cloze": [
+        "一段非遗短视频在网上____，带火了当地的文旅产业。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:敬畏",
+      "word": "敬畏",
+      "wordType": "word",
+      "explanation": "既尊敬又畏惧。",
+      "usage": "含“畏”，宾语多为自然、法律、生命、规律；“敬佩”是敬重佩服，“敬重”是恭敬尊重。",
+      "examples": [
+        "我们要对自然心存敬畏，按客观规律办事。"
+      ],
+      "rivals": [
+        "敬佩",
+        "敬重"
+      ],
+      "cloze": [
+        "领导干部要对手中的权力心存____，慎用权、用好权。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:敬佩",
+      "word": "敬佩",
+      "wordType": "word",
+      "explanation": "敬重佩服。",
+      "usage": "对象多为人的品格、才能、事迹；不含“畏惧”义，区别于“敬畏”。",
+      "examples": [
+        "他数十年如一日扎根乡村教学的精神令人敬佩。"
+      ],
+      "rivals": [
+        "敬畏",
+        "敬重"
+      ],
+      "cloze": [
+        "消防员逆行而上的勇气令人由衷____。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:敬重",
+      "word": "敬重",
+      "wordType": "word",
+      "explanation": "恭敬尊重。",
+      "usage": "侧重态度上的尊重，多用于对人；“敬佩”侧重佩服其品格才能，“敬畏”含畏惧。",
+      "examples": [
+        "老支书公道正派，深受村民敬重。"
+      ],
+      "rivals": [
+        "敬佩",
+        "敬畏"
+      ],
+      "cloze": [
+        "他德高望重，在乡亲们中间很受____。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:融通",
+      "word": "融通",
+      "wordType": "word",
+      "explanation": "融合贯通；彼此交流而相通。",
+      "usage": "强调互相交流、往来通达，常搭配“包容互鉴”“中外融通”；“融合”强调合为一体。",
+      "examples": [
+        "讲好中国故事，要善于用中外融通的表达方式。"
+      ],
+      "rivals": [
+        "融合"
+      ],
+      "cloze": [
+        "不同文明在交流中____互鉴，共同进步。"
+      ],
+      "source": "每日读报 2026-10-10：可敬的中国　灿烂的明天",
+      "publicSources": [
+        {
+          "title": "可敬的中国　灿烂的明天",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184453.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:不言自明",
+      "word": "不言自明",
+      "wordType": "idiom",
+      "explanation": "不用说明就能明白，指道理、意义十分明显。",
+      "usage": "近义“不言而喻”；“有目共睹”重“看得见”的成绩、变化；“不容置疑”重“不许怀疑”的观点、事实。",
+      "examples": [
+        "在开局之年召开这次大会，其重要意义不言自明。"
+      ],
+      "rivals": [
+        "不言而喻",
+        "有目共睹",
+        "不容置疑"
+      ],
+      "cloze": [
+        "在“十五五”开局起步之年，这场大会的分量____。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:落子",
+      "word": "落子",
+      "wordType": "word",
+      "explanation": "下棋时放下棋子；比喻在全局中的关键部署、举措。",
+      "usage": "常搭配“关键落子”“谋篇布局”，比“举措”更有全局感。",
+      "examples": [
+        "建设综合交通枢纽，是该市优化城市布局的关键落子。"
+      ],
+      "rivals": [
+        "举措",
+        "布局"
+      ],
+      "cloze": [
+        "这是把中央精神转化为施工图的关键____。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:施工图",
+      "word": "施工图",
+      "wordType": "word",
+      "explanation": "比喻将宏观部署细化为可执行的具体方案。",
+      "usage": "常用“把蓝图变为施工图”，与“任务书”“时间表”连用；区别于“路线图”（方向与路径）。",
+      "examples": [
+        "各地要把规划蓝图转化为可落地的施工图，确保政策见效。"
+      ],
+      "rivals": [
+        "路线图",
+        "蓝图"
+      ],
+      "cloze": [
+        "要把发展蓝图细化为____，挂图作战、压茬推进。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:本钱",
+      "word": "本钱",
+      "wordType": "word",
+      "explanation": "原指经营的资本；比喻可以凭借的条件。",
+      "usage": "口语化而有力量，如“最大本钱”；“资本”更书面，多为经济术语。",
+      "examples": [
+        "完整的产业体系是广东参与全球竞争的最大本钱。"
+      ],
+      "rivals": [
+        "资本"
+      ],
+      "cloze": [
+        "良好的生态环境是这座城市发展旅游的最大____。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:拔节生长",
+      "word": "拔节生长",
+      "wordType": "idiom",
+      "explanation": "庄稼茎秆节间伸长；比喻事物快速、蓬勃成长。",
+      "usage": "多修饰新动能、新产业、青年成长；“野蛮生长”指无序扩张，含贬义。",
+      "examples": [
+        "低空经济等新兴产业正拔节生长，成为经济发展新引擎。"
+      ],
+      "rivals": [
+        "野蛮生长"
+      ],
+      "cloze": [
+        "新动能____的声音清晰可闻。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:含金量",
+      "word": "含金量",
+      "wordType": "word",
+      "explanation": "原指含黄金的成分；比喻事物的实际价值。",
+      "usage": "常与“含新量”“含绿量”并用，搭配“发展的含金量”“证书的含金量”。",
+      "examples": [
+        "不断提升发展的含金量，才能让群众有实实在在的获得感。"
+      ],
+      "rivals": [
+        "含新量",
+        "含绿量"
+      ],
+      "cloze": [
+        "创新链与产业链深度融合，持续提升产业发展的____。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:用行动投票",
+      "word": "用行动投票",
+      "wordType": "collocation",
+      "explanation": "以实际行动（如投资、选择）表达态度。",
+      "usage": "正向表达支持；“用脚投票”多指通过迁移、离开表达不满或选择。",
+      "examples": [
+        "外资企业纷纷追加投资，用行动投票表达对中国市场的信心。"
+      ],
+      "rivals": [
+        "用脚投票"
+      ],
+      "cloze": [
+        "跨国企业持续加码投资，以实际____表达对营商环境的认可。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:沉淀",
+      "word": "沉淀",
+      "wordType": "word",
+      "explanation": "比喻经验、做法经积累而固化下来。",
+      "usage": "常用“把软服务沉淀为硬支撑”“经验沉淀为制度”；“升华”指提升到更高境界，多用于情感、认识。",
+      "examples": [
+        "要把基层探索的好经验沉淀为可复制推广的制度成果。"
+      ],
+      "rivals": [
+        "升华",
+        "积累"
+      ],
+      "cloze": [
+        "广东不断把“软服务”____为制度“硬支撑”。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:锻造",
+      "word": "锻造",
+      "wordType": "word",
+      "explanation": "反复锤炼成坚固之物；比喻经过锤炼而使之坚韧过硬。",
+      "usage": "强调经过锤炼而坚韧，如“锻造钢筋铁骨”“锻造过硬队伍”；“打造”泛指建设（品牌、平台）。",
+      "examples": [
+        "在急难险重任务中锻造一支能打硬仗的干部队伍。"
+      ],
+      "rivals": [
+        "打造"
+      ],
+      "cloze": [
+        "要____先进制造业“钢筋铁骨”，挺起产业体系坚韧脊梁。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261010:打造",
+      "word": "打造",
+      "wordType": "word",
+      "explanation": "制造、建设（多用于品牌、平台、环境等）。",
+      "usage": "泛指建设、营造，适用面广；“锻造”强调反复锤炼而坚韧。",
+      "examples": [
+        "该市着力打造一流营商环境，吸引大批企业落户。"
+      ],
+      "rivals": [
+        "锻造"
+      ],
+      "cloze": [
+        "各地要立足资源禀赋，____具有地方特色的文旅品牌。"
+      ],
+      "source": "每日读报 2026-10-10：头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+      "publicSources": [
+        {
+          "title": "头啖汤评论：家底厚、创新强！读懂广东制造的进阶密码",
+          "url": "https://opinion.southcn.com/node_2055521c62/763770c861.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
