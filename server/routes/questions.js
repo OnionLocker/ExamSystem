@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
 import { unlinkDraftsOfSessions } from './practice.js';
-import { sqliteTimeIso } from '../../src/sqliteTime.js';
+import { parseSqliteTime, sqliteTimeIso } from '../../src/sqliteTime.js';
 import { normalizeAnswer, judgeOptions } from '../../src/answers.js';
 
 const router = Router();
@@ -128,6 +128,37 @@ router.get('/meta/categories', (_req, res) => {
     )
     .all();
   res.json(rows);
+});
+
+// ─────────────────────────────────────────────
+// GET /api/questions/generation-queue
+//   正在出的题，以及 10 分钟内结束的。进度超过 30 分钟没更新标为 stale。
+// ─────────────────────────────────────────────
+const QUEUE_STALE_MS = 30 * 60 * 1000;
+
+router.get('/generation-queue', (_req, res) => {
+  const rows = db.prepare(
+    `SELECT batch_id, module, title, planned_count, passed_count, round_no,
+            stage, detail, progress, status, error, started_at, updated_at, finished_at
+       FROM generation_jobs
+      WHERE status = 'running'
+         OR finished_at >= datetime('now', '-10 minutes')
+      ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'failed' THEN 1 ELSE 2 END,
+               updated_at DESC`,
+  ).all();
+  res.json(rows.map((row) => {
+    const updated = parseSqliteTime(row.updated_at);
+    const started = sqliteTimeIso(row.started_at);
+    const updatedAt = sqliteTimeIso(row.updated_at);
+    const finished = sqliteTimeIso(row.finished_at);
+    return {
+      ...row,
+      ...(started ? { started_at: started } : {}),
+      ...(updatedAt ? { updated_at: updatedAt } : {}),
+      finished_at: finished || null,
+      stale: row.status === 'running' && Number.isFinite(updated) && Date.now() - updated > QUEUE_STALE_MS,
+    };
+  }));
 });
 
 // ─────────────────────────────────────────────

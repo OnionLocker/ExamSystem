@@ -75,6 +75,76 @@ const tabClass = (selected) =>
       : 'border-[#e8d5b0] bg-white text-[#6b5428] hover:border-[#6b5428]'
   }`;
 
+const queueLabel = (jobs) => {
+  const running = jobs.filter((job) => job.status === 'running');
+  const head = running[0] || jobs[0];
+  if (!head) return '没有在出的题';
+  if (running.length > 1) return `${running.length} 组出题中`;
+  const count = `${head.passed_count || 0}/${head.planned_count || 0}`;
+  const text = head.stale ? '进度中断' : (head.detail || head.stage || '出题中');
+  return `${count} · ${text}`;
+};
+
+const GenerationQueue = ({ jobs, open, onToggle }) => {
+  const running = jobs.filter((job) => job.status === 'running');
+  const head = running[0] || jobs[0];
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggle();
+        }}
+        aria-expanded={open}
+        className="flex max-w-[16rem] flex-col gap-1 rounded-xl border border-[#e8d5b0] bg-white px-3 py-1.5 text-left transition-colors hover:border-[#6b5428]"
+      >
+        <span className="truncate text-[11px] font-black text-[#6b5428]">{queueLabel(jobs)}</span>
+        {head && (
+          <span className="h-1 overflow-hidden rounded-full bg-[#e8d5b0]">
+            <span
+              className="block h-full rounded-full bg-[#2c261c]"
+              style={{ width: `${Math.min(100, Number(head.progress) || 0)}%` }}
+            />
+          </span>
+        )}
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 z-30 mt-2 w-80 max-w-[80vw] rounded-2xl border border-[#e8d5b0] bg-white p-3 shadow-lg"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {jobs.length === 0 ? (
+            <p className="px-1 py-2 text-xs font-bold text-slate-400">没有在出的题</p>
+          ) : (
+            <div className="max-h-80 space-y-3 overflow-y-auto">
+              {jobs.map((job) => (
+                <div key={job.batch_id}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-xs font-black">{job.title || job.module || job.batch_id}</p>
+                    <span className="shrink-0 text-[11px] font-black tabular-nums text-slate-400">
+                      {job.passed_count || 0}/{job.planned_count || 0}
+                    </span>
+                  </div>
+                  <p className={`mt-1 text-[11px] font-bold ${job.status === 'failed' ? 'text-red-500' : 'text-slate-500'}`}>
+                    {job.stale ? '进度中断，已久未更新' : (job.detail || job.stage)}
+                  </p>
+                  <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[#e8d5b0]">
+                    <div
+                      className={`h-full rounded-full ${job.status === 'failed' ? 'bg-red-400' : 'bg-[#2c261c]'}`}
+                      style={{ width: `${Math.min(100, Number(job.progress) || 0)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled }) => {
   const [batches, setBatches] = useState([]);
   const [redoPacks, setRedoPacks] = useState([]);
@@ -87,7 +157,10 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [errMsg, setErrMsg] = useState('');
+  const [jobs, setJobs] = useState([]);
+  const [queueOpen, setQueueOpen] = useState(false);
   const handledInitial = useRef(null);
+  const seenDone = useRef(new Set());
 
   const loadBatches = useCallback(async () => {
     setLoading(true);
@@ -116,6 +189,39 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
       });
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!queueOpen) return undefined;
+    const close = () => setQueueOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [queueOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const pull = async () => {
+      try {
+        const rows = await api('/api/questions/generation-queue');
+        if (cancelled) return;
+        const list = Array.isArray(rows) ? rows : [];
+        setJobs(list);
+        const doneIds = list.filter((job) => job.status === 'done').map((job) => job.batch_id);
+        if (doneIds.some((id) => !seenDone.current.has(id))) {
+          const batches = await api('/api/questions/meta/batches?include_scheduled=1');
+          if (!cancelled) setBatches(Array.isArray(batches) ? batches : []);
+        }
+        seenDone.current = new Set(doneIds);
+      } catch {
+        // 进度接口暂时不可用时保留上次看到的队列。
+      }
+    };
+    pull();
+    const timer = setInterval(pull, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 
@@ -328,6 +434,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <GenerationQueue jobs={jobs} open={queueOpen} onToggle={() => setQueueOpen((open) => !open)} />
           {selecting ? (
             <>
               <button

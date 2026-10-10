@@ -398,6 +398,23 @@ CREATE TABLE IF NOT EXISTS exam_analyses (
 );
 
 CREATE INDEX IF NOT EXISTS idx_exam_analyses_date ON exam_analyses(exam_date);
+
+CREATE TABLE IF NOT EXISTS generation_jobs (
+  batch_id TEXT PRIMARY KEY,
+  module TEXT NOT NULL DEFAULT '',
+  title TEXT NOT NULL DEFAULT '',
+  planned_count INTEGER NOT NULL DEFAULT 0,
+  passed_count INTEGER NOT NULL DEFAULT 0,
+  round_no INTEGER NOT NULL DEFAULT 0,
+  stage TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT '',
+  progress INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'running',
+  error TEXT,
+  started_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  finished_at TEXT
+);
 `);
 
 // mistakes 表在 Python 侧先建过，缺 correct_streak，这里补齐

@@ -54,22 +54,22 @@ const freezeOptionRows = (liveRoot, cloneRoot) => {
   });
 };
 
-// 把节点当前的样子原地复制一份，好让截图在后台慢慢跑。
+// 切题时只做这一步：把题面当前的样子同步克隆一份留着（就是一次 DOM 复制，很快）。
 //
-// html2canvas 读的是活着的 DOM：直接把截图丢到后台，用户一翻页就会截到下一题的内容。
-// 而截图在 iPad 上要几百毫秒到一秒多，让用户站在原地等一个"正在保存草稿"的圈显然不对。
-// 先同步克隆一份（这一步很快，就是一次 DOM 复制），翻页立刻走，截图对着副本跑，
-// 快照仍然是离开时那道题。
+// 截图本身（html2canvas）在 iPad 上一张要几百毫秒到一秒多，期间整页不响应：
+// 放在切题时跑，点了"下一题"要等，等不及再点一下就连跳两题；放在停笔时跑，
+// 再落笔就没墨。所以截图统一挪到交卷时（captureSnapshot）。
 //
-// 副本必须还在视口里（只是几乎全透明）：Safari 对 left:-99999px 的节点不排 flex，
-// 选项行会塌掉。a8a6b89 把题卡改成 h-full 之后，照 offsetHeight 截会带上题面下面
-// 一大块空白，所以高度仍按题面（和笔迹下沿）裁。
-export const detachForCapture = (node, { minHeight = 0 } = {}) => {
+// 克隆先不挂进文档，画布也不拷像素：一张 2x 画布十几 MB，攒上十道题 iPad 就吃不消。
+// 笔迹到截图时再按矢量重画。高度按题面（和笔迹下沿）裁：题卡是 h-full，
+// 照 offsetHeight 截会带上题面下面一大块空白。
+export const snapshotForCapture = (node, { minHeight = 0 } = {}) => {
   const cssW = node?.offsetWidth;
   if (!cssW) return null;
 
   const paperBg = paperColorOf(node);
   const captureH = Math.ceil(Math.max(contentHeightOf(node), minHeight, 1));
+  const ink = node.querySelector('canvas');
   const clone = node.cloneNode(true);
   clone.style.width = `${cssW}px`;
   clone.style.height = `${captureH}px`;
@@ -87,35 +87,52 @@ export const detachForCapture = (node, { minHeight = 0 } = {}) => {
 
   freezeOptionRows(node, clone);
 
-  // cloneNode 不会搬 canvas 里的像素，笔迹得自己画过去一次。
-  // 画布仍按屏幕上的尺寸摆，超出题面的空白被 overflow:hidden 裁掉，笔迹不缩放。
-  const from = node.querySelectorAll('canvas');
-  const to = clone.querySelectorAll('canvas');
-  from.forEach((src, i) => {
-    const dst = to[i];
-    if (!dst || !src.width || !src.height) return;
-    dst.width = src.width;
-    dst.height = src.height;
-    dst.style.width = `${src.offsetWidth}px`;
-    dst.style.height = `${src.offsetHeight}px`;
-    dst.style.position = 'absolute';
-    dst.style.inset = 'auto';
-    dst.style.left = '0';
-    dst.style.top = '0';
-    try {
-      dst.getContext('2d')?.drawImage(src, 0, 0);
-    } catch {
-      /* 画不过来就只丢这一层笔迹，不该连截图一起废掉 */
-    }
-  });
+  return {
+    clone,
+    cssW,
+    captureH,
+    paperBg,
+    inkW: ink?.offsetWidth || cssW,
+    inkH: ink?.offsetHeight || captureH,
+  };
+};
 
+// 交卷时逐张截：快照挂回文档、笔迹按矢量画回第一层画布，截完就拆。
+// paintInk(ctx, w) 负责画笔迹，w 是画布的 CSS 宽度（笔迹坐标按它归一化）。
+//
+// 副本必须还在视口里（只是几乎全透明）：Safari 对 left:-99999px 的节点不排 flex，
+// 选项行会塌掉。画布按快照时屏幕上的尺寸摆，超出题面的部分被 overflow:hidden 裁掉。
+export async function captureSnapshot(snap, paintInk) {
+  const { clone, cssW, captureH, paperBg, inkW, inkH } = snap;
   const holder = document.createElement('div');
   holder.style.cssText = `position:fixed;top:0;left:0;width:${cssW}px;height:${captureH}px;opacity:0.01;pointer-events:none;z-index:-1;background:${paperBg};`;
   holder.appendChild(clone);
   document.body.appendChild(holder);
-
-  return { node: clone, dispose: () => holder.remove() };
-};
+  try {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    clone.querySelectorAll('canvas').forEach((dst, i) => {
+      dst.width = Math.round(inkW * dpr);
+      dst.height = Math.round(inkH * dpr);
+      dst.style.width = `${inkW}px`;
+      dst.style.height = `${inkH}px`;
+      dst.style.position = 'absolute';
+      dst.style.inset = 'auto';
+      dst.style.left = '0';
+      dst.style.top = '0';
+      if (i > 0 || !paintInk) return;
+      try {
+        const ctx = dst.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paintInk(ctx, inkW);
+      } catch {
+        /* 画不过来就只丢这一层笔迹，不该连截图一起废掉 */
+      }
+    });
+    return await captureNode(clone);
+  } finally {
+    holder.remove();
+  }
+}
 
 const MAX_PX = 1600;
 

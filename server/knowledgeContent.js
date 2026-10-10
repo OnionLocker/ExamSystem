@@ -10,6 +10,7 @@ const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const cards = new Map(XINGCE.modules.flatMap(m => m.types || []).map(c => [c.id, c]));
 export const topics = tree.modules.flatMap(m => m.children.flatMap(g => g.children.map(l => ({
   tag: `${m.name}-${g.name}-${l.name}`, title: l.name, moduleId: m.id, cards: l.cards || [],
+  childCards: l.children?.flatMap(child => child.cards || []) || [],
 }))));
 const cardOwners = new Map();
 for (const topic of topics) for (const id of new Set(topic.cards)) {
@@ -31,11 +32,13 @@ export function initialTopic(tag) {
   if (tag === '数量关系-数学运算-概率问题') {
     return JSON.parse(readFileSync(resolve(ROOT, 'hermes-skills/gd-gongkao-coach/references/knowledge-content/probability.json'), 'utf8'));
   }
+  const cardIds = [...new Set([
+    ...topic.cards.filter(id => cardOwners.get(id) === 1),
+    ...topic.childCards,
+  ])];
   return { tag, revision: 0, nodes: [
     { id: 'overview', parentId: null, title: topic.title, order: 0, summary: '先选考法，再看步骤、公式和易错点。', markdown: '', aliases: [tag], archived: false },
-    ...topic.cards
-      .filter(id => cardOwners.get(id) === 1)
-      .map(id => cards.get(id)).filter(Boolean).map((c, order) => ({
+    ...cardIds.map(id => cards.get(id)).filter(Boolean).map((c, order) => ({
       id: c.id, parentId: 'overview', title: c.name.replace(/^\d+\s*/, ''), order,
       summary: c.how || '', markdown: cardMarkdown(c), aliases: [], archived: false,
     })),

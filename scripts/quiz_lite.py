@@ -691,7 +691,7 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
     return out
 
 
-def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = None) -> tuple[list[dict], dict, list[dict]]:
+def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = None, progress=None) -> tuple[list[dict], dict, list[dict]]:
     """出稿 → 双审 → 只重出不合格的题。返回题目、逐题证据、每轮记录。"""
     if audit_dir is not None and audit_dir.exists() and any(audit_dir.iterdir()):
         raise ValueError("批次目录已有产物，不能覆盖旧证据；请使用新的 batch_id")
@@ -704,6 +704,17 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
     analysis_repairs: set[int] = set()
     repaired: set[int] = set()
     log = []
+
+    def note(**kwargs):
+        if progress is None:
+            return
+        try:
+            progress(**kwargs)
+        except Exception:
+            return
+
+    def passed_count():
+        return sum(value is not None for value in slots)
 
     for attempt in range(1, rounds + 1):
         todo = [index for index, value in enumerate(slots) if value is None]
@@ -750,6 +761,12 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
             elif run['module'] == '判断推理':
                 from quiz_reasoning import WRITER_SCHEMA
                 writer_options['schema'] = WRITER_SCHEMA
+            drafted = passed_count()
+            first, last = group[0]["index"], group[-1]["index"]
+            span = str(first) if first == last else f"{first}–{last}"
+            note(stage="命题", detail=f"第{attempt}轮 · 正在出第 {span} 题",
+                 passed=drafted, round_no=attempt, status="running",
+                 progress=min(85, drafted * 85 // total) if total else 0)
             response = call(WRITER_SYSTEM, writer_prompt(run, group, prior), 0.5, 600, **writer_options)
             produced_group = [q for q in response.get('questions') or [] if isinstance(q, dict)]
             requested, candidates = {ask['index'] for ask in group}, []
@@ -814,6 +831,10 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
         current = [value for value in slots if value]
         # 批次要求可能依赖别题；换题后同时重审保留题，避免沿用旧组合的结论。
         reviewed = current if fresh and any(slot.get("brief") for slot in per_item) else fresh
+        drafted = passed_count()
+        note(stage="审核", detail=f"第{attempt}轮 · 正在审核 {len(reviewed)} 题",
+             passed=drafted, round_no=attempt, status="running",
+             progress=min(85, drafted * 85 // total) if total else 0)
         round_results = review(run, reviewed, per_item, current)
         results.update(round_results)
         for question in reviewed:
@@ -857,6 +878,10 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
             attempt_record.update({**log[-1], "review": round_results})
             (audit_dir / f"attempt-{attempt}.json").write_text(
                 json.dumps(attempt_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        accepted = passed_count()
+        note(stage="审核", detail=f"第{attempt}轮 · 已过审 {accepted}/{total}",
+             passed=accepted, round_no=attempt, status="running",
+             progress=min(85, accepted * 85 // total) if total else 0)
 
     missing = [index + 1 for index, value in enumerate(slots) if value is None]
     if missing:
@@ -1034,6 +1059,8 @@ def main() -> int:
     os.environ["EXAM_DB"] = str(args.db)
     started = time.monotonic()
     batch_dir = None
+    tracked = False
+    finished = False
     try:
         if args.module in SOURCE_MODULES and not args.tag and not args.blueprint:
             from policy_quiz import module_slots
@@ -1104,19 +1131,42 @@ def main() -> int:
             conn.close()
         if exists:
             raise RuntimeError(f"batch_id 已入库 {exists} 题，换一个序号")
+        from generation_progress import report
+
+        def tick(**kwargs):
+            nonlocal tracked, finished
+            if finished:
+                return
+            tracked = True
+            if kwargs.get("status") in ("done", "failed"):
+                finished = True
+            report(args.batch_id, module=module, title=source, planned=total, **kwargs)
+
+        tick(stage="准备出题", detail=f"共 {total} 题", progress=2, passed=0, status="running")
         from quiz_scope import register_slots
         register_slots(slots, args.db)
         audit_token = MODEL_AUDIT_DIR.set(batch_dir / 'model-responses')
         try:
-            questions, results, log = build_batch(run, max(1, args.rounds), source, batch_dir)
+            questions, results, log = build_batch(run, max(1, args.rounds), source, batch_dir, progress=tick)
         finally:
             MODEL_AUDIT_DIR.reset(audit_token)
         # 复核与签发之间不许有任何东西再动 questions.json，否则证据对不上题面。
+        tick(stage="签收", detail=f"已过审 {len(questions)}/{total}", passed=len(questions),
+             progress=92, round_no=len(log), status="running")
         write_batch(run, batch_dir, questions, source)
         sign(batch_dir, run, results, log)
         from generation_gate import verify
+        tick(stage="闸门", detail="正在核验收据", passed=len(questions), progress=95, status="running")
         verify(batch_dir)
-        imported = 0 if args.no_import else import_batch(batch_dir, args.db)
+        if args.no_import:
+            imported = 0
+            tick(status="done", stage="已通过", detail=f"已出题 {len(questions)} 题，未入库",
+                 passed=len(questions), progress=100)
+        else:
+            tick(stage="入库", detail="正在写入题库", passed=len(questions), progress=97, status="running")
+            imported = import_batch(batch_dir, args.db)
+            tick(status="done", stage="已入库", detail=f"已入库 {imported} 题",
+                 passed=len(questions), progress=100)
         print(
             json.dumps(
                 {
@@ -1141,6 +1191,9 @@ def main() -> int:
     except SystemExit:
         raise
     except Exception as exc:  # noqa: BLE001
+        if tracked and not finished:
+            from generation_progress import report
+            report(args.batch_id, status="failed", stage="失败", error=str(exc), detail=str(exc)[:160])
         print(
             json.dumps(
                 {

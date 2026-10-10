@@ -136,9 +136,13 @@ def main():
             write(out / f"{plan['id']}-plan.json", plan)
         rounds, worker_runs = [], []
     print(f"batch_dir={out}", flush=True)
+    from generation_progress import Job
+    job = Job(batch_id, module="资料分析", title="资料分析整套", planned=20)
 
     def worker(plan, resume=False, feedback=None):
         mid = plan["id"]
+        job.update(stage="回修" if resume else "出题",
+                   detail=f"{mid} {'回修' if resume else '生成'}中", progress=20 if resume else 15)
         work = out / "workers" / mid / batch_id
         cmd = [sys.executable, str(ROOT / "scripts/ziliao_agent_trial.py"),
                "--output-dir", str(work.parent), "--batch-id", batch_id,
@@ -192,11 +196,14 @@ def main():
 
     passed, error = False, None
     try:
+        job.update(stage="准备出题", detail="4 篇", progress=2)
         if args.resume:
             paths = [out / "workers" / p["id"] / batch_id for p in plans]
         else:
+            job.update(stage="出题", detail=f"{len(plans)} 篇并行生成", progress=15)
             with ThreadPoolExecutor(max_workers=args.workers) as pool:
                 paths = list(pool.map(worker, plans))
+            job.update(stage="组装", detail=f"{len(plans)} 篇已出稿，准备整套质检", progress=55)
         for attempt in range(len(rounds) + 1, 4):
             assemble(paths)
             (out / ".gate.json").unlink(missing_ok=True)
@@ -208,6 +215,7 @@ def main():
                 shutil.copy2(out / name, snapshot / name)
             shutil.copytree(out / "images", snapshot / "images")
             print(f"full-paper gate {attempt} started", flush=True)
+            job.update(stage="闸门", detail=f"整套第 {attempt} 轮质检", progress=min(90, 68 + attempt * 6))
             mark = time.monotonic()
             proc = subprocess.run(["python3", "scripts/generation_gate.py", "issue", str(out)],
                                   cwd=ROOT, env={**os.environ, "EXAM_DB": str(args.db.resolve())},
@@ -234,6 +242,7 @@ def main():
                     targets.add(result["question_id"].rsplit("-", 2)[-2])
             if not targets:
                 targets = {p["id"] for p in plans}
+            job.update(stage="回修", detail=f"回修 {len(targets)} 篇", progress=72)
             def repair(plan):
                 feedback = {"gate_error": (proc.stdout + proc.stderr)[-4000:],
                             "batch_quality": data.get("batch_quality"),
@@ -247,9 +256,16 @@ def main():
     imported = 0
     if passed and args.import_batch:
         try:
+            job.update(stage="入库", detail="正在写入题库", passed=20, progress=96)
             imported = import_checked(out, args.db)
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
+    if passed and error is None:
+        job.finish(status="done", stage="已入库" if imported else "已通过",
+                   detail=f"{'已入库' if imported else '质检通过'} 20 题", passed=20, progress=100)
+    else:
+        job.finish(status="failed", stage="失败", error=error or "未通过",
+                   detail=(error or "未通过")[:160])
     summary = {"passed": passed, "batch_dir": str(out), "model": runner.MODEL,
                "seconds": round(time.monotonic()-started, 2) + (previous["seconds"] if args.resume else 0),
                "question_count": 20, "materials": 4,

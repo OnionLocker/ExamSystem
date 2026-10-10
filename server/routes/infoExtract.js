@@ -22,7 +22,7 @@ function getApiKey() {
         return line.split('=')[1].trim();
       }
     }
-  } catch {}
+  } catch { /* 配置文件不存在时继续抛出统一的缺少密钥错误 */ }
   throw new Error('CLIPROXY_API_KEY not found');
 }
 

@@ -1,5 +1,5 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { Eraser, PenTool, Trash2, Undo2 } from 'lucide-react';
 import DraftLayer from '../aiPractice/DraftLayer.jsx';
@@ -26,10 +26,28 @@ function ScratchSession({ storeKey, enabled, children }) {
   const [tool, setTool] = useState('pen');
   const [byQ, setByQ] = useState(() => (storeKey ? load(storeKey) : {}));
 
+  // 每收一笔就同步序列化整份笔迹，笔迹一多就卡下一笔的落笔；停笔后再写，离开时补写
+  const pendingRef = useRef(null);
+  const flush = useCallback(() => {
+    const data = pendingRef.current;
+    pendingRef.current = null;
+    if (!storeKey || !data) return;
+    try { localStorage.setItem(storeKey, JSON.stringify(data)); } catch { /* private mode */ }
+  }, [storeKey]);
+
   useEffect(() => {
-    if (!storeKey) return;
-    try { localStorage.setItem(storeKey, JSON.stringify(byQ)); } catch { /* private mode */ }
-  }, [storeKey, byQ]);
+    pendingRef.current = byQ;
+    const timer = setTimeout(flush, 800);
+    return () => clearTimeout(timer);
+  }, [byQ, flush]);
+
+  useEffect(() => {
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [flush]);
 
   useEffect(() => {
     if (active == null) return undefined;
@@ -77,8 +95,8 @@ function ScratchSession({ storeKey, enabled, children }) {
             visible={active != null}
             tool={tool}
             color="#1a1a1a"
-            penMinW={0.8}
-            penMaxW={2.2}
+            penMinW={0.9}
+            penMaxW={4.5}
             strokes={strokes}
             onStrokeEnd={(stroke) => {
               if (active == null) return;

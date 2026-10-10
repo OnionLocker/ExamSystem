@@ -582,7 +582,22 @@ def validate_frame(frame, args):
         raise ValueError("材料形态不符合请求")
 
 
+_active_job = None
+
+
 def main(argv=None) -> int:
+    global _active_job
+    _active_job = None
+    try:
+        return _main_body(argv)
+    except Exception as exc:
+        job = _active_job
+        if job is not None and not job.done:
+            job.finish(status="failed", stage="失败", error=str(exc), detail=str(exc)[:160])
+        raise
+
+
+def _main_body(argv=None) -> int:
     args = parse_args(argv)
     os.environ["EXAM_DB"] = str(args.db)
     started = time.monotonic(); today = dt.date.today().isoformat(); batch_id = args.batch_id
@@ -612,8 +627,14 @@ def main(argv=None) -> int:
     finally:
         conn.close()
     out = args.output_dir/today/batch_id; out.mkdir(parents=True, exist_ok=False); marks = {"started_at":dt.datetime.now(dt.timezone.utc).isoformat()}
+    global _active_job
+    from generation_progress import Job
+    track = Job(batch_id, module="资料分析", title=source, planned=args.total)
+    _active_job = track
+    track.update(stage="准备出题", detail=f"共 {args.total} 题 · {len(args.formats)} 篇", progress=2)
     run = {"module": "资料分析", "slots": args.slots}
     per_item = [dict(slot, definition=run_canon_card(run, slot["tag"])) for slot in args.slots for _ in range(slot["count"])]
+    track.update(stage="材料框架", detail=f"正在设计 {len(args.formats)} 篇材料", progress=8)
     t=time.monotonic(); frame=call(framework_prompt(args.difficulty,args.formats,per_item,args.track),5000); marks["framework_seconds"]=round(time.monotonic()-t,2)
     validate_frame(frame,args)
     frame["track"] = args.track
@@ -625,6 +646,7 @@ def main(argv=None) -> int:
         item["slots"] = per_item[cursor:cursor + item["count"]]
         cursor += item["count"]
     (out/"framework.json").write_text(json.dumps(frame, ensure_ascii=False, indent=2))
+    track.update(stage="冻结材料", detail=f"正在写 {len(frame['materials'])} 篇材料", progress=22)
     t=time.monotonic()
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: material_results=list(pool.map(lambda item:material_call(frame,item,batch_id,out),frame["materials"]))
     marks["materials_seconds_wall"]=round(time.monotonic()-t,2); materials=[r["material"] for r in material_results]; image_dir=out/"images"; image_dir.mkdir(exist_ok=True)
@@ -633,6 +655,7 @@ def main(argv=None) -> int:
             raise ValueError("材料 ID 与冻结框架不一致")
         render_material(material,image_dir)
     jobs=[(material,plan,index) for material,plan in zip(materials,frame["materials"]) for index in range(1,plan["count"]+1)]; t=time.monotonic()
+    track.update(stage="出题", detail=f"正在出 {args.total} 题", progress=40)
     # Each material owns its own question context; retries use the same boundary.
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(materials)) as pool:
         packed = list(pool.map(lambda pair: generate_material_questions(pair[0], pair[1], batch_id), zip(materials, frame["materials"])))
@@ -665,10 +688,12 @@ def main(argv=None) -> int:
     for name,data in [("framework.json",frame),("manifest.json",manifest),("materials.json",materials),("questions.json",questions),("calculations.json",{"questions":calculations})]: (out/name).write_text(json.dumps(data,ensure_ascii=False,indent=2))
     env = {**os.environ, "EXAM_DB": str(args.db)}
     marks["question_count"] = len(questions)
+    track.update(stage="闸门", detail=f"已出稿 {len(questions)} 题，开始质检", progress=62)
     t = time.monotonic()
     gate = None
     retry_log = []
     for gate_attempt in range(1, GATE_ATTEMPTS + 1):
+        track.update(stage="闸门", detail=f"第 {gate_attempt} 轮质检", progress=min(90, 62 + gate_attempt * 8))
         # Retain each input/review so later repairs do not erase the failure evidence.
         snapshot = out / "gate-attempts" / str(gate_attempt)
         snapshot.mkdir(parents=True)
@@ -702,13 +727,21 @@ def main(argv=None) -> int:
     marks["gate_attempts"] = gate_attempt
     marks["gate_retries"] = retry_log
     if gate.returncode:
-        marks["gate_error"]=(gate.stdout or gate.stderr)[-6000:]; marks["total_seconds"]=round(time.monotonic()-started,2); (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2)); print(gate.stdout or gate.stderr); return gate.returncode
+        marks["gate_error"]=(gate.stdout or gate.stderr)[-6000:]; marks["total_seconds"]=round(time.monotonic()-started,2); (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2)); print(gate.stdout or gate.stderr)
+        track.finish(status="failed", stage="失败", detail="质检未通过", error=marks["gate_error"][:600], progress=70)
+        return gate.returncode
     if args.no_import:
         marks["total_seconds"] = round(time.monotonic() - started, 2)
         (out / "timing.json").write_text(json.dumps(marks, ensure_ascii=False, indent=2))
+        track.finish(status="done", stage="已通过", detail=f"质检通过 {len(questions)} 题，未入库", passed=len(questions), progress=100)
         print(json.dumps({"status":"success","batch_id":batch_id,"imported":0,"batch_dir":str(out),"message":"质检通过，未入库"},ensure_ascii=False))
         return 0
+    track.update(stage="入库", detail="正在写入题库", passed=len(questions), progress=96)
     t=time.monotonic(); imp=subprocess.run(["node","scripts/import-batch.mjs",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["import_seconds"]=round(time.monotonic()-t,2); marks["total_seconds"]=round(time.monotonic()-started,2); marks["import_output"]=imp.stdout[-3000:]; (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2))
+    if imp.returncode == 0:
+        track.finish(status="done", stage="已入库", detail=f"已入库 {len(questions)} 题", passed=len(questions), progress=100)
+    else:
+        track.finish(status="failed", stage="失败", detail="入库失败", error=(imp.stderr or imp.stdout or "")[:600], progress=96)
     print(json.dumps({"status":"success" if imp.returncode == 0 else "error","batch_id":batch_id,"batch_dir":str(out),"message":imp.stdout or imp.stderr},ensure_ascii=False))
     return imp.returncode
 

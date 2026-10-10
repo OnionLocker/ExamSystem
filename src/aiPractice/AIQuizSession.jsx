@@ -19,10 +19,11 @@ import {
 import { api, getToken } from '../api.js';
 import { openKnowledge } from '../knowledge/nav.js';
 import DraftLayer from './DraftLayer.jsx';
+import { paintStrokes } from './ink.js';
 import MathText from './MathText.jsx';
 import { normalizeAnswer, judgeOptions } from '../answers.js';
 import { scrollHost } from './scrollHost.js';
-import { captureNode, detachForCapture, warmUpCapture } from './captureNode.js';
+import { captureSnapshot, snapshotForCapture, warmUpCapture } from './captureNode.js';
 
 const PEN_COLOR = '#1a1a1a';
 
@@ -499,12 +500,8 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
 
   const paperRef = useRef(null);
   const dirtyDraftsRef = useRef(new Set());
-  const draftQueueRef = useRef(Promise.resolve());
-  const savingCountRef = useRef(0);
-  const bumpSaving = useCallback((d) => {
-    savingCountRef.current = Math.max(0, savingCountRef.current + d);
-  }, []);
-  const uploadedRef = useRef(new Set());
+  const snapshotsRef = useRef(new Map()); // qid -> 待交卷时截图上传的题面快照
+  const [draftSaving, setDraftSaving] = useState(null); // 交卷时 { done, total }
 
   const current = questions[index];
   const total = questions.length;
@@ -570,7 +567,7 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
           setOpenReview(null);
           setErrMsg('');
           dirtyDraftsRef.current = new Set();
-          uploadedRef.current = new Set();
+          snapshotsRef.current = new Map();
           setEnter({ qid: sourceItems[0].id, at: document.hidden ? 0 : Date.now() });
           setPageLive(!document.hidden);
           setPhase('running');
@@ -601,7 +598,7 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
           setOpenReview(null);
           setErrMsg('');
           dirtyDraftsRef.current = new Set();
-          uploadedRef.current = new Set();
+          snapshotsRef.current = new Map();
           setEnter({ qid: items[0].id, at: document.hidden ? 0 : Date.now() });
           setPageLive(!document.hidden);
           setPhase('running');
@@ -633,7 +630,7 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
         setOpenReview(null);
         setErrMsg('');
         dirtyDraftsRef.current = new Set();
-        uploadedRef.current = new Set();
+        snapshotsRef.current = new Map();
         setEnter({ qid: items[0].id, at: document.hidden ? 0 : Date.now() });
         setPageLive(!document.hidden);
         setPhase('running');
@@ -722,12 +719,17 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
     setDrafts((prev) => ({ ...prev, [qid]: fn(prev[qid] || []) }));
   };
 
-  // 草稿落盘：抓快照这一下是同步的，截图和上传都扔到后台，翻页不用等。
-  // 失败就把这道题重新标脏，下次离开它会再试一次。
+  // 离开一道题（退出草稿、切题、交卷）时只记下题面快照，不截图：截图在 iPad 上一张
+  // 要几百毫秒到一秒多、期间整页不响应，切题时跑就是"点下一题要等，再点就连跳两题"，
+  // 写字途中跑就是"再落笔没墨"。截图和上传统一在交卷时做（uploadDrafts）。
+  // 没交卷就退出，这一场连草稿本来就不保留，所以攒到交卷不会丢东西。
   const persistDraft = useCallback((qid) => {
     if (!sessionId || !qid) return;
-    if ((drafts[qid] || []).length === 0) return;
-    if (!dirtyDraftsRef.current.has(qid) && uploadedRef.current.has(qid)) return;
+    if ((drafts[qid] || []).length === 0) {
+      snapshotsRef.current.delete(qid);
+      return;
+    }
+    if (!dirtyDraftsRef.current.has(qid) && snapshotsRef.current.has(qid)) return;
 
     const paper = paperRef.current;
     const width = paper?.offsetWidth || 1;
@@ -737,15 +739,23 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
       }
       return bottom;
     }, 0) + 24;
-    const snap = detachForCapture(paper, { minHeight: inkBottom });
+    const snap = snapshotForCapture(paper, { minHeight: inkBottom });
     if (!snap) return;
     dirtyDraftsRef.current.delete(qid);
-    bumpSaving(1);
+    snapshotsRef.current.set(qid, snap);
+  }, [sessionId, drafts]);
 
-    // 排成一队跑：截图在 iPad 上不便宜，连着翻几页也不该几张图一起挤
-    draftQueueRef.current = draftQueueRef.current.then(async () => {
+  // 交卷时逐张截图上传，一张一张来并让出主线程，进度条才走得动。
+  // 传成功的从队列里拿掉：交卷失败重试时不重复传。
+  const uploadDrafts = async () => {
+    const entries = [...snapshotsRef.current];
+    if (!sessionId || entries.length === 0) return;
+    setDraftSaving({ done: 0, total: entries.length });
+    let done = 0;
+    for (const [qid, snap] of entries) {
+      await new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
       try {
-        const blob = await captureNode(snap.node);
+        const blob = await captureSnapshot(snap, (ctx, w) => paintStrokes(ctx, drafts[qid], w));
         if (!blob) throw new Error('截图失败');
         const put = () => api(`/api/practice/sessions/${sessionId}/drafts/${qid}`, {
           method: 'PUT',
@@ -761,24 +771,24 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
           }
           await put();
         }
-        uploadedRef.current.add(qid);
+        snapshotsRef.current.delete(qid);
       } catch (e) {
-        dirtyDraftsRef.current.add(qid);
         setErrMsg(`草稿纸保存失败：${e?.message || '未知错误'}`);
-      } finally {
-        snap.dispose();
-        bumpSaving(-1);
       }
-    });
-  }, [sessionId, drafts, bumpSaving]);
+      done += 1;
+      setDraftSaving({ done, total: entries.length });
+    }
+    setDraftSaving(null);
+  };
 
-  // 停笔后自动落盘；退出草稿、切题和交卷时仍会立刻保存。
+  // 切题过程中主线程要是被别的事卡住，用户会以为没点上再点一下，卡完两次点击连着生效，
+  // 一下跳两题。新题画出来之前按下的翻页一律作废。
+  const shownAtRef = useRef(0);
   useEffect(() => {
-    const qid = current?.id;
-    if (!draftMode || !qid || !dirtyDraftsRef.current.has(qid)) return undefined;
-    const timer = window.setTimeout(() => persistDraft(qid), 1200);
-    return () => window.clearTimeout(timer);
-  }, [draftMode, current?.id, persistDraft]);
+    const id = requestAnimationFrame(() => { shownAtRef.current = performance.now(); });
+    return () => cancelAnimationFrame(id);
+  }, [index]);
+  const isStaleTap = (e) => e.timeStamp > 0 && e.timeStamp < shownAtRef.current;
 
   const toggleDraftMode = () => {
     if (draftMode) {
@@ -855,8 +865,8 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
     persistDraft(current?.id);
     setPhase('grading');
     setErrMsg('');
-    // 交卷是唯一该等的地方：不等完，复盘页里最后一题会显示成没留草稿
-    await draftQueueRef.current;
+    // 交卷是唯一该等的地方：草稿图都在这里截、传完，复盘页里才看得到
+    await uploadDrafts();
 
     const payload = questions.map((q) => ({
       question_id: q.id,
@@ -1126,7 +1136,7 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
           </button>
           <button
             type="button"
-            onClick={() => goTo(index - 1)}
+            onClick={(e) => { if (!isStaleTap(e)) goTo(index - 1); }}
             disabled={index === 0}
             title="上一题"
             className="shrink-0 h-11 w-10 sm:w-28 rounded-xl flex items-center justify-center gap-1.5 text-[#777] hover:bg-[#e8d5b0] hover:text-[#1a1a1a] disabled:opacity-30 transition-colors"
@@ -1136,7 +1146,11 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
           </button>
           <button
             type="button"
-            onClick={() => (isLast ? submitAll() : goTo(index + 1))}
+            onClick={(e) => {
+              if (isStaleTap(e)) return;
+              if (isLast) submitAll();
+              else goTo(index + 1);
+            }}
             disabled={grading}
             title={isLast ? '交卷' : '下一题'}
             className="shrink-0 h-11 w-10 sm:w-28 rounded-xl flex items-center justify-center gap-1.5 bg-[#1a1a1a] text-white hover:bg-[#2c261c] disabled:opacity-30 transition-colors"
@@ -1282,6 +1296,16 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
       </div>
 
 
+
+      {draftSaving && createPortal(
+        <div className="fixed inset-x-0 bottom-8 z-[9999] flex justify-center pointer-events-none" data-capture-ignore="1">
+          <div className="flex items-center gap-2 rounded-full bg-[#1a1a1a] px-5 py-2.5 text-sm font-black text-white shadow-xl">
+            <Loader2 size={15} className="animate-spin" />
+            正在保存草稿 {draftSaving.done}/{draftSaving.total}
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {blankSubmitCount > 0 && (
         <BlankSubmitConfirm

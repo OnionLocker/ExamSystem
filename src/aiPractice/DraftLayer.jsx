@@ -16,13 +16,10 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { scrollHost, scrollHostBy } from './scrollHost.js';
-
-const DEFAULT_PEN_MIN_W = 1.4;
-const DEFAULT_PEN_MAX_W = 4.2;
-const HL_W = 16;
-const ERASER_W = 28;
-const HL_ALPHA = 0.32;
-const HL_COLOR = '#8d7348';
+import {
+  DEFAULT_PEN_MAX_W, DEFAULT_PEN_MIN_W, HL_COLOR,
+  clearCanvas, paintStroke, penDot, penSegment, penStyle,
+} from './ink.js';
 
 // "这台设备在用 Pencil" 记在本地：组件重挂载、页面刷新之后还得算数，
 // 否则回到题目第一次用手指滚动会先画出一道杠来。
@@ -54,60 +51,14 @@ const savePenSeen = () => {
 const FLICK_DECAY = 0.94; // 每帧衰减，甩一下有点惯性才像原生滚动
 const FLICK_MIN_V = 0.02; // px/ms，低于这个速度就停
 
-const strokeWidth = (kind, pressure, penMinW, penMaxW) => {
-  if (kind === 'hl') return HL_W;
-  if (kind === 'er') return ERASER_W;
-  return penMinW + pressure * (penMaxW - penMinW);
-};
+// 手掌识别：笔刚抬起的这段时间里新落下的手指一律当手掌，接触面过大的也是手掌。
+// 字与字之间手掌会抬起来再搭下去，这一下要是被当成翻页的手指，页面就会窜。
+const PALM_GRACE_MS = 500;
+const PALM_MIN_SIZE = 32; // CSS px
 
-// 画一整笔。w = canvas 的 CSS 宽度；点坐标存的是 x/w、y/w，乘回去就对位了。
-const paintStroke = (ctx, stroke, w, penMinW, penMaxW) => {
-  const pts = stroke.pts;
-  if (!pts || pts.length === 0) return;
-
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  if (stroke.k === 'er') {
-    // 橡皮擦的是 canvas 自己的像素，不会动到底下的题目 DOM
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.strokeStyle = 'rgba(0,0,0,1)';
-  } else {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = stroke.c;
-    if (stroke.k === 'hl') ctx.globalAlpha = HL_ALPHA;
-  }
-
-  if (pts.length === 1) {
-    const [nx, ny, p] = pts[0];
-    ctx.beginPath();
-    ctx.arc(nx * w, ny * w, strokeWidth(stroke.k, p ?? 0.5, penMinW, penMaxW) / 2, 0, Math.PI * 2);
-    ctx.fillStyle = stroke.k === 'er' ? 'rgba(0,0,0,1)' : stroke.c;
-    ctx.fill();
-    ctx.restore();
-    return;
-  }
-
-  if (stroke.k === 'pen') {
-    // 压感要逐段生效，所以一段一条路径
-    for (let i = 1; i < pts.length; i += 1) {
-      const [ax, ay] = pts[i - 1];
-      const [bx, by, bp] = pts[i];
-      ctx.lineWidth = strokeWidth('pen', bp ?? 0.5, penMinW, penMaxW);
-      ctx.beginPath();
-      ctx.moveTo(ax * w, ay * w);
-      ctx.lineTo(bx * w, by * w);
-      ctx.stroke();
-    }
-  } else {
-    ctx.lineWidth = strokeWidth(stroke.k, 0.5, penMinW, penMaxW);
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0] * w, pts[0][1] * w);
-    for (let i = 1; i < pts.length; i += 1) ctx.lineTo(pts[i][0] * w, pts[i][1] * w);
-    ctx.stroke();
-  }
-  ctx.restore();
-};
+// 落笔事件被系统吞掉、靠移动事件补起的一笔，跟上一笔收尾隔得这么近就接上，不留缺口
+const BRIDGE_MS = 120;
+const BRIDGE_PX = 40;
 
 const DraftLayer = ({
   active,
@@ -121,10 +72,17 @@ const DraftLayer = ({
 }) => {
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
+  // 正在写的那一笔单独画在上面一层：每次移动整笔重算轮廓、只清这一层，
+  // 收笔时再落到底层。底层不用跟着每个点清屏重画。
+  const inkRef = useRef(null);
+  const inkCtxRef = useRef(null);
   const sizeRef = useRef({ w: 0, h: 0 });
+  const rectRef = useRef(null);
   const liveRef = useRef(null);
+  const lastPenAtRef = useRef(0);
+  const lastEndRef = useRef(null);
   // Apple Pencil 一出现，手指就换个职责：不再落墨，改为翻页。
-  // 写字时手掌搭在屏幕上也走这条路，再由 isRealFinger 挡掉。
+  // 写字时手掌搭在屏幕上也走这条路，再由 isPalm 挡掉。
   const penSeenRef = useRef(loadPenSeen());
 
   // 翻页要两根手指。写字时手掌、小指搭在屏幕上都是单点接触，跟"想翻页的手指"
@@ -198,17 +156,33 @@ const DraftLayer = ({
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
     const { w } = sizeRef.current;
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
+    clearCanvas(ctx);
     for (const s of strokes || []) paintStroke(ctx, s, w, penMinW, penMaxW);
-    // 正在写的那一笔也要补回来：重绘是抬笔后 setState 引发的，等它真正执行时，
-    // 写得快的人早就落下了下一笔 —— 少了这一句，清屏就把新笔画擦掉半截，
-    // 表现成"快写就写不出，得停一下才行"。
-    if (liveRef.current) paintStroke(ctx, liveRef.current, w, penMinW, penMaxW);
+    // 橡皮是直接擦在底层上的，正在擦的那一笔也要补回来：重绘是抬笔后 setState 引发的，
+    // 等它真正执行时，手快的人早就落下了下一笔。钢笔/荧光笔的在写笔画在上层，不受影响。
+    if (liveRef.current?.k === 'er') paintStroke(ctx, liveRef.current, w, penMinW, penMaxW);
   }, [strokes, penMinW, penMaxW]);
+
+  // 上层只放正在写的那一笔，整笔重画（收尾那段等收笔再补）。
+  // 荧光笔半透明，每次移动都得整笔重画，不然接缝处会叠深；钢笔只在落笔时走这里，
+  // 之后每来一个点只补新的一段（见 appendPoint）。
+  const renderLive = () => {
+    const ctx = inkCtxRef.current;
+    if (!ctx) return;
+    clearCanvas(ctx);
+    const live = liveRef.current;
+    if (!live || live.k === 'er') return;
+    const { w } = sizeRef.current;
+    if (live.k !== 'pen') {
+      paintStroke(ctx, live, w, penMinW, penMaxW);
+      return;
+    }
+    ctx.save();
+    penStyle(ctx, live.c);
+    if (live.pts.length === 1) penDot(ctx, live.pts[0], w, penMinW, penMaxW);
+    for (let k = 0; k < live.pts.length - 1; k += 1) penSegment(ctx, live.pts, k, w, penMinW, penMaxW);
+    ctx.restore();
+  };
 
   useEffect(() => {
     redrawRef.current = redraw;
@@ -233,6 +207,15 @@ const DraftLayer = ({
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctxRef.current = ctx;
+      const ink = inkRef.current;
+      if (ink) {
+        ink.width = nextW;
+        ink.height = nextH;
+        // desynchronized：支持的浏览器跳过合成队列直接上屏，笔尖延迟少一帧（Safari 会忽略）
+        const inkCtx = ink.getContext('2d', { desynchronized: true });
+        inkCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        inkCtxRef.current = inkCtx;
+      }
       redrawRef.current();
     };
 
@@ -278,7 +261,15 @@ const DraftLayer = ({
     liveRef.current = null;
     liveIdRef.current = null;
     liveTsRef.current = 0;
+    rectRef.current = null;
     committedRef.current = live;
+    // 上层的这一笔落到底层（橡皮本来就擦在底层上）
+    const ctx = ctxRef.current;
+    if (live && ctx && live.k !== 'er') paintStroke(ctx, live, sizeRef.current.w, penMinW, penMaxW);
+    if (inkCtxRef.current) clearCanvas(inkCtxRef.current);
+    lastEndRef.current = live
+      ? { k: live.k, pt: live.pts[live.pts.length - 1], t: performance.now() }
+      : null;
     if (id !== null) {
       try { canvasRef.current?.releasePointerCapture(id); } catch { /* 同上 */ }
     }
@@ -287,15 +278,19 @@ const DraftLayer = ({
 
   const kindOf = () => (tool === 'eraser' ? 'er' : tool === 'highlighter' ? 'hl' : 'pen');
 
+  // 只有 Pencil 的压力可信：鼠标按下恒为 0.5，手指在 iPad 上给 0 或 1，统一按正常力度画。
+  // 压到底读数正好是 1，不能当成"没读到"。
+  const pressureOf = (e) => (e.pointerType === 'pen' && e.pressure > 0 ? Math.min(1, e.pressure) : 0.3);
+
+  // 画布位置在落笔时量一次：写字过程中页面不会动，每个采样点都量会逼浏览器同步排版
   const pointOf = (e) => {
-    const rect = canvasRef.current.getBoundingClientRect();
+    const rect = rectRef.current || canvasRef.current.getBoundingClientRect();
     const w = rect.width || 1;
-    const pressure = e.pressure > 0 && e.pressure < 1 ? e.pressure : 0.5;
-    return [(e.clientX - rect.left) / w, (e.clientY - rect.top) / w, Number(pressure.toFixed(2))];
+    return [(e.clientX - rect.left) / w, (e.clientY - rect.top) / w, Number(pressureOf(e).toFixed(2))];
   };
 
-  // 落笔：pointerdown 走这里，笔已经压着却没有笔画时也走这里（见 onPointerMove）
-  const startStroke = (e) => {
+  // 落笔：pointerdown 走这里，笔已经压着却没有笔画时也走这里（见 onPointerMove，bridge=true）
+  const startStroke = (e, bridge = false) => {
     // 上一笔要是已经拖出了选区，先清掉，否则那个蓝块和弹出菜单会一直盖在题干上
     try { window.getSelection()?.removeAllRanges(); } catch { /* 无关紧要 */ }
     try { canvasRef.current.setPointerCapture(e.pointerId); } catch { /* 拿不到捕获就算了 */ }
@@ -303,17 +298,38 @@ const DraftLayer = ({
     if (liveRef.current) endStroke();
     liveIdRef.current = e.pointerId;
     liveTsRef.current = e.timeStamp || 0;
+    rectRef.current = canvasRef.current.getBoundingClientRect();
 
     const kind = kindOf();
-    liveRef.current = { k: kind, c: kind === 'hl' ? HL_COLOR : color, pts: [pointOf(e)] };
+    const pt = pointOf(e);
+    // 补起来的一笔说明中间丢过事件：上一笔刚收、离得又近，就从上一笔的尾巴连过来。
+    // 正常落笔不接，不然写"i"的那一点、冒号这种快速点按会被连成一条线。
+    const prev = lastEndRef.current;
+    const w = sizeRef.current.w || 1;
+    const linked = bridge && prev && prev.k === kind
+      && performance.now() - prev.t < BRIDGE_MS
+      && Math.hypot((pt[0] - prev.pt[0]) * w, (pt[1] - prev.pt[1]) * w) < BRIDGE_PX;
+    liveRef.current = { k: kind, c: kind === 'hl' ? HL_COLOR : color, pts: linked ? [prev.pt, pt] : [pt] };
     // 单点也要留个墨点，不然轻点一下什么都没有
-    const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w, penMinW, penMaxW);
+    if (kind === 'er') {
+      const ctx = ctxRef.current;
+      if (ctx) paintStroke(ctx, liveRef.current, sizeRef.current.w, penMinW, penMaxW);
+    } else {
+      renderLive();
+    }
   };
+
+  // 手掌：笔正压着、笔刚抬起不久、或者接触面大得不像指尖
+  const isPalm = (e) => (
+    liveRef.current
+    || performance.now() - lastPenAtRef.current < PALM_GRACE_MS
+    || Math.max(e.width || 0, e.height || 0) >= PALM_MIN_SIZE
+  );
 
   const onPointerDown = (e) => {
     if (!active) return;
     if (e.pointerType === 'pen') {
+      lastPenAtRef.current = performance.now();
       if (!penSeenRef.current) {
         penSeenRef.current = true;
         savePenSeen();
@@ -326,9 +342,9 @@ const DraftLayer = ({
 
     // Pencil 出现过之后，手指就专职当翻页手，不再落墨
     if (e.pointerType === 'touch' && penSeenRef.current) {
+      // 认作手掌的接触点从头到尾都不登记，后面再搭一根手指也凑不成"双指翻页"
+      if (isPalm(e)) return;
       touchesRef.current.set(e.pointerId, e.clientY);
-      // 笔正压着说明是写字时的手掌，等笔抬起来再说
-      if (liveRef.current) return;
       if (touchesRef.current.size === 2) {
         cancelAnimationFrame(flickRef.current); // 滑动中再按下：先刹住
         panRef.current = {
@@ -345,7 +361,8 @@ const DraftLayer = ({
     startStroke(e);
   };
 
-  // 把一个采样点接到当前笔画上并补画那一小段
+  // 把一个采样点接到当前笔画上。钢笔在上层补画新的一段，橡皮直接在底层补擦，
+  // 荧光笔等整批点收完再整笔重绘上层。
   const appendPoint = (src) => {
     const live = liveRef.current;
     if (!live) return;
@@ -354,10 +371,20 @@ const DraftLayer = ({
     // 抽掉挤在一起的采样点：高刷屏会塞进大量几乎重复的坐标
     const w = sizeRef.current.w || 1;
     if (Math.hypot((pt[0] - prev[0]) * w, (pt[1] - prev[1]) * w) < 0.7) return;
+    // Pencil 的压力读数逐点有抖动，直接用线宽会一节粗一节细；跟上一点平均一下
+    pt[2] = Number(((pt[2] + (prev[2] ?? pt[2])) / 2).toFixed(2));
     live.pts.push(pt);
-    // 只补最新那一段，整层重绘留给撤销/换题
-    const ctx = ctxRef.current;
-    if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w, penMinW, penMaxW);
+    if (live.k === 'er') {
+      const ctx = ctxRef.current;
+      if (ctx) paintStroke(ctx, { ...live, pts: [prev, pt] }, w, penMinW, penMaxW);
+    } else if (live.k === 'pen') {
+      const ctx = inkCtxRef.current;
+      if (!ctx) return;
+      ctx.save();
+      penStyle(ctx, live.c);
+      penSegment(ctx, live.pts, live.pts.length - 2, w, penMinW, penMaxW);
+      ctx.restore();
+    }
   };
 
   const onPointerMove = (e) => {
@@ -380,6 +407,7 @@ const DraftLayer = ({
     }
 
     if (e.pointerType === 'touch') return;
+    if (e.pointerType === 'pen') lastPenAtRef.current = performance.now();
 
     // 笔压着屏幕却没有正在写的笔画：要么这一笔的落笔丢了，要么上一笔迟到的收笔事件
     // 把它掐掉了（抬笔立刻落笔时，浏览器完全可能先送新笔的 down 再送旧笔的 up，而且
@@ -388,7 +416,7 @@ const DraftLayer = ({
     if (!liveRef.current) {
       if (e.pointerType !== 'pen' || !(e.buttons > 0)) return;
       e.preventDefault();
-      startStroke(e);
+      startStroke(e, true);
       return;
     }
     if (isStale(e)) return;
@@ -406,6 +434,7 @@ const DraftLayer = ({
     } else {
       appendPoint(e);
     }
+    if (liveRef.current?.k === 'hl') renderLive();
   };
 
   const onPointerUp = (e) => {
@@ -415,12 +444,14 @@ const DraftLayer = ({
       if (panRef.current && touchesRef.current.size < 2) endPan();
       return;
     }
+    if (e.pointerType === 'pen') lastPenAtRef.current = performance.now();
     if (isStale(e)) return; // 上一笔迟到的尾巴，不能拿它收这一笔
     e.preventDefault();
     endStroke();
   };
 
   return (
+    <>
     <canvas
       ref={canvasRef}
       onPointerDown={onPointerDown}
@@ -444,6 +475,13 @@ const DraftLayer = ({
         cursor: active ? (tool === 'eraser' ? 'cell' : 'crosshair') : 'auto',
       }}
     />
+    <canvas
+      ref={inkRef}
+      aria-hidden="true"
+      className="absolute inset-0 w-full h-full z-20 pointer-events-none"
+      style={{ opacity: visible ? 1 : 0 }}
+    />
+    </>
   );
 };
 

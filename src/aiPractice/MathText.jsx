@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import katex from 'katex';
 
 const KATEX = {
@@ -18,7 +18,8 @@ const renderTex = (src, display) => {
   }
 };
 
-export default function MathText({ text }) {
+// memo：做题页每秒走一次计时、每收一笔草稿都会整页重渲染，题干没变就别跟着重排
+export default memo(function MathText({ text }) {
   const parts = useMemo(() => {
     const raw = text == null ? '' : String(text);
     if (!raw.includes('$')) return [raw];
@@ -48,4 +49,4 @@ export default function MathText({ text }) {
         />
       )
   ));
-}
+});
