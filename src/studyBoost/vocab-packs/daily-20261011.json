@@ -1,0 +1,362 @@
+{
+  "pack_id": "daily-20261011",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-11",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261011:知止",
+      "word": "知止",
+      "wordType": "word",
+      "explanation": "懂得适可而止，知道应当停止的界限。出自《大学》“知止而后有定”。",
+      "usage": "强调对界限有清醒认识、主动理性地停下，常与“知行”“知敬畏”连用。",
+      "examples": [
+        "干部用权要知止，越是手握资源，越要守住边界。"
+      ],
+      "rivals": [
+        "止步",
+        "停止"
+      ],
+      "cloze": [
+        "越是顺风顺水，越要懂得____，守住分寸。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:细水长流",
+      "word": "细水长流",
+      "wordType": "idiom",
+      "explanation": "比喻节约使用财物使经常不缺；也比喻一点一滴不间断地做某件事。",
+      "usage": "侧重有节制、长期不断；“持之以恒”只强调坚持，“源远流长”指历史悠久。",
+      "examples": [
+        "财政资金要细水长流，把钱花在刀刃上。"
+      ],
+      "rivals": [
+        "源远流长",
+        "持之以恒",
+        "川流不息"
+      ],
+      "cloze": [
+        "备考不在于一时突击，而在于____的积累。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:自乱阵脚",
+      "word": "自乱阵脚",
+      "wordType": "idiom",
+      "explanation": "自己扰乱了自己的阵势，比喻遇事慌张，先乱了方寸。",
+      "usage": "强调因外部干扰而丧失定力；“手忙脚乱”侧重动作慌乱。",
+      "examples": [
+        "面对竞争对手的降价攻势，企业不能自乱阵脚，而要稳住品质。"
+      ],
+      "rivals": [
+        "手忙脚乱",
+        "惊慌失措"
+      ],
+      "cloze": [
+        "面对突如其来的舆论质疑，部门负责人沉着应对，没有____。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:泥淖",
+      "word": "泥淖",
+      "wordType": "word",
+      "explanation": "烂泥坑，比喻难以摆脱的困境或不良境地。",
+      "usage": "常用“陷入/滑入……的泥淖”，书面色彩浓；“深渊”侧重危险极深。",
+      "examples": [
+        "一些网红为博流量不断突破底线，最终滑入低俗炒作的泥淖。"
+      ],
+      "rivals": [
+        "泥沼",
+        "深渊"
+      ],
+      "cloze": [
+        "一旦放松自我要求，就容易陷入享乐主义的____。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:亵渎",
+      "word": "亵渎",
+      "wordType": "word",
+      "explanation": "轻慢、不尊敬（多用于神圣或庄重的事物）。",
+      "usage": "常见“亵渎经典”“亵渎英烈”；“诋毁”侧重用言语诽谤。",
+      "examples": [
+        "随意恶搞革命先烈形象，是对历史的亵渎。"
+      ],
+      "rivals": [
+        "诋毁",
+        "亵玩"
+      ],
+      "cloze": [
+        "对英雄人物的恶意调侃，是对民族精神的____。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:铺摊子",
+      "word": "铺摊子",
+      "wordType": "collocation",
+      "explanation": "比喻不顾实际条件盲目扩大规模、上项目。",
+      "usage": "贬义，常与“上项目”“搞形象工程”连用。",
+      "examples": [
+        "有的地方不顾财力举债铺摊子，最终留下一堆烂尾工程。"
+      ],
+      "rivals": [
+        "搞形象工程",
+        "摊大饼"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:劳民伤财",
+      "word": "劳民伤财",
+      "wordType": "idiom",
+      "explanation": "既使人民劳苦，又耗费钱财。",
+      "usage": "贬义较重；“兴师动众”侧重动用人力多、场面大，不一定耗财。",
+      "examples": [
+        "为迎接检查突击刷墙造景，既劳民伤财，又助长形式主义。"
+      ],
+      "rivals": [
+        "兴师动众",
+        "大张旗鼓"
+      ],
+      "cloze": [
+        "某些华而不实的节庆活动____，群众并不买账。"
+      ],
+      "source": "每日读报 2026-10-11：知行知止　知止而行",
+      "publicSources": [
+        {
+          "title": "知行知止　知止而行",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/08/content_30184458.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:排头兵",
+      "word": "排头兵",
+      "wordType": "word",
+      "explanation": "站在队列最前面的士兵，比喻起带头作用的人或单位。",
+      "usage": "广东的固定定位表述为“改革开放的排头兵、先行地、实验区”；“领头羊”偏口语。",
+      "examples": [
+        "这家企业是本地数字化转型的排头兵，带动了一批配套企业。"
+      ],
+      "rivals": [
+        "领头羊",
+        "先行者"
+      ],
+      "cloze": [
+        "广东是改革开放的____、先行地、实验区。"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:致胜之道",
+      "word": "致胜之道",
+      "wordType": "collocation",
+      "explanation": "取得胜利的方法和途径。",
+      "usage": "“致胜”与“制胜”常通用，“制胜”多见于“制胜法宝”“克敌制胜”。",
+      "examples": [
+        "科技创新是企业在激烈竞争中的致胜之道。"
+      ],
+      "rivals": [
+        "制胜法宝"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:根本遵循",
+      "word": "根本遵循",
+      "wordType": "collocation",
+      "explanation": "必须从根本上遵照依循的原则或指引。",
+      "usage": "常见“提供了根本遵循”，与“行动指南”并用，层级高于“基本原则”。",
+      "examples": [
+        "重要讲话精神为基层治理提供了根本遵循。"
+      ],
+      "rivals": [
+        "行动指南",
+        "基本原则"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:集聚成势",
+      "word": "集聚成势",
+      "wordType": "idiom",
+      "explanation": "聚集起来形成规模和优势。",
+      "usage": "多用于产业、人才、要素；“聚沙成塔”侧重积少成多，比喻义。",
+      "examples": [
+        "新能源汽车上下游企业在园区集聚成势，形成完整产业链。"
+      ],
+      "rivals": [
+        "聚沙成塔",
+        "积少成多"
+      ],
+      "cloze": [
+        "引进龙头企业，带动配套企业落户，推动产业____。"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:耦合",
+      "word": "耦合",
+      "wordType": "word",
+      "explanation": "原为物理学术语，指两个或以上系统相互作用、彼此影响以至联合起来的现象。",
+      "usage": "强调各自独立又紧密关联；“融合”指合为一体，“叠加”是简单相加。",
+      "examples": [
+        "推动产业链与创新链深度耦合，才能让科研成果更快落地。"
+      ],
+      "rivals": [
+        "融合",
+        "叠加",
+        "结合"
+      ],
+      "cloze": [
+        "促进产业链与创新链深度____，让科研成果加快转化。"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:接续转换",
+      "word": "接续转换",
+      "wordType": "collocation",
+      "explanation": "前后衔接、持续转换，多用于“新旧动能接续转换”。",
+      "usage": "强调衔接不断档，区别于单纯的“转换”。",
+      "examples": [
+        "淘汰落后产能的同时培育新产业，实现新旧动能接续转换。"
+      ],
+      "rivals": [
+        "转换",
+        "更替"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261011:勇立潮头",
+      "word": "勇立潮头",
+      "wordType": "idiom",
+      "explanation": "勇敢地站在潮流的最前面，比喻敢为人先、引领时代。",
+      "usage": "广东语境常用“敢为人先、勇立潮头”；反义为“随波逐流”。",
+      "examples": [
+        "新时代的广东青年要敢为人先、勇立潮头。"
+      ],
+      "rivals": [
+        "乘风破浪",
+        "随波逐流"
+      ],
+      "cloze": [
+        "面对新一轮科技革命，广东要敢为人先、____。"
+      ],
+      "source": "每日读报 2026-10-11：吹响广东向先进制造全面进军的冲锋号",
+      "publicSources": [
+        {
+          "title": "吹响广东向先进制造全面进军的冲锋号",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/10/content_10183097.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
