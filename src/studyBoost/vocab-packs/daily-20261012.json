@@ -1,0 +1,454 @@
+{
+  "pack_id": "daily-20261012",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-12",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261012:印证",
+      "word": "印证",
+      "wordType": "word",
+      "explanation": "证明与事实相符；两方面材料相互对照、彼此吻合。",
+      "usage": "侧重彼此对照吻合，常用“相互印证”“得到印证”；“验证”侧重通过试验检验真伪。",
+      "examples": [
+        "基层走访的情况与统计数据相互印证，说明政策确实见效了。"
+      ],
+      "rivals": [
+        "验证",
+        "佐证"
+      ],
+      "cloze": [
+        "群众的口碑与第三方测评结果相互____，说明这项服务确实做到了位。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:弄潮儿",
+      "word": "弄潮儿",
+      "wordType": "word",
+      "explanation": "比喻敢于冒险、走在时代潮流前面的人。",
+      "usage": "褒义，强调主动作为、引领潮流；“排头兵”侧重位置领先、起带头作用。",
+      "examples": [
+        "在跨境电商浪潮中，不少粤东小微企业从旁观者变成了弄潮儿。"
+      ],
+      "rivals": [
+        "排头兵",
+        "生力军"
+      ],
+      "cloze": [
+        "面对数字化浪潮，中小企业不应只做旁观者，更要争当____。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:薄利多销",
+      "word": "薄利多销",
+      "wordType": "idiom",
+      "explanation": "以较低的利润、较多的销量获取总利润的经营方式。",
+      "usage": "中性，描述经营策略；“物美价廉”侧重商品本身质优价低。",
+      "examples": [
+        "街口的早餐店靠薄利多销维持经营，十几年价格几乎没变。"
+      ],
+      "rivals": [
+        "物美价廉",
+        "量大从优"
+      ],
+      "cloze": [
+        "过去不少代工厂靠____赚钱，如今正转向品牌化、高附加值。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:阵痛",
+      "word": "阵痛",
+      "wordType": "word",
+      "explanation": "比喻新事物产生过程中出现的暂时困难。",
+      "usage": "常与“短期”“转型”连用；“痛点”指亟待解决的问题、症结。",
+      "examples": [
+        "产业转型难免经历阵痛，但不能因噎废食、停滞不前。"
+      ],
+      "rivals": [
+        "痛点",
+        "剧痛"
+      ],
+      "cloze": [
+        "产业结构调整难免带来短期____，但不能因此否定转型方向。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:千行百业",
+      "word": "千行百业",
+      "wordType": "idiom",
+      "explanation": "泛指各行各业。",
+      "usage": "书面色彩较浓，常用“赋能千行百业”“深入千行百业”。",
+      "examples": [
+        "人工智能正加速走进千行百业，改变着生产和生活方式。"
+      ],
+      "rivals": [
+        "各行各业",
+        "三百六十行"
+      ],
+      "cloze": [
+        "推动5G、人工智能等新技术赋能____，是培育新质生产力的重要路径。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:普惠",
+      "word": "普惠",
+      "wordType": "word",
+      "explanation": "普遍惠及，使广大群体都能受益。",
+      "usage": "常见“普惠金融”“普惠性托育”“红利普惠”；“特惠”针对特定群体。",
+      "examples": [
+        "普惠性托育机构的增加，让双职工家庭减轻了不少负担。"
+      ],
+      "rivals": [
+        "特惠",
+        "惠及"
+      ],
+      "cloze": [
+        "发展____金融，就是要让小微企业和农户也能便捷地获得贷款。"
+      ],
+      "source": "每日读报 2026-10-12：向新发展也是包容性发展",
+      "publicSources": [
+        {
+          "title": "向新发展也是包容性发展",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/12/content_30185081.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:先手",
+      "word": "先手",
+      "wordType": "word",
+      "explanation": "棋类术语，指占据主动、先行一步的局势；引申为抢占先机。",
+      "usage": "申论高频搭配“下好先手棋”“先手落子”；“先行”只指走在前面，“先手”强调主动权。",
+      "examples": [
+        "在新型储能赛道上，这座城市提前布局，下好了先手棋。"
+      ],
+      "rivals": [
+        "先行",
+        "抢先"
+      ],
+      "cloze": [
+        "面对未来产业竞争，各地都在抢下____棋，提前谋划布局。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:底色",
+      "word": "底色",
+      "wordType": "word",
+      "explanation": "比喻事物的基本特征、本质特点。",
+      "usage": "“本色”指本来面貌；“亮色”指突出的、令人振奋的部分。",
+      "examples": [
+        "开放包容，是这座移民城市最鲜明的底色。"
+      ],
+      "rivals": [
+        "本色",
+        "亮色"
+      ],
+      "cloze": [
+        "绿色是高质量发展的鲜明____，生态优先的理念要贯穿始终。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:迭代",
+      "word": "迭代",
+      "wordType": "word",
+      "explanation": "更替、轮换；科技语境中指不断重复改进、推出新版本。",
+      "usage": "侧重持续小步改进；“换代”指整体更新为新一代，跨度更大。",
+      "examples": [
+        "这款政务小程序根据群众反馈不断迭代，办事步骤越来越少。"
+      ],
+      "rivals": [
+        "换代",
+        "更新"
+      ],
+      "cloze": [
+        "产品上线只是开始，要根据用户反馈持续____升级。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:蹄疾步稳",
+      "word": "蹄疾步稳",
+      "wordType": "idiom",
+      "explanation": "马蹄迅疾而步伐稳健，比喻工作推进既快又稳。",
+      "usage": "快与稳兼顾；“稳扎稳打”只强调稳；“雷厉风行”只强调快。",
+      "examples": [
+        "这项改革蹄疾步稳，一年内在全省推开却未出现大的波动。"
+      ],
+      "rivals": [
+        "稳扎稳打",
+        "雷厉风行",
+        "步步为营"
+      ],
+      "cloze": [
+        "各项改革举措____，既抓紧推进又防范风险。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:大水漫灌",
+      "word": "大水漫灌",
+      "wordType": "collocation",
+      "explanation": "比喻不加区分、粗放地投入资源或资金。",
+      "usage": "贬义，常与“精准滴灌”对举；“撒胡椒面”侧重平均分散、每份都少。",
+      "examples": [
+        "扶持政策要从大水漫灌转向精准滴灌，把钱花在刀刃上。"
+      ],
+      "rivals": [
+        "精准滴灌",
+        "撒胡椒面",
+        "一刀切"
+      ],
+      "cloze": [
+        "财政资金使用要变“____”为“精准滴灌”，提高使用效益。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:突破口",
+      "word": "突破口",
+      "wordType": "word",
+      "explanation": "引申为解决问题的关键环节。",
+      "usage": "强调关键性；“切入点”是开始着手处，不一定是关键；“着力点”是集中用力处。",
+      "examples": [
+        "这个县以预制菜产业为突破口，带动了种养、物流和冷链全链条发展。"
+      ],
+      "rivals": [
+        "切入点",
+        "着力点"
+      ],
+      "cloze": [
+        "推动乡村产业振兴，要找准特色产业这个____，以点带面。"
+      ],
+      "source": "每日读报 2026-10-12：先手落子 筑造具身智能新高地",
+      "publicSources": [
+        {
+          "title": "先手落子 筑造具身智能新高地",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183191.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:路径依赖",
+      "word": "路径依赖",
+      "wordType": "word",
+      "explanation": "指一旦进入某一发展路径，就会因惯性不断自我强化、难以改变。",
+      "usage": "多用于发展模式、制度选择；“思维定式”侧重认识层面的惯性。",
+      "examples": [
+        "一些资源型城市长期依赖采矿，形成了较强的路径依赖。"
+      ],
+      "rivals": [
+        "思维定式",
+        "惯性思维"
+      ],
+      "cloze": [
+        "过去的成功经验也可能形成____，让传统产业错失转型窗口。"
+      ],
+      "source": "每日读报 2026-10-12：丹霞山爆红，如何带旺山门之外",
+      "publicSources": [
+        {
+          "title": "丹霞山爆红，如何带旺山门之外",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183197.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:渐次",
+      "word": "渐次",
+      "wordType": "word",
+      "explanation": "副词，逐渐地、依次地。",
+      "usage": "强调依次展现、逐步推进；“逐次”指一次一次地；“渐进”是动词。",
+      "examples": [
+        "沿着古驿道前行，古村、梯田和茶园渐次映入眼帘。"
+      ],
+      "rivals": [
+        "逐次",
+        "渐进",
+        "依次"
+      ],
+      "cloze": [
+        "列车驶出隧道，田野、河流和村庄____展现在乘客眼前。"
+      ],
+      "source": "每日读报 2026-10-12：丹霞山爆红，如何带旺山门之外",
+      "publicSources": [
+        {
+          "title": "丹霞山爆红，如何带旺山门之外",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183197.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:串珠成链",
+      "word": "串珠成链",
+      "wordType": "collocation",
+      "explanation": "把分散的珠子串成链条，比喻把零散的资源、节点整合成整体。",
+      "usage": "侧重整合联动；“聚沙成塔”侧重积少成多；“连点成线”常与“扩线成面”连用。",
+      "examples": [
+        "当地把散落的古村、碉楼和绿道串珠成链，打造精品旅游线路。"
+      ],
+      "rivals": [
+        "聚沙成塔",
+        "连点成线"
+      ],
+      "cloze": [
+        "把沿线的古村落、特色民宿和农业园区____，才能形成全域旅游格局。"
+      ],
+      "source": "每日读报 2026-10-12：丹霞山爆红，如何带旺山门之外",
+      "publicSources": [
+        {
+          "title": "丹霞山爆红，如何带旺山门之外",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183197.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:传导",
+      "word": "传导",
+      "wordType": "word",
+      "explanation": "引申为影响沿链条由一方逐级传递到另一方。",
+      "usage": "强调沿链条逐级作用，常见“政策传导”“压力传导”；“传递”是一般性递送。",
+      "examples": [
+        "上游原材料价格上涨，很快传导到了下游制造企业。"
+      ],
+      "rivals": [
+        "传递",
+        "传达"
+      ],
+      "cloze": [
+        "货币政策要畅通____机制，确保资金真正流向实体经济。"
+      ],
+      "source": "每日读报 2026-10-12：丹霞山爆红，如何带旺山门之外",
+      "publicSources": [
+        {
+          "title": "丹霞山爆红，如何带旺山门之外",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183197.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261012:研学",
+      "word": "研学",
+      "wordType": "word",
+      "explanation": "研究性学习，常与旅行结合，指通过实地考察、体验进行学习。",
+      "usage": "常见“研学旅行”“研学基地”；“游学”侧重出游增长见识，学习属性较弱。",
+      "examples": [
+        "暑假期间，不少中学生来到红树林保护区开展研学活动。"
+      ],
+      "rivals": [
+        "游学",
+        "考察"
+      ],
+      "cloze": [
+        "依托自然保护区开发____课程，让学生在实地观察中学习生态知识。"
+      ],
+      "source": "每日读报 2026-10-12：丹霞山爆红，如何带旺山门之外",
+      "publicSources": [
+        {
+          "title": "丹霞山爆红，如何带旺山门之外",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/12/content_10183197.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
