@@ -1,0 +1,348 @@
+{
+  "pack_id": "daily-20261013",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-13",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261013:挖潜",
+      "word": "挖潜",
+      "wordType": "word",
+      "explanation": "挖掘潜力，使尚未发挥的能力、资源发挥作用。",
+      "usage": "专指潜力，常见“挖潜空间”“挖潜增效”；“挖掘”对象更宽，可挖掘人才、内涵等。",
+      "examples": [
+        "老旧厂房改造成创意园区，是城市存量空间挖潜的有效办法。"
+      ],
+      "rivals": [
+        "挖掘",
+        "激发"
+      ],
+      "cloze": [
+        "面对用地指标紧张，开发区把目光转向存量土地，深入____增效。"
+      ],
+      "source": "每日读报 2026-10-13：在升级中扩容，在转型中提质",
+      "publicSources": [
+        {
+          "title": "在升级中扩容，在转型中提质",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/13/content_30185264.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:边际效应递减",
+      "word": "边际效应递减",
+      "wordType": "collocation",
+      "explanation": "经济学术语，指同样的投入带来的新增效果越来越小。",
+      "usage": "描述“增量效果变小”，总效果仍可能为正；不同于“效益下降”。",
+      "examples": [
+        "补贴连续发放几轮后出现边际效应递减，政策重心需要转向改善消费环境。"
+      ],
+      "rivals": [
+        "效益下降",
+        "收益递减"
+      ],
+      "cloze": [
+        "同一项刺激政策反复使用，往往会出现____，带动作用越来越弱。"
+      ],
+      "source": "每日读报 2026-10-13：在升级中扩容，在转型中提质",
+      "publicSources": [
+        {
+          "title": "在升级中扩容，在转型中提质",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/13/content_30185264.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:韧性",
+      "word": "韧性",
+      "wordType": "word",
+      "explanation": "比喻经济、社会等受冲击后保持稳定并恢复的能力。",
+      "usage": "常见“经济韧性”“城市韧性”“市场韧性”；“刚性”指不可变动、硬性的，如“刚性需求”。",
+      "examples": [
+        "台风过后供水供电迅速恢复，体现了这座城市的治理韧性。"
+      ],
+      "rivals": [
+        "刚性",
+        "弹性"
+      ],
+      "cloze": [
+        "尽管外部环境复杂多变，外贸数据仍显示出较强的____。"
+      ],
+      "source": "每日读报 2026-10-13：在升级中扩容，在转型中提质",
+      "publicSources": [
+        {
+          "title": "在升级中扩容，在转型中提质",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/13/content_30185264.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:先立后破",
+      "word": "先立后破",
+      "wordType": "collocation",
+      "explanation": "先把新的建立起来，再破除旧的，避免“破”了“立”不起来。",
+      "usage": "强调稳妥有序，常说“坚持先立后破、不立不破”；与“不破不立”侧重相反。",
+      "examples": [
+        "能源转型要坚持先立后破，新能源顶上来之前，不能贸然关停所有传统电源。"
+      ],
+      "rivals": [
+        "不破不立",
+        "破旧立新"
+      ],
+      "cloze": [
+        "推进产业转型，必须坚持____，在新动能成长起来之前稳住传统产业基本盘。"
+      ],
+      "source": "每日读报 2026-10-13：发展新质生产力须破除五大误区",
+      "publicSources": [
+        {
+          "title": "发展新质生产力须破除五大误区",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183311.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:脱实向虚",
+      "word": "脱实向虚",
+      "wordType": "collocation",
+      "explanation": "资金、资源脱离实体经济，流向金融炒作、虚拟领域。",
+      "usage": "反义为“脱虚向实”；“避实就虚”指避开强处攻弱处或说话回避要害。",
+      "examples": [
+        "金融机构要坚守服务实体经济的本源，防止信贷资金脱实向虚。"
+      ],
+      "rivals": [
+        "脱虚向实",
+        "避实就虚"
+      ],
+      "cloze": [
+        "如果资金热衷于炒概念、做估值，就会出现____，挤压制造业的发展空间。"
+      ],
+      "source": "每日读报 2026-10-13：发展新质生产力须破除五大误区",
+      "publicSources": [
+        {
+          "title": "发展新质生产力须破除五大误区",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183311.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:无本之木",
+      "word": "无本之木",
+      "wordType": "idiom",
+      "explanation": "没有根的树，比喻没有基础的事物，常与“无源之水”连用。",
+      "usage": "侧重失去根基；“空中楼阁”侧重脱离实际的理论或计划，“镜花水月”侧重虚幻不可得。",
+      "examples": [
+        "离开群众的实践，再漂亮的规划也只是无本之木。"
+      ],
+      "rivals": [
+        "空中楼阁",
+        "镜花水月",
+        "海市蜃楼"
+      ],
+      "cloze": [
+        "文化创新如果脱离优秀传统文化的滋养，就会成为无源之水、____。"
+      ],
+      "source": "每日读报 2026-10-13：发展新质生产力须破除五大误区",
+      "publicSources": [
+        {
+          "title": "发展新质生产力须破除五大误区",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183311.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:噱头",
+      "word": "噱头",
+      "wordType": "word",
+      "explanation": "故意制造的吸引注意的花招，也指引人发笑的言行。",
+      "usage": "多含贬义；“看点”为中性，指值得关注之处。",
+      "examples": [
+        "有的楼盘把“地铁上盖”当噱头，实际站点规划还没获批。"
+      ],
+      "rivals": [
+        "看点",
+        "卖点"
+      ],
+      "cloze": [
+        "一些商家把“零添加”当成营销____，产品本身却经不起检测。"
+      ],
+      "source": "每日读报 2026-10-13：发展新质生产力须破除五大误区",
+      "publicSources": [
+        {
+          "title": "发展新质生产力须破除五大误区",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183311.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:禀赋",
+      "word": "禀赋",
+      "wordType": "word",
+      "explanation": "本指人所具有的体魄、智力等素质，引申指地区天然具备的资源条件。",
+      "usage": "常见“资源禀赋”“要素禀赋”，可用于地区；“天赋”多指人的天资。",
+      "examples": [
+        "湛江依托海洋资源禀赋，大力发展现代化海洋牧场。"
+      ],
+      "rivals": [
+        "天赋",
+        "天资"
+      ],
+      "cloze": [
+        "山区县发展特色产业，关键是找准自身的资源____，走差异化路子。"
+      ],
+      "source": "每日读报 2026-10-13：发展新质生产力须破除五大误区",
+      "publicSources": [
+        {
+          "title": "发展新质生产力须破除五大误区",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183311.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:焕新",
+      "word": "焕新",
+      "wordType": "word",
+      "explanation": "焕然一新，呈现新的面貌。",
+      "usage": "突出面貌变化，新闻常用“焕新启用”“城市焕新”；“更新”是中性的替换。",
+      "examples": [
+        "经过微改造，这条百年骑楼街焕新亮相，吸引了大批年轻游客。"
+      ],
+      "rivals": [
+        "更新",
+        "翻新"
+      ],
+      "cloze": [
+        "老旧小区加装电梯、改造管网后整体____，居民满意度明显提升。"
+      ],
+      "source": "每日读报 2026-10-13：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:缝合",
+      "word": "缝合",
+      "wordType": "word",
+      "explanation": "本指用针线把伤口等缝起来，比喻把被分隔的区域连接起来。",
+      "usage": "用于空间、交通连接，如“缝合城市”；“弥合”多用于分歧、裂痕。",
+      "examples": [
+        "一座跨江大桥缝合了两岸城区，通勤时间缩短了一半。"
+      ],
+      "rivals": [
+        "弥合",
+        "联结"
+      ],
+      "cloze": [
+        "城际轨道加密成网，正在____被江河分隔的都市圈。"
+      ],
+      "source": "每日读报 2026-10-13：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:跃迁",
+      "word": "跃迁",
+      "wordType": "word",
+      "explanation": "原为物理学术语，比喻发展水平、层级的大幅跨越。",
+      "usage": "侧重质态、层级变化，常说“能级跃迁”；“跃升”多指数量、名次大幅上升。",
+      "examples": [
+        "从代工贴牌到自主品牌出海，这家企业实现了价值链上的跃迁。"
+      ],
+      "rivals": [
+        "跃升",
+        "飞跃"
+      ],
+      "cloze": [
+        "口岸功能从查验通关拓展到跨境金融，标志着开放能级的____。"
+      ],
+      "source": "每日读报 2026-10-13：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:能级",
+      "word": "能级",
+      "wordType": "word",
+      "explanation": "物理学概念，比喻城市、产业等的综合能量和层级。",
+      "usage": "常与“提升”“跃迁”搭配，如“城市能级”“开放能级”“产业能级”。",
+      "examples": [
+        "举办大型国际会展，有助于提升城市的国际化能级。"
+      ],
+      "rivals": [
+        "层级",
+        "量级"
+      ],
+      "cloze": [
+        "推进中心城区扩容提质，是提升省会城市____的重要举措。"
+      ],
+      "source": "每日读报 2026-10-13：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261013:集约",
+      "word": "集约",
+      "wordType": "word",
+      "explanation": "在单位面积或单位资源上集中投入，提高利用效率。",
+      "usage": "反义为“粗放”，常见“集约用地”“集约节约”；“节约”只强调少用。",
+      "examples": [
+        "新建产业园采用“工业上楼”模式，大大提高了土地集约利用水平。"
+      ],
+      "rivals": [
+        "粗放",
+        "节约"
+      ],
+      "cloze": [
+        "在建设用地日益紧张的背景下，必须走____高效的开发之路。"
+      ],
+      "source": "每日读报 2026-10-13：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
