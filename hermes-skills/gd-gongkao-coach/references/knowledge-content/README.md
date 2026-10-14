@@ -31,6 +31,8 @@ node scripts/knowledge-content.mjs apply '数量关系-数学运算-概率问题
 
 含公式的正文先写 UTF-8 文件，或用带引号的 heredoc `python3 <<'PY'` 编排；Python 通过 `subprocess.run([...], input=json.dumps(patch, ensure_ascii=False), text=True, check=True)` 将补丁传给 `apply 标签 -`。**不要用双引号包裹的 `python3 -c "…"` 或 shell echo 承载正文**：其中的 `$$`、`$k`、`$(AB)` 会被 shell 展开并损坏公式。最后读回一次确认公式仍是原文，再报告完成。正常流程通常只需读取、写入、核验几次模型往返，不为每个节点单独开启一轮。
 
+`apply` 保存前会检查公式有没有被 shell 展开过（`$$` 变成一串数字、`$n` 被吃成空、`$` 落单、公式命令跑到 `$` 外面），发现就拒绝保存（422）并列出问题行。这时不要手工删 `$` 硬塞，也不要换个写法绕过：用 write_file 写补丁文件，或用带引号的 heredoc 重新生成补丁再 apply。2026-10-12 就是用 `python3 -c "…"` 批量保存，弄坏了 10 个知识点的公式。
+
 ## 从当前节点出题
 
 ```bash

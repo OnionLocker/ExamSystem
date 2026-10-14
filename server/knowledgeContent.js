@@ -21,6 +21,28 @@ const text = (value, name, max) => {
   if (typeof value !== 'string' || !value.trim() || value.length > max) fail(`${name}须为非空文本，最多 ${max} 字符`);
   return value.trim();
 };
+
+// 正文被 shell 展开过的痕迹。用 python3 -c "…" 或不带引号的 heredoc 提交时，bash 会把
+// $$ 换成进程号、$n/$(..) 吃成空、``` 代码块当命令执行，公式就这样坏掉了。
+const TEX_COMMAND = /\\(?:frac|dfrac|times|div|text|cdot|pm|mp|le|ge|leq|geq|neq|ne|approx|implies|Rightarrow|rightarrow|to|sqrt|sum|prod|left|right|quad|qquad|Delta|alpha|beta|theta|pi|circ|bar|overline|dots|cdots|ldots|cap|cup|subset|infty|max|min|lfloor|rfloor|lceil|rceil|binom|mathrm|mathbf|boxed|angle|triangle|because|therefore|equiv|pmod|bmod|sim|propto|Leftrightarrow|iff)(?![A-Za-z])/;
+const PID_RUN = /(?<![\d.\w-])\d{6,8}(?=\\[A-Za-z]|[A-Za-z_{(^=])/;
+export function shellDamage(value) {
+  const blank = (m) => '\n'.repeat(m.split('\n').length - 1);
+  const body = String(value || '').replace(/```[\s\S]*?```/g, blank).replace(/\$\$[\s\S]*?\$\$/g, blank);
+  const issues = [];
+  body.split('\n').forEach((line, i) => {
+    const bare = line.replace(/`[^`]*`/g, '').replace(/\\\$/g, '');
+    const spans = [...bare.matchAll(/\$(?!\$)([^$\n]+?)\$/g)].map((m) => m[1]);
+    const rest = bare.replace(/\$(?!\$)[^$\n]+?\$/g, '');
+    const why = [];
+    if (rest.includes('$')) why.push('落单的 $');
+    if (TEX_COMMAND.test(rest)) why.push('公式命令在 $ 外面');
+    if (PID_RUN.test(line)) why.push('一串数字粘着公式，像是 $$ 被换成了进程号');
+    if (spans.some((s) => /^\s|\s$/.test(s) || '，。、；：（）'.includes(s[0]))) why.push('行内公式两头是空格或标点，像是变量被吃掉');
+    if (why.length) issues.push({ line: i + 1, why: why.join('；'), text: line.trim().slice(0, 80) });
+  });
+  return issues;
+}
 export function cardMarkdown(c) {
   return [c.how, ...[['解题步骤', c.steps], ['要记住', c.know], ['易错提醒', c.ban], ['来源', c.anchors]]
     .filter(([, a]) => a?.length).map(([h, a]) => `## ${h}\n\n${a.map(x => `- ${x}`).join('\n\n')}`),

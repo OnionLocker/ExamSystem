@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
-import { openKnowledgeStore, nodeTag, topics } from '../server/knowledgeContent.js';
+import { openKnowledgeStore, nodeTag, shellDamage, topics } from '../server/knowledgeContent.js';
 const [command, tag, arg] = process.argv.slice(2);
 const store = openKnowledgeStore();
 try {
@@ -15,7 +15,15 @@ try {
     result = { tag, revision: doc.revision, nodes: doc.nodes.map(({ markdown: _markdown, ...n }) => ({ ...n, linkTag: nodeTag(tag, n) })) };
   } else if (command === 'apply') {
     if (!arg) throw new Error('apply 需要一个 JSON 文件路径或 -（标准输入）');
-    const doc = store.mutate(tag, JSON.parse(readFileSync(arg === '-' ? 0 : arg, 'utf8')));
+    const patch = JSON.parse(readFileSync(arg === '-' ? 0 : arg, 'utf8'));
+    // 公式坏了就不让存：坏内容一旦入库，之后每次 get → 改 → 存都会把坏处带下去
+    const damage = ['title', 'summary', 'markdown'].flatMap((field) => shellDamage(patch?.[field]).map((d) => ({ field, ...d })));
+    if (damage.length) {
+      throw Object.assign(new Error('正文里的公式像是被 shell 展开过（$$ 变成数字、$n 被吃掉、代码块消失），拒绝保存。'
+        + '用 write_file 写补丁文件，或用带引号的 heredoc（python3 <<\'PY\'）重新生成后再 apply；不要用 python3 -c "…" 承载正文，也不要手工删 $ 绕过。'
+        + `问题行：${JSON.stringify(damage.slice(0, 5))}`), { status: 422 });
+    }
+    const doc = store.mutate(tag, patch);
     result = { tag, revision: doc.revision, changed: doc.changed };
   } else throw new Error('用法: node scripts/knowledge-content.mjs find 关键词 | catalog [完整标签] | outline 完整标签 | get 完整标签 [节点id] | apply 完整标签 补丁.json');
   console.log(JSON.stringify(result, null, 2));
