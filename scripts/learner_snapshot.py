@@ -52,7 +52,7 @@ FAMILY_MAIN_COOLDOWN_DAYS = 1
 SESSION_FAMILY_HINTS = (
     ("plzh", "数量关系-数学运算-排列组合问题"),
     ("date_cycle", "数量关系-数学运算-星期日期问题"),
-    ("date-cycle", "数量关系-数学运算-周期问题"),
+    ("date-cycle", "数量关系-数学运算-星期日期问题"),
 )
 
 

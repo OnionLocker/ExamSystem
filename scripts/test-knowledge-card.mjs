@@ -96,14 +96,12 @@ const tree = mergeFenbiTree(
 );
 const shuliang = tree.find((mod) => mod.id === 'shuliang');
 const math = shuliang.children.find((g) => g.name === '数学运算');
-const cycle = math.children.find((leaf) => leaf.name === '周期问题');
 const weekday = math.children.find((leaf) => leaf.name === '星期日期问题');
-assert.deepEqual(cycle.cards, ['cycle-schedule-lcm']);
+assert.equal(math.children.find((leaf) => leaf.name === '周期问题'), undefined);
 assert.deepEqual(weekday.cards, ['cycle-calendar-date']);
-assert.notEqual(cycle.cards[0], weekday.cards[0]);
 const canonMath = treeData.modules.find((mod) => mod.id === 'shuliang').children
   .find((group) => group.name === '数学运算');
-assert.equal(canonMath.children.find((leaf) => leaf.name === '周期问题').cards[0], 'cycle-schedule-lcm');
+assert.equal(canonMath.children.find((leaf) => leaf.name === '周期问题'), undefined);
 assert.equal(canonMath.children.find((leaf) => leaf.name === '星期日期问题').cards[0], 'cycle-calendar-date');
 const perm = math.children.find((leaf) => leaf.name === '排列组合问题');
 const avg = math.children.find((leaf) => leaf.name === '平均数问题');

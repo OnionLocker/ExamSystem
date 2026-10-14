@@ -112,14 +112,14 @@ class CanonicalizeOldToNewTest(unittest.TestCase):
             validate_ai_primary_tag("数量关系-数学运算-排列组合", "数量关系")
 
     def test_parent_short_names_do_not_become_a_child(self):
-        for name in ("最值问题", "函数最值问题", "工程问题"):
+        for name in ("最值问题", "工程问题"):
             parent = f"数量关系-数学运算-{name}"
             self.assertEqual(canonicalize(name, "数量关系"), parent)
             self.assertEqual(canonicalize(parent, "数量关系"), parent)
 
     def test_restored_aliases_keep_the_intended_canon(self):
         cases = {
-            "数量关系-有规律的周期循环与要算准的日期星期-周期排班与公倍数": "数量关系-数学运算-周期问题",
+            "数量关系-有规律的周期循环与要算准的日期星期-周期排班与公倍数": "数量关系-数学运算-星期日期问题",
             "判断推理-逻辑判断-逻辑论证-一般质疑": "判断推理-逻辑判断-削弱题型",
             "言语理解-片段阅读-语句排序": "言语理解与表达-语句表达-语句排序题",
         }

@@ -325,7 +325,7 @@ class BlueprintTest(unittest.TestCase):
         blueprint = (
             '{"slots":['
             '{"tag":"' + EXTREME + '最值问题","count":2},'
-            '{"tag":"' + EXTREME + '函数最值问题","count":3}]}'
+            '{"tag":"' + EXTREME + '经济利润问题","count":3}]}'
         )
         _, slots = resolve_slots(blueprint_args(blueprint=blueprint))
         run = {"slots": slots, "module": "数量关系"}
@@ -333,7 +333,7 @@ class BlueprintTest(unittest.TestCase):
         self.assertEqual(len(tags), 5)
         self.assertEqual(len(set(tags[:2])), 2)
         self.assertTrue(all(t.startswith(FENBI_EXTREME + "-") for t in tags[:2]))
-        self.assertTrue(all(t.startswith(EXTREME + "函数最值问题") for t in tags[2:]))
+        self.assertTrue(all(t.startswith(EXTREME + "经济利润问题") for t in tags[2:]))
 
     def test_prompt_names_each_slot_range(self):
         _, slots = resolve_slots(
