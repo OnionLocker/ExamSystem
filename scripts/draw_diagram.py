@@ -19,7 +19,7 @@ import re
 import sys
 from datetime import datetime
 from fractions import Fraction
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -50,6 +50,29 @@ class SpecError(Exception):
 
 def text_width(s, size):
     return sum(size if ord(ch) > 0x2E7F else size * 0.6 for ch in str(s))
+
+
+def text_box(x, y, s, size, anchor="middle"):
+    """svg_text 画出来占的矩形 (x0, y0, x1, y1)；y 是多行文字整体的中心。"""
+    lines = str(s).split("\n")
+    w = max(text_width(line, size) for line in lines)
+    h = size * 1.15 + (len(lines) - 1) * size * 1.3
+    x0 = x - w / 2 if anchor == "middle" else x - w if anchor == "end" else x
+    return (x0, y - h / 2, x0 + w, y + h / 2)
+
+
+def clash(a, b, pad=4):
+    """两个矩形是否相交，或间距不到 pad。"""
+    return a[0] < b[2] + pad and b[0] < a[2] + pad and a[1] < b[3] + pad and b[1] < a[3] + pad
+
+
+def wrap_label(s):
+    """“+15 (第1次)” 这类“数值 说明”的标签折成两行；折不了返回 None。"""
+    s = str(s)
+    if "\n" in s:
+        return None
+    m = re.match(r"^(.+?)\s*([（(].*)$", s) or re.match(r"^(\S+)\s+(.+)$", s)
+    return f"{m.group(1)}\n{m.group(2)}" if m else None
 
 
 def num(v):
@@ -110,17 +133,31 @@ def header(spec, width):
     return "".join(parts), (y + 14 if y else 16)
 
 
+def fold(line, size, limit):
+    """太长的一行在逗号、分号、空格处折开，每段不超过 limit 宽。"""
+    out, cur = [], ""
+    for piece in re.split(r"(?<=[，,；;：:])\s*|\s+(?=\S)", str(line)):
+        if cur and text_width(cur + piece, size) > limit:
+            out.append(cur)
+            cur = piece
+        else:
+            cur = f"{cur}{piece}" if not cur or re.search(r"[，,；;：:]$", cur) else f"{cur} {piece}"
+    return out + ([cur] if cur else [])
+
+
 def footer(spec, width, y):
     notes = spec.get("notes") or []
     if isinstance(notes, str):
         notes = [notes]
     if len(notes) > 3:
         raise SpecError("notes 最多 3 行，讲解放到正文里")
-    parts = []
+    parts, row = [], 0
     for i, line in enumerate(notes):
-        parts.append(svg_text(width / 2, y + 14 + i * 24, line, 15, 700 if i == 0 else 400,
-                              INK if i == 0 else INK_SOFT))
-    return "".join(parts), y + (len(notes) * 24 + 20 if notes else 8)
+        for piece in fold(line, 15, width - 48):
+            parts.append(svg_text(width / 2, y + 14 + row * 24, piece, 15, 700 if i == 0 else 400,
+                                  INK if i == 0 else INK_SOFT))
+            row += 1
+    return "".join(parts), y + (row * 24 + 20 if notes else 8)
 
 
 def legend(roles_used, width, y):
@@ -321,8 +358,9 @@ def draw_bar(spec):
         parts.append(svg_text((a + e) / 2, by - 11, b.get("label", ""), 13, 500, INK_SOFT))
     for i, (cx, t) in enumerate(below):
         ly = y + 16 + i * 20
+        half = text_width(t, 13) / 2
         parts.append(f'<path d="M{cx:.1f} {y} V{ly - 7}" stroke="{LINE}" stroke-width="1"/>')
-        parts.append(svg_text(cx, ly, t, 13, 500, INK_SOFT))
+        parts.append(svg_text(min(max(cx, half + 6), width - 6 - half), ly, t, 13, 500, INK_SOFT))
     y += (len(below) * 20 + 14) if below else 8
     if spec.get("total_label", True):
         label = spec["total_label"] if isinstance(spec.get("total_label"), str) else f"总量 {fmt(total)}"
@@ -336,53 +374,188 @@ def draw_bar(spec):
     return wrap(width, y + 6, "".join(parts))
 
 
-# ---------------- 线段图（行程、年龄、相对位置） ----------------
+# ---------------- 线段图 / 数轴（行程、年龄、相对位置） ----------------
+LANE_H = 38   # 点标签一层的高度，两行字也放得下
+ROW_H = 34    # 箭头一行的高度
+BREAK_W = 26  # 断轴处留的缝
+
+
+def axis_of(spec, x0, track):
+    """数轴的取值范围和坐标换算。range 写真实坐标（可以有负数）；breaks 把大段空白压成一道缝。"""
+    rng = spec.get("range")
+    if rng is not None:
+        if not (isinstance(rng, list) and len(rng) == 2 and all(num(v) is not None for v in rng) and rng[0] < rng[1]):
+            raise SpecError("range 写成 [最小值, 最大值]，例如 [-30, 120]")
+        lo, hi = num(rng[0]), num(rng[1])
+    else:
+        length = num(spec.get("length"))
+        if not length or length <= 0:
+            raise SpecError("line 需要 range：[最小值, 最大值]（可以有负数），或正数 length（等同 [0, length]）")
+        lo, hi = 0, length
+    breaks = []
+    for b in spec.get("breaks") or []:
+        if not (isinstance(b, list) and len(b) == 2 and all(num(v) is not None for v in b) and lo < b[0] < b[1] < hi):
+            raise SpecError(f"breaks 每项写成 [起, 止]，落在 {fmt(lo)}~{fmt(hi)} 之内，且起 < 止")
+        breaks.append((num(b[0]), num(b[1])))
+    breaks.sort()
+    if any(a2 <= b1 for (_, b1), (a2, _) in zip(breaks, breaks[1:])):
+        raise SpecError("breaks 的区间不能重叠")
+    pieces, cur = [], lo
+    for a, b in breaks:
+        pieces.append((cur, a))
+        cur = b
+    pieces.append((cur, hi))
+    unit = (track - BREAK_W * len(breaks)) / sum(b - a for a, b in pieces)
+
+    def sx(v):
+        x = x0
+        for i, (a, b) in enumerate(pieces):
+            if v <= b or i == len(pieces) - 1:
+                return x + (v - a) * unit
+            x += (b - a) * unit + BREAK_W
+    return lo, hi, breaks, sx
+
+
 def draw_line(spec):
-    length = num(spec.get("length"))
-    if not length or length <= 0:
-        raise SpecError("line 需要正数 length（全程或数轴长度）")
-    points = spec.get("points") or []
-    arrows = spec.get("arrows") or []
     width, x0, track = 760, 60, 640
-    head, top = header(spec, width)
-    up = max([a.get("row", 1) for a in arrows if a.get("row", 1) > 0] or [0])
-    down = -min([a.get("row", 1) for a in arrows if a.get("row", 1) < 0] or [0])
-    y_line = top + 20 + up * 34
-    sx = lambda v: x0 + num(v) / length * track
-    parts, roles = [head], set()
-    parts.append(f'<line x1="{x0}" y1="{y_line}" x2="{x0 + track}" y2="{y_line}" stroke="{INK}" stroke-width="2.4"/>')
-    for p in points:
-        at = num(p.get("at"))
-        if at is None or not 0 <= at <= length:
-            raise SpecError(f"点 {p.get('label')} 的 at 必须在 0~{fmt(length)}")
-        x = sx(at)
-        parts.append(f'<line x1="{x:.1f}" y1="{y_line - 7}" x2="{x:.1f}" y2="{y_line + 7}" stroke="{INK}" '
-                     f'stroke-width="2"/>')
-        parts.append(svg_text(x, y_line + 20, p.get("label", ""), 14, 700, INK))
-    parts.append('<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
-                 f'orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="{INK_SOFT}"/></marker></defs>')
-    for a in arrows:
-        f, t = num(a.get("from")), num(a.get("to"))
-        if f is None or t is None:
-            raise SpecError("arrow 需要数字 from / to")
+    lo, hi, breaks, sx = axis_of(spec, x0, track)
+
+    def at_of(v, what):
+        v = num(v)
+        if v is None or not lo <= v <= hi or any(a < v < b for a, b in breaks):
+            raise SpecError(f"{what} 必须是 {fmt(lo)}~{fmt(hi)} 之间的数字，且不能落在 breaks 压缩掉的区段里")
+        return v
+
+    # 箭头：同一行里箭头区间或说明文字会撞上的，自动挪到同侧的下一行
+    rows_taken, arrows = {}, []
+    for a in spec.get("arrows") or []:
+        name = str(a.get("label", ""))
+        f, t = at_of(a.get("from"), f"箭头 {name} 的 from"), at_of(a.get("to"), f"箭头 {name} 的 to")
+        if f == t:
+            raise SpecError(f"箭头 {name} 的 from 和 to 相同")
+        if num(a.get("check")) is not None and not math.isclose(abs(t - f), num(a["check"]), abs_tol=1e-9):
+            raise SpecError(f"箭头 {name}：{fmt(f)} → {fmt(t)} 长 {fmt(abs(t - f))}，但 check 写的是 {fmt(a['check'])}")
         role = a.get("role", "base")
         if role not in ROLE:
-            raise SpecError(f"箭头 {a.get('label')} 的 role 只能是 {sorted(ROLE)}")
-        roles.add(role)
+            raise SpecError(f"箭头 {name} 的 role 只能是 {sorted(ROLE)}")
         row = a.get("row", 1)
-        y = y_line - row * 34 if row > 0 else y_line + 22 - row * 30
+        if not isinstance(row, int) or isinstance(row, bool) or row == 0:
+            raise SpecError("arrow 的 row 写 1、2…（轴上方）或 -1、-2…（轴下方）")
+        xa, xb = sorted((sx(f), sx(t)))
+        w = text_width(name, 13)
+        spot = None
+        while abs(row) <= 4 and spot is None:
+            taken = rows_taken.get(row, [])
+            if not any(xa < pb - 2 and pa < xb - 2 for pa, pb, _ in taken):
+                for frac in (0.5, 0.3, 0.7, 0.15, 0.85):
+                    cx = xa + (xb - xa) * frac
+                    lx = min(max(cx - w / 2, 6), width - 6 - w)
+                    if not name or not any(lx < lb + 8 and la < lx + w + 8 for _, _, (la, lb) in taken):
+                        spot = (cx, lx + w / 2 - cx)
+                        break
+            if spot is None:
+                row += 1 if row > 0 else -1
+        if spot is None:
+            raise SpecError(f"箭头“{name}”在同一侧排到第 4 行还放不下：缩短说明文字，或把运动分到轴的上下两侧")
+        rows_taken.setdefault(row, []).append((xa, xb, (spot[0] + spot[1] - w / 2, spot[0] + spot[1] + w / 2) if name else (0, 0)))
+        arrows.append((a, f, t, role, row, spot))
+
+    head, top = header(spec, width)
+    up = max([r for *_, r, _ in arrows if r > 0] or [0])
+    y_line = top + 20 + up * ROW_H
+    parts, roles = [head, ARROW_DEF], set()
+    cuts = [x0] + [x for a, _ in breaks for x in (sx(a), sx(a) + BREAK_W)] + [x0 + track]
+    for xa, xb in zip(cuts[::2], cuts[1::2]):
+        parts.append(f'<line x1="{xa:.1f}" y1="{y_line}" x2="{xb:.1f}" y2="{y_line}" stroke="{INK}" stroke-width="2.4"/>')
+    for a, _ in breaks:
+        gx = sx(a) + BREAK_W / 2
+        for d in (-4, 4):
+            parts.append(f'<line x1="{gx + d - 4:.1f}" y1="{y_line + 8}" x2="{gx + d + 4:.1f}" y2="{y_line - 8}" '
+                         f'stroke="{INK}" stroke-width="1.6"/>')
+    step = num(spec.get("ticks"))
+    if spec.get("ticks") is not None:
+        if not step or step <= 0 or (hi - lo) / step > 60:
+            raise SpecError("ticks 是等距刻度的间隔（正数），整条轴最多 60 格")
+        for k in range(math.ceil(lo / step - 1e-9), math.floor(hi / step + 1e-9) + 1):
+            if not any(a < k * step < b for a, b in breaks):
+                x = sx(k * step)
+                parts.append(f'<line x1="{x:.1f}" y1="{y_line - 4}" x2="{x:.1f}" y2="{y_line + 4}" stroke="{INK_SOFT}" '
+                             f'stroke-width="1"/>')
+
+    pts = []
+    for p in spec.get("points") or []:
+        label = str(p.get("label", ""))
+        role = p.get("role", "base")
+        if role not in ROLE:
+            raise SpecError(f"点 {label} 的 role 只能是 {sorted(ROLE)}")
+        pts.append((sx(at_of(p.get("at"), f"点 {label} 的 at")), label, role))
+    pts.sort(key=lambda q: q[0])
+    for x, _, role in pts:
+        parts.append(f'<line x1="{x:.1f}" y1="{y_line - 7}" x2="{x:.1f}" y2="{y_line + 7}" stroke="{INK}" '
+                     f'stroke-width="2"/>')
+        if role != "base":
+            roles.add(role)
+            parts.append(f'<circle cx="{x:.1f}" cy="{y_line}" r="5.5" fill="{ROLE[role][0]}" stroke="{INK}" '
+                         f'stroke-width="1.2"/>')
+
+    def layout(options, lanes):
+        """从左到右依次放点标签，每个标签按 options 的顺序试每一层，放不下返回 None。"""
+        boxes, out = [], []
+        for (x, _, _), opts in zip(pts, options):
+            hit = None
+            for lane in range(lanes):
+                for text in opts:
+                    h = 14 * 1.15 + text.count("\n") * 14 * 1.3
+                    y_top = y_line + 14 + lane * LANE_H
+                    bx = text_box(x, y_top + h / 2, text, 14)
+                    shift = max(6 - bx[0], 0) - max(bx[2] - (width - 6), 0)
+                    bx = (bx[0] + shift, bx[1], bx[2] + shift, bx[3])
+                    leader = (x - 1, y_line + 9, x + 1, y_top - 2)
+                    if any(clash(bx, b, 6) for b in boxes) or (lane and any(clash(leader, b, 1) for b in boxes)):
+                        continue
+                    hit = (x, text, bx, shift, lane, y_top, h)
+                    break
+                if hit:
+                    break
+            if not hit:
+                return None
+            boxes.append(hit[2])
+            out.append(hit)
+        return out
+
+    labels = [label for _, label, _ in pts]
+    wrapped = [wrap_label(label) or label for label in labels]
+    # 先试一行放下；放不下就统一折成两行（数值一行、说明一行）；还不行再错层并画引线
+    placed_labels = (layout([[s] for s in labels], 1) or layout([[w] for w in wrapped], 1)
+                     or layout([[w, s] if w != s else [s] for s, w in zip(labels, wrapped)], 3))
+    if placed_labels is None:
+        raise SpecError("点太密，标签错开三层也放不下：缩短点的 label，用 breaks 压缩没有点的空白区段，或拆成两张图")
+    placed = []
+    for x, text, bx, shift, lane, y_top, h in placed_labels:
+        if text:
+            if lane or abs(shift) > 0.5:
+                parts.append(f'<line x1="{x:.1f}" y1="{y_line + 9}" x2="{x + shift:.1f}" y2="{y_top - 2:.1f}" '
+                             f'stroke="{LINE}" stroke-width="1"/>')
+            parts.append(svg_text(x + shift, y_top + h / 2, text, 14, 700, INK))
+            placed.append(bx)
+    labels_bottom = max([b[3] for b in placed] + [y_line + 10])
+
+    def row_y(r):
+        return y_line - r * ROW_H if r > 0 else labels_bottom + 18 + (-r - 1) * ROW_H
+
+    for a, f, t, role, row, (cx, shift) in arrows:
+        roles.add(role)
+        y = row_y(row)
         color = ROLE[role][0] if role != "base" else INK_SOFT
-        parts.append(f'<rect x="{min(sx(f), sx(t)):.1f}" y="{y - 3}" width="{abs(sx(t) - sx(f)):.1f}" height="6" '
-                     f'rx="3" fill="{color}"/>')
+        xa, xb = sorted((sx(f), sx(t)))
+        parts.append(f'<rect x="{xa:.1f}" y="{y - 3}" width="{xb - xa:.1f}" height="6" rx="3" fill="{color}"/>')
         parts.append(f'<line x1="{sx(f):.1f}" y1="{y}" x2="{sx(t):.1f}" y2="{y}" stroke="{INK_SOFT}" '
                      f'stroke-width="1.2" marker-end="url(#ah)"/>')
-        ty = y - 14 if row > 0 else y + 15
-        parts.append(svg_text((sx(f) + sx(t)) / 2, ty, a.get("label", ""), 13, 500, INK_SOFT))
-    y = y_line + 44 + down * 30 + (14 if down else 0)
-    leg, y = legend(roles, width, y)
-    foot, y = footer(spec, width, y)
-    parts += [leg, foot]
-    return wrap(width, y + 6, "".join(parts))
+        if a.get("label"):
+            parts.append(svg_text(cx + shift, y - 14 if row > 0 else y + 15, a["label"], 13, 500, INK_SOFT))
+    down = max([-r for *_, r, _ in arrows if r < 0] or [0])
+    y = row_y(-down) + 38 if down else labels_bottom + 14
+    return finish(spec, parts, roles, width, y)
 
 
 # ---------------- 通用小件 ----------------
@@ -446,20 +619,41 @@ def draw_slots(spec):
     gap_style = spec.get("gap_style", "insert")
     if gap_style not in ("insert", "divider"):
         raise SpecError("gap_style 只能是 insert（插空）或 divider（隔板）")
+    links = spec.get("links") or []
+    bundles = spec.get("bundles") or []
+    if links and bundles:
+        raise SpecError("links（配对弧）和 bundles（捆绑框）不要画在同一张图里，一张图只讲一种结构")
     width = 760
     head, top = header(spec, width)
     gap_w = 30 if gaps else 10
     size = min(72, (width - 80 - gap_w * (n + 1)) / n)
     total_w = n * size + (n + 1) * gap_w
     x0 = (width - total_w) / 2
-    bundles = spec.get("bundles") or []
-    y_box = top + (34 if bundles else 6)
-    parts, roles = [head], set()
     xs = [x0 + gap_w + i * (size + gap_w) for i in range(n)]
+    # 捆绑框的说明：挨得太近就往上错一层
+    bundle_lanes = []
     for b in bundles:
         f, t = b.get("from"), b.get("to")
         if not (isinstance(f, int) and isinstance(t, int) and 0 <= f <= t < n):
             raise SpecError(f"bundle 的 from/to 是元素序号 0~{n - 1}")
+        mid, half = (xs[f] + xs[t] + size) / 2, text_width(b.get("label", ""), 13) / 2
+        lane = 0
+        while any(lane == ln and mid - half < bb + 8 and ba < mid + half + 8 for ln, ba, bb in bundle_lanes):
+            lane += 1
+        bundle_lanes.append((lane, mid - half, mid + half))
+    # 配对弧：外层的弧更高，套在里面的弧更矮，说明字写在弧顶
+    link_h = []
+    for k in links:
+        f, t = k.get("from"), k.get("to")
+        if not (isinstance(f, int) and isinstance(t, int) and 0 <= f < t < n):
+            raise SpecError(f"link 的 from/to 是两个不同的元素序号 0~{n - 1}，from 在左")
+        inside = sum(1 for o in links if o is not k and f <= o["from"] and o["to"] <= t)
+        link_h.append(26 + 28 * inside)
+    lift = max(link_h, default=0)
+    y_box = top + (34 + 18 * max([ln for ln, _, _ in bundle_lanes], default=0) if bundles else 6) + (lift * 0.75 + 22 if links else 0)
+    parts, roles = [head], set()
+    for b, (lane, _, _) in zip(bundles, bundle_lanes):
+        f, t = b["from"], b["to"]
         role = b.get("role", "given")
         if role not in ROLE:
             raise SpecError(f"bundle role 只能是 {sorted(ROLE)}")
@@ -468,7 +662,24 @@ def draw_slots(spec):
         parts.append(f'<rect x="{bx:.1f}" y="{y_box - 8}" width="{bw:.1f}" height="{size + 16:.1f}" rx="12" '
                      f'fill="{ROLE[role][0]}" fill-opacity="0.45" stroke="{INK_SOFT}" stroke-width="1.4" '
                      f'stroke-dasharray="5 4"/>')
-        parts.append(svg_text(bx + bw / 2, y_box - 20, b.get("label", ""), 13, 700, INK_SOFT))
+        parts.append(svg_text(bx + bw / 2, y_box - 20 - lane * 18, b.get("label", ""), 13, 700, INK_SOFT))
+    for k, h in zip(links, link_h):
+        role = k.get("role", "base")
+        if role not in ROLE:
+            raise SpecError(f"link role 只能是 {sorted(ROLE)}")
+        if role != "base":
+            roles.add(role)
+        x1, x2 = xs[k["from"]] + size / 2, xs[k["to"]] + size / 2
+        color = ROLE[role][0] if role != "base" else INK_SOFT
+        top_y = y_box - 4 - h
+        parts.append(f'<path d="M{x1:.1f} {y_box - 4} C{x1:.1f} {top_y:.1f} {x2:.1f} {top_y:.1f} {x2:.1f} {y_box - 4}" '
+                     f'fill="none" stroke="{color}" stroke-width="{2.2 if role != "base" else 1.4}"/>')
+        if k.get("label"):
+            lw = text_width(k["label"], 12) + 10
+            ly = y_box - 4 - h * 0.75
+            parts.append(f'<rect x="{(x1 + x2) / 2 - lw / 2:.1f}" y="{ly - 9:.1f}" width="{lw:.1f}" height="18" rx="4" '
+                         f'fill="{PAPER}"/>')
+            parts.append(svg_text((x1 + x2) / 2, ly, k["label"], 12, 600, INK_SOFT))
     for i, raw in enumerate(items):
         text, role = item(raw, f"items[{i}]")
         roles.add(role)
@@ -662,130 +873,149 @@ def draw_circle(spec):
     # 刻度文字放在最外层弧标注之外，避免和圆心算式、弧上的字叠在一起。
     label_r = r0 + 18 * rings + 46
     cx = width / 2
+
+    def paint(cy):
+        parts, roles = [head, ARROW_DEF], set()
+        parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r0}" fill="{FRAME}" stroke="{INK}" stroke-width="2.4"/>')
+
+        def ang_of(at):
+            return 2 * math.pi * at / length
+
+        def pt(at, r):
+            ang = ang_of(at) - math.pi / 2
+            return cx + r * math.cos(ang), cy + r * math.sin(ang)
+
+        def gap(a, b):
+            d = abs(a - b) % (2 * math.pi)
+            return min(d, 2 * math.pi - d)
+
+        arc_angs = []
+        for a in arcs:
+            f, t = num(a.get("from", 0)), num(a.get("to"))
+            if f is None or t is None:
+                raise SpecError("arcs 需要数字 from / to")
+            if abs(t - f) >= length:
+                raise SpecError("单段弧长不能达到一整圈；跑了几圈写在 label 里，弧只画最后不满一圈的部分")
+            role = a.get("role", "given")
+            if role not in ROLE:
+                raise SpecError(f"arc role 只能是 {sorted(ROLE)}")
+            roles.add(role)
+            r = r0 + 18 * a.get("ring", 1)
+            (x1, y1), (x2, y2) = pt(f, r), pt(t, r)
+            large = 1 if abs(t - f) > length / 2 else 0
+            sweep = 1 if t > f else 0
+            color = ROLE[role][0] if role != "base" else INK_SOFT
+            parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{r} {r} 0 {large} {sweep} {x2:.1f} {y2:.1f}" fill="none" '
+                         f'stroke="{color}" stroke-width="6" stroke-linecap="round"/>')
+            parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{r} {r} 0 {large} {sweep} {x2:.1f} {y2:.1f}" fill="none" '
+                         f'stroke="{INK_SOFT}" stroke-width="1.2" marker-end="url(#ah)"/>')
+            arc_angs.append((a.get("label", ""), (f + t) / 2, r + 22))
+        points = []
+        for p in spec.get("points") or []:
+            at = num(p.get("at"))
+            if at is None:
+                raise SpecError("points[].at 必须是数字")
+            x, y = pt(at, r0)
+            parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" fill="{INK}"/>')
+            points.append((ang_of(at), at, p.get("label", "")))
+        points.sort()
+        lanes = []
+        for ang, _, _ in points:
+            lane = 1 if any(gap(ang, ang_of(mid)) < 0.5 for _, mid, _ in arc_angs) else 0
+            for prev, prev_lane in lanes:
+                if gap(ang, prev) < 0.55 and prev_lane >= lane:
+                    lane = prev_lane + 1
+            lanes.append((ang, lane))
+        def box_of(x, y, text, size, anchor):
+            lines = str(text).split("\n") or [""]
+            w = max(text_width(line, size) for line in lines)
+            h = size * 1.3 * len(lines)
+            x0 = x - (w / 2 if anchor == "middle" else w if anchor == "end" else 0)
+            return x0, y - h / 2, x0 + w, y + h / 2
+
+        def clashes(a, b):
+            return a[0] < b[2] - 4 and b[0] < a[2] - 4 and a[1] < b[3] - 4 and b[1] < a[3] - 4
+
+        point_boxes = []
+        for (_, at, label), (_, lane) in zip(points, lanes):
+            x, y = pt(at, label_r + lane * 22)
+            dx, dy = x - cx, y - cy
+            anchor = "start" if abs(dx) >= abs(dy) * 0.6 and dx > 0 else "end" if abs(dx) >= abs(dy) * 0.6 else "middle"
+            point_boxes.append(box_of(x, y, label, 13, anchor))
+            parts.append(svg_text(x, y, label, 13, 700, INK, anchor))
+        for label, mid, rad in arc_angs:
+            mx, my = pt(mid, rad)
+            prefer = "start" if mx > cx + 10 else "end" if mx < cx - 10 else "middle"
+            options = [prefer] + [a for a in ("start", "end", "middle") if a != prefer]
+            anchor = prefer
+            for cand in options:
+                box = box_of(mx, my, label, 13, cand)
+                if box[0] >= 8 and box[2] <= width - 8 and not any(clashes(box, other) for other in point_boxes):
+                    anchor = cand
+                    break
+            parts.append(svg_text(mx, my, label, 13, 500, INK_SOFT, anchor))
+        center = str(spec.get("center") or "")
+        # 圆心放得下一行短字；长算式放到圆下方，不再横穿表盘。
+        center_inside = bool(center) and text_width(center, 14) <= (r0 - 18) * 2
+        if center_inside:
+            parts.append(svg_text(cx, cy, center, 14, 700, INK_SOFT))
+        arc_boxes = [box_of(*pt(mid, rad), label, 13, 'middle') for label, mid, rad in arc_angs]
+        bottom = max([b[3] for b in point_boxes + arc_boxes] + [cy + r0 + 18 * rings + 4]) + 18
+        if center and not center_inside:
+            parts.append(svg_text(cx, bottom + 6, center, 15, 700, INK))
+            bottom += 28
+        tops = [box[1] for box in point_boxes] + [my - 9 for _, mid, rad in arc_angs for _, my in [pt(mid, rad)]]
+        return parts, roles, bottom, min(tops, default=cy)
+
+    # 先按默认位置画一遍；顶上的刻度字若顶到标题，就把整个圆往下挪到刚好放下
     cy = top + label_r + 14
-    parts, roles = [head, ARROW_DEF], set()
-    parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r0}" fill="{FRAME}" stroke="{INK}" stroke-width="2.4"/>')
-
-    def ang_of(at):
-        return 2 * math.pi * at / length
-
-    def pt(at, r):
-        ang = ang_of(at) - math.pi / 2
-        return cx + r * math.cos(ang), cy + r * math.sin(ang)
-
-    def gap(a, b):
-        d = abs(a - b) % (2 * math.pi)
-        return min(d, 2 * math.pi - d)
-
-    arc_angs = []
-    for a in arcs:
-        f, t = num(a.get("from", 0)), num(a.get("to"))
-        if f is None or t is None:
-            raise SpecError("arcs 需要数字 from / to")
-        if abs(t - f) >= length:
-            raise SpecError("单段弧长不能达到一整圈；跑了几圈写在 label 里，弧只画最后不满一圈的部分")
-        role = a.get("role", "given")
-        if role not in ROLE:
-            raise SpecError(f"arc role 只能是 {sorted(ROLE)}")
-        roles.add(role)
-        r = r0 + 18 * a.get("ring", 1)
-        (x1, y1), (x2, y2) = pt(f, r), pt(t, r)
-        large = 1 if abs(t - f) > length / 2 else 0
-        sweep = 1 if t > f else 0
-        color = ROLE[role][0] if role != "base" else INK_SOFT
-        parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{r} {r} 0 {large} {sweep} {x2:.1f} {y2:.1f}" fill="none" '
-                     f'stroke="{color}" stroke-width="6" stroke-linecap="round"/>')
-        parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{r} {r} 0 {large} {sweep} {x2:.1f} {y2:.1f}" fill="none" '
-                     f'stroke="{INK_SOFT}" stroke-width="1.2" marker-end="url(#ah)"/>')
-        arc_angs.append((a.get("label", ""), (f + t) / 2, r + 22))
-    points = []
-    for p in spec.get("points") or []:
-        at = num(p.get("at"))
-        if at is None:
-            raise SpecError("points[].at 必须是数字")
-        x, y = pt(at, r0)
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" fill="{INK}"/>')
-        points.append((ang_of(at), at, p.get("label", "")))
-    points.sort()
-    lanes = []
-    for ang, _, _ in points:
-        lane = 1 if any(gap(ang, ang_of(mid)) < 0.5 for _, mid, _ in arc_angs) else 0
-        for prev, prev_lane in lanes:
-            if gap(ang, prev) < 0.55 and prev_lane >= lane:
-                lane = prev_lane + 1
-        lanes.append((ang, lane))
-    def box_of(x, y, text, size, anchor):
-        lines = str(text).split("\n") or [""]
-        w = max(text_width(line, size) for line in lines)
-        h = size * 1.3 * len(lines)
-        x0 = x - (w / 2 if anchor == "middle" else w if anchor == "end" else 0)
-        return x0, y - h / 2, x0 + w, y + h / 2
-
-    def clashes(a, b):
-        return a[0] < b[2] - 4 and b[0] < a[2] - 4 and a[1] < b[3] - 4 and b[1] < a[3] - 4
-
-    point_boxes = []
-    for (_, at, label), (_, lane) in zip(points, lanes):
-        x, y = pt(at, label_r + lane * 22)
-        dx, dy = x - cx, y - cy
-        anchor = "start" if abs(dx) >= abs(dy) * 0.6 and dx > 0 else "end" if abs(dx) >= abs(dy) * 0.6 else "middle"
-        point_boxes.append(box_of(x, y, label, 13, anchor))
-        parts.append(svg_text(x, y, label, 13, 700, INK, anchor))
-    for label, mid, rad in arc_angs:
-        mx, my = pt(mid, rad)
-        prefer = "start" if mx > cx + 10 else "end" if mx < cx - 10 else "middle"
-        options = [prefer] + [a for a in ("start", "end", "middle") if a != prefer]
-        anchor = prefer
-        for cand in options:
-            box = box_of(mx, my, label, 13, cand)
-            if box[0] >= 8 and box[2] <= width - 8 and not any(clashes(box, other) for other in point_boxes):
-                anchor = cand
-                break
-        parts.append(svg_text(mx, my, label, 13, 500, INK_SOFT, anchor))
-    center = str(spec.get("center") or "")
-    # 圆心放得下一行短字；长算式放到圆下方，不再横穿表盘。
-    center_inside = bool(center) and text_width(center, 14) <= (r0 - 18) * 2
-    if center_inside:
-        parts.append(svg_text(cx, cy, center, 14, 700, INK_SOFT))
-    bottom = cy + label_r + (max((lane for _, lane in lanes), default=0)) * 22 + 20
-    if center and not center_inside:
-        parts.append(svg_text(cx, bottom + 6, center, 15, 700, INK))
-        bottom += 28
+    parts, roles, bottom, highest = paint(cy)
+    if highest < top + 4:
+        parts, roles, bottom, highest = paint(cy + top + 4 - highest)
     return finish(spec, parts, roles, width, bottom)
 
 
 # ---------------- cross 十字交叉（浓度、混合平均） ----------------
 def draw_cross(spec):
     a, b, m = spec.get("a") or {}, spec.get("b") or {}, spec.get("mix") or {}
-    va, vb, vm = (to_fraction(x.get("value")) for x in (a, b, m))
-    if None in (va, vb, vm):
-        raise SpecError("cross 需要 a / b / mix 三个 {value, label}，value 是数字")
-    if not min(va, vb) < vm < max(va, vb):
-        raise SpecError(f"混合值 {fmt(float(vm))} 必须严格介于 {fmt(float(va))} 和 {fmt(float(vb))} 之间")
+    raw = [x.get("value") for x in (a, b, m)]
+    if any(v is None or not str(v).strip() for v in raw):
+        raise SpecError("cross 需要 a / b / mix 三个 {value, label}：value 写数字；讲通用公式时可以写字母，如 x1、x2、X")
     unit = spec.get("unit", "")
-    da, db = abs(vb - vm), abs(vm - va)
-    ratio = da / db
-    show = lambda f: fmt(float(f)) if f.denominator != 1 else str(f.numerator)
+    na, nb = a.get("name", "甲"), b.get("name", "乙")
+    vals = [to_fraction(v) for v in raw]
+    if None in vals:
+        # 讲公式：只摆出“交叉作差”的结构，不算数
+        sa, sb, sm = (str(v).strip() for v in raw)
+        cells = (f'{a.get("label", "")}\n{sa}{unit}', f'{b.get("label", "")}\n{sb}{unit}', f'{m.get("label", "混合")}\n{sm}{unit}',
+                 f"|{sm} − {sb}|", f"|{sm} − {sa}|")
+        last = spec.get("ratio_label") or f"{na} : {nb} = |{sm} − {sb}| : |{sm} − {sa}|"
+    else:
+        va, vb, vm = vals
+        if not min(va, vb) < vm < max(va, vb):
+            raise SpecError(f"混合值 {fmt(float(vm))} 必须严格介于 {fmt(float(va))} 和 {fmt(float(vb))} 之间")
+        da, db = abs(vb - vm), abs(vm - va)
+        ratio = da / db
+        show = lambda f: fmt(float(f)) if f.denominator != 1 else str(f.numerator)
+        cells = (f'{a.get("label", "")}\n{show(va)}{unit}', f'{b.get("label", "")}\n{show(vb)}{unit}',
+                 f'{m.get("label", "混合")}\n{show(vm)}{unit}',
+                 f"|{show(vm)} − {show(vb)}|\n= {show(da)}", f"|{show(vm)} − {show(va)}|\n= {show(db)}")
+        last = f"{na} : {nb} = {show(da)} : {show(db)} = {ratio.numerator} : {ratio.denominator}"
     width = 760
     head, top = header(spec, width)
     parts, roles = [head], {"given", "key", "answer"}
     y1, y2 = top + 40, top + 190
     xl, xm, xr = 170, 380, 590
     ym = (y1 + y2) / 2
-    for x, y, txt, role in ((xl, y1, f'{a.get("label", "")}\n{show(va)}{unit}', "given"),
-                            (xl, y2, f'{b.get("label", "")}\n{show(vb)}{unit}', "given"),
-                            (xm, ym, f'{m.get("label", "混合")}\n{show(vm)}{unit}', "key"),
-                            (xr, y1, f'|{show(vm)} − {show(vb)}|\n= {show(da)}', "answer"),
-                            (xr, y2, f'|{show(vm)} − {show(va)}|\n= {show(db)}', "answer")):
+    for (x, y, role), txt in zip(((xl, y1, "given"), (xl, y2, "given"), (xm, ym, "key"), (xr, y1, "answer"),
+                                  (xr, y2, "answer")), cells):
         w = max(max(text_width(t, 14) for t in txt.split("\n")) + 26, 110)
         parts.append(box(x - w / 2, y - 26, w, 52, role, rx=10))
         parts.append(svg_text(x, y, txt, 14, 700, ROLE[role][1]))
     for (sx, sy), (ex, ey) in (((xl + 60, y1 + 10), (xr - 60, y2 - 10)), ((xl + 60, y2 - 10), (xr - 60, y1 + 10))):
         parts.insert(1, f'<line x1="{sx}" y1="{sy}" x2="{ex}" y2="{ey}" stroke="{LINE}" stroke-width="1.6" '
                         f'stroke-dasharray="6 5"/>')
-    na, nb = a.get("name", "甲"), b.get("name", "乙")
-    parts.append(svg_text(width / 2, y2 + 56, f"{na} : {nb} = {show(da)} : {show(db)} = "
-                          f"{ratio.numerator} : {ratio.denominator}", 16, 700, INK))
+    parts.append(svg_text(width / 2, y2 + 56, last, 16, 700, INK))
     return finish(spec, parts, roles, width, y2 + 82)
 
 
@@ -848,8 +1078,21 @@ def draw_gantt(spec):
     sx = lambda v: x0 + v / length * track
     row_h = 44
     marks = spec.get("marks") or []
-    y0 = top + (24 if marks else 8)
-    parts, roles = [head], set()
+    mark_spots, lanes = [], []
+    for m in marks:
+        at = num(m.get("at"))
+        if at is None or not 0 <= at <= length:
+            raise SpecError("marks[].at 必须在 0~length")
+        label = str(m.get("label", ""))
+        span = (sx(at) - text_width(label, 12) / 2, sx(at) + text_width(label, 12) / 2)
+        lane = 0
+        while any(lane == ln and span[0] < b + 8 and a < span[1] + 8 for ln, (a, b) in lanes):
+            lane += 1
+        lanes.append((lane, span))
+        mark_spots.append((sx(at), label, lane))
+    depth = max([ln for ln, _ in lanes], default=0)
+    y0 = top + (24 + depth * 16 if marks else 8)
+    parts, roles, placed = [head], set(), []
     step = next(s for s in (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 1e9) if length / s <= 12)
     for k in range(int(length // step) + 1):
         x = sx(k * step)
@@ -872,15 +1115,17 @@ def draw_gantt(spec):
             if label and text_width(label, 12) + 8 <= sx(t) - sx(f):
                 parts.append(svg_text((sx(f) + sx(t)) / 2, y + row_h / 2, label, 12, 600, ROLE[role][1]))
             elif label:
-                parts.append(svg_text((sx(f) + sx(t)) / 2, y + 3, label, 11, 500, INK_SOFT))
-    for m in marks:
-        at = num(m.get("at"))
-        if at is None or not 0 <= at <= length:
-            raise SpecError("marks[].at 必须在 0~length")
-        x = sx(at)
+                # 段太窄写不下：先放条上方，挤了就放条下方
+                for ly in (y + 3, y + row_h - 3):
+                    bx = text_box((sx(f) + sx(t)) / 2, ly, label, 11)
+                    if not any(clash(bx, b, 2) for b in placed):
+                        break
+                placed.append(bx)
+                parts.append(svg_text((sx(f) + sx(t)) / 2, ly, label, 11, 500, INK_SOFT))
+    for x, label, lane in mark_spots:
         parts.append(f'<line x1="{x:.1f}" y1="{y0 - 4}" x2="{x:.1f}" y2="{y0 + row_h * len(rows)}" stroke="{INK}" '
                      f'stroke-width="1.4"/>')
-        parts.append(svg_text(x, y0 - 14, m.get("label", ""), 12, 700, INK))
+        parts.append(svg_text(x, y0 - 14 - lane * 16, label, 12, 700, INK))
     y = y0 + row_h * len(rows) + 30
     if unit:
         parts.append(svg_text(x0 + track, y - 2, f"单位：{unit}", 12, 400, INK_SOFT, "end"))
@@ -992,7 +1237,7 @@ def draw_geometry(spec):
     P = lambda p: (ox + p[0] * sc, oy - p[1] * sc)
     S = {k: P(v) for k, v in flat.items()}
     cen = (sum(p[0] for p in S.values()) / len(S), sum(p[1] for p in S.values()) / len(S))
-    parts, roles = [head], set()
+    parts, roles, fixed = [head], set(), []
 
     def role_of(d, default="base"):
         r = d.get("role", default)
@@ -1054,6 +1299,7 @@ def draw_geometry(spec):
                 nx, ny = -nx, -ny
             off = 12 + text_width(s["label"], 13) / 2 * abs(nx)
             parts.append(svg_text(mx + nx * off, my + ny * 14, s["label"], 13, 700, INK_SOFT))
+            fixed.append(text_box(mx + nx * off, my + ny * 14, s["label"], 13))
     for a in spec.get("angles") or []:
         (ox_, oy_), (ax, ay), (bx, by) = S[a["at"]], S[a["from"]], S[a["to"]]
         ua, ub = math.atan2(ay - oy_, ax - ox_), math.atan2(by - oy_, bx - ox_)
@@ -1074,24 +1320,19 @@ def draw_geometry(spec):
         if a.get("label"):
             mid = ua + d / 2
             parts.append(svg_text(ox_ + 40 * math.cos(mid), oy_ + 40 * math.sin(mid), a["label"], 13, 700, INK_SOFT))
-    hidden = set(spec.get("hide_labels") or [])
-    for name, (x, y) in S.items():
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="{INK}"/>')
-        if name in hidden:
-            continue
-        dx, dy = x - cen[0], y - cen[1]
-        dl = math.hypot(dx, dy) or 1
-        parts.append(svg_text(x + dx / dl * 16, y + dy / dl * 16, name, 15, 700, INK))
+            fixed.append(text_box(ox_ + 40 * math.cos(mid), oy_ + 40 * math.sin(mid), a["label"], 13))
     for g in spec.get("polygons") or []:
         if g.get("label"):
             gx = sum(S[n][0] for n in g["points"]) / len(g["points"])
             gy = sum(S[n][1] for n in g["points"]) / len(g["points"])
             r = g.get("role", "given")
             parts.append(svg_text(gx, gy, g["label"], 14, 700, ROLE[r][1]))
+            fixed.append(text_box(gx, gy, g["label"], 14))
     for c in (spec.get("circles") or []) + (spec.get("sectors") or []):
         if c.get("label"):
             cx, cy = S[c["center"]]
             parts.append(svg_text(cx, cy + 18, c["label"], 13, 700, INK_SOFT))
+            fixed.append(text_box(cx, cy + 18, c["label"], 13))
     for t in spec.get("texts") or []:
         at = t.get("at")
         if not (isinstance(at, list) and len(at) in (2, 3)):
@@ -1102,12 +1343,74 @@ def draw_geometry(spec):
         parts.append(f'<rect x="{x - w / 2:.1f}" y="{y - 11:.1f}" width="{w:.1f}" height="22" rx="6" '
                      f'fill="{PAPER}" fill-opacity="0.9"/>')
         parts.append(svg_text(x, y, label, 13, 700, INK))
+        fixed.append(text_box(x, y, label, 13))
+    hidden = set(spec.get("hide_labels") or [])
+    for name, (x, y) in S.items():
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="{INK}"/>')
+        if name in hidden:
+            continue
+        base = math.atan2(y - cen[1], x - cen[0]) if (x, y) != cen else -math.pi / 2
+        spots = [(base + math.radians(t), d) for d in (16, 24) for t in (0, 30, -30, 60, -60, 90, -90, 135, -135, 180)]
+        for ang, d in spots:
+            px, py = x + d * math.cos(ang), y + d * math.sin(ang)
+            bx = text_box(px, py, name, 15)
+            if bx[0] >= 4 and bx[2] <= width - 4 and not any(clash(bx, b, 2) for b in fixed):
+                break
+        else:
+            px, py = x + 16 * math.cos(base), y + 16 * math.sin(base)
+            bx = text_box(px, py, name, 15)
+        fixed.append(bx)
+        parts.append(svg_text(px, py, name, 15, 700, INK))
     return finish(spec, parts, roles, width, oy - min(ys) * sc + 46)
 
 
 TEMPLATES = {"geometry": draw_geometry, "venn2": draw_venn2, "venn3": draw_venn3, "bar": draw_bar, "line": draw_line,
              "slots": draw_slots, "tree": draw_tree, "chain": draw_chain, "circle": draw_circle,
              "cross": draw_cross, "grid": draw_grid, "gantt": draw_gantt}
+
+TEXT_RE = re.compile(r'<text x="(-?[\d.]+)" y="(-?[\d.]+)" font-size="([\d.]+)" font-weight="\d+" fill="[^"]*" '
+                     r'text-anchor="(\w+)" dominant-baseline="central">(.*?)</text>')
+
+
+def layout_problems(svg):
+    """出图前最后一道检查：任意两段文字叠在一起，或文字伸出画布左右边缘。"""
+    width = float(re.search(r'viewBox="0 0 ([\d.]+) ', svg).group(1))
+    items = [(text_box(float(m[1]), float(m[2]), unescape(m[5]), float(m[3]), m[4]), unescape(m[5]))
+             for m in TEXT_RE.finditer(svg) if unescape(m[5]).strip()]
+    problems = []
+    for i, (a, ta) in enumerate(items):
+        if a[0] < 0 or a[2] > width:
+            problems.append(f"“{ta}”伸出了画布边缘")
+        problems += [f"“{ta}”和“{tb}”叠在一起" for b, tb in items[i + 1:] if clash(a, b, -2)]
+    return problems
+
+
+def strings(v):
+    if isinstance(v, str):
+        yield v
+    elif isinstance(v, dict):
+        for x in v.values():
+            yield from strings(x)
+    elif isinstance(v, list):
+        for x in v:
+            yield from strings(x)
+
+
+def render(spec):
+    """规格 -> SVG 文本。数字对不上、文字重叠或出界都抛 SpecError，不出图。"""
+    tpl = spec.get("template")
+    bad = [m for s in strings(spec) for m in re.findall(r"[\u2070\u2074-\u209c]|\$|\\[a-zA-Z]+", s)]
+    if bad:
+        raise SpecError(f"图里的文字不渲染公式，发现 {sorted(set(bad))}：排列组合写成 A(4,2)、C(9,2)，"
+                        "幂写 2^3 或 ²³，分数写 3/5，不要用上下标字符和 LaTeX")
+    if tpl not in TEMPLATES:
+        raise SpecError(f"template 只能是 {sorted(TEMPLATES)}，收到 {tpl!r}")
+    svg = TEMPLATES[tpl](spec)
+    problems = layout_problems(svg)
+    if problems:
+        raise SpecError("文字重叠或出界：" + "；".join(dict.fromkeys(problems[:4]))
+                        + "。缩短文字、用 \\n 换行，或调整 row / ring / 位置后重画")
+    return svg
 
 
 def main():
@@ -1119,23 +1422,8 @@ def main():
         raw = Path(args.spec_file).read_text("utf-8") if args.spec_file else sys.stdin.read()
         spec = json.loads(raw)
         tpl = spec.get("template")
-        def strings(v):
-            if isinstance(v, str):
-                yield v
-            elif isinstance(v, dict):
-                for x in v.values():
-                    yield from strings(x)
-            elif isinstance(v, list):
-                for x in v:
-                    yield from strings(x)
-        bad = [m for s in strings(spec) for m in re.findall(r"[\u2070\u2074-\u209c]|\$|\\[a-zA-Z]+", s)]
-        if bad:
-            raise SpecError(f"图里的文字不渲染公式，发现 {sorted(set(bad))}：排列组合写成 A(4,2)、C(9,2)，"
-                            "幂写 2^3 或 ²³，分数写 3/5，不要用上下标字符和 LaTeX")
-        if tpl not in TEMPLATES:
-            raise SpecError(f"template 只能是 {sorted(TEMPLATES)}，收到 {tpl!r}")
-        svg = TEMPLATES[tpl](spec)
-    except (SpecError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        svg = render(spec)
+    except (SpecError, json.JSONDecodeError, KeyError, TypeError, AttributeError) as exc:
         print(json.dumps({"ok": False, "errors": [str(exc)]}, ensure_ascii=False))
         sys.exit(1)
     slug = re.sub(r"[^a-z0-9-]+", "-", (args.slug or tpl).lower()).strip("-") or tpl
