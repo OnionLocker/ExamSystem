@@ -1,0 +1,414 @@
+{
+  "pack_id": "daily-20261014",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-14",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261014:透过",
+      "word": "透过",
+      "wordType": "word",
+      "explanation": "穿过、透过某事物去观察；引申为透过表面把握本质。",
+      "usage": "常见“透过现象看本质”“透过总量看结构”；“通过”更泛，可指手段、途径，“透过”强调穿透表象。",
+      "examples": [
+        "分析县域经济，要透过表面增速看到产业结构是否持续优化。"
+      ],
+      "rivals": [
+        "通过",
+        "经过",
+        "越过"
+      ],
+      "cloze": [
+        "唯有____数据起伏看到结构变化，才能对经济形势作出理性判断。"
+      ],
+      "source": "每日读报 2026-10-14：以投资优化支撑产业升级",
+      "publicSources": [
+        {
+          "title": "以投资优化支撑产业升级",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/14/content_30185481.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:动能转换",
+      "word": "动能转换",
+      "wordType": "collocation",
+      "explanation": "经济发展的主要驱动力由旧动能转向新动能。",
+      "usage": "申论高频；“转型升级”范围更宽，“动能转换”专指增长动力切换。",
+      "examples": [
+        "广东推动制造业向智能化绿色化升级，正是增长动能转换的生动实践。"
+      ],
+      "rivals": [
+        "转型升级",
+        "新旧交替",
+        "动力切换"
+      ],
+      "cloze": [
+        "透过增速回落看到____，有助于避免被短期波动带偏判断。"
+      ],
+      "source": "每日读报 2026-10-14：以投资优化支撑产业升级",
+      "publicSources": [
+        {
+          "title": "以投资优化支撑产业升级",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/14/content_30185481.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:乘数效应",
+      "word": "乘数效应",
+      "wordType": "collocation",
+      "explanation": "某一变量的变化引起总产出等成倍变动的经济效应。",
+      "usage": "描述投资、支出通过产业链传导放大总效果；不同于“规模效应”（侧重规模扩大带来成本下降）。",
+      "examples": [
+        "新基建与产业数字化结合，往往能产生远高于传统基建的乘数效应。"
+      ],
+      "rivals": [
+        "规模效应",
+        "联动效应",
+        "溢出效应"
+      ],
+      "cloze": [
+        "数字化、智能化、绿色化深度融合的项目，____往往高于传统基建。"
+      ],
+      "source": "每日读报 2026-10-14：以投资优化支撑产业升级",
+      "publicSources": [
+        {
+          "title": "以投资优化支撑产业升级",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/14/content_30185481.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:刀刃",
+      "word": "刀刃",
+      "wordType": "word",
+      "explanation": "刀的锋利处，比喻最关键、最能起作用的部位。",
+      "usage": "常见“把好钢用在刀刃上”“资金用在刀刃上”；强调资源配置的精准投向。",
+      "examples": [
+        "有限的专项债额度要用在刀刃上，优先投向补短板、增后劲的项目。"
+      ],
+      "rivals": [
+        "要害",
+        "关键",
+        "重点"
+      ],
+      "cloze": [
+        "财政资金应当引导到先进制造、绿色转型等____上，避免撒胡椒面。"
+      ],
+      "source": "每日读报 2026-10-14：以投资优化支撑产业升级",
+      "publicSources": [
+        {
+          "title": "以投资优化支撑产业升级",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/14/content_30185481.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:全要素生产率",
+      "word": "全要素生产率",
+      "wordType": "collocation",
+      "explanation": "产出增长中不能由资本、劳动等要素投入解释的部分，反映技术进步与效率提升。",
+      "usage": "政理常识高频，英文缩写TFP；不同于只看单位劳动产出的“劳动生产率”。",
+      "examples": [
+        "技能培训与设备更新同步推进，才能有效提升全要素生产率。"
+      ],
+      "rivals": [
+        "劳动生产率",
+        "投入产出率",
+        "技术进步率"
+      ],
+      "cloze": [
+        "人力资本提升可以直接作用于____，从供给和需求两侧释放活力。"
+      ],
+      "source": "每日读报 2026-10-14：以投资优化支撑产业升级",
+      "publicSources": [
+        {
+          "title": "以投资优化支撑产业升级",
+          "url": "http://paper.people.com.cn/rmrb/pc/content/202610/14/content_30185481.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:耐心资本",
+      "word": "耐心资本",
+      "wordType": "collocation",
+      "explanation": "愿意进行长期投资、不追求短期回报的资本。",
+      "usage": "近年政策热词；与追求短期套利的“热钱”方向相反。",
+      "examples": [
+        "芯片、生物医药等长周期产业，尤其需要耐心资本陪伴成长。"
+      ],
+      "rivals": [
+        "热钱",
+        "风险资本",
+        "短期资金"
+      ],
+      "cloze": [
+        "用多元上市标准培育____，才能引导中长期资金投向硬核制造。"
+      ],
+      "source": "每日读报 2026-10-14：引导更多中长期资金投向硬核制造",
+      "publicSources": [
+        {
+          "title": "引导更多中长期资金投向硬核制造",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183418.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:结构性短板",
+      "word": "结构性短板",
+      "wordType": "collocation",
+      "explanation": "整体中某一环节或结构上存在的明显不足。",
+      "usage": "强调系统内比例失衡；比单纯说“短板”更突出结构矛盾。",
+      "examples": [
+        "大湾区芯片产业“设计强、制造弱”，就是典型的结构性短板。"
+      ],
+      "rivals": [
+        "短板",
+        "瓶颈",
+        "薄弱环节"
+      ],
+      "cloze": [
+        "只补数量不调结构，很难真正消解产业链上的____。"
+      ],
+      "source": "每日读报 2026-10-14：引导更多中长期资金投向硬核制造",
+      "publicSources": [
+        {
+          "title": "引导更多中长期资金投向硬核制造",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183418.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:深耕",
+      "word": "深耕",
+      "wordType": "word",
+      "explanation": "深入细致地经营、钻研某一领域。",
+      "usage": "常见“深耕主业”“深耕细分市场”；强调纵向深入，不同于业务门类变多的“多元化”。",
+      "examples": [
+        "镇域经济要深耕本地特色产业，而不是盲目跟风上马同质项目。"
+      ],
+      "rivals": [
+        "精耕细作",
+        "钻研",
+        "深挖"
+      ],
+      "cloze": [
+        "企业只有____差异化特色工艺，才能把资本红利转化为产业硬实力。"
+      ],
+      "source": "每日读报 2026-10-14：引导更多中长期资金投向硬核制造",
+      "publicSources": [
+        {
+          "title": "引导更多中长期资金投向硬核制造",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183418.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:筑牢",
+      "word": "筑牢",
+      "wordType": "word",
+      "explanation": "建筑得牢固；比喻把基础、防线等打得更牢靠。",
+      "usage": "常见“筑牢底座”“筑牢防线”；与“夯实”近义，但更强调牢固度与安全。",
+      "examples": [
+        "补齐晶圆制造环节，有助于为广东“强芯工程”筑牢制造底座。"
+      ],
+      "rivals": [
+        "夯实",
+        "巩固",
+        "加固"
+      ],
+      "cloze": [
+        "要把安全发展理念贯穿始终，____防风险的底线。"
+      ],
+      "source": "每日读报 2026-10-14：引导更多中长期资金投向硬核制造",
+      "publicSources": [
+        {
+          "title": "引导更多中长期资金投向硬核制造",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183418.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:站稳脚跟",
+      "word": "站稳脚跟",
+      "wordType": "idiom",
+      "explanation": "比喻立场、地位、根基稳固。",
+      "usage": "多用于竞争中立足；“站稳立场”侧重政治态度，对象不同。",
+      "examples": [
+        "专精特新企业先在细分赛道站稳脚跟，再谋求向价值链高端跃升。"
+      ],
+      "rivals": [
+        "站稳立场",
+        "立足脚跟",
+        "立住脚跟"
+      ],
+      "cloze": [
+        "提升良率与产能，才能在全球半导体竞争中____、赢得优势。"
+      ],
+      "source": "每日读报 2026-10-14：引导更多中长期资金投向硬核制造",
+      "publicSources": [
+        {
+          "title": "引导更多中长期资金投向硬核制造",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183418.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:年复合增长率",
+      "word": "年复合增长率",
+      "wordType": "collocation",
+      "explanation": "过多年份按复利方式计算的平均增长率（CAGR）。",
+      "usage": "资料分析常见；与有时采用算术平均的“年均增长率”算法可能不同，答题时看题干定义。",
+      "examples": [
+        "该公司近三年营收的年复合增长率超过50%，显示成长性较强。"
+      ],
+      "rivals": [
+        "年均增长率",
+        "同比增长率",
+        "环比增长率"
+      ],
+      "cloze": [
+        "近三年营收从10亿元增至25亿元，____达57%以上。"
+      ],
+      "source": "每日读报 2026-10-14：“广州第一芯”深交所上市",
+      "publicSources": [
+        {
+          "title": "“广州第一芯”深交所上市",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183416.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:差异化",
+      "word": "差异化",
+      "wordType": "word",
+      "explanation": "通过特色形成与竞争对手不同的优势。",
+      "usage": "常见“差异化竞争”“差异化定位”；不同于业务门类变多的“多元化”。",
+      "examples": [
+        "粤东西北招商要走差异化路线，依据本地资源禀赋选择赛道。"
+      ],
+      "rivals": [
+        "多元化",
+        "同质化",
+        "特色化"
+      ],
+      "cloze": [
+        "聚焦成熟制程特色工艺，有助于形成____竞争优势。"
+      ],
+      "source": "每日读报 2026-10-14：“广州第一芯”深交所上市",
+      "publicSources": [
+        {
+          "title": "“广州第一芯”深交所上市",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183416.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:赋能",
+      "word": "赋能",
+      "wordType": "word",
+      "explanation": "赋予能力、提供支撑，使对方更有能力做事。",
+      "usage": "新闻常用“为……赋能”；比“助力”更强调提供能力与工具。",
+      "examples": [
+        "工业互联网平台为中小制造企业赋能，帮助它们低成本上云用数。"
+      ],
+      "rivals": [
+        "助力",
+        "加持",
+        "赋权"
+      ],
+      "cloze": [
+        "特色工艺晶圆代工，正在为汽车电子和人工智能企业深度____。"
+      ],
+      "source": "每日读报 2026-10-14：“广州第一芯”深交所上市",
+      "publicSources": [
+        {
+          "title": "“广州第一芯”深交所上市",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183416.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:夯实",
+      "word": "夯实",
+      "wordType": "word",
+      "explanation": "砸实地基；比喻把基础打得更扎实。",
+      "usage": "常见“夯实基础”“夯实全产业链”；与“筑牢”近义，更侧重压实基础本身。",
+      "examples": [
+        "完整社区建设要先夯实养老托育、便民商业等服务设施基础。"
+      ],
+      "rivals": [
+        "筑牢",
+        "巩固",
+        "压实"
+      ],
+      "cloze": [
+        "开发区正着力____设计—制造—封测—应用一体化的全产业链。"
+      ],
+      "source": "每日读报 2026-10-14：“广州第一芯”深交所上市",
+      "publicSources": [
+        {
+          "title": "“广州第一芯”深交所上市",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183416.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261014:集聚",
+      "word": "集聚",
+      "wordType": "word",
+      "explanation": "集合、聚拢。",
+      "usage": "常见“产业集聚”“要素集聚”；不同于强调提高单位投入效率的“集约”。",
+      "examples": [
+        "广州开发区已集聚集成电路企业超百家，形成较为完整的产业生态。"
+      ],
+      "rivals": [
+        "集约",
+        "聚集",
+        "汇聚"
+      ],
+      "cloze": [
+        "科学城重点____研发设计机构，知识城侧重晶圆制造产能布局。"
+      ],
+      "source": "每日读报 2026-10-14：“广州第一芯”深交所上市",
+      "publicSources": [
+        {
+          "title": "“广州第一芯”深交所上市",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/14/content_10183416.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
