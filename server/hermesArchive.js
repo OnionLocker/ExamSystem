@@ -148,3 +148,49 @@ export function firstPracticeReview(practiceId) {
   ))[0];
   return name ? path.join(dir, name) : null;
 }
+
+const CLOSING_MAX = 1500;
+const SAID_MAX = 240;
+
+// 复盘后的追问里我说过的话。打字的只有标题行；语音笔记的要点是紧跟标题的列表，
+// 后面接的是 Hermes 的回复，遇到第一行非列表就停。
+const userSaid = (text) => {
+  const tail = text.split(/^## 复盘后的追问[ \t]*$/m)[1];
+  if (!tail) return [];
+  return tail.split(/^### 我：/m).slice(1).map((block) => {
+    const [head, ...rest] = block.split('\n');
+    const points = [];
+    if (/（语音笔记）\s*$/.test(head)) {
+      for (const line of rest) {
+        if (/^\s*(?:[-*]|\d+[.、])\s+/.test(line)) points.push(line.trim());
+        else if (line.trim() || points.length) break;
+      }
+    }
+    return [head.trim(), ...points].join(' ').slice(0, SAID_MAX);
+  }).filter((said) => said && said !== '（附件或语音）').slice(-3);
+};
+
+// 最近几场复盘的结语与复盘后我说的话，新的在前；新一场结语要对照上次的要求，不再原样重复。
+// 跳过当前这场自己的存档，没有结语的（审核、讲评未完成）不算。
+export function recentReviewDigests({ kind, id, limit = 3, dirs = ARCHIVE_DIRS } = {}) {
+  const own = id != null && dirs[kind] && kind !== 'upload' ? path.join(dirs[kind], `${id}-`) : null;
+  const files = [...new Set(Object.values(dirs))].filter((dir) => existsSync(dir))
+    .flatMap((dir) => readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => path.join(dir, f)))
+    .filter((file) => !own || !file.startsWith(own))
+    .sort((a, b) => b.slice(-16).localeCompare(a.slice(-16)));
+  const digests = [];
+  for (const file of files) {
+    if (digests.length >= limit) break;
+    const text = readFileSync(file, 'utf8');
+    const closing = [...text.matchAll(/^### 本场结语[ \t]*\n([\s\S]*?)(?=^## |^### 本场结语|(?![\s\S]))/gm)].pop()?.[1].trim();
+    if (!closing) continue;
+    digests.push({
+      title: text.match(/^# Hermes 复盘讲评：(.+)$/m)?.[1].trim() || path.basename(file, '.md'),
+      type: text.match(/^- 类型：(.+)$/m)?.[1].trim() || '',
+      at: text.match(/^- 复盘时间：(.+)$/m)?.[1].trim() || '',
+      closing: closing.length > CLOSING_MAX ? `${closing.slice(0, CLOSING_MAX)}…` : closing,
+      said: userSaid(text),
+    });
+  }
+  return digests;
+}

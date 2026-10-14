@@ -78,6 +78,38 @@ const DIAGRAM_RULE = '讲解配图：容斥、行程、排列组合、概率、�
 // 同一类题每次复盘都要按同一套方法讲：知识点页就是教案
 const CANON_RULE = '解法口径（硬性）：知识点页是老师的教案，`#### 考场解法` 的主解法必须照本题知识点页的「考场标准动作」和对应模型写，第一句点明用的是哪个模型（例如「模型 5 · 一行总分方程」），步骤顺序与知识点页一致，不得临场另起一套。知识点页写明“唯一推荐/首选/铁律”的，不得换成别的方法当主解法；更快的其他做法最多在末尾加一行「备选：……」。`#### 草稿诊断` 以知识点页标准动作为尺子，指出偏离了哪一步；`#### 下次动作` 复述标准动作的第一步。知识点页没覆盖本题考法时，主解法可以自拟，但必须在 `#### 下次动作` 末尾写「知识点页未覆盖此考法，建议补录」。`### 01 · 题型名` 的题型名用知识点页节点标题。';
 const canonFetchRule = (root) => `${CANON_RULE}\n写第一道题的 \`#### 考场解法\` 之前，先用 terminal 执行 \`node ${root}/scripts/knowledge-content.mjs get '完整知识点标签'\` 读取本场涉及的知识点页（同一标签只读一次，带 -@节点 的标签取 -@ 前的三级标签再看对应节点），这不算读源码。`;
+// 本场结语：逐题部分讲过的不再抄一遍，只做逐题讲解做不到的事——
+// 同根因的题并成一条、对照画像和上次复盘的要求、给下一场能核对的验收。
+const CLOSING_RULE = [
+  '8. 最后一题讲完后另起 `### 本场结语`。结语不是逐题摘要：每题的草稿诊断和下次动作上面已经写过，禁止换个说法再抄一遍。它只做逐题讲解做不到的事，依次写：',
+  '- `### 本场结语` 下第一行一句话定性，不加小标题：对错、总用时、主问题在哪（「X/Y，总用时 MM:SS，主问题是……」）。',
+  '- `#### 学情对照`：只写有依据的，每项一两句。① 本场考点进场前的掌握、熟练度和历史用时（看 [LEARNING_HISTORY]，没有就看快照；首次作答就写「首次作答，无历史可比」），本场是进步、持平还是退步；② 系统提示 USER PROFILE 里记录过、本场又出现的习惯或卡点，按画像要求的讲法处理；③ [LEARNING_HISTORY] 最近几场结语里的要求，适用本场的逐条判做到没有，没做到的点名题号；同一要求已连续两场以上没做到，不再原话重复，下面换一个更小、更好检查的动作，或者安排重做。',
+  '- `#### 主要问题`：先把错题、空题和明显超时的题全部过一遍，同一根因的题合并成一条（题号写全，合计失分或用时），按损失排序（先失分后超时），最多 2 条，小问题留在逐题里。每条分四行：**判定**（这一步不该错／本场必须纠正；偶发难点就说明是偶发）、**出错起点**（草稿上从哪一步开始偏，引用实际式子或行为）、**标准动作**（只给一个，写成草稿纸上的第一笔，要能同时管住这一组题，不是照抄某题的下次动作）、**验收**（下一场能直接核对的证据：有依据的用时、草稿上必须出现或不再出现什么）。根因不同的题不要硬凑成一条，同一根因不要拆成几条。',
+  '- `#### 继续保持`：一条有证据、有分数价值的动作（题号＋用时或草稿证据）；没有就省略这一节。',
+  '- `#### 下一步`：① 重做：列出该重做的题号，需要时提醒我说「打包重做」生成重做题集；② 推进：本考点是先做一次限时验收，还是可以封存转下一个，依据快照和画像里的推进偏好说明理由，不在结语里出题；③ 白纸复现：指定一道题，让我合上讲评，在白纸上写出关键的两三行。',
+  '明显超时要有参照：本场同类题的最快用时、画像里的历史中位用时；报告里的「慢题参考线」按本场均时算，全场都慢时会失灵，不能单独当标准。结语可以用中文讲掌握、熟练度、历史正确率和用时、知识债——这是给我看的学情，不是簿记；命令、写库、工具输出和置信度仍然不提。',
+].join('\n');
+const STRICT_RULE = '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。严厉靠具体：说清错在哪一步、亏了多少分或时间，不用「全盘皆输」「致命伤」这类不带信息的夸张。全篇的用时目标都要有依据（同类题用户自己的实测用时、画像里的历史用时、用户确认过的目标）；知识点页里「10 秒」「15 秒秒杀」是口号，不能当目标，没有依据就只报实际用时。';
+const SILENT_BOOKKEEPING = 'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.';
+// 结语的学情对照要讲掌握度：那是讲给我听的，不算簿记
+const REVIEW_BOOKKEEPING = `${SILENT_BOOKKEEPING} One exception: the 学情对照 section of 本场结语 may describe my learner state in plain Chinese (mastery and fluency labels, recent accuracy and typical time, knowledge debt) — that is coaching, not bookkeeping.`;
+// 复盘时附上的学情：本场考点的画像 + 最近几场复盘的结语和我复盘后说过的话
+const learningHistoryBlock = (ctx) => {
+  const reviews = Array.isArray(ctx?.reviews) ? ctx.reviews : [];
+  if (!ctx?.focus && !reviews.length) return '';
+  return [
+    '[LEARNING_HISTORY — 系统据画像和复盘存档补入，供 `### 本场结语` 的「学情对照」使用，不要在正文里整段复述]',
+    ...(ctx.focus ? ['## 本场考点画像（复盘开始时；标了「已含本场记录」的，本场作答已计入）', ctx.focus] : []),
+    ...(reviews.length ? ['## 最近几场复盘的结语（新的在前，讲评存档原文；旧场次用的是旧版式，只取内容，本场照新规则写）'] : []),
+    ...reviews.flatMap((r) => [
+      `### ${[r.at, r.type].filter(Boolean).join(' · ')}《${r.title}》`,
+      // 旧结语的小标题改成【】，免得被当成本场结语的模板照抄
+      String(r.closing || '').replace(/^#{1,6}[ \t]+(.+)$/gm, '【$1】'),
+      ...(r.said?.length ? ['复盘后我说过：', ...r.said.map((s) => `- ${s}`)] : []),
+    ]),
+    '[/LEARNING_HISTORY]',
+  ].join('\n');
+};
 // 语音轮结束后音频会被清掉，历史里只剩「语音 N秒」。笔记里的原话要点在同一会话的
 // 下一条消息里补进去，之后每一轮 Hermes 都看得到用户说过什么。
 const VOICE_RECAP_KEY = 'hermes.voiceRecap.v1';
@@ -1362,6 +1394,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         }
       } catch { /* 取不到就让 Hermes 自己读知识点页 */ }
     }
+    let historyBlock = '';
+    if (['practice', 'exam', 'upload'].includes(review?.kind) && !redoPacking) {
+      try {
+        const query = new URLSearchParams({ kind: review.kind, id: String(review.id ?? ''), path: review.path || '' });
+        historyBlock = learningHistoryBlock(await api(`/api/hermes/review-context?${query}`));
+      } catch { /* 取不到就不带学情，结语照写 */ }
+    }
     // 复盘会话里的后续消息：只交代背景，不规定回答格式，也不自动塞排计划的快照
     const followReview = review || redoPackingRequested ? null : [...messagesRef.current].reverse()
       .find((m) => m.role === 'user' && ['practice', 'exam', 'upload'].includes(m.review?.kind))?.review || null;
@@ -1412,8 +1451,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
-          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
+          CLOSING_RULE,
+          STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1461,8 +1500,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净、用时也很快、且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
-          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
+          CLOSING_RULE,
+          STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1485,8 +1524,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '5. 只有做法干净且没有更好压法的对题，才一句「没问题，继续保持」，不要展开表扬。错题或空题必须展开。',
           '6. 建议必须是考场动作，例如先看什么、写哪一步、何时排除或何时放弃，禁止哈利波特、黑暗王子、黑魔法等包装。',
           '7. 确认是独立的新考点时，按 knowledge-point-extension.md 登记，并在该标签后注明「（新补录）」。',
-          '8. 最后一题讲完后必须另起 `### 本场结语`，只针对这一场，不要戛然而止。依次写 `#### 做得好的`、`#### 做得不好的`、`#### 以后怎么改`。`做得好的` 只列可复现的动作和题号，口吻是严师：标准严、态度也严、讲解仍耐心；低级失误就直说，禁止浮夸夸赞。禁止空话和知识点总表。建议仍是考场动作。',
-          '严师驱动规约：目标是公考得分，不是证明用户很努力。时长、吃苦和自我评价不算掌握证据，只看正确率、用时、草稿动作和能否复现。对高频、可避免、直接造成失分且能靠标准动作纠正的错误，明确说“这一步不该错/本场必须纠正”；按“判定→出错起点→唯一标准动作→下一次验收证据”输出。重复犯同一错误时减少安慰，安排最短针对性复做；不布置与提分无关的苦工。只批评行为，不攻击人格；表扬只给有证据、可复现且有分数价值的动作。',
+          CLOSING_RULE,
+          STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
           '',
         ].join('\n')
@@ -1502,12 +1541,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
     const masteryBaseNudge = review?.kind === 'practice' && review?.profileReviewed
       ? [
-          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          REVIEW_BOOKKEEPING,
           `本场 AI 练题（practice_sessions.id=${review.id}）已封存，禁止新增作答或改 questions.tags；允许用 --assess 补充或修正已有作答的过程评估，不增加样本。`,
         ].join('\n')
       : review?.kind === 'practice'
       ? [
-          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          REVIEW_BOOKKEEPING,
           ...(review.audit ? ['This is a review audit. Compare this retake with the first review requirements; blank answers are explicit evidence of not knowing and must be recorded as 0.'] : []),
           ...(review.audit
             ? [
@@ -1528,14 +1567,14 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
       ? [
           'This is a screen-recording / mock-exam review. Unlike AI Practice review, you MUST write the learner profile once. Video analysis itself does not write anything.',
-          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          REVIEW_BOOKKEEPING,
           '对每一道能判断对错的题立刻写入，不要等提醒。必须带场次和题号，来源用 exam：',
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 exam --exam-id ${review.id} --item 题号`,
           '做对填 1，做错填 0；用时用报告里的毫秒，没有就填 0。新考点先 --register 再 --record。',
           `命令打印 already recorded 或同一 --exam-id ${review.id} 同一 --item 已写过，就跳过，禁止换标签再记一次。没有明确对错的题不要写。`,
         ].join('\n')
       : [
-          'Keep all mastery/profile bookkeeping completely silent and internal. Never mention commands, database writes, tool output, mastery scores, confidence, sample counts, or bookkeeping summaries in the final answer unless I explicitly ask for statistics.',
+          review?.kind === 'upload' ? REVIEW_BOOKKEEPING : SILENT_BOOKKEEPING,
           '若本轮能判断我某个考点的掌握变化，立刻写入，不要等我提醒：',
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。未绑定场次和逐题过程的聊天记录不用于认证掌握等级。新考点先 --register。',
@@ -1714,6 +1753,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const outbound = [
         reviewLead,
         review?.kind === 'practice' && !redoPacking ? canonBlock : '',
+        historyBlock,
         redoPackingRequested && !review
           ? '请先让用户在 Hermes 中选中对应的 AI 练题复盘报告，再执行打包。没有来源场次和题目id时不要凭聊天印象造题集。'
           : '',

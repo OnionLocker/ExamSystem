@@ -760,6 +760,86 @@ def render_compact(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
+def _mmss(seconds) -> str:
+    total = int(round(seconds or 0))
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def render_focus(conn: sqlite3.Connection, tags: list[str], session_id: int | None = None) -> str:
+    """复盘结语用：本场涉及考点截至复盘开始时的画像。只读，不重算掌握度。"""
+    conn.row_factory = sqlite3.Row
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "kaodian_profile" not in tables:
+        return ""
+    today = dt.datetime.now(TZ).date()
+    alias_map = {
+        row["alias"]: row["canonical"]
+        for row in conn.execute("SELECT alias,canonical FROM kaodian_aliases")
+    } if "kaodian_aliases" in tables else {}
+    debts = {
+        row["kaodian"]: row
+        for row in conn.execute(
+            """
+            SELECT d.kaodian,d.wrong_count,d.recovery_streak
+              FROM kaodian_debts d
+              JOIN kaodian_learning l ON l.kaodian=d.kaodian AND l.status='learned'
+             WHERE d.mastered=0
+            """
+        )
+    } if {"kaodian_debts", "kaodian_learning"} <= tables else {}
+    def profile_of(tag):
+        return conn.execute(
+            "SELECT attempts,streak,last_seen,assessment_json FROM kaodian_profile WHERE kaodian=?", (tag,)
+        ).fetchone()
+
+    lines, seen = [], set()
+    for raw in tags:
+        # 报告里的标签通常已是规范名；只有原名查不到画像时才走 canonicalize 的归一
+        tag = alias_map.get(raw) or raw
+        row = profile_of(tag)
+        if row is None:
+            alias = canonicalize(raw)
+            if alias and alias != tag and profile_of(alias) is not None:
+                tag, row = alias, profile_of(alias)
+        if not tag or tag in seen:
+            continue
+        seen.add(tag)
+        if not row or not row["attempts"]:
+            lines.append(f"- {tag}｜无画像记录：本场是首次作答")
+            continue
+        assessment = json.loads(row["assessment_json"] or "{}")
+        history = assessment.get("history") or {}
+        bits = [tag, f"掌握：{assessment.get('label') or '待评估'}", f"熟练度：{assessment.get('fluency_label') or '待评估'}"]
+        if history.get("recent_samples"):
+            bit = f"最近{history['recent_samples']}道首次作答对{history.get('correct', 0)}"
+            if history.get("median_seconds"):
+                bit += f"，答对题中位用时{_mmss(history['median_seconds'])}"
+            bits.append(bit)
+        bits.append(f"连对{row['streak'] or 0}")
+        gap = days_since(row["last_seen"], today)
+        if gap is not None:
+            bits.append("上次：今天" if gap == 0 else f"上次{gap}天前")
+        debt = debts.get(tag)
+        if debt:
+            bits.append(f"知识债：累计错{debt['wrong_count']}次，连对{debt['recovery_streak']}/2")
+        if history.get("plateau"):
+            bits.append("两轮新题未改善")
+        if assessment.get("review_due"):
+            bits.append("待复测")
+        if session_id and "kaodian_events" in tables and conn.execute(
+            """
+            SELECT 1 FROM kaodian_events e
+              LEFT JOIN kaodian_aliases a ON a.alias=e.kaodian
+             WHERE COALESCE(a.canonical, e.kaodian)=? AND e.evidence_type='practice' AND e.session_id=?
+             LIMIT 1
+            """,
+            (tag, session_id),
+        ).fetchone():
+            bits.append("已含本场记录")
+        lines.append("- " + "｜".join(bits))
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=Path, default=DB)
@@ -767,7 +847,16 @@ def main() -> int:
     parser.add_argument("--ziliao-pack", action="store_true")
     parser.add_argument("--panduan-pack", action="store_true")
     parser.add_argument("--kepui-pack", action="store_true")
+    parser.add_argument("--focus", nargs="+", metavar="TAG", help="只输出这些考点的当前画像（复盘结语用，只读）")
+    parser.add_argument("--session-id", type=int, help="与 --focus 合用：标出已计入该场 AI 练题的考点")
     args = parser.parse_args()
+    if args.focus:
+        conn = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
+        try:
+            print(render_focus(conn, args.focus, args.session_id))
+        finally:
+            conn.close()
+        return 0
     conn = sqlite3.connect(args.db)
     try:
         snapshot = build_snapshot(conn)

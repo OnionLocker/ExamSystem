@@ -19,7 +19,8 @@ import { promisify } from 'node:util';
 import { Router } from 'express';
 
 import { isValidToken } from '../auth.js';
-import { archiveHermesReviews, firstPracticeReview } from '../hermesArchive.js';
+import { archiveHermesReviews, firstPracticeReview, recentReviewDigests } from '../hermesArchive.js';
+import { reportTags } from '../knowledgeContent.js';
 
 const runFile = promisify(execFile);
 
@@ -90,6 +91,36 @@ hermesRouter.post('/archive-reviews', (req, res, next) => {
 hermesRouter.get('/review-archive/first', (req, res) => {
   const file = firstPracticeReview(Number(req.query.practice_id) || 0);
   res.json({ path: file });
+});
+
+const PRACTICE_REPORT_DIR = process.env.EXAM_PRACTICE_REVIEW_DIR
+  || path.join(PROJECT_ROOT, 'data', 'practice-reviews');
+const SNAPSHOT_SCRIPT = path.join(PROJECT_ROOT, 'scripts', 'learner_snapshot.py');
+
+// 复盘结语用的学情：本场考点的画像 + 最近几场复盘的结语和我说过的话。
+// 哪样取不到就留空，不能挡住复盘本身。
+hermesRouter.get('/review-context', async (req, res) => {
+  const kind = String(req.query.kind || '');
+  if (!['practice', 'exam', 'upload'].includes(kind)) return res.status(400).json({ error: 'invalid kind' });
+  const id = kind === 'upload' ? null : Number(req.query.id) || null;
+  let reviews = [];
+  try {
+    reviews = recentReviewDigests({ kind, id });
+  } catch { /* 存档读不了就不带历史 */ }
+  let focus = '';
+  const name = path.basename(String(req.query.path || ''));
+  if (kind === 'practice' && id && name.endsWith('.md')) {
+    try {
+      const tags = reportTags(await fs.readFile(path.join(PRACTICE_REPORT_DIR, name), 'utf8')).map((t) => t.tag);
+      if (tags.length) {
+        const { stdout } = await runFile('python3', [SNAPSHOT_SCRIPT, '--focus', ...tags, '--session-id', String(id)], {
+          cwd: PROJECT_ROOT, timeout: 10000,
+        });
+        focus = stdout.trim();
+      }
+    } catch { /* 画像取不到就只带历史 */ }
+  }
+  res.set('Cache-Control', 'no-store').json({ focus, reviews });
 });
 
 const TRANSCRIBE_MAX = 8 * 1024 * 1024;
