@@ -196,12 +196,16 @@ export function mergeFenbiTree(items, aliases) {
         const children = [...cardParts, ...extParts];
         const rolled = children.length > 1 ? rollupScores(children) : null;
         const fallback = pickScore(hits);
-        const direct = hits.find(row => row.kaodian === tag || aliasLookup.get(row.kaodian) === tag);
+        const assessed = (row) => row?.assessment && row.assessment.basis !== 'none';
+        // 空的父级档案（basis none）不能当成该考点自己的结论，否则子考法的评估会被盖住。
+        const direct = hits.find((row) => row.kaodian === tag && assessed(row));
         return {
           ...leaf,
           tag,
           ...(rolled?.score != null ? { ...rolled, score_kind: 'rollup' } : fallback),
-          ...(hits.some(row => row.assessment) ? { row: direct || null, score_kind: direct ? 'direct' : 'rollup' } : {}),
+          ...(hits.some(assessed) ? (direct
+            ? { row: direct, score_kind: 'direct' }
+            : { score_kind: 'rollup' }) : {}),
           extensions: extra.map((item) => ({
             tag: item.tag,
             name: item.name,

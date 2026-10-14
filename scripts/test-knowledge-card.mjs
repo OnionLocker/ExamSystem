@@ -179,6 +179,24 @@ const travel = travelTree
   .children.find((leaf) => leaf.name === '行程问题');
 assert.equal(travel.score, Math.round((54 * 1.45 + 80 * 4) / (1.45 + 4)));
 
+const geometryTag = '数量关系-数学运算-几何问题';
+const geometryTree = mergeFenbiTree([
+  { kaodian: geometryTag, attempts: 15, assessment: { basis: 'none', label: '待评估', level: 'unassessed' } },
+  { kaodian: `${geometryTag}-@geometric-extremum`, mastery: 58, assessment: { basis: 'reviewed', label: '已掌握', level: 'mastered' } },
+  { kaodian: `${geometryTag}-@plane-cut-special-angle`, mastery: 45, assessment: { basis: 'reviewed', label: '初步掌握', level: 'initial' } },
+  { kaodian: '数量关系-要抓住常考图形的几何问题-平面图形周长与面积', mastery: 52, assessment: { basis: 'history', label: '历史表现较好', level: 'unassessed' } },
+]);
+const geometry = geometryTree
+  .find((mod) => mod.id === 'shuliang')
+  .children.find((g) => g.name === '数学运算')
+  .children.find((leaf) => leaf.name === '几何问题');
+assert.equal(geometry.score_kind, 'rollup');
+assert.notEqual(geometry.row?.assessment?.basis, 'none');
+assert.deepEqual(
+  geometry.extensions.map((item) => item.row.assessment.label).sort(),
+  ['初步掌握', '已掌握'].sort(),
+);
+
 const recurTree = mergeFenbiTree([
   { kaodian: '数量关系-数字推理-递推数列', mastery: 54, attempts: 3, mastery_confidence: 16 },
   { kaodian: '数量关系-数字推理-机械划分', mastery: 55, attempts: 1, mastery_confidence: 6 },
