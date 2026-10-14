@@ -75,6 +75,9 @@ const normalizeAudioDataUrl = (dataUrl) =>
 // cron / 微信会话虽然不展示，仍会占 session.list 的返回名额；多取一些，
 // 避免自动会话把较早的本地对话挤出侧栏。
 const DIAGRAM_RULE = '讲解配图：容斥、行程、排列组合、概率、工程、浓度、几何这类“结构本身就是难点”的题，在 `#### 考场解法` 里配一张讲解示意图。用 terminal 执行 `python3 /home/ubuntu/ExamSystem/scripts/draw_diagram.py --slug 短词`，JSON 规格从标准输入传入，模板和字段只看 `/home/ubuntu/ExamSystem/hermes-skills/gd-gongkao-coach/references/diagram-drawing.md`（第一次画先读它，这不算读源码）。把返回的 `markdown` 原样单独成段贴在对应讲解旁；返回 ok:false 说明数字算错，重算后再画，两次失败就不放图。整场最多 3 张，优先错题和空题；一行公式能算完的题不画。禁止 ASCII 字符画、Mermaid、自写 SVG/HTML。';
+// 同一类题每次复盘都要按同一套方法讲：知识点页就是教案
+const CANON_RULE = '解法口径（硬性）：知识点页是老师的教案，`#### 考场解法` 的主解法必须照本题知识点页的「考场标准动作」和对应模型写，第一句点明用的是哪个模型（例如「模型 5 · 一行总分方程」），步骤顺序与知识点页一致，不得临场另起一套。知识点页写明“唯一推荐/首选/铁律”的，不得换成别的方法当主解法；更快的其他做法最多在末尾加一行「备选：……」。`#### 草稿诊断` 以知识点页标准动作为尺子，指出偏离了哪一步；`#### 下次动作` 复述标准动作的第一步。知识点页没覆盖本题考法时，主解法可以自拟，但必须在 `#### 下次动作` 末尾写「知识点页未覆盖此考法，建议补录」。`### 01 · 题型名` 的题型名用知识点页节点标题。';
+const canonFetchRule = (root) => `${CANON_RULE}\n写第一道题的 \`#### 考场解法\` 之前，先用 terminal 执行 \`node ${root}/scripts/knowledge-content.mjs get '完整知识点标签'\` 读取本场涉及的知识点页（同一标签只读一次，带 -@节点 的标签取 -@ 前的三级标签再看对应节点），这不算读源码。`;
 const DIAGRAM_NUDGE = '【排版】禁止在代码块里用 ├── └── │ 或方框线拼字符树、流程图、示意图。要表达题型梯度、考法分类、知识框架、全景图谱等层级结构，或集合、线段、比例、分步等结构时，先加载 kaogong:teaching-diagrams，用 python3 /home/ubuntu/ExamSystem/scripts/draw_diagram.py 出图（层级结构用 tree 模板），把返回的 markdown 原样贴出；模板画不了就用普通列表，不用字符画。';
 
 const SESSION_LIST_LIMIT = 200;
@@ -1273,6 +1276,19 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const redoPacking = review?.kind === 'practice' && redoPackingRequested;
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
     practiceReviewRef.current = redoPacking ? null : review;
+    let canonBlock = '';
+    if (review?.kind === 'practice' && !redoPacking && review.path) {
+      try {
+        const { items } = await api(`/api/knowledge-content/canon/report?path=${encodeURIComponent(review.path)}`);
+        if (items?.length) {
+          canonBlock = [
+            '[KNOWLEDGE_CANON — 知识点页原文，本场 `#### 考场解法` 的唯一口径]',
+            ...items.map((it) => `## 第 ${it.questions.join('、')} 题 · ${it.tag}（${it.title}）\n${it.markdown}`),
+            '[/KNOWLEDGE_CANON]',
+          ].join('\n\n');
+        }
+      } catch { /* 取不到就让 Hermes 自己读知识点页 */ }
+    }
     const notePath = audio ? voiceNotePath(projectRoot) : null;
     const examScoreLine = review?.grade
       ? `本场分数只认 PDF 判分：共 ${review.grade.total} 题，对 ${review.grade.correct}，错 ${review.grade.wrong}，空 ${review.grade.blank || 0}。禁止改成别的分数，禁止用录屏勾选重算。`
@@ -1287,6 +1303,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '复盘必须同时用三份材料：① 报告开头 PDF 判分表和原题；② 「录屏行为记录」里每题的停留、标签、过程、时间线；③ 各题草稿。对错、你的答案、正确答案只抄 PDF 判分表。报告里旧的「差距」「你怎么做的」若和判分表或行为记录冲突，以判分表和行为记录为准。',
           '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
           '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`（对错抄判分表），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。知识点不要开篇罗列，只在后台写入画像；用户可见处最多在作答结果后写一行 `本题考察知识点：模块-一级-二级`。',
+          canonFetchRule(projectRoot),
           DIAGRAM_RULE,
           '3. `#### 草稿诊断` 必须先写：结合行为记录、草稿和 PDF，卡在审题、方法、推理、计算还是检查。要点出本题实际发生过的行为（停留偏长、跳过、回头、改选项、只划线没列式等），不要另开「行为分析」标题。',
           '4. 正确题不能按对错直接跳过。用时偏长、改过选项、草稿乱、方法绕、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`，给出能压缩步骤的动作。禁止用「确认通过」「没问题」打发。',
@@ -1332,6 +1349,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '如果同时附有草稿图片，请把图片与 Markdown 中对应题号、正确性和用时一起分析。除原题外，不要机械复述报告统计或现成解析。',
           '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
           '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 MM:SS`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时明确提示查看对应题图或草稿图，并结合实际图片分析，禁止凭文字补造原题题图。',
+          canonBlock ? CANON_RULE : canonFetchRule(projectRoot),
           DIAGRAM_RULE,
           '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
           '4. 正确题不能按结果直接跳过。有草稿、用时偏长、涂改多、方法绕远、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`。禁止用「确认通过」「没问题」打发，禁止省略 `#### 下次动作`。',
@@ -1355,6 +1373,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '言语、判断、数量、资料必须同一套标题，禁止按模块换版式。展开的题五段标题一行都不能少：`### 02 · 题型名` → `> **原题**` → `**作答结果**` → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。禁止改成「为什么会错 / 解题流程 / 下次遇到怎么做」，禁止把「下次动作」收成没有标题的一句收尾。',
           '1. 每一道展开复盘的题必须严格套用同一版式：`### 02 · 题型名`；下一块为 `> **原题**`，同一引用块内先完整照录题干（题干里出现的 A、B、C 地名/序号必须留在原句，禁止拆成单独一行），四个选项只用 `> **A.**` / `> **B.**` / `> **C.**` / `> **D.**` 各占一行。禁止横向表格、禁止四个选项挤在同一行、禁止省略任何选项、禁止在原题区标答案。',
           '2. 原题卡片之后另起一行写 `**作答结果**：你的答案 X · 正确答案 Y · 用时 无`，下一行必须单独写 `本题考察知识点：模块-一级-二级`（用知识点页词表，例如 `数量-最值问题-和定求极值`），再依次使用 `#### 草稿诊断`、`#### 考场解法`、`#### 下次动作`。题目依赖配图时写清看 PDF 哪一页，禁止凭文字编造原题题图。',
+          canonFetchRule(projectRoot),
           DIAGRAM_RULE,
           '3. 错题或空题必须定位出错起点：审题遗漏、方法选择、推理、计算或检查。',
           '4. 正确题不能按结果直接跳过。方法绕远、或存在明显更快的考场解法时，必须展开 `#### 考场解法` 和 `#### 下次动作`。禁止用「确认通过」「没问题」打发，禁止省略 `#### 下次动作`。',
@@ -1583,6 +1602,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         : '';
       const outbound = [
         reviewLead,
+        review?.kind === 'practice' && !redoPacking ? canonBlock : '',
         redoPackingRequested && !review
           ? '请先让用户在 Hermes 中选中对应的 AI 练题复盘报告，再执行打包。没有来源场次和题目id时不要凭聊天印象造题集。'
           : '',

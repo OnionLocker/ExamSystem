@@ -157,5 +157,47 @@ export function openKnowledgeStore(filename = process.env.EXAM_KNOWLEDGE_DB || r
     db.prepare('INSERT INTO topics(tag, document) VALUES (?, ?) ON CONFLICT(tag) DO UPDATE SET document=excluded.document').run(tag, JSON.stringify(doc));
     return { ...doc, nodes: visibleNodes(doc), changed: { id, op, linkTag: nodeTag(tag, node), evidenceChanged: false } };
   });
-  return { get, index, catalog, mutate: (tag, input) => mutate.immediate(tag, input), close: () => db.close() };
+  // 复盘讲题的口径：把报告里的知识点标签落到知识点页的具体节点上
+  const canon = (raw) => {
+    const [base, nodeId] = String(raw || '').trim().split('-@');
+    const topic = topics.filter(t => base === t.tag || base.startsWith(`${t.tag}-`))
+      .sort((a, b) => b.tag.length - a.tag.length)[0];
+    if (!topic) return null;
+    const doc = get(topic.tag);
+    const nodes = visibleNodes(doc);
+    const overview = nodes.find(n => n.id === 'overview');
+    const rest = base.slice(topic.tag.length + 1);
+    const node = (nodeId && nodes.find(n => n.id === nodeId))
+      || (rest && nodes.find(n => n.title === rest || (n.aliases || []).includes(base)))
+      || overview;
+    const parts = node === overview
+      ? [overview?.summary, overview?.markdown]
+      : [overview?.summary && `总览：${overview.summary}`, node.summary, node.markdown];
+    return { tag: nodeTag(topic.tag, node), title: node.title, revision: doc.revision,
+      markdown: parts.filter(Boolean).join('\n\n').trim() };
+  };
+  return { get, index, catalog, canon, mutate: (tag, input) => mutate.immediate(tag, input), close: () => db.close() };
+}
+
+// 复盘报告「逐题概览」表：题号 → 知识点标签
+export function reportTags(markdown) {
+  const byTag = new Map();
+  let cols = null;
+  for (const line of String(markdown || '').split('\n')) {
+    if (!line.trim().startsWith('|')) { cols = null; continue; }
+    const cells = line.split('|').slice(1, -1).map(c => c.trim());
+    if (!cols) {
+      const num = cells.indexOf('题号');
+      const tag = cells.indexOf('知识点');
+      if (num >= 0 && tag >= 0) cols = { num, tag };
+      continue;
+    }
+    const tag = cells[cols.tag];
+    const num = Number(cells[cols.num]);
+    if (!tag || !Number.isFinite(num) || /^[-:\s]+$/.test(tag)) continue;
+    for (const t of tag.split(/[、,，；;]\s*/).filter(Boolean)) {
+      byTag.set(t, [...(byTag.get(t) || []), num]);
+    }
+  }
+  return [...byTag].map(([tag, questions]) => ({ tag, questions }));
 }
