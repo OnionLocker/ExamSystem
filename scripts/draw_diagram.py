@@ -658,23 +658,26 @@ def draw_circle(spec):
     head, top = header(spec, width)
     arcs = spec.get("arcs") or []
     rings = max([a.get("ring", 1) for a in arcs] + [1])
-    cx, r0 = width / 2, 110
-    cy = top + 40 + r0 + rings * 18
+    r0 = 110
+    # 刻度文字放在最外层弧标注之外，避免和圆心算式、弧上的字叠在一起。
+    label_r = r0 + 18 * rings + 46
+    cx = width / 2
+    cy = top + label_r + 14
     parts, roles = [head, ARROW_DEF], set()
     parts.append(f'<circle cx="{cx}" cy="{cy}" r="{r0}" fill="{FRAME}" stroke="{INK}" stroke-width="2.4"/>')
 
+    def ang_of(at):
+        return 2 * math.pi * at / length
+
     def pt(at, r):
-        ang = 2 * math.pi * at / length - math.pi / 2
+        ang = ang_of(at) - math.pi / 2
         return cx + r * math.cos(ang), cy + r * math.sin(ang)
 
-    for p in spec.get("points") or []:
-        at = num(p.get("at"))
-        if at is None:
-            raise SpecError("points[].at 必须是数字")
-        x, y = pt(at, r0)
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" fill="{INK}"/>')
-        lx, ly = pt(at, r0 - 26)
-        parts.append(svg_text(lx, ly, p.get("label", ""), 13, 700, INK))
+    def gap(a, b):
+        d = abs(a - b) % (2 * math.pi)
+        return min(d, 2 * math.pi - d)
+
+    arc_angs = []
     for a in arcs:
         f, t = num(a.get("from", 0)), num(a.get("to"))
         if f is None or t is None:
@@ -694,12 +697,61 @@ def draw_circle(spec):
                      f'stroke="{color}" stroke-width="6" stroke-linecap="round"/>')
         parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{r} {r} 0 {large} {sweep} {x2:.1f} {y2:.1f}" fill="none" '
                      f'stroke="{INK_SOFT}" stroke-width="1.2" marker-end="url(#ah)"/>')
-        mx, my = pt((f + t) / 2, r + 26)
-        anchor = "start" if mx > cx + 10 else "end" if mx < cx - 10 else "middle"
-        parts.append(svg_text(mx, my, a.get("label", ""), 13, 500, INK_SOFT, anchor))
-    if spec.get("center"):
-        parts.append(svg_text(cx, cy, spec["center"], 14, 700, INK_SOFT))
-    return finish(spec, parts, roles, width, cy + r0 + rings * 18 + 40)
+        arc_angs.append((a.get("label", ""), (f + t) / 2, r + 22))
+    points = []
+    for p in spec.get("points") or []:
+        at = num(p.get("at"))
+        if at is None:
+            raise SpecError("points[].at 必须是数字")
+        x, y = pt(at, r0)
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="5" fill="{INK}"/>')
+        points.append((ang_of(at), at, p.get("label", "")))
+    points.sort()
+    lanes = []
+    for ang, _, _ in points:
+        lane = 1 if any(gap(ang, ang_of(mid)) < 0.5 for _, mid, _ in arc_angs) else 0
+        for prev, prev_lane in lanes:
+            if gap(ang, prev) < 0.55 and prev_lane >= lane:
+                lane = prev_lane + 1
+        lanes.append((ang, lane))
+    def box_of(x, y, text, size, anchor):
+        lines = str(text).split("\n") or [""]
+        w = max(text_width(line, size) for line in lines)
+        h = size * 1.3 * len(lines)
+        x0 = x - (w / 2 if anchor == "middle" else w if anchor == "end" else 0)
+        return x0, y - h / 2, x0 + w, y + h / 2
+
+    def clashes(a, b):
+        return a[0] < b[2] - 4 and b[0] < a[2] - 4 and a[1] < b[3] - 4 and b[1] < a[3] - 4
+
+    point_boxes = []
+    for (_, at, label), (_, lane) in zip(points, lanes):
+        x, y = pt(at, label_r + lane * 22)
+        dx, dy = x - cx, y - cy
+        anchor = "start" if abs(dx) >= abs(dy) * 0.6 and dx > 0 else "end" if abs(dx) >= abs(dy) * 0.6 else "middle"
+        point_boxes.append(box_of(x, y, label, 13, anchor))
+        parts.append(svg_text(x, y, label, 13, 700, INK, anchor))
+    for label, mid, rad in arc_angs:
+        mx, my = pt(mid, rad)
+        prefer = "start" if mx > cx + 10 else "end" if mx < cx - 10 else "middle"
+        options = [prefer] + [a for a in ("start", "end", "middle") if a != prefer]
+        anchor = prefer
+        for cand in options:
+            box = box_of(mx, my, label, 13, cand)
+            if box[0] >= 8 and box[2] <= width - 8 and not any(clashes(box, other) for other in point_boxes):
+                anchor = cand
+                break
+        parts.append(svg_text(mx, my, label, 13, 500, INK_SOFT, anchor))
+    center = str(spec.get("center") or "")
+    # 圆心放得下一行短字；长算式放到圆下方，不再横穿表盘。
+    center_inside = bool(center) and text_width(center, 14) <= (r0 - 18) * 2
+    if center_inside:
+        parts.append(svg_text(cx, cy, center, 14, 700, INK_SOFT))
+    bottom = cy + label_r + (max((lane for _, lane in lanes), default=0)) * 22 + 20
+    if center and not center_inside:
+        parts.append(svg_text(cx, bottom + 6, center, 15, 700, INK))
+        bottom += 28
+    return finish(spec, parts, roles, width, bottom)
 
 
 # ---------------- cross 十字交叉（浓度、混合平均） ----------------
