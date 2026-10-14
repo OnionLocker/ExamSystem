@@ -19,6 +19,7 @@ import { promisify } from 'node:util';
 import { Router } from 'express';
 
 import { isValidToken } from '../auth.js';
+import { archiveHermesReviews, firstPracticeReview } from '../hermesArchive.js';
 
 const runFile = promisify(execFile);
 
@@ -55,7 +56,8 @@ export const readVoiceNoteStatus = async (name, root = path.join(PROJECT_ROOT, '
     const actions = sections.find((section) => section[1].trim() === '你要做的事')?.[2] || '';
     // 仅用于显示核验状态，笔记中的指令绝不由接口执行。
     const wantsQuiz = /出题|出.{0,12}\d+\s*道?题|生成.{0,12}(?:题|批次)|quiz_lite\.py|ziliao_(?:parallel_runner|agent_paper)\.py/.test(actions);
-    return { name, saved, wantsQuiz: saved && wantsQuiz };
+    const said = sections.find((section) => section[1].trim() === '我说了什么')?.[2].trim().slice(0, 1500) || '';
+    return { name, saved, wantsQuiz: saved && wantsQuiz, said };
   } catch (err) {
     if (['ENOENT', 'ELOOP'].includes(err.code)) return { name, saved: false, wantsQuiz: false };
     throw err;
@@ -73,6 +75,21 @@ hermesRouter.post('/voice-notes/status', async (req, res, next) => {
   try {
     res.json(await Promise.all(names.map((name) => readVoiceNoteStatus(name))));
   } catch (err) { next(err); }
+});
+
+hermesRouter.post('/archive-reviews', (req, res, next) => {
+  const sessionId = req.body?.session_id;
+  if (sessionId != null && (typeof sessionId !== 'string' || !/^[\w-]{1,80}$/.test(sessionId))) {
+    return res.status(400).json({ error: 'invalid session id' });
+  }
+  try {
+    res.json({ written: archiveHermesReviews(sessionId || null) });
+  } catch (err) { next(err); }
+});
+
+hermesRouter.get('/review-archive/first', (req, res) => {
+  const file = firstPracticeReview(Number(req.query.practice_id) || 0);
+  res.json({ path: file });
 });
 
 const TRANSCRIBE_MAX = 8 * 1024 * 1024;

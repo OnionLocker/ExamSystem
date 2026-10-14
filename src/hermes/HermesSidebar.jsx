@@ -31,6 +31,7 @@ export default function HermesSidebar({
   onNew,
   onOpen,
   onDelete,
+  onPrune,
 }) {
   const grouped = useMemo(() => {
     const groups = new Map();
@@ -42,6 +43,8 @@ export default function HermesSidebar({
     }
     return [...groups.values()].sort((a, b) => a.meta.order - b.meta.order);
   }, [sessions]);
+
+  const visibleCount = grouped.reduce((n, g) => n + g.items.length, 0);
 
   if (!open) return null;
 
@@ -176,6 +179,20 @@ export default function HermesSidebar({
             );
           })}
         </div>
+
+        {onPrune && visibleCount > 10 && (
+          <button
+            type="button"
+            onClick={onPrune}
+            disabled={busy || sessionsLoading}
+            className={`mx-3 mb-3 flex items-center justify-center space-x-1.5 rounded-xl border border-black/10 text-[#999] font-bold hover:text-[#ef5350] hover:border-[#ef5350]/40 disabled:opacity-40 transition-colors ${
+              touch ? 'min-h-11 px-4 text-sm' : 'px-3 py-2 text-[11px]'
+            }`}
+          >
+            <Trash2 size={touch ? 15 : 12} />
+            <span>只保留最近 10 个会话</span>
+          </button>
+        )}
       </div>
     </>
   );

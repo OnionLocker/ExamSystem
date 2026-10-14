@@ -78,6 +78,23 @@ const DIAGRAM_RULE = '讲解配图：容斥、行程、排列组合、概率、�
 // 同一类题每次复盘都要按同一套方法讲：知识点页就是教案
 const CANON_RULE = '解法口径（硬性）：知识点页是老师的教案，`#### 考场解法` 的主解法必须照本题知识点页的「考场标准动作」和对应模型写，第一句点明用的是哪个模型（例如「模型 5 · 一行总分方程」），步骤顺序与知识点页一致，不得临场另起一套。知识点页写明“唯一推荐/首选/铁律”的，不得换成别的方法当主解法；更快的其他做法最多在末尾加一行「备选：……」。`#### 草稿诊断` 以知识点页标准动作为尺子，指出偏离了哪一步；`#### 下次动作` 复述标准动作的第一步。知识点页没覆盖本题考法时，主解法可以自拟，但必须在 `#### 下次动作` 末尾写「知识点页未覆盖此考法，建议补录」。`### 01 · 题型名` 的题型名用知识点页节点标题。';
 const canonFetchRule = (root) => `${CANON_RULE}\n写第一道题的 \`#### 考场解法\` 之前，先用 terminal 执行 \`node ${root}/scripts/knowledge-content.mjs get '完整知识点标签'\` 读取本场涉及的知识点页（同一标签只读一次，带 -@节点 的标签取 -@ 前的三级标签再看对应节点），这不算读源码。`;
+// 语音轮结束后音频会被清掉，历史里只剩「语音 N秒」。笔记里的原话要点在同一会话的
+// 下一条消息里补进去，之后每一轮 Hermes 都看得到用户说过什么。
+const VOICE_RECAP_KEY = 'hermes.voiceRecap.v1';
+const readVoiceRecap = () => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(VOICE_RECAP_KEY) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    return {};
+  }
+};
+const writeVoiceRecap = (stored, names) => {
+  const all = readVoiceRecap();
+  if (names.length) all[stored] = names.slice(-8);
+  else delete all[stored];
+  try { localStorage.setItem(VOICE_RECAP_KEY, JSON.stringify(all)); } catch { /* private mode */ }
+};
 const DIAGRAM_NUDGE = '【排版】禁止在代码块里用 ├── └── │ 或方框线拼字符树、流程图、示意图。要表达题型梯度、考法分类、知识框架、全景图谱等层级结构，或集合、线段、比例、分步等结构时，先加载 kaogong:teaching-diagrams，用 python3 /home/ubuntu/ExamSystem/scripts/draw_diagram.py 出图（层级结构用 tree 模板），把返回的 markdown 原样贴出；模板画不了就用普通列表，不用字符画。';
 
 const SESSION_LIST_LIMIT = 200;
@@ -347,6 +364,12 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [sid, setSid] = useState(null);
   const [activeStoredId, setActiveStoredId] = useState(() => readCachedActiveSession());
   const [messages, setMessages] = useState([]);
+  const messagesRef = useRef([]);
+  const messageCountRef = useRef(0);
+  useEffect(() => {
+    messagesRef.current = messages;
+    messageCountRef.current = messages.length;
+  }, [messages]);
   const [sessionLoading, setSessionLoading] = useState(false);
   const sessionRequest = useRef(null);
   const sessionVersion = useRef(0);
@@ -626,6 +649,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         const turn = executionTurnRef.current;
         if (turn?.live === sidRef.current) void verifyExecutionRef.current?.(turn);
         if (ev.payload?.status && ev.payload.status !== 'complete') return;
+        const stored = activeStoredIdRef.current;
+        if (stored && (review || messagesRef.current.some((m) => m.role === 'user' && m.review && m.review.kind !== 'debt'))) {
+          // 讲评只存在会话里；等 Hermes 落库后归档成文件，删会话也不丢
+          setTimeout(() => {
+            api('/api/hermes/archive-reviews', { method: 'POST', body: { session_id: stored } }).catch(() => {});
+          }, 3000);
+        }
         if (review?.kind !== 'practice' || review.profileReviewed) return;
         api(`/api/practice/sessions/${review.id}/review-complete`, { method: 'POST' })
           .then(() => api('/api/practice/sessions?limit=100'))
@@ -748,6 +778,42 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setBanner(`删除失败：${err.message}`);
     }
   }, []);
+
+  const PRUNE_KEEP = 10;
+  const pruneSessions = useCallback(async () => {
+    const gw = gwRef.current;
+    if (!gw || busy || sendingRef.current) return;
+    if (!confirm(`只保留最近 ${PRUNE_KEEP} 个会话，其余全部删除，不可恢复。复盘讲评会先存档成文件。确定？`)) return;
+    setSessionsLoading(true);
+    try {
+      // 存档失败就整个中止，宁可不删
+      await api('/api/hermes/archive-reviews', { method: 'POST', body: {} });
+      const res = await gw.request('session.list', { limit: 5000 });
+      const visible = (Array.isArray(res?.sessions) ? res.sessions : [])
+        .filter((s) => !HIDDEN_SOURCES.has(s.source));
+      const keep = new Set(visible.slice(0, PRUNE_KEEP).map((s) => s.id));
+      if (activeStoredIdRef.current) keep.add(activeStoredIdRef.current);
+      const doomed = visible.filter((s) => !keep.has(s.id));
+      let failed = 0;
+      for (const s of doomed) {
+        await gw.request('session.delete', { session_id: s.id }).catch((err) => {
+          if (!/session not found/i.test(err?.message || '')) failed += 1;
+        });
+        sessionCache.current.delete(s.id);
+      }
+      const after = await gw.request('session.list', { limit: SESSION_LIST_LIMIT });
+      const list = Array.isArray(after?.sessions) ? after.sessions : [];
+      setSessions(list);
+      writeCachedSessions(list);
+      setBanner(failed
+        ? `已删除 ${doomed.length - failed} 个旧会话，${failed} 个删除失败`
+        : `已删除 ${doomed.length} 个旧会话，复盘讲评已存档到 data/practice-reviews/hermes/`);
+    } catch (err) {
+      setBanner(`清理失败，未删除：${err.message}`);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, [busy]);
 
   const refreshSessions = useCallback(async () => {
     const gw = gwRef.current;
@@ -1275,6 +1341,13 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     const redoPackingRequested = /(?:打包|抽取|整理).{0,8}(?:错题|重做|复盘题)|(?:错题|重做题).{0,8}(?:打包|抽取|整理)/.test(text.trim());
     const redoPacking = review?.kind === 'practice' && redoPackingRequested;
     const projectRoot = hermesContextRef.current?.project_root || '/home/ubuntu/ExamSystem';
+    // 复盘一律在干净的会话里讲：旧会话的上下文会把解法带偏
+    if (review && review.kind !== 'debt' && !redoPacking && messageCountRef.current > 0) {
+      if (!(await newSession())) {
+        sendingRef.current = false;
+        return;
+      }
+    }
     practiceReviewRef.current = redoPacking ? null : review;
     let canonBlock = '';
     if (review?.kind === 'practice' && !redoPacking && review.path) {
@@ -1288,6 +1361,35 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           ].join('\n\n');
         }
       } catch { /* 取不到就让 Hermes 自己读知识点页 */ }
+    }
+    // 复盘会话里的后续消息：只交代背景，不规定回答格式，也不自动塞排计划的快照
+    const followReview = review || redoPackingRequested ? null : [...messagesRef.current].reverse()
+      .find((m) => m.role === 'user' && ['practice', 'exam', 'upload'].includes(m.review?.kind))?.review || null;
+    const followReviewLead = followReview
+      ? [
+          `[REVIEW_CONTEXT] 本会话是《${followReview.title}》的复盘，用户正边看复盘边和你交流：可能一次说好几道题、穿插提问、讲自己的思路或提别的要求，按他实际说的回应，不套固定格式。`,
+          '凡是讲到某题怎么解、评价他的思路，都以本会话开头附的知识点页（[KNOWLEDGE_CANON]；没有就读对应知识点页）的考场标准动作为准，不临场换一套方法。',
+          `他要出题、排计划等其他事照常做；需要学情时运行 python3 ${projectRoot}/scripts/learner_snapshot.py --compact。`,
+          '[/REVIEW_CONTEXT]',
+        ].join('\n')
+      : '';
+    const recapStored = activeStoredIdRef.current;
+    const recapNames = recapStored ? readVoiceRecap()[recapStored] || [] : [];
+    let voiceRecap = '';
+    if (recapNames.length) {
+      try {
+        const notes = await api('/api/hermes/voice-notes/status', { method: 'POST', body: { names: recapNames } });
+        const said = (Array.isArray(notes) ? notes : []).filter((n) => n.saved && n.said);
+        if (said.length) {
+          voiceRecap = [
+            '[VOICE_RECAP — 本会话此前语音的原话要点，系统据语音笔记补入，音频已清理]',
+            ...said.map((n) => `语音 ${n.name.slice(9, 11)}:${n.name.slice(11, 13)}\n${n.said}`),
+            '[/VOICE_RECAP]',
+          ].join('\n');
+        }
+        const done = new Set(said.map((n) => n.name));
+        writeVoiceRecap(recapStored, recapNames.filter((name) => !done.has(name)));
+      } catch { /* 下次再补 */ }
     }
     const notePath = audio ? voiceNotePath(projectRoot) : null;
     const examScoreLine = review?.grade
@@ -1332,6 +1434,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
                 ...(review.auditSourcePath
                   ? [`这是复盘审核。首次复盘报告在这里，先打开并严格对照：${review.auditSourcePath}`]
                   : ['这是复盘审核，但首次复盘报告路径缺失；必须明确说明无法完成前后对照，不得假装看过首次复盘。']),
+                ...(review.auditReviewPath
+                  ? [`首次复盘时 Hermes 的讲评原文在这里（错误起点、标准动作、下次验收证据都以它为准），也要打开：${review.auditReviewPath}`]
+                  : ['首次复盘的 Hermes 讲评没有存档，只能依据首次报告和本次作答对照；需要说明这一点。']),
                 '本轮不是普通的第二次讲题，而是对首次复盘是否有效的验收。先读取首次复盘给出的错误起点、标准动作和下次验收证据，再检查本次重做是否真正做到。',
                 '逐题同时对照首次作答、本次作答、两次用时、两次草稿和首次复盘要求；每题必须给出“有效掌握 / 部分掌握 / 未掌握”的审核结论，并说明证据。',
                 '本次答对但仍依赖猜测、方法与首次要求不一致、步骤不能复现、用时明显失控或草稿无法支持结论，都不能判为有效掌握；本次空题或答错直接判为未掌握。',
@@ -1435,7 +1540,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。未绑定场次和逐题过程的聊天记录不用于认证掌握等级。新考点先 --register。',
         ].join('\n');
-    const masteryNudge = redoPackingRequested ? '' : masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
+    const masteryNudge = redoPackingRequested ? ''
+      : followReview ? '本场作答已在复盘时记录，追问讨论不新增作答记录、不改掌握度；这些操作也不要在回答里提。'
+      : masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
       `先读取 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/mastery-assessment.md，按其口径逐题评估，不增加题目质量检查。`,
       `每题记录完成或已存在后执行：python3 ${projectRoot}/scripts/kaodian_profile.py --assess ${review.kind} ${review.id} <题目id或题号> '<评估JSON>'`,
       'JSON 必须包含 independence、process、basis、execution、reason；未知就填 unknown/unavailable。reason 引用本题草稿或独立解题说明，不能编造独立性、结构变式或耗时目标。缺失草稿不等于不会。',
@@ -1535,6 +1642,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         pendingVoiceNotesRef.current.set(target, [
           ...(pendingVoiceNotesRef.current.get(target) || []), notePath.split('/').pop(),
         ]);
+        const stored = activeStoredIdRef.current;
+        if (stored) writeVoiceRecap(stored, [...(readVoiceRecap()[stored] || []), notePath.split('/').pop()]);
       }
       executionTurnRef.current = {
         live: target, stored: activeStoredIdRef.current, userMessageId: msgId,
@@ -1561,7 +1670,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             '笔记用四段：`## 我说了什么`（逐条列要点，保留具体数字、题号和人名）、`## 语气与状态`（急躁/困惑/有把握/疲惫，以及听出来的犹豫或强调）、`## 你要做的事`（据此要执行的动作）、`## 值得长期记住的`（只写关于我这个人的稳定事实：目标、时间约束、学习习惯、明确偏好或纠正；没有就写"无"）。',
             '笔记控制在 600 字内，写完直接进入正常回答，不要向我复述笔记内容。',
             '如果这段口述里有该长期记住的事实，用 memory 工具写进 user 画像；只记稳定的，不记一次性情绪和进度流水。',
-            '口吻：严师。标准严、态度也严、讲解仍耐心。对高频、可避免、直接造成失分的错误明确说“这题不该错/这一步必须纠正”，再把标准动作讲透；只批评行为，不攻击人格。禁止浮夸夸赞。草稿对了只说这一步对，并给下一次验收标准。',
+            '录音内容不限：可能是闲聊、提问、讲题、提要求，按实际说的回应。',
+            ...(review ? [] : [`录音涉及学习计划、进度、掌握度、该学什么或出题时，先运行 python3 ${projectRoot}/scripts/learner_snapshot.py --compact 取学情，再按 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/exam-sprint-plan.md 给主攻、短测、题量和验收动作；闲聊不用取学情。`]),
+            '讲题、点评作答时口吻：严师。标准严、态度也严、讲解仍耐心。对高频、可避免、直接造成失分的错误明确说“这题不该错/这一步必须纠正”，再把标准动作讲透；只批评行为，不攻击人格。禁止浮夸夸赞。草稿对了只说这一步对，并给下一次验收标准。',
             '若录音要你根据快照选定考点并出题：听完后立刻后台调用出题脚本，题量和考点以录音为准（说10道就10道；说按你刚定的考点出，就出那个考点）。不要先只回复建议再等下一轮。',
             '失败把脚本原文告诉用户。不要 ls / search_files / 自己写 questions.json。',
           ].join('\n')
@@ -1573,7 +1684,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const { wantsQuiz, quizNudge } = buildQuizPrompt({
         text: spokenText, audio: Boolean(audio && !review), projectRoot,
       });
-      const needsLearnerSnapshot = !redoPackingRequested && Boolean(review || audio || wantsQuiz
+      const needsLearnerSnapshot = !redoPackingRequested && Boolean(followReview ? wantsQuiz : review || wantsQuiz
         || /今天.*(?:学|练)|接下来.*(?:学|练)|继续学习|学习计划|我的情况|薄弱|掌握|错题|复盘|省考|行测|申论|攻克|知识点|推荐|遗忘|我想学/.test(spokenText));
       let learnerNudge = '';
       if (needsLearnerSnapshot) {
@@ -1606,6 +1717,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         redoPackingRequested && !review
           ? '请先让用户在 Hermes 中选中对应的 AI 练题复盘报告，再执行打包。没有来源场次和题目id时不要凭聊天印象造题集。'
           : '',
+        voiceRecap,
+        followReviewLead,
         voiceLead,
         submittedText,
         redoPackingRequested ? '' : DIAGRAM_NUDGE,
@@ -1654,7 +1767,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setBusy(false);
       setStatus('');
     }
-  }, [busy, sessionLoading, attaching, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams]);
+  }, [busy, sessionLoading, attaching, input, pendingImages, pendingAudio, pendingReview, recording, rememberSession, sessionCreateParams, newSession]);
 
   // 小键盘句点开始录音；录音时 Esc 丢弃，第一次 Enter 只完成录音。
   // 音频进入输入区后，再按一次 Enter 才发送，和点右侧勾的行为一致。
@@ -1769,6 +1882,9 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       const auditSource = s.audit_of_session_id
         ? await api(`/api/practice/sessions/${s.audit_of_session_id}/md`).catch(() => null)
         : null;
+      const auditReview = s.audit_of_session_id
+        ? await api(`/api/hermes/review-archive/first?practice_id=${s.audit_of_session_id}`).catch(() => null)
+        : null;
       setPendingImages((prev) => [
         ...prev.filter((img) => img.contextKind !== 'practice'),
         ...images.filter(Boolean),
@@ -1785,6 +1901,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         profileReviewed: Boolean(s.profile_reviewed_at),
         audit: Boolean(s.audit_of_session_id),
         auditSourcePath: auditSource?.path || null,
+        auditReviewPath: auditReview?.path || null,
       });
       setShowPicker(false);
       stickToBottom.current = true;
@@ -2251,6 +2368,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         onNew={newSession}
         onOpen={openSession}
         onDelete={deleteSession}
+        onPrune={pruneSessions}
       />
 
       {/* ── 对话区 ── */}
