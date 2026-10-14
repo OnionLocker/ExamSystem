@@ -10,9 +10,12 @@ const KATEX = {
 
 const CHUNK = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g;
 
+// \\\\frac is a doubled JSON escape. KaTeX treats \\ as a line break, so collapse to \frac.
+const collapseTex = (src) => src.replace(/\\{2,}(?=[A-Za-z])/g, '\\');
+
 const renderTex = (src, display) => {
   try {
-    return katex.renderToString(src, { ...KATEX, displayMode: display });
+    return katex.renderToString(collapseTex(src), { ...KATEX, displayMode: display });
   } catch {
     return null;
   }

@@ -450,10 +450,12 @@ def normalize_writer_shape(raw: dict) -> dict:
     row = dict(raw)
     if not str(row.get("stem") or "").strip() and row.get("question"):
         row["stem"] = row.get("question")
-    # Only repair escaped prose line breaks; do not decode TeX such as \\neq or \\nu.
+    # \n before a non-letter is a prose break; \neq / \nu stay TeX.
+    # \\\\frac is a doubled JSON escape. KaTeX reads \\ as a line break, so collapse to \frac.
     for field in ("stem", "analysis", "explanation"):
         if isinstance(row.get(field), str):
             row[field] = re.sub(r"\\r\\n|\\n(?![A-Za-z])", "\n", row[field])
+            row[field] = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", row[field])
     options = row.get("options")
     if isinstance(options, str):
         parsed = packed_options(options)
@@ -465,6 +467,15 @@ def normalize_writer_shape(raw: dict) -> dict:
         parsed = packed_options(" ".join(str(item).strip() for item in options if str(item).strip()))
         if parsed:
             row["options"] = parsed
+    options = row.get("options")
+    if isinstance(options, list):
+        row["options"] = [
+            {**item, "text": re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", item["text"])}
+            if isinstance(item, dict) and isinstance(item.get("text"), str) else item
+            for item in options
+        ]
+    elif isinstance(options, str):
+        row["options"] = re.sub(r"\\{2,}(?=[A-Za-z])", r"\\", options)
     return row
 
 

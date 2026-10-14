@@ -150,6 +150,18 @@ class LocalChecks(unittest.TestCase):
         self.assertEqual(row["analysis"], "第一步。\n第二步。" + r"$x\neq y,\nu=1$")
         self.assertEqual(raw["stem"], r"题干。\n\n以下哪项？")
 
+    def test_writer_shape_collapses_overescaped_tex(self):
+        raw = {
+            "stem": "年龄是小钱的 $\\\\frac{5}{3}$ 倍，以及 $\\\\\\\\frac{4}{3}$",
+            "analysis": "差 $d=\\\\frac{2}{5}y$，且 $x\\neq y$",
+            "options": [{"key": "A", "text": "$\\\\frac{1}{5}$"}, {"key": "B", "text": "6"}],
+        }
+        row = quiz_lite.normalize_writer_shape(raw)
+        self.assertEqual(row["stem"], "年龄是小钱的 $\\frac{5}{3}$ 倍，以及 $\\frac{4}{3}$")
+        self.assertEqual(row["analysis"], "差 $d=\\frac{2}{5}y$，且 $x\\neq y$")
+        self.assertEqual(row["options"][0]["text"], "$\\frac{1}{5}$")
+        self.assertEqual(raw["options"][0]["text"], "$\\\\frac{1}{5}$")
+
     def test_stamp_and_public_tolerate_string_options(self):
         raw = question(1)
         raw["options"] = "A. 25本 B. 26本 C. 27本 D. 28本"
