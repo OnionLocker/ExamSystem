@@ -65,6 +65,11 @@ class RootErrorBoundary extends Component {
           >
             刷新重试
           </button>
+          {/dynamically imported module/i.test(msg) && (
+            <div style={{ marginTop: 12, fontWeight: 700 }}>
+              这个分包被浏览器缓存住了。请按 Ctrl+Shift+R（Mac 用 Cmd+Shift+R）强制刷新，普通刷新清不掉。
+            </div>
+          )}
         </div>
       )
     }

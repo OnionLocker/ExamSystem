@@ -64,7 +64,10 @@ function serveStatic(req, res) {
       // 关键：带扩展名的资源（.js / .css / .mp3 / .png 等）一律真 404，
       // 否则会把 HTML 当成 JS 返回，浏览器解析失败 → 整页白屏
       if (reqExt) {
-        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.writeHead(404, {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
         res.end('Not Found');
         return;
       }
