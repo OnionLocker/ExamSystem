@@ -66,7 +66,10 @@ class FenbiTreeTest(unittest.TestCase):
         self.assertIn(NUM_AVERAGE, tags)
         self.assertIn("判断推理-逻辑判断-组合排列-单题", tags)
         self.assertIn("政治理论-时事政治-时事政治-其他", tags)
-        self.assertIn("数量关系-数字推理-数字推理-其他", tags)
+        self.assertIn("数量关系-数字推理-多级数列", tags)
+        self.assertNotIn("数量关系-数字推理-数字推理-其他", tags)
+        self.assertNotIn("数量关系-数字推理-作商数列", tags)
+        self.assertNotIn("数量关系-数字推理-图形数阵", tags)
         self.assertIn("判断推理-科学推理-科学推理-物理", tags)
         self.assertNotIn("资料分析-ABRX类-基期量计算与比较", tags)
 
@@ -85,6 +88,20 @@ class FenbiTreeTest(unittest.TestCase):
             LEGACY_TO_FENBI["数量关系-数字推理-递推数列"],
             "数量关系-数字推理-递推数列",
         )
+        self.assertEqual(
+            LEGACY_TO_FENBI["数量关系-数字推理-作商数列"],
+            "数量关系-数字推理-多级数列",
+        )
+        self.assertEqual(
+            LEGACY_TO_FENBI["数量关系-数字推理-作和作积数列"],
+            "数量关系-数字推理-递推数列",
+        )
+        self.assertEqual(
+            LEGACY_TO_FENBI["数量关系-数字推理-图形数阵"],
+            "数量关系-数字推理-机械划分",
+        )
+        self.assertEqual(canonicalize("数量关系-数字推理-数字推理-其他"), "数量关系-数字推理-多级数列")
+        self.assertEqual(canonicalize("数量关系-数字推理-因数分解数列"), "数量关系-数字推理-递推数列")
 
 
 class CanonicalizeOldToNewTest(unittest.TestCase):

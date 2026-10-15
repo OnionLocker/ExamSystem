@@ -33,7 +33,7 @@ def _balance(items):
 def shuliang_paper(seq=5):
     items = []
     for i in range(seq):
-        items.append(q(f"S{i}", "数量关系", "数字推理", "数量关系-数字推理-数字推理"))
+        items.append(q(f"S{i}", "数量关系", "数字推理", "数量关系-数字推理-多级数列"))
     for i in range(15 - seq):
         items.append(q(f"M{i}", "数量关系", "数学运算", "数量关系-能“七十二变”的行程问题-基础行程、平均速度与相对运动"))
     return _balance(items)
