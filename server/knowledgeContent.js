@@ -74,6 +74,13 @@ export function visibleNodes(doc) {
   });
 }
 export function nodeTag(tag, node) { return node.id === 'overview' ? tag : `${tag}-@${node.id}`; }
+// 标签落到哪个三级知识点：最长前缀匹配；子考法写作「三级标签-@节点ID」或旧的「三级标签-子考法名」
+export function topicOf(raw) {
+  const base = String(raw || '').trim().split('-@')[0];
+  if (!base) return null;
+  return topics.filter(t => base === t.tag || base.startsWith(`${t.tag}-`))
+    .sort((a, b) => b.tag.length - a.tag.length)[0] || null;
+}
 function labelPath(doc, node) {
   const names = [];
   for (let n = node; n && n.parentId; n = doc.nodes.find(p => p.id === n.parentId)) names.unshift(n.title);
@@ -182,8 +189,7 @@ export function openKnowledgeStore(filename = process.env.EXAM_KNOWLEDGE_DB || r
   // 复盘讲题的口径：把报告里的知识点标签落到知识点页的具体节点上
   const canon = (raw) => {
     const [base, nodeId] = String(raw || '').trim().split('-@');
-    const topic = topics.filter(t => base === t.tag || base.startsWith(`${t.tag}-`))
-      .sort((a, b) => b.tag.length - a.tag.length)[0];
+    const topic = topicOf(base);
     if (!topic) return null;
     const doc = get(topic.tag);
     const nodes = visibleNodes(doc);

@@ -8,7 +8,8 @@ import { contentTag, contentTrail, findContentNode } from './contentTree.js';
 import './content.css';
 
 const mathOptions = { throwOnError: false, strict: false };
-export default function ContentPanel({ rootTag, learningTag, selectedTag, onSelect, active, onDiscuss, legacy }) {
+// preview：考点预热浮框里只读展示，不显示学习状态、讨论和编辑
+export default function ContentPanel({ rootTag, learningTag, selectedTag, onSelect, active, onDiscuss, legacy, preview = false }) {
   const [doc, setDoc] = useState(null);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
@@ -26,7 +27,7 @@ export default function ContentPanel({ rootTag, learningTag, selectedTag, onSele
       try {
         const [data, learningData] = await Promise.all([
           api(`/api/knowledge-content/${encodeURIComponent(rootTag)}`),
-          api(`/api/kaodian/learning/${encodeURIComponent(learningTag)}`),
+          preview ? null : api(`/api/kaodian/learning/${encodeURIComponent(learningTag)}`),
         ]);
         if (!cancelled) { setDoc(data); setLearning(learningData || { status: 'unstarted' }); setError(''); }
       } catch (e) { if (!cancelled) setError(e.message); }
@@ -38,7 +39,7 @@ export default function ContentPanel({ rootTag, learningTag, selectedTag, onSele
     document.addEventListener('visibilitychange', onFocus);
     const timer = setInterval(onFocus, 15000);
     return () => { cancelled = true; clearInterval(timer); window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
-  }, [rootTag, learningTag, active, reload]);
+  }, [rootTag, learningTag, active, reload, preview]);
   const node = findContentNode(doc, selectedTag);
   const trail = node ? contentTrail(doc, node) : [];
   const children = doc?.nodes.filter(n => n.parentId === node?.id).sort((a, b) => a.order - b.order) || [];
@@ -69,8 +70,8 @@ export default function ContentPanel({ rootTag, learningTag, selectedTag, onSele
   return <section className="knowledge-content">
     {error && <div role="alert" className="knowledge-error">{error} <button onClick={() => setReload(x => x + 1)}>重新读取</button></div>}
     {!doc ? <p className="p-6 text-slate-500" role="status">正在读取当前知识点…</p> : !node ? <div className="knowledge-paper">
-      <h2>{selectedTag.split('-').at(-1)}</h2><p>这个考法已有学习记录，尚未整理独立讲解。</p>
-      <button className="knowledge-action" onClick={() => onDiscuss(selectedTag)}>让 Hermes 整理这个考法</button>
+      <h2>{selectedTag.split('-').at(-1)}</h2><p>{preview ? '这个知识点还没整理讲解。' : '这个考法已有学习记录，尚未整理独立讲解。'}</p>
+      {!preview && <button className="knowledge-action" onClick={() => onDiscuss(selectedTag)}>让 Hermes 整理这个考法</button>}
       <button className="knowledge-action" onClick={() => onSelect(rootTag)}>返回知识点总览</button>
     </div> : <>
       <nav aria-label="知识点路径" className="knowledge-breadcrumb">
@@ -78,13 +79,13 @@ export default function ContentPanel({ rootTag, learningTag, selectedTag, onSele
       </nav>
       <header className="knowledge-heading">
         <div><p className="knowledge-eyebrow">{node.parentId ? '考法精讲' : '知识点总览'}</p><h2>{node.title}</h2><p className="knowledge-summary">{node.summary}</p></div>
-        <div className="knowledge-actions">
+        {!preview && <div className="knowledge-actions">
           <span className={`knowledge-status knowledge-status-${learning.status}`} title={`学习状态按“${learningTag}”及其考法记录`}>{learningTag.split('-').at(-1)} · {learningLabel}</span>
           {(learning.status === 'unstarted' || learning.status === 'unconfirmed') && <button className="knowledge-action" disabled={learningSaving} onClick={() => setLearningStatus('learning')}>开始学习</button>}
           {learning.status === 'learning' && <button className="knowledge-action knowledge-action-primary" disabled={learningSaving} onClick={() => setLearningStatus('learned')}>我已学过</button>}
           <button className="knowledge-action" onClick={() => onDiscuss(contentTag(rootTag, node), node.title)}>和 Hermes 讨论</button>
           <button className="knowledge-action" onClick={() => setEditing({ ...node, revision: doc.revision })}>编辑本页</button>
-        </div>
+        </div>}
       </header>
       {siblings.length > 1 && <nav className="knowledge-tabs" aria-label="同级考法">{siblings.map(n => <button key={n.id} aria-current={n.id === node.id ? 'page' : undefined} onClick={() => select(n)}>{n.title}</button>)}</nav>}
       {children.length > 0 && node.parentId && <nav className="knowledge-tabs knowledge-child-tabs" aria-label="细分考法">{children.map(n => <button key={n.id} onClick={() => select(n)}>{n.title} <span aria-hidden="true">↗</span></button>)}</nav>}

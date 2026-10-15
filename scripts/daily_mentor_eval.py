@@ -30,8 +30,11 @@ REPORTS_DIR = os.environ.get("REPORTS_DIR", str(PROJECT_ROOT / "data" / "reports
 # 脚本连着三天拿 401，而失败只落在 cron 日志里，热力图就静悄悄断了。
 #
 # 现在直接读 Hermes 的 config.yaml：它自己能跑通，评委就一定能跑通。
+# 模型也跟 Hermes 当前的默认模型走：原来写死的 gemini-3.7-flash-high 下线后，
+# 代理对它回 400 model_not_found，评估从 2026-10-13 起天天失败。
 HERMES_CONFIG = os.path.expanduser("~/.hermes/config.yaml")
-MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "gemini-3.7-flash-high")
+MODEL_NAME = os.environ.get("MENTOR_EVAL_MODEL", "")
+FALLBACK_MODEL = "gemini-3.8-flash-high"
 
 
 def load_judge_endpoint():
@@ -44,6 +47,7 @@ def load_judge_endpoint():
     """
     url = os.environ.get("CLIPROXY_URL", "")
     key = os.environ.get("CLIPROXY_API_KEY", "")
+    model = MODEL_NAME
     try:
         import yaml
 
@@ -55,9 +59,12 @@ def load_judge_endpoint():
             url = base + "/chat/completions"
         if prov.get("api_key"):
             key = str(prov["api_key"])
+        hermes_model = cfg.get("model") or {}
+        if not model and isinstance(hermes_model, dict):
+            model = str(hermes_model.get("default") or "")
     except Exception as e:
         print(f"读取 Hermes 配置失败，回退到环境变量: {e}", file=sys.stderr)
-    return url, key
+    return url, key, model or FALLBACK_MODEL
 
 
 TZ = timezone(timedelta(hours=8))
@@ -178,7 +185,15 @@ score 和 minutes 均固定为0，包括有效学习。对话长度、题量和�
 }}
 """
 
-    url, key = load_judge_endpoint()
+    url, key, model = load_judge_endpoint()
+    if not url:
+        print(
+            "judge endpoint has no URL — refusing to call the judge.\n"
+            "  Run this script with a Python that has PyYAML (e.g. /usr/bin/python3) so it can read "
+            "~/.hermes/config.yaml, or set CLIPROXY_URL.",
+            file=sys.stderr,
+        )
+        return None
     if not key:
         print(
             "judge endpoint has no api_key — refusing to call the judge.\n"
@@ -188,7 +203,7 @@ score 和 minutes 均固定为0，包括有效学习。对话长度、题量和�
         return None
 
     payload = {
-        "model": MODEL_NAME,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
     }

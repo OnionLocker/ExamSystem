@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import db from '../db.js';
 import { unlinkDraftsOfSessions } from './practice.js';
+import { batchKnowledge, knowledgeCounts } from '../batchKnowledge.js';
 import { parseSqliteTime, sqliteTimeIso } from '../../src/sqliteTime.js';
 import { normalizeAnswer, judgeOptions } from '../../src/answers.js';
 
@@ -214,15 +215,28 @@ router.get('/meta/batches', (req, res) => {
        ) WHERE ${where.join(' AND ')}
        ORDER BY COALESCE(b.last_answered_at, r.imported_at, b.created_at, r.created_at) DESC`,
   ).all(...params);
+  const knowledge = knowledgeCounts(db);
   res.json(rows.map((row) => {
     const createdAt = sqliteTimeIso(row.created_at);
     const lastAnswered = sqliteTimeIso(row.last_answered_at);
     return {
       ...row,
+      knowledge_count: knowledge.get(row.batch_id) || 0,
       ...(createdAt ? { created_at: createdAt } : {}),
       ...(lastAnswered ? { last_answered_at: lastAnswered } : {}),
     };
   }));
+});
+
+// ─────────────────────────────────────────────
+// GET /api/questions/batch/:batchId/knowledge
+//   考点预热：这套题考了哪些三级知识点、各几题；每日复习卷带选点原因
+//   → { batch_id, total, points: [{ tag, title, count, reason }], plan }
+// ─────────────────────────────────────────────
+router.get('/batch/:batchId/knowledge', (req, res) => {
+  const result = batchKnowledge(db, req.params.batchId);
+  if (!result) return res.status(404).json({ error: '题组不存在或还没有题目' });
+  res.set('Cache-Control', 'no-store').json(result);
 });
 
 // ─────────────────────────────────────────────

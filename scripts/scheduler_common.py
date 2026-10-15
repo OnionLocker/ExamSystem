@@ -23,17 +23,17 @@ EXIT_ERROR = 1
 EXIT_USAGE = 2
 EXIT_LOCKED = 75
 
-# 日练计划已停，不再每天入库占位。
+# 成套日练（Hermes 会话出题）已停，不再每天入库占位：做不完只会堆在题库里。
 # 恢复某模块：把它从 PAUSED 拿掉，加回 MODULE_QUOTAS。
 #   ("判断推理", "panduan", 20),
-#   ("数量关系", "shuliang", 15),
 #   ("资料分析", "ziliao", 20),
 MODULE_QUOTAS = ()
+# 每日复习卷：不看调休日历，每天凌晨按遗忘曲线选点（daily_review_plan），直接走 quiz_lite 出题。
+REVIEW_QUOTAS = (("数量关系", "shuliang", 20),)
 PAUSED_DAILY_MODULES = frozenset({
     "言语理解与表达",
     "科学推理",
     "判断推理",
-    "数量关系",
     "资料分析",
 })
 ACTIVE_DAILY_MODULES = frozenset(module for module, _slug, _count in MODULE_QUOTAS)

@@ -261,6 +261,16 @@ CREATE TABLE IF NOT EXISTS ai_daily_batch_runs (
 CREATE INDEX IF NOT EXISTS idx_ai_daily_batch_runs_batch ON ai_daily_batch_runs(batch_id);
 CREATE INDEX IF NOT EXISTS idx_ai_daily_batch_runs_status ON ai_daily_batch_runs(plan_date, status);
 
+-- 每日复习卷的选点结果（scripts/daily_review_plan.py 写）：考点、题量、原因，练题页「考点预热」读
+CREATE TABLE IF NOT EXISTS daily_review_plans (
+  batch_id   TEXT PRIMARY KEY,
+  plan_date  TEXT NOT NULL,
+  module     TEXT NOT NULL,
+  plan_json  TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_daily_review_plans_day ON daily_review_plans(plan_date, module);
+
 CREATE TABLE IF NOT EXISTS review_modules (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT    NOT NULL,

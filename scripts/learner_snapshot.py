@@ -204,6 +204,27 @@ def plan_continuity(conn, today):
     return {"date": plans[0]["plan_date"] if plans else None, "items": latest[:8], "due_reviews": due[:5]}
 
 
+def daily_review_today(conn: sqlite3.Connection, today: dt.date) -> list[dict]:
+    """凌晨定时出的每日复习卷：今天这套几题、做了几题。排计划时算进当天任务。"""
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if not {"daily_review_plans", "questions", "practice_answers"} <= tables:
+        return []
+    rows = conn.execute(
+        """
+        SELECT p.batch_id, p.module,
+               (SELECT COUNT(*) FROM questions q WHERE q.batch_id = p.batch_id) AS total,
+               (SELECT COUNT(DISTINCT pa.question_id) FROM practice_answers pa
+                  JOIN questions q ON q.id = pa.question_id WHERE q.batch_id = p.batch_id) AS done
+          FROM daily_review_plans p
+         WHERE p.plan_date = ?
+         ORDER BY p.created_at
+        """,
+        (str(today),),
+    ).fetchall()
+    return [{"batch_id": batch_id, "module": module, "total": total, "done": done}
+            for batch_id, module, total, done in rows if total]
+
+
 def build_snapshot(conn: sqlite3.Connection) -> dict:
     conn.row_factory = sqlite3.Row
     recompute_mastery(conn)
@@ -349,6 +370,7 @@ def build_snapshot(conn: sqlite3.Connection) -> dict:
             for tag, count in mistake_counts.most_common(8)
         ],
         "plan_continuity": plan_continuity(conn, today),
+        "daily_review": daily_review_today(conn, today),
         "recent_sessions": recent_sessions,
         "recent_digest": recent_digest,
     }
@@ -705,6 +727,13 @@ def render_compact(snapshot: dict) -> str:
             for row in snapshot["recent_sessions"][:3]
         ]
         lines.append("最近练习：" + "；".join(bits))
+
+    for item in snapshot.get("daily_review") or []:
+        lines.append(
+            f"今日定时复习卷：{item['module']} 已做{item['done']}/{item['total']}（batch_id={item['batch_id']}，"
+            f"凌晨按遗忘曲线选点生成）。用户没另外点名时，排计划把它列为今天的{item['module']}任务、"
+            f"用这个 batch_id，不再另排{item['module']}专项。"
+        )
 
     # A4: 添加知识债详情
     debt_families = snapshot.get("open_mistake_families") or []

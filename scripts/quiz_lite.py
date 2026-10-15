@@ -48,6 +48,8 @@ from policy_sources import SOURCE_MODULES, source_pack
 
 MODEL = "gemini-3.8-flash-high"
 MAX_COUNT = 15
+# 凌晨的每日复习卷（batch_id 以 daily- 开头）整卷 20 题；Hermes 点名的专项仍是 15。
+DAILY_MAX_COUNT = 20
 DUP_RATIO = 0.82
 MODEL_AUDIT_DIR = ContextVar('quiz_model_audit_dir', default=None)
 # 选项开头的数值：整数、小数，或 5/16 这样的分数。带单位的「23个」也认。
@@ -1103,7 +1105,10 @@ def main() -> int:
         total = sum(int(slot["count"]) for slot in slots)
         if args.difficulty == 'auto' and module not in {'数量关系', '言语理解与表达', '判断推理', *SOURCE_MODULES}:
             raise ValueError('auto 难度目前仅用于数量关系、言语理解与表达、文字判断、政治理论和常识判断')
-        if total < 1 or total > MAX_COUNT:
+        if str(args.batch_id).startswith("daily-"):
+            if total < 1 or total > DAILY_MAX_COUNT:
+                raise SystemExit(f"每日复习卷题量必须是 1–{DAILY_MAX_COUNT}")
+        elif total < 1 or total > MAX_COUNT:
             raise SystemExit(f"专项题量必须是 1–{MAX_COUNT}；成套卷走日练")
         for slot in slots:
             reject_unsupported(module, str(slot["tag"]))

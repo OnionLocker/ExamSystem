@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckSquare,
   Clock,
+  Lightbulb,
   Loader2,
   RefreshCw,
   Sparkles,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api.js';
 import AIQuizSession from './AIQuizSession.jsx';
+import KnowledgePreview from '../knowledge/KnowledgePreview.jsx';
 import { MODULES, dailyDateOf, moduleOf, nameOf } from './practiceModules.js';
 import { parseSqliteTime } from '../sqliteTime.js';
 
@@ -42,6 +44,10 @@ const canDeleteBatch = (batch) => {
 };
 
 const createdOf = (batch) => batch.created_at || '';
+
+const actionOf = (batch) => (batch.last_session_id
+  ? '复盘'
+  : Number(batch.done_count) > 0 ? '继续练习' : '开始练习');
 
 const formatDotDate = (date) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return date || '';
@@ -159,6 +165,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const [errMsg, setErrMsg] = useState('');
   const [jobs, setJobs] = useState([]);
   const [queueOpen, setQueueOpen] = useState(false);
+  const [preview, setPreview] = useState(null);
   const handledInitial = useRef(null);
   const seenDone = useRef(new Set());
 
@@ -340,6 +347,19 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
   const openRedoPack = (pack) => {
     if (selecting) return;
     setActive({ redoPackId: pack.id, reviewSessionId: pack.last_session_id || null });
+  };
+
+  // 考点预热：先看这套题考的知识点，看完从浮框直接进题
+  const openPreview = (batch, event) => {
+    event.stopPropagation();
+    setPreview({ batch, loading: true, points: [], error: '', plan: null });
+    api(`/api/questions/batch/${encodeURIComponent(batch.batch_id)}/knowledge`)
+      .then((data) => setPreview((current) => (current?.batch.batch_id === batch.batch_id
+        ? { ...current, loading: false, points: data?.points || [], plan: data?.plan || null }
+        : current)))
+      .catch((error) => setPreview((current) => (current?.batch.batch_id === batch.batch_id
+        ? { ...current, loading: false, error: error?.message || '知识点读取失败' }
+        : current)));
   };
 
   const requestDelete = (batch, event) => {
@@ -655,9 +675,7 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
             const isDeleting = Boolean(deleting);
             const checked = selected.has(batch.batch_id);
             const interactive = selecting || canOpen;
-            const action = batch.last_session_id
-              ? '复盘'
-              : Number(batch.done_count) > 0 ? '继续练习' : '开始练习';
+            const action = actionOf(batch);
             const moduleName = moduleOf(batch);
 
             return (
@@ -719,6 +737,18 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
                       >
                         {meta.label}
                       </span>
+                      {!selecting && canOpen && Number(batch.knowledge_count) > 0 && (
+                        <button
+                          type="button"
+                          onClick={(event) => openPreview(batch, event)}
+                          onKeyDown={(event) => event.stopPropagation()}
+                          title="先看这套题考的知识点"
+                          className="flex items-center gap-1 rounded-full border border-[#c4ae7a] bg-[#f5eed8] px-2 py-0.5 text-[10px] font-black text-[#6b5428] transition-colors hover:border-[#1a1a1a] hover:text-[#1a1a1a]"
+                        >
+                          <Lightbulb size={11} />
+                          考点预热 {batch.knowledge_count}
+                        </button>
+                      )}
                     </div>
                     {canOpen ? (
                       <>
@@ -774,6 +804,24 @@ const AIQuizHome = ({ onAnalyzeWithHermes, initialBatchId, onInitialBatchHandled
             );
           })}
         </div>
+      )}
+
+      {preview && (
+        <KnowledgePreview
+          title={nameOf(preview.batch)}
+          subtitle={preview.loading ? '' : `这套 ${preview.batch.count || 0} 题考 ${preview.points.length} 个知识点${
+            preview.plan ? '，最该复习的排在前面' : ''}；右边是知识点页原文`}
+          points={preview.points}
+          loading={preview.loading}
+          error={preview.error}
+          startLabel={actionOf(preview.batch)}
+          onStart={() => {
+            const { batch } = preview;
+            setPreview(null);
+            openBatch(batch);
+          }}
+          onClose={() => setPreview(null)}
+        />
       )}
 
       {deleteTarget?.length > 0 && createPortal(
