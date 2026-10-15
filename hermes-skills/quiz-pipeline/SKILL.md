@@ -121,7 +121,7 @@ terminal({
 
 ### 2d. 申论（广东县级卷）
 
-用户报考县级卷。申论题不进 AI 练题，单独在网页「申论」页作答：用户手写拍照上传，后台把照片直接交给模型做两遍独立采点批改。
+用户报考县级卷。申论题不进 AI 练题，单独在网页「申论」页作答：每题手写拍照上传，写完整套点「交卷」。交卷不评分；用户在 Hermes 点「申论复盘」选一份交卷发送后，按消息里 [SHENLUN_REVIEW] 的步骤先后台评分、再点评。
 
 出题只调 `shenlun_quiz.py`（后台跑，2–5 分钟）：
 
@@ -134,11 +134,11 @@ terminal({
 })
 ```
 
-- 不给 `--types` 出整卷 5 题；单练某类题用 `--types 归纳概括` 或 `--types 提出对策,贯彻执行`。
+- 不给 `--types` 出整卷 5 题。题型特训用 `--types`：比如「练两道概括」就 `--types 归纳概括,归纳概括`，每道小题只配一份两三段的短材料；复盘时只交了哪类题就按哪类题的标准评。
 - `--theme` 是主题词（逗号分隔），程序只从命中这些词的原文段落里组材料；`--sources id1,id2` 可指定材料。先 `shenlun_quiz.py sources` 看可用材料。
 - 材料逐字摘自已登记原文（政策资料库 + 申论材料库），程序逐段核对；命题人出题和要点表，审核官独立复核，不合格的题重写，最多 3 轮。失败把 `message` 原样告诉用户。
 - 真题：grokbot 把试卷 JSON 放进 `data/shenlun-inbox/papers/`、材料链接放进 `data/shenlun-inbox/sources/`，运行 `shenlun_quiz.py ingest` 导入；没有要点表的真题会由命题人补建并复核。格式见 `gd-gongkao-coach/references/shenlun-grokbot.md`。
-- 讲评某次作答：`shenlun_quiz.py report --attempt <ID>` 取批改报告，按 `solver-canon/08-shenlun.md` 讲；分数以采点结果为准，「两遍有分歧」的要点要对照材料说明。
+- 复盘：评分脚本 `shenlun_grade.py grade --submission <ID>` 写报告到 `data/practice-reviews/shenlun/`；点评按 `gd-gongkao-coach/references/shenlun-review-standard.md`（用户维护的评判标准）和 `solver-canon/08-shenlun.md` 写，分数只认报告，「两遍有分歧」的要点对照材料说明但不改分。
 - 要点表和参考答案在用户交卷批改之后才显示，讲评前不要先把要点念给用户。
 
 ### 2c. 程序出图题（图形推理）

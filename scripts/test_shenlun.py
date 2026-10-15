@@ -12,6 +12,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import shenlun_common  # noqa: E402
 import shenlun_grade  # noqa: E402
 import shenlun_quiz  # noqa: E402
 from shenlun_common import check_rubric, connect, contains, load_paper, save_paper, word_count  # noqa: E402
@@ -92,49 +93,80 @@ class GradeTest(unittest.TestCase):
         save_paper(conn, {"id": "t-paper", "title": "测试卷", "kind": "ai", "materials": MATERIALS,
                           "questions": [question(GOOD)]})
         self.answer = "一、建立周末夜话制度，镇干部每周下村听意见。二、加强领导，压实责任。"
-        conn.execute("INSERT INTO shenlun_attempts (question_id, answer_text, status) VALUES ('t-paper-q1', ?, 'grading')",
-                     (self.answer,))
+        conn.execute("INSERT INTO shenlun_submissions (paper_id, time_spent_sec) VALUES ('t-paper', 600)")
+        conn.execute("INSERT INTO shenlun_attempts (question_id, answer_text, status, submission_id)"
+                     " VALUES ('t-paper-q1', ?, 'submitted', 1)", (self.answer,))
         conn.commit()
         self.conn = conn
+        self.review_dir = Path(self.tmp.name) / "reviews"
+        self.patch = mock.patch.object(shenlun_grade, "REVIEW_DIR", self.review_dir)
+        self.patch.start()
 
     def tearDown(self):
+        self.patch.stop()
         self.conn.close()
         self.tmp.cleanup()
 
-    def fake_passes(self, second_p1="hit", second_quote="建立周末夜话制度，镇干部每周下村听意见"):
+    def fake_passes(self, second_p1="hit"):
         first = {"points": [{"id": "P1", "verdict": "hit", "answer_quote": "建立周末夜话制度，镇干部每周下村听意见"},
                             {"id": "P2", "verdict": "hit", "answer_quote": "整合闲置农房发展民宿"}],
                  "expression": {"level": "A"}, "comment": "ok"}
-        second = {"points": [{"id": "P1", "verdict": second_p1, "answer_quote": second_quote},
+        second = {"points": [{"id": "P1", "verdict": second_p1, "answer_quote": "建立周末夜话制度，镇干部每周下村听意见"},
                              {"id": "P2", "verdict": "miss", "answer_quote": ""}],
                   "expression": {"level": "B"}}
         return iter([first, second])
 
-    def run_grade(self, passes):
-        with mock.patch.object(shenlun_grade, "call", side_effect=lambda *a, **k: next(passes)):
-            shenlun_grade.run_grade(self.conn, 1)
+    def run_grade(self, passes, params=None):
+        std = (shenlun_common.load_standard()[0], {**shenlun_common.DEFAULT_PARAMS, **(params or {})})
+        with mock.patch.object(shenlun_grade, "call", side_effect=lambda *a, **k: next(passes)), \
+                mock.patch.object(shenlun_grade, "load_standard", return_value=std), \
+                mock.patch.object(shenlun_grade, "ROOT", Path(self.tmp.name)):
+            out = shenlun_grade.grade_submission(self.conn, 1)
         row = self.conn.execute("SELECT * FROM shenlun_attempts WHERE id=1").fetchone()
-        return row, json.loads(row["grading"])
+        return out, row, json.loads(row["grading"])
 
     def test_invented_quote_does_not_score_and_lower_pass_wins(self):
-        row, g = self.run_grade(self.fake_passes())
+        out, row, g = self.run_grade(self.fake_passes())
         p1, p2 = g["points"]
         self.assertEqual((p1["verdict"], p1["earned"], p1["disputed"]), ("hit", 2.0, False))
         # 第一遍声称命中 P2，但引的句子答案里没有 → 按未命中；两遍都算 0
         self.assertEqual((p2["verdict"], p2["earned"]), ("miss", 0.0))
         self.assertEqual(g["expression"]["earned"], 0.5)  # A 与 B 取低
         self.assertEqual(row["score"], 2.5)
-        self.assertEqual(row["status"], "graded")
+        sub = self.conn.execute("SELECT * FROM shenlun_submissions WHERE id=1").fetchone()
+        self.assertEqual((sub["status"], sub["score"], sub["max_score"]), ("graded", 2.5, 5.0))
+        report = Path(out["report_path"]).read_text(encoding="utf-8")
+        self.assertIn("合计 2.5/5 分", report)
+        self.assertIn("P2 整合闲置农房", report)
 
-    def test_disagreement_is_flagged(self):
-        _, g = self.run_grade(self.fake_passes(second_p1="partial"))
+    def test_disagreement_follows_standard_params(self):
+        _, _, g = self.run_grade(self.fake_passes(second_p1="partial"))
         self.assertTrue(g["points"][0]["disputed"])
         self.assertEqual(g["points"][0]["earned"], 1.0)
-        self.assertTrue(any("判得不一样" in n for n in g["notes"]))
+        _, _, g = self.run_grade(self.fake_passes(second_p1="partial"), {"dispute_policy": "higher", "partial_ratio": 0.5})
+        self.assertEqual(g["points"][0]["earned"], 2.0)
+
+    def test_seal_needs_grading_and_comment_file(self):
+        comment = Path(self.tmp.name) / "点评.md"
+        comment.write_text("### 第1题 · 归纳概括\n" + "点评内容" * 20, encoding="utf-8")
+        with self.assertRaises(ValueError):
+            shenlun_grade.seal(self.conn, 1, str(comment))
+        self.run_grade(self.fake_passes())
+        shenlun_grade.seal(self.conn, 1, str(comment))
+        self.assertEqual(self.conn.execute("SELECT status FROM shenlun_submissions WHERE id=1").fetchone()[0], "reviewed")
 
     def test_paper_round_trip(self):
         paper = load_paper(self.conn, "t-paper")
         self.assertEqual(paper["questions"][0]["rubric"]["points"][0]["id"], "P1")
+
+
+class StandardTest(unittest.TestCase):
+    def test_standard_file_has_every_section_and_valid_params(self):
+        sections, params = shenlun_common.load_standard()
+        for name in ("评分参数", "通用", *shenlun_common.QTYPES, "点评要求"):
+            self.assertIn(name, sections)
+        self.assertEqual(len(params["essay_levels"]), 4)
+        self.assertIn("【提出对策】", shenlun_common.standard_for("提出对策"))
 
 
 if __name__ == "__main__":

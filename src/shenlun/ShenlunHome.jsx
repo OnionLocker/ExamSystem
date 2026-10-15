@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -11,8 +11,8 @@ import {
   Pause,
   Play,
   RefreshCw,
+  Send,
   Trash2,
-  Type,
   X,
 } from 'lucide-react';
 import { api, getToken } from '../api.js';
@@ -20,6 +20,13 @@ import { api, getToken } from '../api.js';
 const KIND_META = {
   zhenti: { label: '真题', className: 'border-[#6b5428] bg-[#f4e6c8] text-[#6b5428]' },
   ai: { label: 'AI 模拟', className: 'border-sky-200 bg-sky-50 text-sky-700' },
+};
+const SUBMISSION_STATUS = {
+  submitted: { label: '待复盘', className: 'bg-[#f4e6c8] text-[#6b5428]' },
+  grading: { label: '评分中', className: 'bg-amber-50 text-amber-700' },
+  graded: { label: '已评分', className: 'bg-sky-50 text-sky-700' },
+  reviewed: { label: '已复盘', className: 'bg-[#1a1a1a] text-[#7dffb3]' },
+  failed: { label: '评分失败', className: 'bg-red-50 text-red-600' },
 };
 const VERDICT_CLASS = {
   hit: 'bg-green-50 text-green-700 border-green-200',
@@ -29,7 +36,10 @@ const VERDICT_CLASS = {
 
 const fmtClock = (sec) => {
   const s = Math.max(0, Math.floor(sec || 0));
-  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const h = Math.floor(s / 3600);
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 };
 const withToken = (src) => `${src}${src.includes('?') ? '&' : '?'}token=${encodeURIComponent(getToken())}`;
 const wordsLabel = (req) => {
@@ -37,7 +47,12 @@ const wordsLabel = (req) => {
   if (req?.words_max) return `≤ ${req.words_max} 字`;
   return null;
 };
-const busy = (attempt) => attempt?.status === 'grading';
+
+// 整套计时存在本机，切走再回来接着计
+const timerKey = (paperId) => `shenlun.timer.${paperId}`;
+const readTimer = (paperId) => {
+  try { return JSON.parse(localStorage.getItem(timerKey(paperId))) || { elapsed: 0 }; } catch { return { elapsed: 0 }; }
+};
 
 // ─── 列表 ─────────────────────────────────────────────────────
 
@@ -56,7 +71,7 @@ function PaperList({ onOpen }) {
   }, [version]);
 
   const remove = async (paper) => {
-    if (!window.confirm(`删除「${paper.title}」？作答照片和批改记录会一起删掉。`)) return;
+    if (!window.confirm(`删除「${paper.title}」？作答照片和评分记录会一起删掉。`)) return;
     await api(`/api/shenlun/papers/${encodeURIComponent(paper.id)}`, { method: 'DELETE' });
     load();
   };
@@ -70,7 +85,7 @@ function PaperList({ onOpen }) {
           </div>
           <div>
             <p className="text-base font-black text-[#1a1a1a]">申论 · 广东县级卷</p>
-            <p className="text-xs font-bold text-[#888]">手写拍照上传，按要点表采点批改；作文按档次评</p>
+            <p className="text-xs font-bold text-[#888]">每题拍照上传，写完整套交卷；评分和点评在 Hermes「申论复盘」里做</p>
           </div>
         </div>
         <button type="button" onClick={load} className="flex items-center gap-1.5 text-sm font-black text-[#6b5428]">
@@ -102,11 +117,12 @@ function PaperList({ onOpen }) {
               <p className="mt-1.5 text-xs font-bold text-[#888]">
                 {paper.question_count} 题 · {paper.total_score} 分
                 {paper.time_limit_min ? ` · 建议 ${paper.time_limit_min} 分钟` : ''}
-                {' · '}已批改 {paper.graded_questions}/{paper.question_count}
+                {paper.submissions ? ` · 已交卷 ${paper.submissions} 次` : ''}
+                {paper.drafts ? ` · 草稿 ${paper.drafts} 题` : ''}
               </p>
             </button>
             <button type="button" onClick={() => onOpen(paper.id)} className="text-sm font-black text-[#1a1a1a]">
-              {paper.graded_questions ? '继续 →' : '开始 →'}
+              {paper.drafts || paper.submissions ? '继续 →' : '开始 →'}
             </button>
             <button type="button" onClick={() => remove(paper)} className="text-[#ccc] hover:text-red-500" title="删除">
               <Trash2 size={16} />
@@ -118,7 +134,7 @@ function PaperList({ onOpen }) {
   );
 }
 
-// ─── 批改结果 ─────────────────────────────────────────────────
+// ─── 评分结果 ─────────────────────────────────────────────────
 
 function PointsResult({ grading }) {
   return (
@@ -175,54 +191,44 @@ function EssayResult({ grading }) {
   );
 }
 
-function AttemptView({ attempt, question, onRegrade, onDelete }) {
+function Photos({ images, onRemove }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {images.map((src, i) => (
+        <div key={src} className="relative">
+          <a href={withToken(src)} target="_blank" rel="noreferrer">
+            <img src={withToken(src)} alt="" className="h-28 w-auto rounded-xl border border-[#e8d5b0] object-cover" />
+          </a>
+          <span className="absolute left-1 top-1 rounded-md bg-black/60 px-1.5 text-[11px] font-black text-white">{i + 1}</span>
+          {onRemove && (
+            <button type="button" onClick={() => onRemove(i)} className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white">
+              <X size={12} />
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GradedAttempt({ attempt, question }) {
+  const [open, setOpen] = useState(false);
   const [showText, setShowText] = useState(false);
   const g = attempt.grading;
   return (
-    <div className="space-y-4 rounded-3xl border border-[#e8d5b0] bg-[#fffdf7] p-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs font-black text-[#888]">第 {attempt.id} 次作答 · {attempt.created_at}</span>
-        {attempt.time_spent_sec ? <span className="text-xs font-bold text-[#888]">用时 {fmtClock(attempt.time_spent_sec)}</span> : null}
-        <div className="ml-auto flex items-center gap-3">
-          {!busy(attempt) && (
-            <button type="button" onClick={onRegrade} className="text-xs font-black text-[#6b5428]">重新批改</button>
-          )}
-          <button type="button" onClick={onDelete} className="text-xs font-black text-[#bbb] hover:text-red-500">删除</button>
-        </div>
-      </div>
-
-      {attempt.images?.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto">
-          {attempt.images.map((src) => (
-            <a key={src} href={withToken(src)} target="_blank" rel="noreferrer">
-              <img src={withToken(src)} alt="" className="h-24 w-auto rounded-lg border border-[#e8d5b0] object-cover" />
-            </a>
-          ))}
-        </div>
-      )}
-
-      {busy(attempt) && (
-        <p className="flex items-center gap-2 text-sm font-bold text-[#6b5428]">
-          <Loader2 size={16} className="animate-spin" /> 正在批改（读照片、两遍独立采点），大约 1–3 分钟…
-        </p>
-      )}
-      {attempt.status === 'failed' && (
-        <p className="flex items-start gap-2 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" /> 批改失败：{attempt.error}
-        </p>
-      )}
-
-      {attempt.status === 'graded' && g && (
-        <>
-          <div className="flex items-end gap-3">
-            <span className="text-4xl font-black tabular-nums text-[#1a1a1a]">{attempt.score}</span>
-            <span className="pb-1 text-base font-black text-[#888]">/ {attempt.max_score} 分</span>
-            {attempt.word_count ? (
-              <span className="pb-1.5 text-xs font-bold text-[#888]">
-                约 {attempt.word_count} 字{wordsLabel(question.requirements) ? `（要求 ${wordsLabel(question.requirements)}）` : ''}
-              </span>
-            ) : null}
-          </div>
+    <div className="rounded-3xl border border-[#e8d5b0] bg-[#fffdf7] p-5">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-3 text-left">
+        <span className="text-3xl font-black tabular-nums text-[#1a1a1a]">{attempt.score}</span>
+        <span className="text-sm font-black text-[#888]">/ {attempt.max_score} 分</span>
+        <span className="text-xs font-bold text-[#888]">
+          交卷 #{attempt.submission_id}{attempt.word_count ? ` · 约 ${attempt.word_count} 字` : ''}
+          {wordsLabel(question.requirements) ? `（要求 ${wordsLabel(question.requirements)}）` : ''}
+        </span>
+        <ChevronDown size={16} className={`ml-auto text-[#6b5428] ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && g && (
+        <div className="mt-4 space-y-4">
+          {attempt.images?.length > 0 && <Photos images={attempt.images} />}
           {g.comment && <p className="text-sm font-bold leading-relaxed text-[#444]">{g.comment}</p>}
           {g.notes?.map((n) => (
             <p key={n} className="rounded-2xl bg-amber-50 px-4 py-2.5 text-xs font-bold leading-relaxed text-amber-800">{n}</p>
@@ -238,7 +244,7 @@ function AttemptView({ attempt, question, onRegrade, onDelete }) {
               )}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -248,21 +254,12 @@ function AttemptView({ attempt, question, onRegrade, onDelete }) {
 
 function QuestionPanel({ questionId, onChanged }) {
   const [detail, setDetail] = useState(null);
-  const [files, setFiles] = useState([]);
-  const [typing, setTyping] = useState(false);
-  const [typed, setTyped] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const [elapsed, setElapsed] = useState(0);
-  const [running, setRunning] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [version, setVersion] = useState(0);
   const fileRef = useRef(null);
-
-  const load = useCallback(async () => {
-    const data = await api(`/api/shenlun/questions/${encodeURIComponent(questionId)}`);
-    setDetail(data);
-    return data;
-  }, [questionId]);
+  const reload = () => setVersion((v) => v + 1);
 
   useEffect(() => {
     let cancelled = false;
@@ -270,68 +267,37 @@ function QuestionPanel({ questionId, onChanged }) {
       .then((data) => { if (!cancelled) setDetail(data); })
       .catch((e) => { if (!cancelled) setError(e.message || '加载失败'); });
     return () => { cancelled = true; };
-  }, [questionId]);
+  }, [questionId, version]);
 
-  useEffect(() => {
-    if (!running) return undefined;
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [running]);
-
-  // 批改在后台跑，有进行中的作答就轮询
-  const pending = detail?.attempts?.some(busy);
-  useEffect(() => {
-    if (!pending) return undefined;
-    const t = setInterval(async () => {
-      const data = await load();
-      if (!data.attempts.some(busy)) onChanged?.();
-    }, 4000);
-    return () => clearInterval(t);
-  }, [pending, load, onChanged]);
-
-  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
-  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
-
-  const submit = async () => {
-    if (!files.length && typed.trim().length < 20) {
-      setError(typing ? '答案太短' : '先拍照或选几张答题照片');
-      return;
-    }
-    setSubmitting(true); setError('');
+  const addPhotos = async (files) => {
+    if (!files.length) return;
+    setUploading(true); setError('');
     try {
       const fd = new FormData();
-      if (typing) fd.append('text', typed);
-      else files.forEach((f) => fd.append('photos', f));
-      fd.append('time_spent_sec', String(elapsed));
-      await api(`/api/shenlun/questions/${encodeURIComponent(questionId)}/attempts`, { method: 'POST', body: fd });
-      setFiles([]); setTyped(''); setRunning(false); setElapsed(0);
-      await load();
+      files.forEach((f) => fd.append('photos', f));
+      await api(`/api/shenlun/questions/${encodeURIComponent(questionId)}/photos`, { method: 'POST', body: fd });
+      reload();
       onChanged?.();
     } catch (e) {
-      setError(e.message || '提交失败');
+      setError(e.message || '上传失败');
     } finally {
-      setSubmitting(false);
+      setUploading(false);
     }
   };
-
-  const regrade = async (attempt) => {
-    await api(`/api/shenlun/attempts/${attempt.id}/grade`, { method: 'POST' });
-    load();
-  };
-  const removeAttempt = async (attempt) => {
-    if (!window.confirm('删除这次作答？')) return;
-    await api(`/api/shenlun/attempts/${attempt.id}`, { method: 'DELETE' });
-    await load();
+  const removePhoto = async (i) => {
+    await api(`/api/shenlun/attempts/${detail.draft.id}/photos/${i}`, { method: 'DELETE' });
+    reload();
     onChanged?.();
   };
   const reveal = async () => {
-    if (!detail.key_revealed && !window.confirm('还没交过答案，确定先看要点和参考答案吗？')) return;
+    if (!detail.key_revealed && !window.confirm('这道题还没评过分，确定先看要点和参考答案吗？')) return;
     if (!detail.key_revealed) setDetail(await api(`/api/shenlun/questions/${encodeURIComponent(questionId)}?reveal=1`));
     setShowKey((v) => !v);
   };
 
   if (!detail) return <div className="flex justify-center py-16 text-[#888]"><Loader2 className="animate-spin" /></div>;
   const req = detail.requirements || {};
+  const graded = detail.attempts.filter((a) => a.status === 'graded');
 
   return (
     <div className="space-y-5">
@@ -347,93 +313,41 @@ function QuestionPanel({ questionId, onChanged }) {
         <p className="mt-3 whitespace-pre-wrap text-[17px] font-medium leading-[1.9] text-[#1a1a1a]">{detail.prompt}</p>
       </div>
 
-      <div className="space-y-4 rounded-3xl border border-[#e8d5b0] bg-white p-5">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="space-y-3 rounded-3xl border border-[#e8d5b0] bg-white p-5">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => { addPhotos(Array.from(e.target.files || [])); e.target.value = ''; }}
+        />
+        <div className="flex flex-wrap gap-2">
+          {detail.draft?.images?.length > 0 && <Photos images={detail.draft.images} onRemove={removePhoto} />}
           <button
             type="button"
-            onClick={() => setRunning((v) => !v)}
-            className="flex items-center gap-1.5 rounded-xl border border-[#e8d5b0] px-3 py-2 text-sm font-black text-[#1a1a1a]"
+            disabled={uploading}
+            onClick={() => fileRef.current?.click()}
+            className="flex h-28 w-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#d9c39a] text-xs font-black text-[#6b5428] disabled:opacity-50"
           >
-            {running ? <Pause size={14} /> : <Play size={14} />}
-            <Clock size={14} /> {fmtClock(elapsed)}
+            {uploading ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+            {uploading ? '上传中' : '加照片'}
           </button>
-          <div className="ml-auto flex rounded-xl border border-[#e8d5b0] p-0.5 text-xs font-black">
-            <button type="button" onClick={() => setTyping(false)} className={`flex items-center gap-1 rounded-lg px-3 py-1.5 ${!typing ? 'bg-[#1a1a1a] text-white' : 'text-[#888]'}`}>
-              <Camera size={13} /> 拍照
-            </button>
-            <button type="button" onClick={() => setTyping(true)} className={`flex items-center gap-1 rounded-lg px-3 py-1.5 ${typing ? 'bg-[#1a1a1a] text-white' : 'text-[#888]'}`}>
-              <Type size={13} /> 打字
-            </button>
-          </div>
         </div>
-
-        {typing ? (
-          <div>
-            <textarea
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              rows={10}
-              placeholder="直接输入答案"
-              className="w-full rounded-2xl border border-[#e8d5b0] bg-[#fffdf7] p-4 text-[15px] leading-relaxed outline-none focus:border-[#6b5428]"
-            />
-            <p className="mt-1 text-right text-xs font-bold text-[#888]">{typed.replace(/\s+/g, '').length} 字</p>
-          </div>
-        ) : (
-          <div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => { setFiles((prev) => [...prev, ...Array.from(e.target.files || [])].slice(0, 12)); e.target.value = ''; }}
-            />
-            <div className="flex flex-wrap gap-2">
-              {previews.map((src, i) => (
-                <div key={src} className="relative">
-                  <img src={src} alt="" className="h-28 w-auto rounded-xl border border-[#e8d5b0] object-cover" />
-                  <span className="absolute left-1 top-1 rounded-md bg-black/60 px-1.5 text-[11px] font-black text-white">{i + 1}</span>
-                  <button
-                    type="button"
-                    onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                    className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex h-28 w-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#d9c39a] text-xs font-black text-[#6b5428]"
-              >
-                <Camera size={20} /> 加照片
-              </button>
-            </div>
-            <p className="mt-2 text-xs font-medium text-[#888]">按答题顺序拍，一页一张，拍正、拍清楚格子里的字。</p>
-          </div>
-        )}
-
+        <p className="text-xs font-medium text-[#888]">
+          {detail.draft?.images?.length
+            ? `本题已存 ${detail.draft.images.length} 张，写完整套后点上方「交卷」。`
+            : '按答题顺序拍，一页一张，拍正、拍清楚格子里的字。照片会马上保存。'}
+        </p>
         {error && <p className="text-sm font-bold text-red-600">{error}</p>}
-        <button
-          type="button"
-          disabled={submitting || pending}
-          onClick={submit}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#1a1a1a] py-3 text-sm font-black text-white disabled:opacity-40"
-        >
-          {submitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-          交卷批改
-        </button>
       </div>
 
-      {detail.attempts.map((a) => (
-        <AttemptView key={a.id} attempt={a} question={detail} onRegrade={() => regrade(a)} onDelete={() => removeAttempt(a)} />
-      ))}
+      {graded.map((a) => <GradedAttempt key={a.id} attempt={a} question={detail} />)}
 
       <div className="rounded-3xl border border-[#e8d5b0] bg-white p-5">
         <button type="button" onClick={reveal} className="flex items-center gap-1.5 text-sm font-black text-[#6b5428]">
           <ChevronDown size={16} className={showKey ? 'rotate-180' : ''} /> 要点表与参考答案
-          {!detail.key_revealed && <span className="text-xs font-bold text-[#aaa]">（交卷批改后再看）</span>}
+          {!detail.key_revealed && <span className="text-xs font-bold text-[#aaa]">（评分后再看）</span>}
         </button>
         {showKey && detail.rubric && (
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-[#444]">
@@ -464,11 +378,32 @@ function QuestionPanel({ questionId, onChanged }) {
 
 // ─── 整卷 ─────────────────────────────────────────────────────
 
+function Submissions({ submissions }) {
+  if (!submissions?.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {submissions.map((s) => {
+        const meta = SUBMISSION_STATUS[s.status] || SUBMISSION_STATUS.submitted;
+        return (
+          <span key={s.id} className="flex items-center gap-2 rounded-2xl border border-[#e8d5b0] bg-white px-3 py-2 text-xs font-bold text-[#444]">
+            交卷 #{s.id} · {s.answered} 题
+            {s.score != null && <span className="font-black text-[#1a1a1a]">{s.score}/{s.max_score}</span>}
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${meta.className}`}>{meta.label}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function PaperView({ paperId, onBack }) {
   const [paper, setPaper] = useState(null);
   const [current, setCurrent] = useState(null);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
+  const [timer, setTimer] = useState(() => readTimer(paperId));
+  const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState('');
   const load = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
@@ -483,10 +418,37 @@ function PaperView({ paperId, onBack }) {
     return () => { cancelled = true; };
   }, [paperId, version]);
 
+  useEffect(() => {
+    localStorage.setItem(timerKey(paperId), JSON.stringify(timer));
+    if (!timer.running) return undefined;
+    const t = setInterval(() => setTimer((s) => ({ ...s, elapsed: s.elapsed + 1 })), 1000);
+    return () => clearInterval(t);
+  }, [paperId, timer]);
+
   if (error) return <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>;
   if (!paper) return <div className="flex justify-center py-16 text-[#888]"><Loader2 className="animate-spin" /></div>;
   const active = paper.questions.find((q) => q.id === current);
   const scope = active?.requirements?.material_ids || [];
+  const drafted = paper.questions.filter((q) => q.draft?.images?.length);
+
+  const submit = async () => {
+    const missing = paper.questions.filter((q) => !q.draft?.images?.length).map((q) => `第${q.no}题`);
+    const tip = missing.length ? `\n${missing.join('、')}没有照片，不计分。` : '';
+    if (!window.confirm(`交卷：共 ${drafted.length} 题有照片，用时 ${fmtClock(timer.elapsed)}。${tip}\n交卷后照片不能再改。`)) return;
+    setSubmitting(true); setNotice('');
+    try {
+      const sub = await api(`/api/shenlun/papers/${encodeURIComponent(paperId)}/submit`, {
+        method: 'POST', body: { time_spent_sec: timer.elapsed },
+      });
+      setTimer({ elapsed: 0, running: false });
+      setNotice(`已交卷 #${sub.id}（${sub.answered} 题）。去 Hermes 点「申论复盘」，选这份交卷发送，就开始评分和点评。`);
+      load();
+    } catch (e) {
+      setNotice(e.message || '交卷失败');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -495,26 +457,49 @@ function PaperView({ paperId, onBack }) {
           <ArrowLeft size={16} /> 试卷列表
         </button>
         <p className="min-w-0 flex-1 truncate text-sm font-black text-[#1a1a1a]">{paper.title}</p>
+        <button
+          type="button"
+          onClick={() => setTimer((s) => ({ ...s, running: !s.running }))}
+          className="flex items-center gap-1.5 rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm font-black text-[#1a1a1a]"
+          title="整套计时"
+        >
+          {timer.running ? <Pause size={14} /> : <Play size={14} />}
+          <Clock size={14} /> {fmtClock(timer.elapsed)}
+          {paper.time_limit_min ? <span className="text-xs font-bold text-[#888]">/ {paper.time_limit_min} 分钟</span> : null}
+        </button>
+        <button
+          type="button"
+          disabled={submitting || !drafted.length}
+          onClick={submit}
+          className="flex items-center gap-1.5 rounded-xl bg-[#1a1a1a] px-4 py-2 text-sm font-black text-white disabled:opacity-40"
+        >
+          {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          交卷（{drafted.length}/{paper.questions.length} 题）
+        </button>
       </div>
+      {notice && (
+        <p className="flex items-start gap-2 rounded-2xl bg-[#f4e6c8] px-4 py-3 text-sm font-bold text-[#6b5428]">
+          {notice.startsWith('已交卷') ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 shrink-0" />}
+          {notice}
+        </p>
+      )}
+      <Submissions submissions={paper.submissions} />
       <div className="flex flex-wrap gap-2">
-        {paper.questions.map((q) => {
-          const a = q.latest_attempt;
-          return (
-            <button
-              key={q.id}
-              type="button"
-              onClick={() => setCurrent(q.id)}
-              className={`rounded-2xl border px-4 py-2.5 text-sm font-black ${
-                q.id === current ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white' : 'border-[#e8d5b0] bg-white text-[#1a1a1a]'
-              }`}
-            >
-              {q.no}. {q.qtype}
-              <span className="ml-2 text-xs font-bold opacity-70">
-                {a?.status === 'graded' ? `${a.score}/${a.max_score}` : busy(a) ? '批改中' : `${q.requirements.score}分`}
-              </span>
-            </button>
-          );
-        })}
+        {paper.questions.map((q) => (
+          <button
+            key={q.id}
+            type="button"
+            onClick={() => setCurrent(q.id)}
+            className={`rounded-2xl border px-4 py-2.5 text-sm font-black ${
+              q.id === current ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white' : 'border-[#e8d5b0] bg-white text-[#1a1a1a]'
+            }`}
+          >
+            {q.no}. {q.qtype}
+            <span className="ml-2 text-xs font-bold opacity-70">
+              {q.draft?.images?.length ? `${q.draft.images.length} 张` : q.last_graded ? `${q.last_graded.score}/${q.last_graded.max_score}` : `${q.requirements.score}分`}
+            </span>
+          </button>
+        ))}
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="max-h-[calc(100vh-220px)] space-y-5 overflow-y-auto rounded-3xl border border-[#e8d5b0] bg-white p-5 lg:sticky lg:top-0">
@@ -539,6 +524,6 @@ function PaperView({ paperId, onBack }) {
 export default function ShenlunHome() {
   const [paperId, setPaperId] = useState(null);
   return paperId
-    ? <PaperView paperId={paperId} onBack={() => setPaperId(null)} />
+    ? <PaperView key={paperId} paperId={paperId} onBack={() => setPaperId(null)} />
     : <PaperList onOpen={setPaperId} />;
 }

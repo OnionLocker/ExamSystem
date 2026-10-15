@@ -6,7 +6,8 @@
   ingest     处理 grokbot 收件箱：data/shenlun-inbox/sources/*.json 抓原文登记，papers/*.json 导入
   add-source 登记一篇申论材料原文（新闻报道、评论、调研、政策文件）
   sources    列出可用材料
-  report     打印某次作答的批改报告（Markdown），Hermes 讲评用
+
+评分与复盘在 shenlun_grade.py（Hermes「申论复盘」调用）。
 
 用法：
   python3 scripts/shenlun_quiz.py generate --batch-id 20261015_hermes_申论_01 --theme 百千万工程,乡村振兴
@@ -170,10 +171,19 @@ REVIEWER = """你是广东省考申论阅卷组长，独立复核命题人交来
 只输出 JSON：{"questions":[{"no":1,"verdict":"PASS","issues":[],"missing_points":[]}]}；有任何实质问题就 REJECT 并写明。"""
 
 
-def compose_materials(pool: list[dict], pool_text: str, layout: list[dict], audit: Path) -> tuple[str, list[dict]]:
-    n = 5 if len(layout) >= 4 else max(1, len(layout) + 1)
-    chars = "5000 到 7000" if len(layout) >= 4 else "1500 到 3000"
-    result = call(COMPOSER.format(n_materials=n, chars=chars), "段落池：\n" + pool_text, temperature=0.4, audit=audit)
+def compose_materials(pool: list[dict], pool_text: str, layout: list[dict], audit: Path,
+                      theme: list[str] | None = None) -> tuple[str, list[dict]]:
+    # 整卷 5 份材料；题型特训只出够这几道题用的短材料（一道小题一份、两三段）
+    essay = any(s["qtype"] == "文章写作" for s in layout)
+    if len(layout) >= 4:
+        n, chars = 5, "5000 到 7000"
+    elif essay:
+        n, chars = 3, "2500 到 4000"
+    else:
+        n, chars = len(layout), f"{600 * len(layout)} 到 {1200 * len(layout)}"
+    focus = (f"本次指定主题：{'、'.join(theme)}。材料必须直接讲这个主题，不要选只是顺带提到主题词的段落。\n\n"
+             if theme else "")
+    result = call(COMPOSER.format(n_materials=n, chars=chars), focus + "段落池：\n" + pool_text, temperature=0.4, audit=audit)
     by_ref = {p["ref"]: p for p in pool}
     materials, dropped = [], []
     for m_index, item in enumerate(result.get("materials") or [], 1):
@@ -195,7 +205,7 @@ def compose_materials(pool: list[dict], pool_text: str, layout: list[dict], audi
     total = sum(len(p["text"]) for m in materials for p in m["paragraphs"])
     if dropped and len(dropped) > 3:
         raise RuntimeError(f"材料编辑有 {len(dropped)} 处摘录不是原文（{dropped[:5]}），本次停止")
-    if not materials or total < (3000 if len(layout) >= 4 else 800):
+    if not materials or total < (3000 if len(layout) >= 4 else 400):
         raise RuntimeError(f"组出的材料只有 {total} 字，不够出题")
     return str(result.get("theme") or ""), materials
 
@@ -332,7 +342,7 @@ def cmd_generate(args) -> dict:
     audit = out_dir / "audit"
     started = time.monotonic()
     pool, pool_text = build_pool(all_sources(), ids, theme)
-    topic, materials = compose_materials(pool, pool_text, layout, audit)
+    topic, materials = compose_materials(pool, pool_text, layout, audit, theme)
     questions, history = write_and_review(materials, layout, audit, rounds=args.rounds,
                                           hints=f"\n整卷主题：{topic}" if topic else "")
     full = len(layout) == len(DEFAULT_LAYOUT)
@@ -454,38 +464,6 @@ def cmd_ingest(db=None) -> dict:
     return {"status": "success" if not done["errors"] else "partial", **done}
 
 
-def report(attempt_id: int, db=None) -> str:
-    conn = connect(db)
-    row = conn.execute("SELECT * FROM shenlun_attempts WHERE id=?", (attempt_id,)).fetchone()
-    if row is None:
-        raise ValueError("没有这次作答")
-    q = conn.execute("SELECT * FROM shenlun_questions WHERE id=?", (row["question_id"],)).fetchone()
-    paper = load_paper(conn, q["paper_id"])
-    question = next(x for x in paper["questions"] if x["id"] == q["id"])
-    grading = json.loads(row["grading"] or "{}")
-    lines = [f"# 申论批改报告：{paper['title']} 第{question['no']}题（{question['qtype']}）", "",
-             f"- 作答 ID：{attempt_id}；得分 {row['score']}/{row['max_score']}；字数 {row['word_count']}"
-             f"（上限 {question['requirements'].get('words_max')}）；用时 {row['time_spent_sec'] or '未记'} 秒", "",
-             "## 设问", question["prompt"], "", "## 考生作答（阅卷人从照片转写或直接输入）", row["answer_text"] or "", ""]
-    if grading.get("kind") == "points":
-        lines += ["## 采点结果", "| 要点 | 分值 | 得分 | 判定 | 考生原句 | 材料依据 |", "|---|---|---|---|---|---|"]
-        for p in grading["points"]:
-            ev = "；".join(f"{e['para']}「{e['quote']}」" for e in p.get("evidence") or [])
-            lines.append(f"| {p['id']} {p['text']} | {p['score']:g} | {p['earned']:g} | {p['verdict_text']}"
-                         f"{'（两遍有分歧）' if p.get('disputed') else ''} | {p.get('answer_quote') or '—'} | {ev} |")
-        for key in ("format", "expression"):
-            if grading.get(key):
-                lines.append(f"\n{grading[key]['label']}：{grading[key]['earned']:g}/{grading[key]['score']:g}"
-                             f"——{grading[key].get('reason', '')}")
-    elif grading.get("kind") == "essay":
-        lines += [f"## 作文档次：{grading['level']}（{grading['earned']:g}/{grading['score']:g}）", ""]
-        for d in grading["dimensions"]:
-            lines.append(f"- {d['name']}：{d['level']}——{d.get('reason', '')}")
-    if grading.get("notes"):
-        lines += ["", "## 其他", *[f"- {n}" for n in grading["notes"]]]
-    if question.get("reference_answer"):
-        lines += ["", "## 参考答案", question["reference_answer"]]
-    return "\n".join(lines)
 
 
 def main(argv=None) -> int:
@@ -505,8 +483,6 @@ def main(argv=None) -> int:
     a = sub.add_parser("add-source")
     a.add_argument("spec", help='{"id","title","url","published_at","publisher?","tags?","focus?"}，内联或 @路径')
     sub.add_parser("sources")
-    r = sub.add_parser("report")
-    r.add_argument("--attempt", type=int, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "generate":
@@ -524,8 +500,7 @@ def main(argv=None) -> int:
                                    "origin": s["origin"], "chars": sum(map(len, s["paragraphs"]))}
                                   for s in all_sources().values()]}
         else:
-            print(report(args.attempt, args.db))
-            return 0
+            raise ValueError(f"未知命令：{args.command}")
     except Exception as exc:  # noqa: BLE001
         print(json.dumps({"status": "error", "error": str(exc)[:2000], "message": f"失败：{str(exc)[:600]}"},
                          ensure_ascii=False))

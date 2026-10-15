@@ -638,6 +638,26 @@ CREATE TABLE IF NOT EXISTS shenlun_attempts (
   updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_shenlun_attempts_q ON shenlun_attempts(question_id);
+CREATE TABLE IF NOT EXISTS shenlun_submissions (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  paper_id       TEXT NOT NULL REFERENCES shenlun_papers(id) ON DELETE CASCADE,
+  status         TEXT NOT NULL DEFAULT 'submitted',
+  time_spent_sec INTEGER,
+  score          REAL,
+  max_score      REAL,
+  report_path    TEXT,
+  comment_path   TEXT,
+  error          TEXT,
+  created_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `);
+{
+  // 草稿的 submission_id 为空；交卷后挂到 shenlun_submissions
+  const cols = new Set(db.prepare('PRAGMA table_info(shenlun_attempts)').all().map((c) => c.name));
+  if (!cols.has('submission_id')) {
+    db.exec('ALTER TABLE shenlun_attempts ADD COLUMN submission_id INTEGER REFERENCES shenlun_submissions(id) ON DELETE CASCADE');
+  }
+}
 
 export default db;

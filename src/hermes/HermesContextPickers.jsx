@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ChevronRight, Loader2, RefreshCw, ScanSearch, Target, Upload, X,
+  ChevronRight, Loader2, NotebookPen, RefreshCw, ScanSearch, Target, Upload, X,
 } from 'lucide-react';
 import { MODULES, dailyDateOf, moduleOf } from '../aiPractice/practiceModules.js';
 import { parseSqliteTime } from '../sqliteTime.js';
@@ -67,6 +67,11 @@ export default function HermesContextPickers({
   attachPractice,
   attaching,
   loadPracticeRuns,
+  showShenlun = false,
+  setShowShenlun = () => {},
+  shenlunLoading = false,
+  shenlunSubmissions = [],
+  attachShenlun = () => {},
 }) {
   const [reviewKind, setReviewKind] = useState('zhenti');
   const [practiceKind, setPracticeKind] = useState('practice');
@@ -193,6 +198,70 @@ export default function HermesContextPickers({
             <div className="px-5 py-3 border-t border-black/5">
               <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
                 不是上传。选一场已完成的复盘，会带上报告（PDF 判分、录屏行为记录、各题草稿）。不占输入框。发送后还在这个会话里接着聊。
+              </p>
+            </div>
+          </div>
+        </ModalShell>,
+        document.body,
+      )}
+
+      {showShenlun && createPortal(
+        <ModalShell>
+          <button
+            type="button"
+            aria-label="关闭"
+            onClick={() => setShowShenlun(false)}
+            className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+          />
+          <div className="relative w-full max-w-lg max-h-[80vh] flex flex-col rounded-3xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/5">
+              <div className="flex items-center space-x-2">
+                <NotebookPen size={15} className="text-[#6b5428]" />
+                <span className="text-xs font-black uppercase tracking-widest text-[#1a1a1a]">
+                  选一份申论交卷复盘
+                </span>
+              </div>
+              <button
+                onClick={() => setShowShenlun(false)}
+                className="p-1.5 rounded-lg text-[#bbb] hover:text-[#1a1a1a] hover:bg-black/5 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {shenlunLoading && shenlunSubmissions.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb]">加载中…</p>
+              )}
+              {!shenlunLoading && shenlunSubmissions.length === 0 && (
+                <p className="px-1 py-6 text-center text-[11px] font-bold text-[#bbb] leading-relaxed">
+                  还没有申论交卷。<br />去侧栏「申论」每题拍照上传，写完点「交卷」。
+                </p>
+              )}
+              {shenlunSubmissions.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => attachShenlun(sub)}
+                  disabled={attaching}
+                  className="w-full text-left px-3.5 py-3 rounded-2xl bg-[#faf9f6] hover:bg-[#1a1a1a] hover:text-white transition-colors group disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs font-black italic truncate">{sub.paper_title}</div>
+                    <span className={`shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-full ${
+                      sub.status === 'reviewed' ? 'bg-black text-[#7dffb3]' : 'bg-[#f4e6c8] text-[#6b5428]'
+                    }`}>
+                      {{ submitted: '待复盘', grading: '评分中', graded: '已评分待点评', reviewed: '已复盘', failed: '评分失败' }[sub.status] || sub.status}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-bold text-[#bbb] group-hover:text-white/50 mt-0.5">
+                    交卷 #{sub.id} · {fmtDateTime(sub.created_at)} · 交了 {sub.answered}/{sub.question_count} 题（{sub.answered_labels}）
+                    {sub.score != null ? ` · ${sub.score}/${sub.max_score} 分` : ''}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="px-5 py-3 border-t border-black/5">
+              <p className="text-[10px] font-bold text-[#bbb] leading-relaxed">
+                发送后 Hermes 先在后台按评判标准给每道题采点打分（几分钟），再逐题点评。只交了一道题就按这类题的标准单独复盘。
               </p>
             </div>
           </div>

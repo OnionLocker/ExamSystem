@@ -79,7 +79,30 @@ CREATE TABLE IF NOT EXISTS shenlun_attempts (
   updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_shenlun_attempts_q ON shenlun_attempts(question_id);
+CREATE TABLE IF NOT EXISTS shenlun_submissions (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  paper_id       TEXT NOT NULL REFERENCES shenlun_papers(id) ON DELETE CASCADE,
+  status         TEXT NOT NULL DEFAULT 'submitted', -- submitted/grading/graded/reviewed/failed
+  time_spent_sec INTEGER,
+  score          REAL,
+  max_score      REAL,
+  report_path    TEXT,
+  comment_path   TEXT,
+  error          TEXT,
+  created_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
+STANDARD = ROOT / "hermes-skills" / "gd-gongkao-coach" / "references" / "shenlun-review-standard.md"
+REVIEW_DIR = ROOT / "data" / "practice-reviews" / "shenlun"
+DEFAULT_PARAMS = {
+    "partial_ratio": 0.5,
+    "expression_levels": {"A": 1.0, "B": 0.5, "C": 0.0},
+    "dispute_policy": "lower",
+    "essay_levels": [{"name": n, "min": lo, "max": hi} for n, lo, hi in ESSAY_LEVELS],
+    "essay_off_topic_level": "四类文",
+    "overflow_note_only": True,
+}
 
 
 def connect(db: Path | str | None = None) -> sqlite3.Connection:
@@ -87,7 +110,35 @@ def connect(db: Path | str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(shenlun_attempts)")}
+    if "submission_id" not in cols:  # 草稿 submission_id 为空；交卷后挂到 shenlun_submissions
+        conn.execute("ALTER TABLE shenlun_attempts ADD COLUMN submission_id INTEGER REFERENCES shenlun_submissions(id) ON DELETE CASCADE")
+        conn.commit()
     return conn
+
+
+def load_standard() -> tuple[dict[str, str], dict]:
+    """读用户维护的评判标准：按 `## 标题` 切段，「评分参数」里的 JSON 代码块作程序参数。"""
+    text = STANDARD.read_text(encoding="utf-8") if STANDARD.exists() else ""
+    sections: dict[str, str] = {}
+    for chunk in re.split(r"(?m)^## ", text)[1:]:
+        title, _, body = chunk.partition("\n")
+        sections[title.strip()] = body.strip()
+    params = dict(DEFAULT_PARAMS)
+    found = re.search(r"```json\s*(\{.*?\})\s*```", sections.get("评分参数", ""), re.S)
+    if found:
+        try:
+            params.update(json.loads(found.group(1)))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"评判标准里「评分参数」的 JSON 写错了：{exc}") from exc
+    return sections, params
+
+
+def standard_for(qtype: str) -> str:
+    sections, _ = load_standard()
+    parts = [f"【通用】\n{sections['通用']}" if sections.get("通用") else "",
+             f"【{qtype}】\n{sections[qtype]}" if sections.get(qtype) else ""]
+    return "\n\n".join(p for p in parts if p)
 
 
 # ---------------------------------------------------------------- 文本

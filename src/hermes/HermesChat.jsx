@@ -7,7 +7,7 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import { useLocation } from 'react-router-dom';
 import {
   Send, Square, MessageSquare, Loader2, Brain, X, Image as ImageIcon,
-  ScanSearch, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
+  ScanSearch, NotebookPen, Upload, Maximize2, Minimize2, Expand, Shrink, FileText, Mic,
   PictureInPicture2, Check, Plus,
 } from 'lucide-react';
 
@@ -432,6 +432,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [showReview, setShowReview] = useState(false);
   const [examReviews, setExamReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  // 「申论复盘」：选一份申论交卷，发送后 Hermes 先跑评分脚本再点评
+  const [showShenlun, setShowShenlun] = useState(false);
+  const [shenlunSubmissions, setShenlunSubmissions] = useState([]);
+  const [shenlunLoading, setShenlunLoading] = useState(false);
   const [runsLoading, setRunsLoading] = useState(false);
   const [attaching, setAttaching] = useState(false);
   const [pendingReview, setPendingReview] = useState(null);
@@ -493,6 +497,16 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       setReviewMd(['粉笔练习卷（资料上传）', '', review.path || review.name || ''].join('\n'));
     } else if (review.kind === 'debt') {
       setReviewMd(review.instruction);
+    } else if (review.kind === 'shenlun') {
+      api(`/api/shenlun/submissions/${review.id}`)
+        .then((sub) => setReviewMd(sub.report_markdown || [
+          `申论交卷 #${sub.id}：${sub.paper_title}`,
+          '',
+          `交了 ${sub.answered}/${sub.question_count} 题：${sub.answered_labels || ''}`,
+          '',
+          '还没评分。发送后 Hermes 会先在后台评分，再逐题点评。',
+        ].join('\n')))
+        .catch((err) => setReviewMdErr(err.message || 'failed'));
     }
     setReviewPreview(review);
   }, []);
@@ -505,7 +519,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   useEffect(() => {
     if (!reviewPreview) return undefined;
-    if (reviewPreview.kind === 'upload' || reviewPreview.kind === 'debt') return undefined;
+    if (['upload', 'debt', 'shenlun'].includes(reviewPreview.kind)) return undefined;
     if (!reviewPreview?.id) return undefined;
     let cancelled = false;
     const practice = reviewPreview.kind === 'practice';
@@ -1530,13 +1544,28 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           '',
         ].join('\n')
       : '';
+    const shenlunReviewLead = review?.kind === 'shenlun'
+      ? [
+          `[SHENLUN_REVIEW] 这是我的申论交卷 #${review.id}《${review.title}》，交了 ${review.answered} 题（${review.answeredLabels || ''}），请评分并复盘。`,
+          '第 1 步 评分：' + (['graded', 'reviewed'].includes(review.status)
+            ? `这份已经评过分，跳过评分，直接用已有报告 ${projectRoot}/data/practice-reviews/shenlun/submission-${review.id}.md。`
+            : `用 terminal 后台运行（background: true, notify_on_complete: true，约 2–5 分钟）：python3 ${projectRoot}/scripts/shenlun_grade.py grade --submission ${review.id} 。等完成通知，不要轮询，不要自己看照片打分。失败就把 message 原样告诉我，不要自己补评。`),
+          `第 2 步 读报告：打开命令返回的 report_path（${projectRoot}/data/practice-reviews/shenlun/submission-${review.id}.md）。分数、每个要点命中与否只认报告，禁止改分。`,
+          `第 3 步 读口径：打开 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/shenlun-review-standard.md（「点评要求」和对应题型章节）与 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/solver-canon/08-shenlun.md，按其中的版式和步骤逐题点评。只交了的题才讲；只交一道题时按这一类题的标准单独复盘。`,
+          `第 4 步 存档：点评写完后，把点评全文用 write_file 存到 ${projectRoot}/data/practice-reviews/shenlun/submission-${review.id}-点评.md，再运行 python3 ${projectRoot}/scripts/shenlun_grade.py seal --submission ${review.id} --comment 该文件路径。这一步不要在回答里提。`,
+          '回答正文第一行就是第一道题的标题，不写开场白、不写总评。',
+          '[/SHENLUN_REVIEW]',
+        ].join('\n')
+      : '';
     const reviewLead = review?.kind === 'debt'
       ? `[KNOWLEDGE_DEBT]\n${review.instruction}\n[/KNOWLEDGE_DEBT]`
       : review?.kind === 'practice'
       ? (redoPacking ? redoPackingLead : practiceReviewLead)
       : review?.kind === 'upload'
         ? uploadReviewLead
-        : examReviewLead;
+        : review?.kind === 'shenlun'
+          ? shenlunReviewLead
+          : examReviewLead;
     const audioLabel = audio ? audioLabelOf(audio.sec) : '';
 
     const masteryBaseNudge = review?.kind === 'practice' && review?.profileReviewed
@@ -1579,7 +1608,8 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           `python3 ${projectRoot}/scripts/kaodian_profile.py --record '模块-一级-二级' '模块' '一级' 1 60000 hermes`,
           '每个有明确对错的证据记录一次；做对填 1，做错填 0。未绑定场次和逐题过程的聊天记录不用于认证掌握等级。新考点先 --register。',
         ].join('\n');
-    const masteryNudge = redoPackingRequested ? ''
+    const masteryNudge = redoPackingRequested || review?.kind === 'shenlun'
+      ? (review?.kind === 'shenlun' ? '申论成绩暂不写入行测考点画像，不要调用 kaodian_profile。' : '')
       : followReview ? '本场作答已在复盘时记录，追问讨论不新增作答记录、不改掌握度；这些操作也不要在回答里提。'
       : masteryBaseNudge + (['practice', 'exam'].includes(review?.kind) ? '\n' + [
       `先读取 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/mastery-assessment.md，按其口径逐题评估，不增加题目质量检查。`,
@@ -2059,6 +2089,35 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
     loadUploads();
   }, [loadUploads]);
 
+  const openShenlunPicker = useCallback(async () => {
+    setShowShenlun(true);
+    setShenlunLoading(true);
+    try {
+      const data = await api('/api/shenlun/submissions');
+      setShenlunSubmissions(data?.submissions || []);
+    } catch (err) {
+      setBanner(`拉取申论交卷失败：${err.message}`);
+    } finally {
+      setShenlunLoading(false);
+    }
+  }, []);
+
+  const attachShenlun = useCallback((sub) => {
+    setPendingReview({
+      id: sub.id,
+      kind: 'shenlun',
+      name: `申论交卷 #${sub.id}`,
+      title: sub.paper_title,
+      label: `申论 · ${sub.paper_title} · 交卷#${sub.id} · ${sub.answered} 题`,
+      answered: sub.answered,
+      answeredLabels: sub.answered_labels,
+      status: sub.status,
+    });
+    setShowShenlun(false);
+    stickToBottom.current = true;
+    setTimeout(() => taRef.current?.focus(), 0);
+  }, []);
+
   // 知识债与知识点讨论先建新会话并预填；发送由用户确认。
   const debtSeededRef = useRef(null);
   const consumeSeed = useEffectEvent(() => onSeedConsumed?.());
@@ -2505,6 +2564,15 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             >
               <ScanSearch size={16} />
               <span>真题复盘</span>
+            </button>
+            <button
+              onClick={openShenlunPicker}
+              disabled={attaching}
+              title="选一份申论交卷，评分并点评"
+              className="flex items-center space-x-1 px-2 py-1 rounded-lg text-[15px] font-bold text-[#999] hover:bg-black/5 hover:text-[#1a1a1a] transition-colors disabled:opacity-40"
+            >
+              <NotebookPen size={16} />
+              <span>申论复盘</span>
             </button>
             <div className="flex items-center rounded-lg overflow-hidden">
               <button
@@ -3028,6 +3096,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         attachPractice={attachPractice}
         attaching={attaching}
         loadPracticeRuns={loadPracticeRuns}
+        showShenlun={showShenlun}
+        setShowShenlun={setShowShenlun}
+        shenlunLoading={shenlunLoading}
+        shenlunSubmissions={shenlunSubmissions}
+        attachShenlun={attachShenlun}
       />
     </div>
   );
