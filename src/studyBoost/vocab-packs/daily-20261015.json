@@ -1,0 +1,171 @@
+{
+  "pack_id": "daily-20261015",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-15",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261015:一地两检",
+      "word": "一地两检",
+      "wordType": "collocation",
+      "explanation": "在同一查验场地完成两地（内地与香港）出入境查验手续的通关模式。",
+      "usage": "与“两地两检”相对；常与“合作查验、一次放行”连用。",
+      "examples": [
+        "新皇岗口岸创新实施一地两检，旅客排一次队即可办结深港两地手续。"
+      ],
+      "rivals": [
+        "两地两检",
+        "分别查验",
+        "二次核验"
+      ],
+      "cloze": [
+        "新口岸推行____，旅客无需二次排队、重复核验。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261015:辗转奔波",
+      "word": "辗转奔波",
+      "wordType": "idiom",
+      "explanation": "多次周转、来回奔走，形容辛苦劳顿。",
+      "usage": "多写旧通关、办事流程繁琐；“风尘仆仆”侧重旅途状态，“辗转”强调多次周转。",
+      "examples": [
+        "硬件与模式重塑后，旅客告别了辗转奔波的通关历史。"
+      ],
+      "rivals": [
+        "风尘仆仆",
+        "来回奔走",
+        "疲于奔命"
+      ],
+      "cloze": [
+        "旧模式下旅客要二次排队、分层核验，____成了通关常态。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261015:协同验放",
+      "word": "协同验放",
+      "wordType": "collocation",
+      "explanation": "多方监管力量同步核验、协同完成放行。",
+      "usage": "口岸、海关语境高频；与“一次停靠、一次查验”配套。",
+      "examples": [
+        "五方监管力量同步核验，实现一次停靠、一次查验、协同验放。"
+      ],
+      "rivals": [
+        "分别验放",
+        "独立查验",
+        "分段放行"
+      ],
+      "cloze": [
+        "车辆通道整合五方监管力量，实现一次停靠、一次查验、____。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261015:顺畅利落",
+      "word": "顺畅利落",
+      "wordType": "collocation",
+      "explanation": "顺利流畅且干脆利索。",
+      "usage": "多写通关、办事体验；比“井然有序”更强调速度与干脆。",
+      "examples": [
+        "一地两检顺畅利落，接驳交通也比以前便捷得多。"
+      ],
+      "rivals": [
+        "井然有序",
+        "畅通无阻",
+        "干脆利落"
+      ],
+      "cloze": [
+        "旅客评价新口岸一地两检____，体验明显改善。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261015:流通型节点",
+      "word": "流通型节点",
+      "wordType": "collocation",
+      "explanation": "以监管查验、运输中转、基础商贸服务为核心功能的口岸或枢纽形态。",
+      "usage": "常与“经济型枢纽”对举，描述口岸经济升级前后对比。",
+      "examples": [
+        "传统口岸是流通型节点，新口岸经济则向经济型枢纽迭代。"
+      ],
+      "rivals": [
+        "经济型枢纽",
+        "转运中心",
+        "过境通道"
+      ],
+      "cloze": [
+        "口岸经济要从____向经济型枢纽升级。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261015:经济型枢纽",
+      "word": "经济型枢纽",
+      "wordType": "collocation",
+      "explanation": "叠加保税加工、跨境新业态、跨境金融、科创要素配置等高端功能的口岸经济形态。",
+      "usage": "与“流通型节点”对举；强调口岸从过境通道升级为开放经济载体。",
+      "examples": [
+        "新口岸叠加跨境金融与科创配置功能，加快迈向经济型枢纽。"
+      ],
+      "rivals": [
+        "流通型节点",
+        "交通枢纽",
+        "商贸中心"
+      ],
+      "cloze": [
+        "叠加保税加工与跨境新业态后，口岸正迈向____。"
+      ],
+      "source": "每日读报 2026-10-15：秒级通关激活大湾区开放新空间",
+      "publicSources": [
+        {
+          "title": "秒级通关激活大湾区开放新空间",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/13/content_10183345.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
