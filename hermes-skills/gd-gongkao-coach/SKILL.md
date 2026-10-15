@@ -114,7 +114,7 @@ AI 练题和录屏/真题复盘第一句都必须是 `### 01 · 题型`，禁止
 本技能用于辅助用户备战**广东省考（公务员岗位）**，基于陈折桂行测方法论（从1个月模考79到省考90）。
 
 ## 参考资料
-- **`references/solver-canon/00-index.md` — 广东省考解题口径总则。讲解/复盘/示范「这题怎么做」一律按本目录，禁止临场另起逻辑。模块文件：政治 `01-zhengzhi.md`、常识 `02-changshi.md`、言语 `03-yanyu.md`、数量 `04-shuliang.md`、判断 `05-panduan.md`、科推 `06-kepui.md`、资料 `07-ziliao.md`。申论 `08-shenlun.md` 占位暂不教。**
+- **`references/solver-canon/00-index.md` — 广东省考解题口径总则。讲解/复盘/示范「这题怎么做」一律按本目录，禁止临场另起逻辑。模块文件：政治 `01-zhengzhi.md`、常识 `02-changshi.md`、言语 `03-yanyu.md`、数量 `04-shuliang.md`、判断 `05-panduan.md`、科推 `06-kepui.md`、资料 `07-ziliao.md`。申论 `08-shenlun.md`（县级卷五类题固定步骤，讲评以系统采点结果为准）。**
 - **`references/capability-map.md` — 能力总览与单一事实源表。不确定「该读哪个文件、该写哪张表」时先看它。**
 - **`references/exam-profile-authoritative.md` — 考情权威档。「考什么、怎么考、出题照什么配比」一律以它为准，与其他文件冲突时它赢。每次出题、排计划前必读。**
 - `references/zhenti-kaodian-map.md` — 真题考点地图（17 份真题 1890 题聚合），出题时的选点池与题型权重

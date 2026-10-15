@@ -23,6 +23,7 @@ import {
   GripVertical,
   Check,
   Focus,
+  NotebookPen,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
@@ -49,6 +50,7 @@ const StudyBoost = lazy(() => import('./studyBoost/StudyBoost.jsx'));
 const Uploads = lazy(() => import('./uploads/Uploads.jsx'));
 const HermesChat = lazy(() => import('./hermes/HermesChat.jsx'));
 const AIQuizHome = lazy(() => import('./aiPractice/AIQuizHome.jsx'));
+const ShenlunHome = lazy(() => import('./shenlun/ShenlunHome.jsx'));
 const ExamReview = lazy(() => import('./examReview/ExamReview.jsx'));
 const Knowledge = lazy(() => import('./knowledge/Knowledge.jsx'));
 const InfoExtract = lazy(() => import('./infoExtract/InfoExtract.jsx'));
@@ -103,6 +105,7 @@ const NAV_ITEMS = [
   { id: 'uploads', icon: Upload, label: '资料上传' },
   { id: 'hermes', icon: MessageSquare, label: 'Hermes' },
   { id: 'aiPractice', icon: Target, label: 'AI 练题' },
+  { id: 'shenlun', icon: NotebookPen, label: '申论' },
   { id: 'mixer', icon: Sliders, label: '声音混音器' },
 ];
 
@@ -812,6 +815,7 @@ const AppInner = () => {
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
+              {activeTab === 'shenlun' && '申论 · 县级卷'}
               {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
@@ -906,6 +910,8 @@ const AppInner = () => {
               onInitialBatchHandled={consumeTaskNavigation}
             />
           )}
+
+          {activeTab === 'shenlun' && <ShenlunHome />}
 
           {activeTab === 'mixer' && <Mixer />}
           </Suspense>

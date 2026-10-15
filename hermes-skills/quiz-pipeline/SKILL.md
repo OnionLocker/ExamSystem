@@ -119,6 +119,28 @@ terminal({
 - 槽位是 Hermes 的编排自由度：**在用户指定范围内选考法、分配题量、用brief传达训练意图；用户未指定难度的数量槽保留auto，不自行加硬性难度配额。题面交由数量命题模型自由设计，不能在会话中绕过审核代写。**
 - 太长可写文件再传 `--blueprint @/tmp/bp.json`。
 
+### 2d. 申论（广东县级卷）
+
+用户报考县级卷。申论题不进 AI 练题，单独在网页「申论」页作答：用户手写拍照上传，后台把照片直接交给模型做两遍独立采点批改。
+
+出题只调 `shenlun_quiz.py`（后台跑，2–5 分钟）：
+
+```
+terminal({
+  command: "python3 /home/ubuntu/ExamSystem/scripts/shenlun_quiz.py generate --batch-id 'YYYYMMDD_hermes_申论_01' --theme '百千万,乡村,基层'",
+  workdir: "/home/ubuntu/ExamSystem",
+  background: true,
+  notify_on_complete: true
+})
+```
+
+- 不给 `--types` 出整卷 5 题；单练某类题用 `--types 归纳概括` 或 `--types 提出对策,贯彻执行`。
+- `--theme` 是主题词（逗号分隔），程序只从命中这些词的原文段落里组材料；`--sources id1,id2` 可指定材料。先 `shenlun_quiz.py sources` 看可用材料。
+- 材料逐字摘自已登记原文（政策资料库 + 申论材料库），程序逐段核对；命题人出题和要点表，审核官独立复核，不合格的题重写，最多 3 轮。失败把 `message` 原样告诉用户。
+- 真题：grokbot 把试卷 JSON 放进 `data/shenlun-inbox/papers/`、材料链接放进 `data/shenlun-inbox/sources/`，运行 `shenlun_quiz.py ingest` 导入；没有要点表的真题会由命题人补建并复核。格式见 `gd-gongkao-coach/references/shenlun-grokbot.md`。
+- 讲评某次作答：`shenlun_quiz.py report --attempt <ID>` 取批改报告，按 `solver-canon/08-shenlun.md` 讲；分数以采点结果为准，「两遍有分歧」的要点要对照材料说明。
+- 要点表和参考答案在用户交卷批改之后才显示，讲评前不要先把要点念给用户。
+
 ### 2c. 程序出图题（图形推理）
 
 下面这些考点由 `figure_quiz.py` 出题：程序先生成题目结构，只从结构画图，独立判题器只看画出来的图重算答案，恰好一个选项成立才放行；解析也由判题事实生成。全程不调模型，一道题不到 1 秒。仍然只调 `quiz_lite.py`，它看到这些标签会自动转过去，参数照旧。

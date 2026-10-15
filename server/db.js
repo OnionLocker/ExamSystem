@@ -597,4 +597,47 @@ if (count === 0) {
   console.log(`[db] seeded ${seed.length} sample questions`);
 }
 
+// 申论：与 scripts/shenlun_common.py 的 SCHEMA 保持一致（两边都建表，谁先跑都行）
+db.exec(`
+CREATE TABLE IF NOT EXISTS shenlun_papers (
+  id             TEXT PRIMARY KEY,
+  title          TEXT NOT NULL,
+  kind           TEXT NOT NULL,
+  level          TEXT NOT NULL DEFAULT '县级',
+  region         TEXT,
+  year           INTEGER,
+  time_limit_min INTEGER,
+  source_note    TEXT,
+  materials      TEXT NOT NULL,
+  meta           TEXT,
+  created_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS shenlun_questions (
+  id               TEXT PRIMARY KEY,
+  paper_id         TEXT NOT NULL REFERENCES shenlun_papers(id) ON DELETE CASCADE,
+  no               INTEGER NOT NULL,
+  qtype            TEXT NOT NULL,
+  prompt           TEXT NOT NULL,
+  requirements     TEXT NOT NULL,
+  rubric           TEXT NOT NULL,
+  reference_answer TEXT
+);
+CREATE TABLE IF NOT EXISTS shenlun_attempts (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  question_id    TEXT NOT NULL REFERENCES shenlun_questions(id) ON DELETE CASCADE,
+  images         TEXT NOT NULL DEFAULT '[]',
+  answer_text    TEXT,
+  word_count     INTEGER,
+  time_spent_sec INTEGER,
+  status         TEXT NOT NULL DEFAULT 'uploaded',
+  error          TEXT,
+  grading        TEXT,
+  score          REAL,
+  max_score      REAL,
+  created_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_shenlun_attempts_q ON shenlun_attempts(question_id);
+`);
+
 export default db;
