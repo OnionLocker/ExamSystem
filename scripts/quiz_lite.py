@@ -1075,6 +1075,10 @@ def main() -> int:
     tracked = False
     finished = False
     try:
+        # 带图题型（图形推理、空间类、科学推理）由程序出图：转给 figure_quiz，参数原样沿用
+        from figure_quiz import is_figure_request, run as run_figure
+        if is_figure_request(args):
+            return run_figure(args)
         if args.module in SOURCE_MODULES and not args.tag and not args.blueprint:
             from policy_quiz import module_slots
             module = args.module

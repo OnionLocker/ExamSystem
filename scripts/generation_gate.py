@@ -47,6 +47,8 @@ LEGACY_VERSIONS = {1, 2}
 # 轻量专项（quiz_lite.py）：盲解官 + 考官双审替代四路线与真题 holdout。
 # 只收纯文字专项批次，证据链仍然是 questions.json 的 sha256 + 逐题复核记录。
 LITE_VERSION = 10
+# 程序出图题（figure_quiz.py）：答案由题型族判题器只看图核对，见 scripts/figure_families/
+FIGURE_VERSION = 11
 RECEIPT = ".gate.json"
 QUANTITY_HARD_POLICY = "mid-or-hard-v1"
 HARD_POLICY = "mid-or-hard-v2"
@@ -1014,9 +1016,11 @@ def verify(batch_dir: Path) -> dict:
     receipt = read_json(receipt_path)
     manifest_path = batch_dir / "manifest.json"
     questions_path = batch_dir / "questions.json"
-    if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION, LITE_VERSION}:
+    if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION, LITE_VERSION, FIGURE_VERSION}:
         raise ValueError("闸门回执版本不支持")
     manifest = read_json(manifest_path)
+    if receipt.get("version") == FIGURE_VERSION:
+        return verify_figure(batch_dir, receipt, manifest, read_json(questions_path))
     if manifest.get('generation', {}).get('experimental_images'):
         raise ValueError('实验图题不得签发或入库')
     questions = read_json(questions_path)
@@ -1091,6 +1095,39 @@ def verify(batch_dir: Path) -> dict:
         **({"review_schema_version": evidence.get("version", 1),
             "legacy_review": evidence.get("version", 1) < 3} if version == LITE_VERSION else {}),
     }
+
+
+def verify_figure(batch_dir: Path, receipt: dict, manifest: dict, questions: list[dict]) -> dict:
+    """程序出图题：核对收据与文件指纹，再让判题器只看批次里的图把每道题重判一遍。"""
+    from figure_families.audit import audit_batch, figure_digests
+
+    if (manifest.get("generation") or {}).get("pipeline") != "figure_quiz":
+        raise ValueError("程序出图收据须对应 figure_quiz 流程")
+    if manifest.get("generation", {}).get("experimental_images"):
+        raise ValueError("实验图题不得签发或入库")
+    ids = question_ids(batch_dir)
+    if receipt.get("batch_id") != manifest.get("batch_id"):
+        raise ValueError("闸门回执 batch_id 不一致")
+    if receipt.get("question_ids") != ids:
+        raise ValueError("闸门回执题目列表不一致")
+    if receipt.get("manifest_sha256") != digest(batch_dir / "manifest.json"):
+        raise ValueError("manifest 在闸门签发后被修改")
+    if receipt.get("questions_sha256") != digest(batch_dir / "questions.json"):
+        raise ValueError("questions 在闸门签发后被修改")
+    if receipt.get("artifacts") != {**artifact_digests(batch_dir), **figure_digests(batch_dir, questions)}:
+        raise ValueError("题图或矢量稿在闸门签发后被修改")
+    meta = receipt.get("figure_audit") or {}
+    path = safe_child(batch_dir, str(meta.get("path") or ""))
+    if not path.is_file() or digest(path) != meta.get("sha256"):
+        raise ValueError("程序出图审计证据缺失或被修改")
+    validate_batch_constraints(manifest, questions)
+    if any(not q.get("figure") for q in questions):
+        raise ValueError("程序出图批次里混进了不带题型族记录的题")
+    issues = audit_batch(batch_dir, questions)
+    if issues:
+        raise ValueError("判题器复核不过：" + "；".join(issues[:6]))
+    return {"ok": True, "batch_id": receipt["batch_id"], "question_count": len(ids),
+            "issued_at": receipt["issued_at"], "pipeline": "figure_quiz"}
 
 
 def main() -> int:

@@ -113,11 +113,16 @@ const useTick = (running) => {
 
 // ─── 小组件 ───────────────────────────────────────────────────
 
-const ImageList = ({ images, wide = false }) => {
+// 图推的选项图是四个并排的横条，压到 420px 宽会看不清格子和线条
+const isFigureQuestion = (q) => q?.sub_category === '图形推理';
+
+const ImageList = ({ images, wide = false, figure = false }) => {
   if (!images || images.length === 0) return null;
   const size = wide
     ? 'max-w-full max-h-[480px]'
-    : 'sm:max-w-[420px] max-h-[320px]';
+    : figure
+      ? 'max-h-[440px]'
+      : 'sm:max-w-[420px] max-h-[320px]';
   const frame = wide
     ? `block w-auto max-w-full ${size} object-contain`
     : `block w-auto max-w-full ${size} object-contain rounded-lg border border-[#e8d5b0] bg-white`;
@@ -410,7 +415,7 @@ const ReviewItem = ({ item, no, open, onToggle }) => {
           <div className="text-[22px] leading-[1.8] whitespace-pre-wrap break-words font-medium">
             <MathText text={item.content} />
           </div>
-          <ImageList images={item.stem_images} />
+          <ImageList images={item.stem_images} figure={isFigureQuestion(item)} />
           <div className="space-y-2.5">
             {opts.map((o) => (
               <OptionRow key={o.key} option={o} state={stateOf(o.key)} disabled onClick={() => {}} />
@@ -1225,7 +1230,7 @@ const AIQuizSession = ({ batchId, batchName, redoPackId, reviewSessionId, auditS
               <div className="text-[22px] leading-[1.8] text-[#1a1a1a] whitespace-pre-wrap break-words font-medium">
                 <MathText text={current?.content} />
               </div>
-              <ImageList images={current?.stem_images} />
+              <ImageList images={current?.stem_images} figure={isFigureQuestion(current)} />
 
               {current?.question_type === 'multi' && (
                 <p className="mt-4 text-sm font-black tracking-widest text-[#6b5428]">
