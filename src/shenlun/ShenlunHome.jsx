@@ -84,7 +84,7 @@ function PaperList({ onOpen }) {
             <NotebookPen size={18} />
           </div>
           <div>
-            <p className="text-base font-black text-[#1a1a1a]">申论 · 广东县级卷</p>
+            <p className="text-base font-black text-[#1a1a1a]">申论 · 广东省考</p>
             <p className="text-xs font-bold text-[#888]">每题拍照上传，写完整套交卷；评分和点评在 Hermes「申论复盘」里做</p>
           </div>
         </div>
@@ -101,7 +101,7 @@ function PaperList({ onOpen }) {
         <div className="rounded-3xl border border-dashed border-[#e8d5b0] bg-white/60 px-6 py-10 text-center">
           <p className="text-base font-black text-[#1a1a1a]">还没有申论试卷</p>
           <p className="mt-2 text-sm font-medium leading-relaxed text-[#888]">
-            让 Hermes「出一套申论」或「出两道归纳概括」；广东真题由 grokbot 放进收件箱后导入。
+            让 Hermes「出一套申论」或「出两道归纳概括」；也可以说「出一套省市卷」。
           </p>
         </div>
       )}

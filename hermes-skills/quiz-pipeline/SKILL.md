@@ -119,27 +119,27 @@ terminal({
 - 槽位是 Hermes 的编排自由度：**在用户指定范围内选考法、分配题量、用brief传达训练意图；用户未指定难度的数量槽保留auto，不自行加硬性难度配额。题面交由数量命题模型自由设计，不能在会话中绕过审核代写。**
 - 太长可写文件再传 `--blueprint @/tmp/bp.json`。
 
-### 2d. 申论（广东县级卷）
+### 2d. 申论（广东省考：县镇卷 / 省市卷）
 
-用户报考县级卷。申论题不进 AI 练题，单独在网页「申论」页作答：每题手写拍照上传，写完整套点「交卷」。交卷不评分；用户在 Hermes 点「申论复盘」选一份交卷发送后，按消息里 [SHENLUN_REVIEW] 的步骤先后台评分、再点评。
+用户报考县级，对应 2024 年起的「县镇卷」；省市卷也能出。申论题不进 AI 练题，单独在网页「申论」页作答：每题手写拍照上传，写完整套点「交卷」。交卷不评分；用户在 Hermes 点「申论复盘」选一份交卷发送后，按消息里 [SHENLUN_REVIEW] 的步骤先后台评分、再点评。
 
-出题只调 `shenlun_quiz.py`（后台跑，2–5 分钟）：
+出题只调 `shenlun_quiz.py`（后台跑，整卷约 5–10 分钟，特训约 2–4 分钟）：
 
 ```
 terminal({
-  command: "python3 /home/ubuntu/ExamSystem/scripts/shenlun_quiz.py generate --batch-id 'YYYYMMDD_hermes_申论_01' --theme '百千万,乡村,基层'",
+  command: "python3 /home/ubuntu/ExamSystem/scripts/shenlun_quiz.py generate --batch-id 'YYYYMMDD_hermes_申论_01' --paper 县镇卷",
   workdir: "/home/ubuntu/ExamSystem",
   background: true,
   notify_on_complete: true
 })
 ```
 
-- 不给 `--types` 出整卷 5 题。题型特训用 `--types`：比如「练两道概括」就 `--types 归纳概括,归纳概括`，每道小题只配一份两三段的短材料；复盘时只交了哪类题就按哪类题的标准评。
-- `--theme` 是主题词（逗号分隔），程序只从命中这些词的原文段落里组材料；`--sources id1,id2` 可指定材料。先 `shenlun_quiz.py sources` 看可用材料。
-- 材料逐字摘自已登记原文（政策资料库 + 申论材料库），程序逐段核对；命题人出题和要点表，审核官独立复核，不合格的题重写，最多 3 轮。失败把 `message` 原样告诉用户。
-- 真题：grokbot 把试卷 JSON 放进 `data/shenlun-inbox/papers/`、材料链接放进 `data/shenlun-inbox/sources/`，运行 `shenlun_quiz.py ingest` 导入；没有要点表的真题会由命题人补建并复核。格式见 `gd-gongkao-coach/references/shenlun-grokbot.md`。
+- 整卷：不给 `--types`，按 2024–2026 真题结构出 8 份材料、3 题（归纳概括 20 分 / 提出对策 30 分 / 文章写作 50 分）。`--paper 省市卷` 出省市卷。
+- 题型特训：`--types`，可重复、最多 3 道。「练两道概括」就 `--types 归纳概括,归纳概括`，每道小题配一份两到四段的短材料；也可 `--types 提出对策`、`--types 文章写作`，综合分析、贯彻执行也能单练。复盘时只交了哪类题就按哪类题的标准评。
+- `--theme` 指定主题（逗号分隔，如 `百千万工程,县域产业`）；不给就从近年真题常见主题里随机抽一个（主题池在脚本 THEME_POOL）。
+- 材料是虚构的：案例地名人名用 A县、X镇、小王这类化名，宏观背景可用真实政策名。材料形式、篇幅、设问句式、要求措辞照 `references/shenlun-style.md`（由 8 套真题统计归纳，要调出题风格就改这个文件）。流程：命题蓝图 → 按蓝图并行写材料（程序核字数）→ 命题人出设问和要点表 → 审核官复核，不合格的题重写，最多 3 轮。失败把 `message` 原样告诉用户。
 - 复盘：评分脚本 `shenlun_grade.py grade --submission <ID>` 写报告到 `data/practice-reviews/shenlun/`；点评按 `gd-gongkao-coach/references/shenlun-review-standard.md`（用户维护的评判标准）和 `solver-canon/08-shenlun.md` 写，分数只认报告，「两遍有分歧」的要点对照材料说明但不改分。
-- 要点表和参考答案在用户交卷批改之后才显示，讲评前不要先把要点念给用户。
+- 要点表和参考答案在用户交卷评分之后才显示，讲评前不要先把要点念给用户。
 
 ### 2c. 程序出图题（图形推理）
 

@@ -815,7 +815,7 @@ const AppInner = () => {
               {activeTab === 'uploads' && '资料上传'}
               {activeTab === 'hermes' && 'Hermes · 智能助手'}
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
-              {activeTab === 'shenlun' && '申论 · 县级卷'}
+              {activeTab === 'shenlun' && '申论 · 县镇卷 / 省市卷'}
               {activeTab === 'mixer' && '声音混音器'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>

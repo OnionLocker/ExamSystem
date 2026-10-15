@@ -57,8 +57,12 @@ class RubricTest(unittest.TestCase):
                dict(GOOD[1], score=3, text="整合闲置农房发展民宿壮大集体经济，并且推动乡村旅游、文化振兴和生态保护协同发展，形成区域品牌")]
         issues = "；".join(check_rubric(question(bad, expression=0), MATERIALS))
         self.assertIn("不是 M1-1 的原文", issues)
-        self.assertIn("1 或 2 分", issues)
+        self.assertIn("要点分值须为 1、2 分", issues)
         self.assertIn("要点太长", issues)
+
+    def test_expression_score_is_capped(self):
+        q = question(GOOD, expression=6, score=10)
+        self.assertTrue(any("表述分" in i for i in check_rubric(q, MATERIALS)))
 
     def test_out_of_scope_paragraph_is_caught(self):
         q = question(GOOD)

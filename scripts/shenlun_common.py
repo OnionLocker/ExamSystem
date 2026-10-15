@@ -21,16 +21,31 @@ from quiz_generator import BASE_URL, api_key
 from scheduler_common import DB, ROOT
 
 MODEL = "gemini-3.8-flash-high"
-LEVEL = "县级"
+LEVEL = "县镇卷"
+PAPER_TYPES = ("县镇卷", "省市卷")
 QTYPES = ("归纳概括", "综合分析", "提出对策", "贯彻执行", "文章写作")
-# 广东县级卷的常见配分与字数，出题默认值；真题导入以卷面为准。
-DEFAULT_LAYOUT = (
-    {"qtype": "归纳概括", "score": 10, "words_max": 200},
-    {"qtype": "综合分析", "score": 15, "words_max": 300},
-    {"qtype": "提出对策", "score": 15, "words_max": 300},
-    {"qtype": "贯彻执行", "score": 20, "words_max": 500},
-    {"qtype": "文章写作", "score": 40, "words_min": 1000, "words_max": 1200},
-)
+# 2024–2026 年广东真题的整卷结构（8 份材料、三题 20/30/50），见 quiz-pipeline/references/shenlun-style.md
+LAYOUTS = {
+    "县镇卷": (
+        {"qtype": "归纳概括", "score": 20, "words_max": 200},
+        {"qtype": "提出对策", "score": 30, "words_max": 300},
+        {"qtype": "文章写作", "score": 50, "words_min": 800, "words_max": 1000},
+    ),
+    "省市卷": (
+        {"qtype": "归纳概括", "score": 20, "words_max": 200},
+        {"qtype": "提出对策", "score": 30, "words_max": 300},
+        {"qtype": "文章写作", "score": 50, "words_min": 900, "words_max": 1100},
+    ),
+}
+# 题型特训的单题默认值；综合分析、贯彻执行取自 2023 年乡镇卷与县级卷
+DRILL_DEFAULTS = {
+    "归纳概括": {"qtype": "归纳概括", "score": 20, "words_max": 200},
+    "综合分析": {"qtype": "综合分析", "score": 20, "words_max": 300},
+    "提出对策": {"qtype": "提出对策", "score": 30, "words_max": 300},
+    "贯彻执行": {"qtype": "贯彻执行", "score": 30, "words_max": 400},
+    "文章写作": {"qtype": "文章写作", "score": 50, "words_min": 800, "words_max": 1000},
+}
+DEFAULT_LAYOUT = LAYOUTS[LEVEL]
 TIME_LIMIT_MIN = 150
 UPLOAD_DIR = ROOT / "data" / "shenlun-uploads"
 BATCH_DIR = ROOT / "data" / "shenlun-batches"
@@ -93,6 +108,7 @@ CREATE TABLE IF NOT EXISTS shenlun_submissions (
   updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
+STYLE_GUIDE = ROOT / "hermes-skills" / "quiz-pipeline" / "references" / "shenlun-style.md"
 STANDARD = ROOT / "hermes-skills" / "gd-gongkao-coach" / "references" / "shenlun-review-standard.md"
 REVIEW_DIR = ROOT / "data" / "practice-reviews" / "shenlun"
 DEFAULT_PARAMS = {
@@ -271,6 +287,29 @@ def save_paper(conn: sqlite3.Connection, paper: dict) -> None:
                  q.get("reference_answer")))
 
 
+def repair_evidence(question: dict, materials: list[dict]) -> int:
+    """引文不是原文但意思很近时，换成该段里最接近的原句；引文只是「去材料哪里找这一分」的指针。返回修了几处。"""
+    import difflib
+
+    index = paragraph_index(materials)
+    rubric = question.get("rubric") or {}
+    fixed = 0
+    for item in (rubric.get("points") or []) + (rubric.get("must_cover") or []):
+        for ev in item.get("evidence") or []:
+            para = index.get(ev.get("para"))
+            quote = str(ev.get("quote") or "")
+            if para is None or contains(para["text"], quote):
+                continue
+            sentences = [s for s in re.split(r"(?<=[。！？；])", para["text"]) if len(squash(s)) >= 6]
+            if not sentences:
+                continue
+            best = max(sentences, key=lambda s: difflib.SequenceMatcher(None, squash(s), squash(quote)).ratio())
+            if difflib.SequenceMatcher(None, squash(best), squash(quote)).ratio() >= 0.45:
+                ev["quote"] = best.strip()[:60]
+                fixed += 1
+    return fixed
+
+
 def check_rubric(question: dict, materials: list[dict]) -> list[str]:
     """程序核对要点表：引文必须是材料原文，且落在本题指定的材料里；分值加起来等于满分。"""
     issues = []
@@ -293,12 +332,17 @@ def check_rubric(question: dict, materials: list[dict]) -> list[str]:
     if len(points) < 2:
         issues.append(f"第{qno}题：要点少于 2 个")
     total = sum(float(p.get("score") or 0) for p in points + (rubric.get("format_points") or []))
-    total += float(rubric.get("expression_score") or 0)
+    expression = float(rubric.get("expression_score") or 0)
+    if not 0 <= expression <= 3:
+        issues.append(f"第{qno}题：表述分 {expression:g} 分太多（最多 3 分），差的分数要补成要点")
+    total += expression
     if abs(total - score) > 0.01:
         issues.append(f"第{qno}题：要点分 + 格式分 + 表述分 = {total:g}，不等于满分 {score:g}")
     for point in points:
-        if float(point.get("score") or 0) not in (1.0, 2.0):
-            issues.append(f"第{qno}题 {point.get('id')}：要点分值须为 1 或 2 分，现为 {point.get('score')}")
+        # 30 分及以上的题（对策题）一条对策可值 3 分，其余题一个意思 1–2 分
+        allowed = (1.0, 2.0, 3.0) if score >= 30 else (1.0, 2.0)
+        if float(point.get("score") or 0) not in allowed:
+            issues.append(f"第{qno}题 {point.get('id')}：要点分值须为 {'、'.join(f'{a:g}' for a in allowed)} 分，现为 {point.get('score')}")
         if len(str(point.get("text") or "")) > 40:
             issues.append(f"第{qno}题 {point.get('id')}：要点太长（{len(str(point.get('text')))} 字），一个要点只写一个意思")
         evidence = point.get("evidence") or []

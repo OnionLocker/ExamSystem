@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""申论（广东县级卷）出题、导入与材料登记。Hermes 只调这个脚本，不在会话里写题。
+"""申论（广东省考）出题与真题导入。Hermes 只调这个脚本，不在会话里写题。
 
-  generate   AI 出整卷或单题：材料逐字摘自已登记原文 → 命题人出题和要点表 → 审核官复核 → 入库
-  import     导入真题卷 JSON（grokbot 收集或手工整理）；没有要点表的由命题人补建并复核
-  ingest     处理 grokbot 收件箱：data/shenlun-inbox/sources/*.json 抓原文登记，papers/*.json 导入
-  add-source 登记一篇申论材料原文（新闻报道、评论、调研、政策文件）
-  sources    列出可用材料
-
-评分与复盘在 shenlun_grade.py（Hermes「申论复盘」调用）。
+  generate   AI 出整卷或题型特训：命题蓝图 → 按蓝图虚构材料（并行、程序核字数）→ 命题人出设问和要点表 → 审核官复核 → 入库
+             材料、设问形式照 hermes-skills/quiz-pipeline/references/shenlun-style.md（由 2023–2026 真题统计归纳）
+  import     导入真题卷 JSON；没有要点表的由命题人补建并复核
+  ingest     处理收件箱：data/shenlun-inbox/sources/*.json 抓原文登记，papers/*.json 导入
+  add-source 登记一篇申论材料原文
+  sources    列出已登记材料
 
 用法：
-  python3 scripts/shenlun_quiz.py generate --batch-id 20261015_hermes_申论_01 --theme 百千万工程,乡村振兴
-  python3 scripts/shenlun_quiz.py generate --batch-id 20261015_hermes_申论_02 --types 归纳概括 --sources src-a,src-b
-  python3 scripts/shenlun_quiz.py import @data/shenlun-inbox/papers/gd-2025-xianji.json
+  python3 scripts/shenlun_quiz.py generate --batch-id 20261015_hermes_申论_01 --paper 县镇卷 --theme 百千万工程
+  python3 scripts/shenlun_quiz.py generate --batch-id 20261015_hermes_申论_02 --types 归纳概括,归纳概括
+  python3 scripts/shenlun_quiz.py import @data/shenlun-inbox/papers/gd-2025-xianzhen.json
+
+评分与复盘在 shenlun_grade.py（Hermes「申论复盘」调用）。
 """
 
 from __future__ import annotations
@@ -21,48 +22,176 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import random
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import policy_sources  # noqa: E402
 from scheduler_common import local_today  # noqa: E402
-from shenlun_common import (BATCH_DIR, DEFAULT_LAYOUT, INBOX_DIR, LEVEL, QTYPES, ROOT, TIME_LIMIT_MIN,  # noqa: E402
-                            call, check_rubric, connect, contains, dumps, load_paper, materials_text, save_paper,
+from shenlun_common import (BATCH_DIR, DRILL_DEFAULTS, INBOX_DIR, LAYOUTS, LEVEL, PAPER_TYPES, QTYPES, ROOT,  # noqa: E402
+                            STYLE_GUIDE, TIME_LIMIT_MIN, call, check_rubric, repair_evidence, connect, dumps, materials_text, save_paper,
                             word_count)
 
 SOURCE_DIR = ROOT / "data" / "shenlun-sources"
 # 申论材料多是新闻报道、评论和调研，比政治题的权威白名单宽一些；抓取与核验办法相同
 MEDIA = ("southcn.com", "nfnews.com", "ycwb.com", "gmw.cn", "cctv.com", "cnr.cn", "chinanews.com.cn", "ce.cn",
          "chinadaily.com.cn", "gd.gov.cn", "dutenews.com", "sznews.com", "gzdaily.cn")
-POOL_CHARS = 45000
+WORKERS = 3
+# 不指定主题时随机抽一个；前几项是 2024–2026 真题主题，后面是县镇卷常见方向
+THEME_POOL = (
+    "百千万工程与县域富民产业", "绿美广东生态建设", "古树名木保护", "绿色工厂与绿色低碳发展", "产业科技创新与新质生产力",
+    "做好“土特产”文章", "农村人居环境长效管护", "基层治理与为基层减负", "传统村落保护与文旅融合", "防灾减灾与基层应急管理",
+    "“一老一小”民生服务", "数字乡村与政务服务", "农业科技与种业振兴", "青年返乡创业与乡村人才", "海洋经济与渔业转型",
+)
 
-STYLE = """广东省考申论县级卷的特点：材料多是基层治理、乡村振兴（“百县千镇万村高质量发展工程”）、民生服务、产业发展、生态（绿美广东）、
-基层干部作风等主题的案例、报道、访谈和调研，给定资料按「材料1」「材料2」编号。设问紧扣指定材料，要求写明作答范围、分值、字数。
-设问示例：
-- 根据“给定资料1”，概括X镇在推进……中采取的主要做法。（10分）要求：全面、准确、有条理。不超过200字。
-- 根据“给定资料2”，谈谈你对“……”这句话的理解。（15分）要求：观点明确，分析透彻，不超过300字。
-- 根据“给定资料3”，针对……存在的问题，提出解决对策。（15分）要求：对策具体可行，有针对性，不超过300字。
-- 假如你是X县……的工作人员，请根据“给定资料4”，写一份……的倡议书（宣传稿/讲话提纲/工作简报/情况报告）。（20分）
-  要求：格式规范，内容具体，语言得体，不超过500字。
-- 参考“给定资料”，围绕“……”，自选角度，自拟题目，写一篇议论文。（40分）要求：观点明确，联系实际，论述深刻，
-  结构完整，语言流畅，字数1000～1200字。"""
+
+def style_guide() -> str:
+    return STYLE_GUIDE.read_text(encoding="utf-8") if STYLE_GUIDE.exists() else ""
+
 
 RUBRIC_RULES = """要点表（rubric）规则——它是阅卷采点给分的唯一依据：
 - 小题 rubric = {"kind":"points","points":[...],"expression_score":N,"format_points":[...]}。
-- 每个 point = {"id":"P1","text":"规范表述的得分点","score":1或2,"evidence":[{"para":"M1-3","quote":"逐字摘自该段的8到40字原文"}]}。
-  像阅卷细则那样细：一个要点只含一个可独立判分的意思，text 不超过 30 字，score 只能是 1 或 2；
+- 每个 point = {"id":"P1","text":"规范表述的得分点","score":1或2（30 分题可到 3）,"side":"问题或对策（只有提出对策题填）","evidence":[{"para":"M2-3","quote":"逐字摘自该段的8到40字原文"}]}。
+  像阅卷细则那样细：一个要点只含一个可独立判分的意思，text 不超过 30 字，score 一般 1 或 2，30 分的对策题可以给 3；
   不要把几件事用分号塞进一个要点。不重复、不交叉；只收设问真正问到的内容；evidence 必须引用本题指定材料的原文，quote 一字不改。
-- 对策题的要点要能从材料里的问题、原因或经验推出来；如果指定材料只是一张现成的措施清单，换一份讲问题或案例的材料来出对策题。
+- 归纳概括 20 分题一般 9 到 12 个要点；提出对策 30 分题问题侧 5 到 7 个要点（每个 2 分左右）、对策侧 5 到 8 个要点（每个 2 到 3 分），每条对策要对得上材料里的某个问题；要点分合计至少比满分少 1、多则少 3。
+- 对策可以由材料里的问题反推，不必是材料现成的措施；但不能是与材料无关的空话。对策侧要点的 evidence 引它所针对的那句问题原文（或材料里可借鉴的做法原文），quote 一字不改。
 - expression_score：表述与条理分，一般 1 到 2 分（程序会按满分自动配平，不必自己凑总分）。
-- format_points 只用于贯彻执行：标题、称谓、落款、文种要素等，每项 {"id":"F1","text":"...","score":1}，合计 2 到 3 分；其他题给空数组。
+- format_points 只用于贯彻执行（如发言提纲的标题、导语、按主体分块、结尾），合计 2 到 3 分；提出对策题的文种壳（汇报、调研报告部分内容）不设格式分，给空数组。
 - 要点分 + format_points 分要比本题分值少 1 到 2 分，余下作表述分。
 - 文章写作 rubric = {"kind":"essay","theme":"立意：总论点应指向……","must_cover":[{"id":"T1","text":"分论点方向","evidence":[...]}],
   "off_topic":"判为偏题的情形"}；must_cover 给 3 到 4 个由材料能推出的论证方向。
-- reference_answer：小题写按要点组织的参考答案，必须逐条覆盖全部要点，不超过字数上限；文章写作写提纲（标题、总论点、三个分论点及对应材料论据），不写全文。"""
+- reference_answer：归纳概括写 4 到 5 条，每条「4 到 8 字自拟总括 + 用材料关键词压成的一句」，不写总起和结尾；
+  提出对策分「问题」「对策建议」两块，问题与对策大体一一对应；两者都必须逐条覆盖全部要点，不超过字数上限。
+  文章写作写提纲（标题、总论点、分论点句、每段用哪份材料的哪个事实），不写全文。"""
+
+PLANNER = """你是广东省考申论命题组组长。按下面的「风格档案」，为一套申论题设计材料与设问蓝图。材料全部虚构，但形式要和真题一样。
+虚构规则：宏观背景可以用广东和国家的真实政策、工程名称（如「百千万工程」「绿美广东」）；具体案例的县、镇、村、企业、人物一律用化名
+（A县、G市、X镇、榕泉村、小王、吕主任）；不要把编造的数据安到真实地名上。
+
+风格档案：
+{style}
+
+本次要出：{task}
+只输出 JSON：
+{{"theme":"整卷主题一句话","essay_topic":"作文围绕的主题句（没有作文就空字符串）",
+"materials":[{{"no":1,"role":"背景/第1题/第2题/作文/特训","genre":"报道/案例/访谈/讲话/调研/座谈会发言/评论/政策文件","structure":"总-分/总-分-总/按时间/一人一段发言…",
+"chars":目标字数,"outline":["这份材料必须写到的具体内容：一项做法、一个问题、一句群众或干部原话、一个数据……，6 到 12 条"],"names":"用到的化名"}}],
+"questions":[{{"no":1,"qtype":"归纳概括","material":这道题限定的材料编号（文章写作写 0 表示全部）,"identity":"作答身份（没有就空）","shell":"文种壳（没有就空）","focus":"这道题问什么"}}]}}"""
+
+MATERIAL_WRITER = """你是申论「给定资料」撰稿人。按蓝图写出其中一份材料，像真实的新闻报道、调研记录、座谈发言或讲话那样写。
+- 内容虚构；具体案例的地名、单位、人名用蓝图里的化名，不要用真实县镇名。
+- 必须写到蓝图 outline 里的每一条，一段讲一件事；多用干部、群众、专家的原话（加引号），多用具体数字和细节。
+- 只写事实、做法、现象和人物的话，不要替考生归纳：不要出现「一是……二是……」式的答案总结，也不要写「存在的问题有」「对策是」这类提示句。
+- 字数约 {chars} 字（不含空白），上下浮动不超过一成。
+参考真题材料的语言风格（风格档案第七节有真题原文样本）：
+{samples}
+只输出 JSON：{{"paragraphs":["第一段","第二段", "..."]}}"""
+
+def writer_prompt() -> str:
+    # 要点表规则里有 JSON 花括号，不能走 str.format
+    return ("你是广东省考申论命题人。设问句式、要求措辞、身份和文种壳都要照下面「风格档案」里的真题写法，不要自创花样。\n"
+            "风格档案：\n" + style_guide() + "\n\n" + RUBRIC_RULES + "\n"
+            '只输出 JSON：{"questions":[{"no":1,"qtype":"归纳概括","prompt":"完整设问（含分值、要求、字数，照真题格式换行）",'
+            '"material_ids":["M2"],"score":20,"words_min":null,"words_max":200,"rubric":{...},"reference_answer":"..."}]}')
+
+
+REVIEWER = """你是广东省考申论阅卷组长，独立复核命题人交来的题目和要点表。逐题检查：
+1. 设问是否清楚、只指向指定材料；设问句式、要求措辞、身份与文种壳是否和风格档案里的真题写法一致。
+2. 每个要点是否真是设问所问，引文是否真的支持该要点；要点有无重复、交叉、过细凑分。
+3. 指定材料里有没有明显应得分却漏掉的要点（列入 missing_points）。漏掉重要要点必须 REJECT。
+4. 分值分配是否合理；要点是否细到一个意思一分到两分（几件事塞进一个要点必须 REJECT）。
+   参考答案是否逐条覆盖全部要点（逐个要点核对，漏一个就 REJECT）、没有材料外的编造、没超字数。
+5. 材料是否撑得起这道题：归纳题材料里要有足够多可拆分的做法或表现；对策题材料里要有具体问题，不能是现成的对策清单。
+6. 文章写作：立意能否由材料推出、must_cover 方向是否合理、偏题标准是否清楚。
+风格档案（节选看设问写法即可）：
+{style}
+只输出 JSON：{{"questions":[{{"no":1,"verdict":"PASS","issues":[],"missing_points":[]}}]}}；有任何实质问题就 REJECT 并写明。"""
+
+
+def _samples() -> str:
+    text = style_guide()
+    return text[text.find("## 七"):] if "## 七" in text else ""
+
+
+def _task_text(paper_type: str, layout: list[dict], drill: bool, theme: list[str]) -> str:
+    lines = []
+    if drill:
+        lines.append(f"题型特训（{paper_type}风格），只出这几道题：" + "、".join(s["qtype"] for s in layout) + "。")
+        lines.append("每道小题配一份专用材料：归纳概括 600 到 1200 字（两到四段即可）；提出对策 1000 到 1500 字，要写清具体问题；"
+                     "综合分析 800 到 1200 字；贯彻执行 1000 到 1500 字。文章写作单独特训时配 4 份材料、每份 700 到 900 字。"
+                     "不要背景材料。")
+    else:
+        lines.append(f"一整套{paper_type}：8 份材料、3 道题（归纳概括 20 分、提出对策 30 分、文章写作 50 分）。")
+        lines.append("材料 1 写宏观背景或理论，不单独命题；第 1 题限定一份 1200 到 2000 字、有 8 到 12 个可拆分做法或表现的案例材料（编号在 2 到 5 之间）；"
+                     "第 2 题限定另一份 1200 到 2000 字、同时有问题和办法的材料"
+                     + ("（县镇卷：调研组走访，多用群众和干部原话）" if paper_type == "县镇卷" else "（省市卷：座谈会上一人一段的发言）")
+                     + "；其余材料每份 800 到 1100 字，供作文使用。8 份总字数 7800 到 9000。")
+    lines.append("各题配分与字数：" + json.dumps(layout, ensure_ascii=False))
+    if theme:
+        lines.append(f"指定主题：{'、'.join(theme)}。整卷材料都围绕这个主题。")
+    return "\n".join(lines)
+
+
+def plan_paper(paper_type: str, layout: list[dict], drill: bool, theme: list[str], audit: Path) -> dict:
+    plan = call(PLANNER.format(style=style_guide(), task=_task_text(paper_type, layout, drill, theme)), "请给出蓝图。",
+                temperature=0.7, audit=audit)
+    mats = plan.get("materials") or []
+    qs = plan.get("questions") or []
+    issues = []
+    if not drill and len(mats) != 8:
+        issues.append(f"整卷要 8 份材料，蓝图给了 {len(mats)} 份")
+    if len(qs) != len(layout):
+        issues.append(f"题目数 {len(qs)} 与要求 {len(layout)} 不符")
+    nos = {int(m.get("no") or 0) for m in mats}
+    for q in qs:
+        if q.get("qtype") != "文章写作" and int(q.get("material") or 0) not in nos:
+            issues.append(f"第{q.get('no')}题限定的材料 {q.get('material')} 不存在")
+    if issues:
+        raise RuntimeError("命题蓝图不合格：" + "；".join(issues))
+    for m in mats:
+        m["chars"] = max(400, min(2200, int(m.get("chars") or 900)))
+    return plan
+
+
+def write_material(item: dict, plan: dict, audit: Path) -> dict:
+    brief = json.dumps({"整卷主题": plan.get("theme"), "本份材料蓝图": item}, ensure_ascii=False)
+    target = int(item["chars"])
+    # 长材料字数波动大：前两稿按 0.75–1.3 倍要求，第三稿放宽到 0.6–1.6 倍，字数略偏不影响训练
+    for low, high in ((0.75, 1.3), (0.75, 1.3), (0.6, 1.6)):
+        out = call(MATERIAL_WRITER.format(chars=target, samples=_samples()), brief, temperature=0.8, audit=audit)
+        paras = [re.sub(r"\s+", " ", str(x)).strip() for x in out.get("paragraphs") or [] if str(x).strip()]
+        chars = sum(word_count(x) for x in paras)
+        if paras and low * target <= chars <= high * target:
+            return {"no": int(item["no"]), "paragraphs": paras}
+        brief += f"\n上一稿 {chars} 字，要求约 {target} 字，请按字数重写。"
+    raise RuntimeError(f"材料{item['no']}字数三次都不合要求（要求约 {target} 字，实际 {chars} 字）")
+
+
+def build_materials(plan: dict, audit: Path) -> list[dict]:
+    items = sorted(plan["materials"], key=lambda m: int(m.get("no") or 0))
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        written = list(pool.map(lambda m: write_material(m, plan, audit), items))
+    materials = []
+    for k, w in enumerate(written, 1):
+        materials.append({"id": f"M{k}", "title": f"材料{k}",
+                          "paragraphs": [{"id": f"M{k}-{j}", "text": t} for j, t in enumerate(w["paragraphs"], 1)]})
+    return materials
+
+
+def plan_hint(plan: dict) -> str:
+    rows = []
+    for q in plan.get("questions") or []:
+        scope = "全部材料" if q.get("qtype") == "文章写作" else f"材料{q.get('material')}（M{q.get('material')}）"
+        rows.append(f"第{q.get('no')}题 {q.get('qtype')}：限定{scope}；身份：{q.get('identity') or '无'}；"
+                    f"文种壳：{q.get('shell') or '无'}；问：{q.get('focus')}")
+    topic = f"\n作文主题句：{plan.get('essay_topic')}" if plan.get("essay_topic") else ""
+    return "\n\n命题蓝图（照此出题，限定材料不要改）：\n" + "\n".join(rows) + topic
 
 
 def _sha(text: str) -> str:
@@ -115,101 +244,6 @@ def all_sources() -> dict[str, dict]:
     return out
 
 
-def build_pool(sources: dict[str, dict], ids: list[str] | None, theme: list[str]) -> tuple[list[dict], str]:
-    """把候选原文编号成 S1-p3 这样的段落池；有主题词时只取命中段落及其前后各一段。"""
-    chosen = [sources[i] for i in ids] if ids else sorted(sources.values(), key=lambda s: s.get("published_at") or "",
-                                                          reverse=True)
-    if ids and len(chosen) != len(ids):
-        raise ValueError("有未登记的材料 id")
-    pool, lines, used = [], [], 0
-    for k, src in enumerate(chosen, 1):
-        paras = src["paragraphs"]
-        keep = range(len(paras))
-        if theme:
-            hits = {i for i, p in enumerate(paras) if any(w in p for w in theme)}
-            keep = sorted({j for i in hits for j in (i - 1, i, i + 1) if 0 <= j < len(paras)})
-        if not keep:
-            continue
-        lines.append(f"\n=== S{k}：{src['title']}（{src.get('published_at') or ''}）")
-        for i in keep:
-            ref = f"S{k}-p{i + 1}"
-            if used + len(paras[i]) > POOL_CHARS:
-                break
-            pool.append({"ref": ref, "text": paras[i], "source": {"id": src["id"], "title": src["title"],
-                                                                   "url": src.get("url")}})
-            lines.append(f"[{ref}] {paras[i]}")
-            used += len(paras[i])
-        if used >= POOL_CHARS:
-            break
-    if used < 2500:
-        raise ValueError(f"可用材料只有 {used} 字，不够组卷；先用 add-source 登记更多原文，或换主题词")
-    return pool, "\n".join(lines)
-
-
-# ---------------------------------------------------------------- 命题
-COMPOSER = """你是广东省考申论（县级卷）命题组的材料编辑。只能从给定原文段落里逐字摘录组成「给定资料」，不得改写、拼接或补写任何字。
-""" + STYLE + """
-任务：从段落池选材，组成 {n_materials} 份给定资料，总字数 {chars} 字左右。
-- 每份资料围绕一个侧面（案例做法、存在问题、群众反映、成效经验、观点评论），能支撑后面的设问；资料之间不重复。
-- excerpt 写该段原文中连续的一段（可以是整段，也可以截去首尾），必须一字不差；ref 写段落编号。
-- 不要选纯口号、目录、页眉页脚类段落。
-只输出 JSON：{{"theme":"整卷主题","materials":[{{"title":"材料1","focus":"这份资料讲什么","excerpts":[{{"ref":"S1-p3","excerpt":"……"}}]}}]}}"""
-
-WRITER = """你是广东省考申论（县级卷）命题人。""" + STYLE + """
-""" + RUBRIC_RULES + """
-只输出 JSON：{"questions":[{"no":1,"qtype":"归纳概括","prompt":"完整设问（含分值、要求、字数）","material_ids":["M1"],
-"score":10,"words_min":null,"words_max":200,"rubric":{...},"reference_answer":"..."}]}"""
-
-REVIEWER = """你是广东省考申论阅卷组长，独立复核命题人交来的题目和要点表。逐题检查：
-1. 设问是否清楚、只指向指定材料、像广东县级卷真题；题型与要求一致（贯彻执行须写明身份、文种与格式要求）。
-2. 每个要点是否真是设问所问，引文是否真的支持该要点；要点有无重复、交叉、过细凑分。
-3. 指定材料里有没有明显应得分却漏掉的要点（列入 missing_points）。漏掉重要要点必须 REJECT。
-4. 分值分配是否合理；要点是否细到一个意思一分到两分（几件事塞进一个要点必须 REJECT）。
-   参考答案是否逐条覆盖全部要点（逐个要点核对，漏一个就 REJECT）、没有材料外的编造、没超字数。
-5. 材料是否适合这道设问：对策题的材料若本身就是现成措施清单、照抄即可作答，必须 REJECT。
-6. 文章写作：立意能否由材料推出、must_cover 方向是否合理、偏题标准是否清楚。
-只输出 JSON：{"questions":[{"no":1,"verdict":"PASS","issues":[],"missing_points":[]}]}；有任何实质问题就 REJECT 并写明。"""
-
-
-def compose_materials(pool: list[dict], pool_text: str, layout: list[dict], audit: Path,
-                      theme: list[str] | None = None) -> tuple[str, list[dict]]:
-    # 整卷 5 份材料；题型特训只出够这几道题用的短材料（一道小题一份、两三段）
-    essay = any(s["qtype"] == "文章写作" for s in layout)
-    if len(layout) >= 4:
-        n, chars = 5, "5000 到 7000"
-    elif essay:
-        n, chars = 3, "2500 到 4000"
-    else:
-        n, chars = len(layout), f"{600 * len(layout)} 到 {1200 * len(layout)}"
-    focus = (f"本次指定主题：{'、'.join(theme)}。材料必须直接讲这个主题，不要选只是顺带提到主题词的段落。\n\n"
-             if theme else "")
-    result = call(COMPOSER.format(n_materials=n, chars=chars), focus + "段落池：\n" + pool_text, temperature=0.4, audit=audit)
-    by_ref = {p["ref"]: p for p in pool}
-    materials, dropped = [], []
-    for m_index, item in enumerate(result.get("materials") or [], 1):
-        paragraphs = []
-        for ex in item.get("excerpts") or []:
-            para = by_ref.get(str(ex.get("ref")))
-            text = re.sub(r"\s+", " ", str(ex.get("excerpt") or "")).strip()
-            if para is None or len(text) < 20 or text not in para["text"]:
-                dropped.append(str(ex.get("ref")))
-                continue
-            paragraphs.append({"id": f"M{m_index}-{len(paragraphs) + 1}", "text": text, "source": para["source"]})
-        if paragraphs:
-            materials.append({"id": f"M{m_index}", "title": f"材料{m_index}", "paragraphs": paragraphs})
-    for k, m in enumerate(materials, 1):  # 有材料整份被丢掉时重新连续编号
-        if m["id"] != f"M{k}":
-            m["id"], m["title"] = f"M{k}", f"材料{k}"
-            for j, p in enumerate(m["paragraphs"], 1):
-                p["id"] = f"M{k}-{j}"
-    total = sum(len(p["text"]) for m in materials for p in m["paragraphs"])
-    if dropped and len(dropped) > 3:
-        raise RuntimeError(f"材料编辑有 {len(dropped)} 处摘录不是原文（{dropped[:5]}），本次停止")
-    if not materials or total < (3000 if len(layout) >= 4 else 400):
-        raise RuntimeError(f"组出的材料只有 {total} 字，不够出题")
-    return str(result.get("theme") or ""), materials
-
-
 def _layout_text(layout: list[dict], fixed: list[dict] | None) -> str:
     if fixed:
         return "题目已定（真题），不得改动设问，只补 rubric 和 reference_answer：\n" + dumps(fixed)
@@ -247,6 +281,7 @@ def normalize_questions(raw: list[dict], layout: list[dict], materials: list[dic
 
 
 def program_issues(q: dict, materials: list[dict]) -> list[str]:
+    repair_evidence(q, materials)
     issues = check_rubric(q, materials)
     if q["qtype"] not in QTYPES:
         issues.append(f"第{q['no']}题：题型 {q['qtype']} 不在县级卷五类里")
@@ -263,13 +298,15 @@ def program_issues(q: dict, materials: list[dict]) -> list[str]:
 def write_and_review(materials: list[dict], layout: list[dict], audit: Path, *, fixed: list[dict] | None = None,
                      hints: str = "", rounds: int = 2) -> tuple[list[dict], list[dict]]:
     context = "给定资料：\n" + materials_text(materials)
-    raw = call(WRITER, context + "\n\n" + _layout_text(layout, fixed) + hints, temperature=0.5, audit=audit,
+    writer = writer_prompt()
+    raw = call(writer, context + "\n\n" + _layout_text(layout, fixed) + hints, temperature=0.5, audit=audit,
                max_tokens=24000)
     questions = normalize_questions(raw.get("questions") or [], layout, materials, fixed)
     history = []
     for round_no in range(1, rounds + 2):
         prog = {q["no"]: program_issues(q, materials) for q in questions}
-        review = call(REVIEWER, context + "\n\n题目与要点表：\n" + dumps(questions), temperature=0.1, audit=audit)
+        review = call(REVIEWER.format(style=style_guide()), context + "\n\n题目与要点表：\n" + dumps(questions), temperature=0.1,
+                      audit=audit)
         verdicts = {int(v.get("no") or 0): v for v in review.get("questions") or []}
         bad = []
         for q in questions:
@@ -289,7 +326,7 @@ def write_and_review(materials: list[dict], layout: list[dict], audit: Path, *, 
         prompt = (context + "\n\n" + _layout_text(layout, fixed) + hints
                   + "\n\n以下题目已通过，原样保留，不要输出：" + ",".join(str(q["no"]) for q in keep)
                   + "\n只重写这些题号：" + ",".join(map(str, sorted(redo))) + "\n审核意见：\n" + feedback)
-        raw = call(WRITER, prompt, temperature=0.5, audit=audit, max_tokens=24000)
+        raw = call(writer, prompt, temperature=0.5, audit=audit, max_tokens=24000)
         fresh = {int(x.get("no") or 0): x for x in raw.get("questions") or []}
         merged = []
         for q in questions:
@@ -309,15 +346,21 @@ def write_and_review(materials: list[dict], layout: list[dict], audit: Path, *, 
 
 
 # ---------------------------------------------------------------- 子命令
-def parse_layout(types: str | None) -> list[dict]:
+def parse_layout(types: str | None, paper_type: str = LEVEL) -> list[dict]:
+    if paper_type not in PAPER_TYPES:
+        raise ValueError(f"卷种只能是：{'、'.join(PAPER_TYPES)}")
     if not types:
-        return [dict(s) for s in DEFAULT_LAYOUT]
-    by_type = {s["qtype"]: s for s in DEFAULT_LAYOUT}
+        return [dict(s) for s in LAYOUTS[paper_type]]
     out = []
-    for name in [t.strip() for t in types.split(",") if t.strip()]:
-        if name not in by_type:
+    for name in [t.strip() for t in types.replace("，", ",").split(",") if t.strip()]:
+        if name not in DRILL_DEFAULTS:
             raise ValueError(f"题型只能是：{'、'.join(QTYPES)}")
-        out.append(dict(by_type[name]))
+        slot = dict(DRILL_DEFAULTS[name])
+        if name == "文章写作":
+            slot.update({k: v for k, v in LAYOUTS[paper_type][-1].items() if k.startswith("words")})
+        out.append(slot)
+    if len(out) > 3:
+        raise ValueError("题型特训一次最多 3 道题")
     return out
 
 
@@ -335,33 +378,44 @@ def cmd_generate(args) -> dict:
     conn = connect(args.db)
     if conn.execute("SELECT 1 FROM shenlun_papers WHERE id=?", (args.batch_id,)).fetchone():
         raise ValueError("这个 batch_id 已入库，换一个序号")
-    layout = parse_layout(args.types)
+    paper_type = args.paper or LEVEL
+    layout = parse_layout(args.types, paper_type)
+    drill = bool(args.types)
     theme = [w.strip() for w in (args.theme or "").replace("，", ",").split(",") if w.strip()]
-    ids = [s.strip() for s in (args.sources or "").split(",") if s.strip()] or None
+    if not theme:
+        theme = [random.choice(THEME_POOL)]
     out_dir = batch_dir(args.batch_id)
     audit = out_dir / "audit"
     started = time.monotonic()
-    pool, pool_text = build_pool(all_sources(), ids, theme)
-    topic, materials = compose_materials(pool, pool_text, layout, audit, theme)
-    questions, history = write_and_review(materials, layout, audit, rounds=args.rounds,
-                                          hints=f"\n整卷主题：{topic}" if topic else "")
-    full = len(layout) == len(DEFAULT_LAYOUT)
+    plan = plan_paper(paper_type, layout, drill, theme, audit)
+    (out_dir / "plan.json").write_text(dumps(plan), encoding="utf-8")
+    materials = build_materials(plan, audit)
+    # 限定材料以蓝图为准：命题人只管写设问和要点
+    scope = {int(q.get("no") or 0): q for q in plan["questions"]}
+    for i, slot in enumerate(layout, 1):
+        q = scope.get(i) or {}
+        if slot["qtype"] != "文章写作" and q.get("material"):
+            slot["material_ids"] = [f"M{int(q['material'])}"]
+    questions, history = write_and_review(materials, layout, audit, rounds=args.rounds, hints=plan_hint(plan))
+    topic = str(plan.get("theme") or "").strip()
     kinds = "、".join(q["qtype"] for q in questions)
+    day = f"{local_today():%Y%m%d}"
     paper = {
-        "id": args.batch_id, "kind": "ai", "level": LEVEL, "region": "广东", "year": local_today().year,
-        "title": (f"广东省考申论（县级卷）模拟-{topic}-{local_today():%Y%m%d}" if full
-                  else f"广东省考申论（县级卷）{kinds}-{topic}-{local_today():%Y%m%d}"),
-        "time_limit_min": TIME_LIMIT_MIN if full else None,
-        "source_note": "材料逐字摘自：" + "；".join(sorted({p["source"]["title"] for m in materials
-                                                    for p in m["paragraphs"]})),
+        "id": args.batch_id, "kind": "ai", "level": paper_type, "region": "广东", "year": local_today().year,
+        "title": (f"广东省考申论（{paper_type}）特训-{kinds}-{topic}-{day}" if drill
+                  else f"广东省考申论（{paper_type}）模拟-{topic}-{day}"),
+        "time_limit_min": None if drill else TIME_LIMIT_MIN,
+        "source_note": f"材料为虚构，按 2024–2026 年广东省考申论{paper_type}真题的材料形式与设问方式命制。",
         "materials": materials, "questions": questions,
-        "meta": {"pipeline": "shenlun_quiz", "model": "gemini-3.8-flash-high", "theme": theme,
-                 "review_rounds": history, "seconds": round(time.monotonic() - started, 1)},
+        "meta": {"pipeline": "shenlun_quiz", "model": "gemini-3.8-flash-high", "paper_type": paper_type, "drill": drill,
+                 "theme": theme, "plan": plan, "review_rounds": history,
+                 "seconds": round(time.monotonic() - started, 1)},
     }
     (out_dir / "paper.json").write_text(dumps(paper), encoding="utf-8")
     if not args.no_import:
         save_paper(conn, paper)
     return {"status": "success", "paper_id": paper["id"], "title": paper["title"], "questions": len(questions),
+            "materials": len(materials), "material_chars": sum(word_count(p["text"]) for m in materials for p in m["paragraphs"]),
             "imported": not args.no_import, "batch_dir": str(out_dir), "seconds": paper["meta"]["seconds"],
             "message": f"已{'入库' if not args.no_import else '生成'}申论 {len(questions)} 题：{paper['title']}"}
 
@@ -472,9 +526,9 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     g = sub.add_parser("generate")
     g.add_argument("--batch-id", required=True)
-    g.add_argument("--theme", help="主题词，逗号分隔，用来从原文里挑段落")
-    g.add_argument("--sources", help="指定材料 id，逗号分隔；不给则按发布日期取最新的")
-    g.add_argument("--types", help="只出这些题型，逗号分隔；不给则出整卷 5 题")
+    g.add_argument("--paper", choices=PAPER_TYPES, default=LEVEL, help="卷种，默认县镇卷")
+    g.add_argument("--theme", help="主题，逗号分隔；不给就从近年真题常见主题里随机抽一个")
+    g.add_argument("--types", help="题型特训：只出这些题型（可重复，最多 3 道），逗号分隔；不给则出整卷 3 题")
     g.add_argument("--rounds", type=int, default=2)
     g.add_argument("--no-import", action="store_true")
     i = sub.add_parser("import")
