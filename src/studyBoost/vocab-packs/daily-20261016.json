@@ -1,0 +1,198 @@
+{
+  "pack_id": "daily-20261016",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-16",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261016:成色",
+      "word": "成色",
+      "wordType": "word",
+      "explanation": "原指金属货币的含金量；引申为事物的质量、品质。",
+      "usage": "常见“判断市场成色”“成色十足”；强调内在品质，不同于“成效”（做事结果）。",
+      "examples": [
+        "判断市场成色，不能只看一时数量增减，更要看预期和趋势。"
+      ],
+      "rivals": [
+        "成效",
+        "品质",
+        "含量"
+      ],
+      "cloze": [
+        "判断市场____，不能只看一时的数量增减。"
+      ],
+      "source": "每日读报 2026-10-16：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:策源地",
+      "word": "策源地",
+      "wordType": "word",
+      "explanation": "战争、运动等策动发起的地方；引申为创新、思潮等发源地。",
+      "usage": "“创新策源地”强调源头策动与辐射功能；不同于“聚集地”（侧重汇集）。",
+      "examples": [
+        "越来越多跨国企业把研发放在中国，推动中国从制造基地走向创新策源地。"
+      ],
+      "rivals": [
+        "聚集地",
+        "发源地",
+        "中心"
+      ],
+      "cloze": [
+        "中国正从制造基地走向创新____。"
+      ],
+      "source": "每日读报 2026-10-16：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:制度型开放",
+      "word": "制度型开放",
+      "wordType": "collocation",
+      "explanation": "以规则、规制、管理、标准等制度安排对接国际通行规则的开放形态。",
+      "usage": "高于单纯商品和要素流动型开放；常与市场准入、营商环境连用。",
+      "examples": [
+        "稳步扩大规则、规制、管理、标准等制度型开放，才能稳定外资预期。"
+      ],
+      "rivals": [
+        "商品开放",
+        "要素流动型开放",
+        "边境开放"
+      ],
+      "cloze": [
+        "____稳定预期，是塑造中国经济新引力的重要力量。"
+      ],
+      "source": "每日读报 2026-10-16：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:零和博弈",
+      "word": "零和博弈",
+      "wordType": "collocation",
+      "explanation": "一方所得即另一方所失、得失总和为零的博弈。",
+      "usage": "申论批保护主义高频词；常与“互利共赢”“正和博弈”对举。",
+      "examples": [
+        "把经贸关系简化成零和博弈，本质上是压缩共同发展空间。"
+      ],
+      "rivals": [
+        "正和博弈",
+        "互利共赢",
+        "合作博弈"
+      ],
+      "cloze": [
+        "通往全球繁荣之路，____不可取，互利共赢才是正途。"
+      ],
+      "source": "每日读报 2026-10-16：七十载广交会，给世界三点启示",
+      "publicSources": [
+        {
+          "title": "七十载广交会，给世界三点启示",
+          "url": "https://news.southcn.com/node_de9aedeec1/696f2f7d12.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:小院高墙",
+      "word": "小院高墙",
+      "wordType": "idiom",
+      "explanation": "比喻少数国家在关键技术领域筑高壁垒、搞排他性小圈子。",
+      "usage": "常与“脱钩断链”连用；特指高科技领域选择性封闭，不同于整体“闭关锁国”。",
+      "examples": [
+        "搞小院高墙、脱钩断链，看似短期占便宜，最终得不偿失。"
+      ],
+      "rivals": [
+        "闭关锁国",
+        "技术封锁",
+        "脱钩断链"
+      ],
+      "cloze": [
+        "动辄搞“____”“脱钩断链”，人为切割全球产业链供应链。"
+      ],
+      "source": "每日读报 2026-10-16：七十载广交会，给世界三点启示",
+      "publicSources": [
+        {
+          "title": "七十载广交会，给世界三点启示",
+          "url": "https://news.southcn.com/node_de9aedeec1/696f2f7d12.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:脱钩断链",
+      "word": "脱钩断链",
+      "wordType": "collocation",
+      "explanation": "切断经贸、科技或产业链供应链联系。",
+      "usage": "“脱钩”偏双边关系切断，“断链”偏产业链供应链断裂；常合用批保护主义。",
+      "examples": [
+        "以联通代替割裂、以合作代替对抗，才能抵制脱钩断链的逆流。"
+      ],
+      "rivals": [
+        "小院高墙",
+        "封闭脱钩",
+        "供应链断裂"
+      ],
+      "cloze": [
+        "保护主义搞____，只会压缩共同发展空间。"
+      ],
+      "source": "每日读报 2026-10-16：七十载广交会，给世界三点启示",
+      "publicSources": [
+        {
+          "title": "七十载广交会，给世界三点启示",
+          "url": "https://news.southcn.com/node_de9aedeec1/696f2f7d12.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261016:惠邻效应",
+      "word": "惠邻效应",
+      "wordType": "collocation",
+      "explanation": "自身发展惠及周边国家的外溢效应。",
+      "usage": "常与“富邻效应”连用；可与“正外部性”联动写周边外交、开放合作。",
+      "examples": [
+        "广交会让各国特色产品进入中国市场，释放出实实在在的惠邻效应。"
+      ],
+      "rivals": [
+        "富邻效应",
+        "正外部性",
+        "溢出效应"
+      ],
+      "cloze": [
+        "开放合作既能惠及国内消费者，也能释放____、富邻效应。"
+      ],
+      "source": "每日读报 2026-10-16：七十载广交会，给世界三点启示",
+      "publicSources": [
+        {
+          "title": "七十载广交会，给世界三点启示",
+          "url": "https://news.southcn.com/node_de9aedeec1/696f2f7d12.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
