@@ -1,0 +1,225 @@
+{
+  "pack_id": "daily-20261017",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-17",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261017:反内卷",
+      "word": "反内卷",
+      "wordType": "collocation",
+      "explanation": "治理无序、低水平、同质化恶性竞争，引导市场主体转向质量、效率与创新竞争。",
+      "usage": "常见于集采、平台经济、产业竞争语境；强调用规则纠偏，而非简单限价。",
+      "examples": [
+        "药品集采突出反内卷导向，畸高价要出局，畸低价不带量。"
+      ],
+      "rivals": [
+        "反垄断",
+        "恶性竞争",
+        "价格战"
+      ],
+      "cloze": [
+        "集采规则进一步突出____，引导企业拼质量、拼效率、拼保供。"
+      ],
+      "source": "每日读报 2026-10-17：极端低价不通吃",
+      "publicSources": [
+        {
+          "title": "极端低价不通吃（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/15/content_30185804.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:唯低价",
+      "word": "唯低价",
+      "wordType": "collocation",
+      "explanation": "以价格最低为唯一或首要中选、评价标准的片面取向。",
+      "usage": "常作批评对象，如“不再唯低价”；对立面是价值导向、综合竞价。",
+      "examples": [
+        "医保集采不再唯低价，而是把极端低价与带量采购拆开。"
+      ],
+      "rivals": [
+        "低价中标",
+        "合理低价",
+        "综合评分"
+      ],
+      "cloze": [
+        "改革要走出____的误区，更加注重质量、效率和保供。"
+      ],
+      "source": "每日读报 2026-10-17：极端低价不通吃",
+      "publicSources": [
+        {
+          "title": "极端低价不通吃（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/15/content_30185804.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:赔本赚吆喝",
+      "word": "赔本赚吆喝",
+      "wordType": "idiom",
+      "explanation": "亏本做买卖，只为图个名声或热闹；比喻得不偿失的表面风光。",
+      "usage": "贬义；可喻极端低价策略不可持续。",
+      "examples": [
+        "把极端低价与带量拆开，才能让赔本赚吆喝的报价无利可图。"
+      ],
+      "rivals": [
+        "亏本甩卖",
+        "薄利多销",
+        "名利双收"
+      ],
+      "cloze": [
+        "规则设计要让____的极端低价失去获利空间。"
+      ],
+      "source": "每日读报 2026-10-17：极端低价不通吃",
+      "publicSources": [
+        {
+          "title": "极端低价不通吃（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/15/content_30185804.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:无机可乘",
+      "word": "无机可乘",
+      "wordType": "idiom",
+      "explanation": "没有空隙、机会可被利用。",
+      "usage": "常与“让……无机可乘”搭配；强调堵漏洞。",
+      "examples": [
+        "合理的竞价规则，能够让恶意卷价格无机可乘。"
+      ],
+      "rivals": [
+        "无计可施",
+        "有机可乘",
+        "无隙可乘"
+      ],
+      "cloze": [
+        "完善规则才能让投机取巧____。"
+      ],
+      "source": "每日读报 2026-10-17：极端低价不通吃",
+      "publicSources": [
+        {
+          "title": "极端低价不通吃（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/15/content_30185804.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:三医协同",
+      "word": "三医协同",
+      "wordType": "collocation",
+      "explanation": "医保、医疗、医药三项改革联动推进、相互配合。",
+      "usage": "政理高频；常与支付、集采、诊疗行为连用。",
+      "examples": [
+        "集采嵌入三医协同框架，支付、采购、医疗三端联动管好每一分医保基金。"
+      ],
+      "rivals": [
+        "医药分开",
+        "分级诊疗",
+        "医联体"
+      ],
+      "cloze": [
+        "深化____，才能让降价成果真正转化为群众健康收益。"
+      ],
+      "source": "每日读报 2026-10-17：极端低价不通吃",
+      "publicSources": [
+        {
+          "title": "极端低价不通吃（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/15/content_30185804.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:投早投小投长期投硬科技",
+      "word": "投早投小投长期投硬科技",
+      "wordType": "collocation",
+      "explanation": "引导资本投向早期项目、小微主体、长回报周期与硬科技领域的政策取向。",
+      "usage": "可作对策排比；强调补齐早期融资短板。",
+      "examples": [
+        "政府引导基金应坚持投早投小投长期投硬科技，把资金导入初创科技企业。"
+      ],
+      "rivals": [
+        "投成熟投龙头",
+        "短平快",
+        "模式创新优先"
+      ],
+      "cloze": [
+        "科创基金要引导耐心资本____，服务关键核心技术突破。"
+      ],
+      "source": "每日读报 2026-10-17：穗200亿元科创母基金全球遴选子基金",
+      "publicSources": [
+        {
+          "title": "穗200亿元科创母基金全球遴选子基金",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/17/content_10183761.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:先回本后分利",
+      "word": "先回本后分利",
+      "wordType": "collocation",
+      "explanation": "先收回本金，再分配超额收益的收益分配顺序。",
+      "usage": "常见于引导基金、合伙协议；体现本金优先与风险安排。",
+      "examples": [
+        "按照先回本后分利原则，引导基金收回出资后再让渡部分超额收益。"
+      ],
+      "rivals": [
+        "先分利后回本",
+        "同期分红",
+        "保底收益"
+      ],
+      "cloze": [
+        "基金合伙协议约定____，以稳定社会资本预期。"
+      ],
+      "source": "每日读报 2026-10-17：穗200亿元科创母基金全球遴选子基金",
+      "publicSources": [
+        {
+          "title": "穗200亿元科创母基金全球遴选子基金",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/17/content_10183761.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261017:具体而微",
+      "word": "具体而微",
+      "wordType": "idiom",
+      "explanation": "内容大体具备而规模更小、细节更细；形容虽小但具体周全。",
+      "usage": "可形容细小却完整的回应、样本、安排。",
+      "examples": [
+        "城市的温度，往往藏在这些具体而微的服务回应里。"
+      ],
+      "rivals": [
+        "微不足道",
+        "面面俱到",
+        "大而化之"
+      ],
+      "cloze": [
+        "治理现代化离不开____的民生回应。"
+      ],
+      "source": "每日读报 2026-10-17：机场两元一粒的布洛芬，照见深圳城市服务的细腻",
+      "publicSources": [
+        {
+          "title": "南方网评：机场两元一粒的布洛芬，照见深圳城市服务的细腻",
+          "url": "https://opinion.southcn.com/node_e4f9db6b4d/c93ee6cec0.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
