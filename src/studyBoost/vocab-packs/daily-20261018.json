@@ -1,0 +1,306 @@
+{
+  "pack_id": "daily-20261018",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-18",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261018:新引力",
+      "word": "新引力",
+      "wordType": "collocation",
+      "explanation": "由新技术落地、创新生态、绿色机遇与制度型开放等共同塑造的市场新吸引力。",
+      "usage": "可用于概括开放型经济、利用外资的“质”与“势”；常作申论小标题。",
+      "examples": [
+        "从外资流向看，中国市场的新引力藏在应用场景、创新生态与确定性之中。"
+      ],
+      "rivals": [
+        "旧红利",
+        "短期炒作",
+        "流量效应"
+      ],
+      "cloze": [
+        "判断市场成色要看结构与预期，中国经济的____来自技术、绿色与制度型开放。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:换赛道",
+      "word": "换赛道",
+      "wordType": "collocation",
+      "explanation": "投资或发展重心从原有领域转向高技术、绿色等新领域；喻结构性转型而非简单退出。",
+      "usage": "常与“并没有走，而是……”对举；可用于对外开放、产业升级语境。",
+      "examples": [
+        "外资并没有撤离，而是换赛道，更多投向研发设计与科技成果转化服务。"
+      ],
+      "rivals": [
+        "撤离",
+        "脱钩断链",
+        "另起炉灶"
+      ],
+      "cloze": [
+        "读懂外资动向，关键是看其是否____，把资金投向高技术与绿色领域。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:应用场景",
+      "word": "应用场景",
+      "wordType": "collocation",
+      "explanation": "技术得以验证、试用并走向商业化的具体使用情境与市场空间。",
+      "usage": "科技创新政策高频；常与“超大规模市场”“概念验证”连用。",
+      "examples": [
+        "丰富的应用场景，让前沿技术能够在中国完成从实验室到市场的跳跃。"
+      ],
+      "rivals": [
+        "使用环境",
+        "试验田",
+        "展示窗口"
+      ],
+      "cloze": [
+        "超大规模市场和丰富____，为科技创新提供了从概念验证到商业化落地的完整链条。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:概念验证",
+      "word": "概念验证",
+      "wordType": "collocation",
+      "explanation": "把技术设想放到真实或准真实环境中，检验其可行性与商业潜力的环节。",
+      "usage": "创新链前端术语；强调“验得了、试得动”，尚不等于规模化量产。",
+      "examples": [
+        "从概念验证到商业化落地，中国完整的创新链条吸引外资企业把研发中心留在本地。"
+      ],
+      "rivals": [
+        "中试放大",
+        "量产落地",
+        "可行性研究"
+      ],
+      "cloze": [
+        "完整创新链条意味着技术既能做____，也能走向规模化商业应用。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:新型生产要素",
+      "word": "新型生产要素",
+      "wordType": "collocation",
+      "explanation": "相对土地、劳动力等传统要素而言的绿电、算力等新供给要素。",
+      "usage": "政理／申论写新质生产力、绿色低碳常用；突出“供给端升级”。",
+      "examples": [
+        "巴斯夫广东基地看重的不只是传统成本，更是绿电、算力等新型生产要素。"
+      ],
+      "rivals": [
+        "传统要素",
+        "生产要素",
+        "资源禀赋"
+      ],
+      "cloze": [
+        "跨国企业日益看重绿电、算力等____供给，而不只是劳动力成本。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:固稳促优",
+      "word": "固稳促优",
+      "wordType": "collocation",
+      "explanation": "稳住利用外资存量、促进投资结构优化的政策取向（见《利用外资固稳促优行动方案》）。",
+      "usage": "政策缩略；强调质量与结构，而非单纯冲总量。",
+      "examples": [
+        "落实利用外资固稳促优，关键是扩大准入、提升便利度，增强确定性。"
+      ],
+      "rivals": [
+        "唯GDP",
+        "粗放扩张",
+        "大水漫灌"
+      ],
+      "cloze": [
+        "《利用外资____行动方案》等政策接续落地，稳定透明可预期的环境更受外资青睐。"
+      ],
+      "source": "每日读报 2026-10-18：从外资流向看中国市场新引力",
+      "publicSources": [
+        {
+          "title": "从外资流向看中国市场新引力（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/16/content_30185977.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:全省一盘棋",
+      "word": "全省一盘棋",
+      "wordType": "idiom",
+      "explanation": "在全省范围内统筹协调、协同发力，局部服从全局的工作方法。",
+      "usage": "动员／统筹语境高频；可换说“全国一盘棋”。",
+      "examples": [
+        "办好深圳APEC，要以全省一盘棋思维推进场馆、交通与涉外服务协同。"
+      ],
+      "rivals": [
+        "各自为政",
+        "单打独斗",
+        "诸侯经济"
+      ],
+      "cloze": [
+        "重大主场活动必须坚持____，避免各地各抓一摊、力量分散。"
+      ],
+      "source": "每日读报 2026-10-18：以最高标准办好APEC会议",
+      "publicSources": [
+        {
+          "title": "以最高标准办好APEC会议",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/18/content_10183809.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:盛装以待",
+      "word": "盛装以待",
+      "wordType": "idiom",
+      "explanation": "穿戴整齐、郑重准备，迎接贵客或重大活动。",
+      "usage": "书面、郑重；用于城市／东道主迎接盛会。",
+      "examples": [
+        "深圳盛装以待，迎接APEC各方嘉宾共赴亚太合作之约。"
+      ],
+      "rivals": [
+        "严阵以待",
+        "虚位以待",
+        "拭目以待"
+      ],
+      "cloze": [
+        "现代化国际大都市____，力争办一场人民满意的高水平国际盛会。"
+      ],
+      "source": "每日读报 2026-10-18：以最高标准办好APEC会议",
+      "publicSources": [
+        {
+          "title": "以最高标准办好APEC会议",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/18/content_10183809.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:绣花功夫",
+      "word": "绣花功夫",
+      "wordType": "idiom",
+      "explanation": "像绣花一样精细、耐心、注重细节的工作作风与治理方法。",
+      "usage": "申论城市治理、营商环境、民生服务高频；强调做细做实。",
+      "examples": [
+        "下足绣花功夫，才能把待客诚意融入地铁闸机、志愿指路等细微之处。"
+      ],
+      "rivals": [
+        "粗放管理",
+        "面子工程",
+        "一阵风"
+      ],
+      "cloze": [
+        "办好一次会、提升一座城，关键要下足____，把服务做到可感可及。"
+      ],
+      "source": "每日读报 2026-10-18：迎接深圳之约 共促亚太繁荣",
+      "publicSources": [
+        {
+          "title": "迎接深圳之约 共促亚太繁荣",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/18/content_10183808.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:一拍即过",
+      "word": "一拍即过",
+      "wordType": "collocation",
+      "explanation": "文中指境外银行卡轻触闸机即可过闸；引申为流程极简、无感通行。",
+      "usage": "可描述支付、通关、政务“无感办理”的便利体验。",
+      "examples": [
+        "深圳地铁闸机支持境外银行卡一拍即过，涉外支付便利落地到出行第一站。"
+      ],
+      "rivals": [
+        "辗转奔波",
+        "多重核验",
+        "繁琐手续"
+      ],
+      "cloze": [
+        "地铁闸机支持境外银行卡____，让境外旅客的鹏城之旅多了一份便利。"
+      ],
+      "source": "每日读报 2026-10-18：迎接深圳之约 共促亚太繁荣",
+      "publicSources": [
+        {
+          "title": "迎接深圳之约 共促亚太繁荣",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/18/content_10183808.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261018:绿色航运走廊",
+      "word": "绿色航运走廊",
+      "wordType": "collocation",
+      "explanation": "港口之间就清洁能源、减排与智慧港航等开展合作的绿色航运通道倡议。",
+      "usage": "港航＋双碳／开放合作语境；注意区别于行政审批“绿色通道”。",
+      "examples": [
+        "深圳港与洛杉矶港、长滩港共同发起绿色航运走廊合作，推动港口能源转型。"
+      ],
+      "rivals": [
+        "绿色通道",
+        "一带一路",
+        "自由贸易港"
+      ],
+      "cloze": [
+        "跨洋港口共建____，围绕清洁燃料加注与能源转型深化合作。"
+      ],
+      "source": "每日读报 2026-10-18：迎接深圳之约 共促亚太繁荣",
+      "publicSources": [
+        {
+          "title": "迎接深圳之约 共促亚太繁荣",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/18/content_10183808.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
