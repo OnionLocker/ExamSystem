@@ -1,0 +1,360 @@
+{
+  "pack_id": "daily-20261020",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-20",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261020:智能经济",
+      "word": "智能经济",
+      "wordType": "collocation",
+      "explanation": "数字经济发展的高级阶段：数据、算法、算力协同，供给端具备自主感知、判断和生成能力，对生产、流通、消费和企业管理进行智能化重构。",
+      "usage": "政理／申论高频；强调重构运行逻辑，而非表面贴AI标签。",
+      "examples": [
+        "广东推动智能经济与制造业深度融合，让车间报表和工厂产能体现含金量。"
+      ],
+      "rivals": [
+        "数字经济",
+        "装AI插件",
+        "概念炒作"
+      ],
+      "cloze": [
+        "作为数字经济高级阶段，____通过数据流动与实时优化重构经济运行。"
+      ],
+      "source": "每日读报 2026-10-20：让智能经济更好激发新动能",
+      "publicSources": [
+        {
+          "title": "让智能经济更好激发新动能（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/20/content_30186725.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:装AI插件",
+      "word": "装AI插件",
+      "wordType": "collocation",
+      "explanation": "喻只做表面数字化、形式主义上人工智能，未真正改变生产流通与管理逻辑。",
+      "usage": "贬义伪命题；常与“智能化重构”对举，用于批形式主义数字化。",
+      "examples": [
+        "县域数字化不能停留在装AI插件，而要把审批、监管与产业服务流程真正再造。"
+      ],
+      "rivals": [
+        "智能化重构",
+        "数实融合",
+        "智能经济"
+      ],
+      "cloze": [
+        "智能经济不是简单给经济运行____，而是进行智能化重构。"
+      ],
+      "source": "每日读报 2026-10-20：让智能经济更好激发新动能",
+      "publicSources": [
+        {
+          "title": "让智能经济更好激发新动能（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/20/content_30186725.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:老树发新枝",
+      "word": "老树发新枝",
+      "wordType": "idiom",
+      "explanation": "比喻传统产业借助新技术焕发新动能，在存量基础上长出新业态、新竞争力。",
+      "usage": "申论传统产业改造高频喻；强调赋能升级而非推倒重来。",
+      "examples": [
+        "珠三角大量传统制造车间通过工业互联网改造，正是老树发新枝的生动写照。"
+      ],
+      "rivals": [
+        "推倒重来",
+        "另起炉灶",
+        "向新力"
+      ],
+      "cloze": [
+        "智能经济既要开辟新赛道，也要推动传统产业____。"
+      ],
+      "source": "每日读报 2026-10-20：让智能经济更好激发新动能",
+      "publicSources": [
+        {
+          "title": "让智能经济更好激发新动能（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/20/content_30186725.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:向新力",
+      "word": "向新力",
+      "wordType": "collocation",
+      "explanation": "要素基础、技术模型与行业应用齐头并进汇聚而成的持续创新与产业升级驱动力。",
+      "usage": "文中金词；可作新动能、新质生产力表述亮点。",
+      "examples": [
+        "算法、算力与场景应用齐头并进，汇聚成广东产业升级的向新力。"
+      ],
+      "rivals": [
+        "新动能",
+        "拔节生长",
+        "野蛮生长"
+      ],
+      "cloze": [
+        "要素、模型与应用齐头并进，汇聚成源源不断的____。"
+      ],
+      "source": "每日读报 2026-10-20：让智能经济更好激发新动能",
+      "publicSources": [
+        {
+          "title": "让智能经济更好激发新动能（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/20/content_30186725.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:风景这边独好",
+      "word": "风景这边独好",
+      "wordType": "idiom",
+      "explanation": "比喻在整体承压的环境中，本方表现突出、相对优势明显。",
+      "usage": "出自毛泽东词；时评常用于国际比较语境，需有数据支撑，不宜空喊。",
+      "examples": [
+        "全球主要经济体增速普遍承压时，中国经济表现依然风景这边独好。"
+      ],
+      "rivals": [
+        "一枝独秀",
+        "独领风骚",
+        "稳中有进"
+      ],
+      "cloze": [
+        "中国经济增速明显高于全球平均水平，依然____。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:动能向新",
+      "word": "动能向新",
+      "wordType": "collocation",
+      "explanation": "经济增长动力更多来自高端制造、数智经济、现代服务等新动能的转换态势。",
+      "usage": "与“结构向优”“质效向好”常成三联；偏动力来源，非仅增速回升。",
+      "examples": [
+        "前三季度新动能贡献率保持在四成以上，经济增长呈现动能向新。"
+      ],
+      "rivals": [
+        "结构向优",
+        "质效向好",
+        "新旧动能转换"
+      ],
+      "cloze": [
+        "中国经济呈现____、结构向优、质效向好的积极态势。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:结构向优",
+      "word": "结构向优",
+      "wordType": "collocation",
+      "explanation": "三次产业以及消费、投资、外贸等重大比例关系更趋合理、质量提升的态势。",
+      "usage": "三联之一；重比例与质量结构，而非只看总量扩张。",
+      "examples": [
+        "知识产权与高技术产业投资加快，是经济结构向优的重要信号。"
+      ],
+      "rivals": [
+        "动能向新",
+        "质效向好",
+        "总量扩张"
+      ],
+      "cloze": [
+        "消费、投资、外贸协同发力，推动国民经济____。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:质效向好",
+      "word": "质效向好",
+      "wordType": "collocation",
+      "explanation": "绿色转型、开放能级、安全保障和企业效益等显示发展含金量与可持续性持续提升。",
+      "usage": "三联之一；质＝质量含金量，效＝效益与效率。",
+      "examples": [
+        "单位GDP能耗下降与工业企业利润较快增长，共同印证质效向好。"
+      ],
+      "rivals": [
+        "动能向新",
+        "结构向优",
+        "含金量"
+      ],
+      "cloze": [
+        "绿色、开放、安全与企业效益改善，说明发展____。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:双轮驱动",
+      "word": "双轮驱动",
+      "wordType": "collocation",
+      "explanation": "两个动力并重、协同推进；文中特指商品消费与服务消费共同拉动。",
+      "usage": "申论万能结构词；使用时须写明“哪两轮”，避免空泛。",
+      "examples": [
+        "扩大内需要坚持商品消费与服务消费双轮驱动，提升最终消费贡献率。"
+      ],
+      "rivals": [
+        "单轮独进",
+        "三驾马车",
+        "并驾齐驱"
+      ],
+      "cloze": [
+        "我国消费市场进入“商品+服务”____的发展阶段。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:超级买家",
+      "word": "超级买家",
+      "wordType": "collocation",
+      "explanation": "喻超大规模市场通过持续进口为全球提供需求，提升内外循环联通效能。",
+      "usage": "常与“世界市场”“超级卖家”对举；开放发展／外贸论述亮点。",
+      "examples": [
+        "进口持续较快增长，表明中国既是世界市场，也是全球产业链上的超级买家。"
+      ],
+      "rivals": [
+        "世界市场",
+        "超级卖家",
+        "外需依赖"
+      ],
+      "cloze": [
+        "中国不仅是“世界市场”，还是____，内外循环联通效能持续提升。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:穿越周期",
+      "word": "穿越周期",
+      "wordType": "collocation",
+      "explanation": "在经济周期波动中保持战略定力，不被短期扰动带偏方向。",
+      "usage": "宏观形势评论；常与“内生韧性”“战略定力”连用。",
+      "examples": [
+        "面对外部冲击，坚持制造业当家，才能穿越周期、稳住基本盘。"
+      ],
+      "rivals": [
+        "顺周期扩张",
+        "短视波动",
+        "内生韧性"
+      ],
+      "cloze": [
+        "中国经济展现出____的战略定力与内生韧性。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:内生韧性",
+      "word": "内生韧性",
+      "wordType": "collocation",
+      "explanation": "依靠自身结构、动能与制度优势抵御冲击并恢复增长的能力。",
+      "usage": "强调内因与自我修复；≠单纯外援托底或短期刺激。",
+      "examples": [
+        "完整产业门类与超大市场规模，构成中国经济内生韧性的重要根基。"
+      ],
+      "rivals": [
+        "外援托底",
+        "穿越周期",
+        "抗风险能力"
+      ],
+      "cloze": [
+        "承压前行仍稳中有进，彰显中国经济的____。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261020:经济大省挑大梁",
+      "word": "经济大省挑大梁",
+      "wordType": "collocation",
+      "explanation": "经济体量大省在稳增长、促转型中承担更大责任与贡献的要求。",
+      "usage": "广东省情／动员表述高频；常接“走在前、作示范、挑大梁”。",
+      "examples": [
+        "冲刺四季度，广东必须落实经济大省挑大梁，确保全年有好的收成。"
+      ],
+      "rivals": [
+        "走在前作示范挑大梁",
+        "稳中有进",
+        "自我加压"
+      ],
+      "cloze": [
+        "____。全省上下要展现走在前、作示范、挑大梁的责任担当。"
+      ],
+      "source": "每日读报 2026-10-20：动能向新，结构向优，质效向好",
+      "publicSources": [
+        {
+          "title": "动能向新，结构向优，质效向好",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/755c877b9c.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
