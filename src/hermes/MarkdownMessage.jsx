@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import hljs from 'highlight.js/lib/common';
 import { Check, Copy, FileImage, Loader2 } from 'lucide-react';
 import { api } from '../api.js';
@@ -410,7 +411,7 @@ const MarkdownMessage = memo(function MarkdownMessage({
         <div className="katex-inline-host text-[1em] text-[#1a1a1a] break-words">
           <ReactMarkdown
             remarkPlugins={[[remarkGfm, { singleTilde: false }], remarkMath]}
-            rehypePlugins={[[rehypeKatex, KATEX_OPTIONS]]}
+            rehypePlugins={[[rehypeRaw], [rehypeKatex, KATEX_OPTIONS]]}
             components={renderedComponents}
           >
             {displayContent}
