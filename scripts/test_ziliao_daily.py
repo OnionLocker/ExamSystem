@@ -56,6 +56,32 @@ class PerformanceTest(unittest.TestCase):
         self.assertEqual(stats["variant"][f"{SHARE}|multi-part-share"], {"n": 1, "correct": 0})
 
 
+class JudgeRotationTest(unittest.TestCase):
+    def test_new_gd_stems_classified_same_in_gate_and_tracks(self):
+        from generation_gate import _judge_form
+        from ziliao_tracks import GD_JUDGE_FORM_POOL, classify_judge_form
+        expected = {"根据资料，下列说法不准确的是": "有误", "根据资料，下列说法最不准确的是": "有误",
+                    "根据资料，下列说法最准确的是": "正确", "根据资料，以下判断正确的是": "正确"}
+        for stem, form in expected.items():
+            self.assertEqual(classify_judge_form(stem), form)
+            self.assertEqual(_judge_form(stem), form)
+        for spec in GD_JUDGE_FORM_POOL:
+            self.assertEqual(classify_judge_form(spec["stem"]), spec["form"], spec["stem"])
+
+    def test_mixes_distinct_and_recent_ones_rarer(self):
+        import random
+        from collections import Counter
+        from ziliao_tracks import GD_JUDGE_MIXES, pick_judge_mixes
+        recent = [{"estimate-compare", "multi-step"}]
+        counts = Counter()
+        for seed in range(400):
+            picked = pick_judge_mixes(random.Random(seed), recent)
+            self.assertEqual(len({m["id"] for m in picked}), 4)
+            counts.update(m["id"] for m in picked)
+        self.assertEqual(set(counts), {m["id"] for m in GD_JUDGE_MIXES})
+        self.assertLess(counts["estimate-compare"], counts["truth-mix"])
+
+
 class SchedulerTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

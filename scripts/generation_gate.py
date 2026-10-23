@@ -720,9 +720,9 @@ def _judge_form(stem: str) -> str:
         return "属实"
     if "能够" in stem and "推" in stem:
         return "能推出"
-    if "有误" in stem or "不正确" in stem or "错误的是" in stem:
+    if "有误" in stem or "不正确" in stem or "错误的是" in stem or "不准确" in stem:
         return "有误"
-    if "正确的是" in stem:
+    if "正确的是" in stem or "准确的是" in stem:
         return "正确"
     return ""
 

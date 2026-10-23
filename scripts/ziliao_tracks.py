@@ -268,24 +268,51 @@ def classify_judge_form(stem: str) -> str:
         return "属实"
     if "能够" in text and "推" in text:
         return "能推出"
-    if "有误" in text or "不正确" in text or "错误的是" in text:
+    if "有误" in text or "不正确" in text or "错误的是" in text or "不准确" in text:
         return "有误"
-    if "正确的是" in text:
+    if "正确的是" in text or "准确的是" in text:
         return "正确"
     return ""
 
 
+# 综合分析四句的考查组合：前 4 种为原有组合，其余按粤考/国考真题综合题选项归纳。
+# 每套抽 4 种互不相同的组合，按 weight × 近 3 套降权 × 学员表现系数抽取。
 GD_JUDGE_MIXES = (
-    "估算比较：四句中至少两句需估算比较大小或排序（如两项增长量、两个比重孰高），其余为直接计算；不考口径陷阱。",
-    "多步计算：至少两句需两步及以上计算（如先反推基期再求比重、先求平均数再比较）；不能推出的那句须由计算得出，不能是“材料未提及”。",
-    "正误混合：四句都依据图表与正文数据核算，正确的有2–3句，覆盖趋势判断、增长量或年均比较；不得用“缺数据无法比较”。",
-    "估算+多步混合：四句分别涉及比重比较、增速比较、增长量估算、倍数或平均数；至多一句百分点与百分比辨析。",
+    {"id": "estimate-compare", "weight": 4,
+     "text": "估算比较：四句中至少两句需估算比较大小或排序（如两项增长量、两个比重孰高），其余为直接计算；不考口径陷阱。"},
+    {"id": "multi-step", "weight": 4,
+     "text": "多步计算：至少两句需两步及以上计算（如先反推基期再求比重、先求平均数再比较）；不能推出的那句须由计算得出，不能是“材料未提及”。"},
+    {"id": "truth-mix", "weight": 3,
+     "text": "正误混合：四句都依据图表与正文数据核算，正确的有2–3句，覆盖趋势判断、增长量或年均比较；不得用“缺数据无法比较”。"},
+    {"id": "estimate-multi-mix", "weight": 3,
+     "text": "估算+多步混合：四句分别涉及比重比较、增速比较、增长量估算、倍数或平均数；至多一句百分点与百分比辨析。"},
+    {"id": "implicit-total", "weight": 3,
+     "text": "隐含量反推：至少两句需由比重、人均或增速反推材料未直接给出的总量或人数（如由人均与总额推人口），再与阈值比较。"},
+    {"id": "universal-trend", "weight": 3,
+     "text": "全称与趋势核查：至少两句含“均/逐年/始终/无论……都/变化趋势一致”，须逐项逐年核查，错误句恰有一个反例。"},
+    {"id": "hypothesis", "weight": 2,
+     "text": "假设推算：一句以“如果/若……保持不变（或各期相等），则……”给出假设再判断，假设须能由材料数据完整推算；其余三句常规核算。"},
+    {"id": "text-data-mix", "weight": 2,
+     "text": "文字数据混合：一句依据正文文字表述（举措、排名、特点）判断，错误须与原文有明确出入；其余三句为数据核算。"},
+    {"id": "cumulative-annual", "weight": 2,
+     "text": "累计与年均：四句中至少两句涉及多年累计值、年均增量或年均增速、首次超过某值的年份，年份差须写对。"},
+    {"id": "bound-inference", "weight": 2,
+     "text": "边界推断：一句用“可能/不可能/至少/至多”表述，需用不等式判断上下界是否成立；其余三句常规核算。"},
+    {"id": "contribution", "weight": 2,
+     "text": "贡献与拉动：一句判断整体增长主要由哪部分贡献或某部分拉动多少个百分点，其余三句涉及比重、增速或平均数。"},
 )
+JUDGE_MIX_TEXT = {mix["id"]: mix["text"] for mix in GD_JUDGE_MIXES}
+_JUDGE_MIX_BY_TEXT = {mix["text"]: mix["id"] for mix in GD_JUDGE_MIXES}
+
+
+def judge_mix_id(slot: dict) -> str | None:
+    """旧批次只存了组合原文，按原文反查 id。"""
+    return slot.get("judge_mix_id") or _JUDGE_MIX_BY_TEXT.get(str(slot.get("judge_mix") or ""))
 
 
 def judge_slot_fields(material_index: int) -> dict:
     spec = GD_JUDGE_FORMS[material_index % len(GD_JUDGE_FORMS)]
-    mix = GD_JUDGE_MIXES[material_index % len(GD_JUDGE_MIXES)]
+    mix = GD_JUDGE_MIXES[material_index % len(GD_JUDGE_MIXES)]["text"]
     return {
         "judge_form": spec["form"],
         "judge_stem": spec["stem"],
@@ -447,7 +474,11 @@ KIND_TAGS = {
 GD_JUDGE_FORM_POOL = GD_JUDGE_FORMS + (
     {"form": "有误", "stem": "根据资料，下列说法有误的是"},
     {"form": "有误", "stem": "根据资料，以下说法不正确的是"},
+    {"form": "有误", "stem": "根据资料，下列说法不准确的是"},
+    {"form": "有误", "stem": "根据资料，下列说法最不准确的是"},
     {"form": "正确", "stem": "根据资料，以下说法正确的是"},
+    {"form": "正确", "stem": "根据资料，下列说法最准确的是"},
+    {"form": "正确", "stem": "根据资料，以下判断正确的是"},
 )
 
 CORE_GROUPS = (
@@ -546,9 +577,22 @@ def rotating_slot(kind: str, material_type: str, paper_tier: str, option_format:
     return slot
 
 
+def pick_judge_mixes(rng, recent_mixes: list | None = None, mix_boost: dict | None = None, count: int = 4) -> list[dict]:
+    """不放回抽 count 种综合分析考查组合：weight × 近 3 套降权 × 学员表现系数。"""
+    mix_boost = mix_boost or {}
+    pool, chosen = list(GD_JUDGE_MIXES), []
+    while len(chosen) < count and pool:
+        weights = [m["weight"] * _recency_factor(m["id"], recent_mixes or []) * mix_boost.get(m["id"], 1.0) for m in pool]
+        mix = _weighted_pick(rng, pool, weights)
+        chosen.append(mix)
+        pool.remove(mix)
+    return chosen
+
+
 def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | None = None,
-                      recent_types: list | None = None, kind_boost: dict | None = None) -> tuple[list[str], list[dict]]:
-    """返回（四篇材料形态，20 个槽位）。题型按真题权重×近期降权×学员表现系数抽取，满足核心覆盖与配额。"""
+                      recent_types: list | None = None, kind_boost: dict | None = None,
+                      recent_mixes: list | None = None, mix_boost: dict | None = None) -> tuple[list[str], list[dict]]:
+    """返回（四篇材料形态，20 个槽位）。题型与综合分析组合按真题权重×近期降权×学员表现系数抽取，满足核心覆盖与配额。"""
     import random
     rng = rng or random.Random()
     recent_kinds = recent_kinds or []
@@ -609,11 +653,13 @@ def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | No
             if spec["form"] not in seen:
                 unique_forms.append(spec)
                 seen.add(spec["form"])
-        mixes = rng.sample(list(GD_JUDGE_MIXES), 4)
+        mixes = pick_judge_mixes(rng, recent_mixes, mix_boost)
         for material_index in range(4):
-            spec, mix = unique_forms[material_index], mixes[material_index]
+            spec, mix_spec = unique_forms[material_index], mixes[material_index]
+            mix = mix_spec["text"]
             slots[material_index * 5 + 4].update({
                 "judge_form": spec["form"], "judge_stem": spec["stem"], "judge_mix": mix,
+                "judge_mix_id": mix_spec["id"],
                 "brief": (f"综合分析。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
                           "禁止改成其他问法。" f"本篇组合——{mix}每句解析写出核算算式；错误项必须确实不成立。"),
             })
@@ -1190,7 +1236,7 @@ def track_framework_rules(track: str) -> str:
         "4 篇形态按计划（M01 为长文字350–750字，其余为表格、月度表、柱图、饼图或折线图）。"
         "图序列禁止等差或等差增量；禁止总计整万+人均整十。"
         "难度按秒杀找数/一步/两步/四陈述综合拉开，禁止全员 difficulty=3。"
-        "四篇 Q5 综合分析的题干已写在槽位 judge_stem：属实、不能推出、正确的有、能够推出，组合见 judge_mix，禁止四篇都写成「下列说法正确/有误的是」。"
+        "四篇 Q5 综合分析的题干已写在槽位 judge_stem（四篇问法互不相同），四句考查组合见 judge_mix，禁止四篇都写成「下列说法正确/有误的是」。"
         "各篇question_plan按五个槽位kind预留所需数据；有图表则至少两个只在图表出现的取数点进入计算。"
         "禁止九主体全表人均排序；图表匹配只在槽位kind=chart_match时出。主题按计划给定，四篇互不相同；地名用广东省及其地市真实名称。"
     )

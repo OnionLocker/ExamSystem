@@ -50,8 +50,9 @@ def collect(conn: sqlite3.Connection, today: dt.date | None = None, days: int = 
             paper_dir: Path = PAPER_DIR) -> dict:
     today = today or dt.date.today()
     since = (today - dt.timedelta(days=days)).isoformat()
+    from ziliao_tracks import judge_mix_id
     stats = {"tag": defaultdict(lambda: [0, 0]), "kind": defaultdict(lambda: [0, 0]),
-             "variant": defaultdict(lambda: [0, 0])}
+             "variant": defaultdict(lambda: [0, 0]), "judge_mix": defaultdict(lambda: [0, 0])}
     seen, cache, answered = set(), {}, 0
     rows = conn.execute(
         """SELECT pa.question_id, pa.user_answer, pa.is_correct, pa.time_spent_sec, pa.answered_at,
@@ -80,6 +81,10 @@ def collect(conn: sqlite3.Connection, today: dt.date | None = None, days: int = 
             stats["tag"][tag][0] += 1
             stats["tag"][tag][1] += ok
         if slot:
+            mix = judge_mix_id(slot) if slot.get("kind") == "judge" else None
+            if mix:
+                stats["judge_mix"][mix][0] += 1
+                stats["judge_mix"][mix][1] += ok
             if slot.get("kind"):
                 stats["kind"][slot["kind"]][0] += 1
                 stats["kind"][slot["kind"]][1] += ok
@@ -89,6 +94,19 @@ def collect(conn: sqlite3.Connection, today: dt.date | None = None, days: int = 
                     stats["variant"][key][1] += ok
     return {"window_days": days, "answered": answered,
             **{name: {k: {"n": v[0], "correct": v[1]} for k, v in table.items()} for name, table in stats.items()}}
+
+
+def mix_boosts(stats: dict) -> dict:
+    """综合分析考查组合系数：各组合样本够用各自正确率，否则用综合分析整体正确率。"""
+    from ziliao_tracks import GD_JUDGE_MIXES
+    judge = stats["kind"].get("judge")
+    result = {}
+    for mix in GD_JUDGE_MIXES:
+        own = stats.get("judge_mix", {}).get(mix["id"])
+        base = own if own and own["n"] >= MIN_VARIANT_N else judge
+        if base and base["n"]:
+            result[mix["id"]] = boost_of(base["n"], base["correct"])
+    return result
 
 
 def boosts(stats: dict) -> tuple[dict, dict]:
@@ -110,14 +128,14 @@ def boosts(stats: dict) -> tuple[dict, dict]:
 
 def adaptive_plan(db: Path = DB, today: dt.date | None = None, paper_dir: Path = PAPER_DIR) -> dict:
     if not Path(db).is_file():
-        return {"stats": None, "kind_boost": {}, "variant_boost": {}}
+        return {"stats": None, "kind_boost": {}, "variant_boost": {}, "mix_boost": {}}
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
     try:
         stats = collect(conn, today, paper_dir=paper_dir)
     finally:
         conn.close()
     kind_boost, variant_boost = boosts(stats)
-    return {"stats": stats, "kind_boost": kind_boost, "variant_boost": variant_boost}
+    return {"stats": stats, "kind_boost": kind_boost, "variant_boost": variant_boost, "mix_boost": mix_boosts(stats)}
 
 
 def summary(plan: dict) -> dict:
@@ -130,6 +148,9 @@ def summary(plan: dict) -> dict:
         "kind_boost": {KIND_LABELS.get(k, k): v for k, v in kinds},
         "weak_variants": sorted(([f"{t.split('-')[-1]}·{v}", b] for (t, v), b in plan.get("variant_boost", {}).items()
                                  if b > 1), key=lambda x: -x[1])[:8],
+        "judge": (stats.get("kind") or {}).get("judge"),
+        "judge_mix": stats.get("judge_mix"),
+        "judge_mix_boost": plan.get("mix_boost"),
     }
 
 

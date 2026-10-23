@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ziliao_parallel_runner as runner
 from generation_gate import verify
 from ziliao_agent_trial import default_hermes_root, write
-from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd_rotating_paper,
+from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd_rotating_paper, judge_mix_id,
                            material_question_plan, parse_difficulty_blueprint)
 from service_node import service_node
 from kaofa_variants import assign_ziliao_variants, record_variants
@@ -45,13 +45,14 @@ def recent_rotation(output_dir, batches=3):
             dirs.append(plan.parent)
         if len(dirs) == batches:
             break
-    kinds, types = [], []
+    kinds, types, mixes = [], [], []
     for d in dirs:
         loaded = [json.loads(p.read_text()) for p in sorted(d.glob("M0[1-4]-plan.json"))]
         kinds.append({s.get("kind") for p in loaded for s in p.get("slots") or [] if s.get("kind")})
         types.append({p.get("material_type") or {"chart": "years", "table": "table", "text": "text"}.get(p.get("format"))
                       for p in loaded})
-    return kinds, types
+        mixes.append({judge_mix_id(s) for p in loaded for s in p.get("slots") or [] if s.get("kind") == "judge"} - {None})
+    return kinds, types, mixes
 
 
 def recent_themes(output_dir, batches=2):
@@ -153,8 +154,9 @@ def main():
     rng = random.Random(batch_id)
     adaptive = ({"kind_boost": {}, "variant_boost": {}} if args.no_adaptive
                 else adaptive_plan(args.db.resolve(), today, args.output_dir.resolve()))
-    recent_kinds, recent_types = recent_rotation(args.output_dir.resolve())
-    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types, adaptive["kind_boost"])
+    recent_kinds, recent_types, recent_mixes = recent_rotation(args.output_dir.resolve())
+    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types, adaptive["kind_boost"],
+                                                recent_mixes, adaptive.get("mix_boost"))
     slots = assign_ziliao_variants(apply_difficulty_overrides(rotated, overrides), seed=batch_id,
                                    boost=adaptive["variant_boost"])
     runner.validate_gd_quota(slots, count=20)
@@ -162,7 +164,9 @@ def main():
         print(json.dumps({"difficulty": tier, "overrides": overrides, "adaptive": performance_summary(adaptive),
                           "materials": material_types, "slots": [
             {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"),
-             "variant": s.get("kaofa_variant_name"), "option_format": s.get("option_format"),
+             "variant": s.get("kaofa_variant_name") or (f"{s.get('judge_stem')}｜{s.get('judge_mix_id')}"
+                                                        if s.get("judge_stem") else None),
+             "option_format": s.get("option_format"),
              "difficulty": s["difficulty"], "difficulty_score": s["difficulty_score"],
              **({"note": s["difficulty_note"]} if s.get("difficulty_note") else {})}
             for i, s in enumerate(slots)]}, ensure_ascii=False, indent=2))
