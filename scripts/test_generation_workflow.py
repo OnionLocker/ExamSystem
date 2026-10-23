@@ -95,6 +95,7 @@ class ZiliaoWorkflow(unittest.TestCase):
         self.env = patch.dict(os.environ)
         self.env.start()
         self.addCleanup(self.env.stop)
+        os.environ["KAOFA_LEDGER"] = str(self.root / "kaofa-ledger.jsonl")
         self.argv = ["--db", str(self.db), "--output-dir", str(self.root / "output"),
                      "--tag", ziliao.TAGS[1], "--count", "2", "--materials", "1",
                      "--formats", "text", "--difficulty", "easy", "--batch-id", "test"]

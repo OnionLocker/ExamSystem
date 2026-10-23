@@ -905,7 +905,8 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
     else:
         if not args.tag or not args.count:
             raise SystemExit("需要 --tag 与 --count，或改用 --blueprint")
-        raw_slots = [{"tag": args.tag, "count": args.count, "difficulty": args.difficulty}]
+        raw_slots = [{"tag": args.tag, "count": args.count, "difficulty": args.difficulty,
+                      "kaofa_variant": getattr(args, "variant", None), "kaofa_focus": getattr(args, "focus", None)}]
 
     from quiz_scope import catalog, scope_slots
     current_nodes = None
@@ -957,6 +958,17 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
             if len(brief) > BRIEF_LIMIT:
                 raise ValueError(f"brief 超过 {BRIEF_LIMIT} 字，请精简，不会静默截断")
             slot["brief"] = brief
+        if raw.get("kaofa_variant"):
+            wanted = raw["kaofa_variant"]
+            if isinstance(wanted, str):
+                wanted = [w.strip() for w in wanted.split(",") if w.strip()]
+            if not isinstance(wanted, list) or not wanted or not all(isinstance(w, str) and w.strip() for w in wanted):
+                raise ValueError("kaofa_variant 须为变式 id/名称，或其列表")
+            slot["kaofa_variant"] = wanted
+        if raw.get("kaofa_focus"):
+            if raw["kaofa_focus"] != "weak":
+                raise ValueError("kaofa_focus 目前只支持 weak（只练错得多的考法变式）")
+            slot["kaofa_focus"] = "weak"
         for child in expanded:
             slots.append({**slot, **child})
     if len(modules) > 1:

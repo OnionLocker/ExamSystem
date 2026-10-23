@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import random
 import re
 from collections import Counter
@@ -37,10 +38,15 @@ def variants_for(tag: str, catalog: dict) -> list[dict]:
     return [v for v in entry.get("variants") or [] if isinstance(v, dict) and v.get("id") and v.get("ask")]
 
 
+def ledger_path(path: Path | None = None) -> Path:
+    """调用时再解析账本路径：测试与离线演练用 KAOFA_LEDGER 指到临时文件，避免污染真实账本。"""
+    return Path(path) if path else Path(os.environ.get("KAOFA_LEDGER") or LEDGER)
+
+
 def usage(ledger: Path | None = None, today: dt.date | None = None) -> Counter:
     """近 30 天每次记 1，30–120 天记 0.5。"""
     today = today or dt.date.today()
-    ledger = ledger or LEDGER
+    ledger = ledger_path(ledger)
     used: Counter = Counter()
     if not ledger.is_file():
         return used
@@ -57,14 +63,24 @@ def usage(ledger: Path | None = None, today: dt.date | None = None) -> Counter:
     return used
 
 
-def pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random) -> dict:
+WEAK_EXTRA_SHARE = 1.4   # 表现系数达到此值的变式，同批可占两份
+WEAK_FOCUS = 1.15        # kaofa_focus=weak 时入选的最低表现系数
+
+
+def pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random,
+         boost: dict | None = None) -> dict:
+    """同批先铺开不重复；错得多的变式（boost 高）权重放大、同批可占两份；近期练得多的降权。"""
+    boost = boost or {}
+
     def score(v):
         w = max(1, int(v.get("weight") or 1))
         if v.get("typical"):
             # 典型考法按真实频率降权，但保留权重排序：高频典型仍优先于低频非典型。
             w = max(1, int(round(w * TYPICAL_DISCOUNT)))
+        b = boost.get((tag, v["id"]), 1.0)
+        share = 2 if b >= WEAK_EXTRA_SHARE else 1
         load = used[(tag, v["id"])]
-        return (taken[v["id"]], load / w, rng.random())
+        return (taken[v["id"]] / share, load / (w * b), rng.random())
     return min(variants, key=score)
 
 
@@ -78,29 +94,62 @@ def variant_brief(variant: dict) -> str:
 LOCKING_BRIEF = re.compile(r"同构|只(?:练|出|考|要)|仅(?:练|出|考)|全部(?:按|出|是|用)|都(?:按|出|用|是)|固定(?:考法|结构|模型)|同一(?:考法|模型|结构)|不要换")
 
 
+def resolve_variants(tag: str, wanted, variants: list[dict]) -> list[dict]:
+    """槽位点名的变式（id 或名称，单个或列表）→ 变式对象；名称允许唯一片段匹配。"""
+    names = [wanted] if isinstance(wanted, str) else list(wanted or [])
+    chosen = []
+    for name in names:
+        name = str(name).strip()
+        hits = [v for v in variants if name in (v["id"], v["name"])] or \
+               [v for v in variants if name and (name in v["name"] or name in v["id"])]
+        if len(hits) != 1:
+            raise ValueError(f"{tag} 没有唯一匹配“{name}”的考法变式；可选：" +
+                             "、".join(f"{v['name']}({v['id']})" for v in variants))
+        if hits[0] not in chosen:
+            chosen.append(hits[0])
+    return chosen
+
+
 def assign_variants(module: str, slots: list[dict], *, seed: str = "", catalog: dict | None = None,
-                    ledger: Path = LEDGER, today: dt.date | None = None) -> list[dict]:
+                    ledger: Path | None = None, today: dt.date | None = None,
+                    boost: dict | None = None) -> list[dict]:
     """把有变式清单的槽位拆成每题一个，并写入变式要求。
-    brief 锁定考法（同构、只练某种）时保持原样；其余倾向性要求与变式叠加。"""
+
+    - 默认：在该考点全部变式里轮转，近期少练、错得多（boost）的优先，错得多的同批可占两份。
+    - 槽位 kaofa_variant：点名一个或几个变式（id/名称），只在这些里出，可重复。
+    - 槽位 kaofa_focus="weak"：只在表现系数偏高（错得多）的变式里出；没有足够做题数据时退回全部变式。
+    - brief 锁定考法（同构、只练某种）且未点名变式时保持原样；其余倾向性要求与变式叠加。
+    """
     if module not in MODULES:
         return slots
     catalog = load_catalog() if catalog is None else catalog
     used = usage(ledger, today)
+    if boost is None:
+        boost = variant_boosts(variant_performance(ledger=ledger, today=today))
     rng = random.Random(seed or None)
     taken_by_tag: dict[str, Counter] = {}
     result = []
     for slot in slots:
         variants = variants_for(slot["tag"], catalog)
         user_brief = str(slot.get("brief") or "").strip()
-        if not variants or LOCKING_BRIEF.search(user_brief):
+        wanted = slot.get("kaofa_variant")
+        if not variants or (LOCKING_BRIEF.search(user_brief) and not wanted):
             result.append(slot)
             continue
-        taken = taken_by_tag.setdefault(str(slot["tag"]), Counter())
+        tag = str(slot["tag"])
+        pool = variants
+        if wanted:
+            pool = resolve_variants(tag, wanted, variants)
+        elif slot.get("kaofa_focus") == "weak":
+            weak = [v for v in variants if boost.get((tag, v["id"]), 1.0) >= WEAK_FOCUS]
+            pool = weak or variants
+        taken = taken_by_tag.setdefault(tag, Counter())
+        base = {k: v for k, v in slot.items() if k not in ("kaofa_variant", "kaofa_focus")}
         for _ in range(int(slot["count"])):
-            variant = pick(str(slot["tag"]), variants, used, taken, rng)
+            variant = pick(tag, pool, used, taken, rng, boost)
             taken[variant["id"]] += 1
             brief = variant_brief(variant) + (f"另需满足用户要求：{user_brief}" if user_brief else "")
-            result.append({**slot, "count": 1, "kaofa_variant": variant["id"],
+            result.append({**base, "count": 1, "kaofa_variant": variant["id"],
                            "kaofa_variant_name": variant["name"], "brief": brief})
     return result
 
@@ -109,7 +158,7 @@ ZILIAO_SKIP_KINDS = {"judge", "chart_match"}
 
 
 def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool = False, catalog: dict | None = None,
-                           ledger: Path = LEDGER, today: dt.date | None = None,
+                           ledger: Path | None = None, today: dt.date | None = None,
                            boost: dict | None = None) -> list[dict]:
     """资料分析每题挑一个细分考法。整套卷按槽位题型（kind）与材料形态筛选，保留原有题型配额；
     专项不限题型，在该考点全部细分考法里轮转。综合判断、图表匹配、定性快判和锁定考法的槽位不动。"""
@@ -186,16 +235,84 @@ def ziliao_variant_issues(variant: dict) -> list[str]:
     return issues
 
 
-def record_variants(batch_id: str, slots: list[dict], ledger: Path = LEDGER, today: dt.date | None = None) -> int:
-    rows = [{"date": (today or dt.date.today()).isoformat(), "batch_id": batch_id, "tag": s["tag"],
-             "variant": s["kaofa_variant"]} for s in slots if s.get("kaofa_variant")
-            for _ in range(int(s.get("count") or 1))]
+def record_variants(batch_id: str, slots: list[dict], ledger: Path | None = None, today: dt.date | None = None,
+                    question_ids: list[str] | None = None) -> int:
+    """入库后记账。question_ids 与槽位逐题对齐时一并写入题号，供按变式统计正确率。"""
+    day = (today or dt.date.today()).isoformat()
+    rows = []
+    for index, slot in enumerate(s for s in slots for _ in range(int(s.get("count") or 1))):
+        if not slot.get("kaofa_variant"):
+            continue
+        row = {"date": day, "batch_id": batch_id, "tag": slot["tag"], "variant": slot["kaofa_variant"]}
+        if question_ids and index < len(question_ids):
+            row["question_id"] = question_ids[index]
+        rows.append(row)
     if rows:
+        ledger = ledger_path(ledger)
         ledger.parent.mkdir(parents=True, exist_ok=True)
         with ledger.open("a", encoding="utf-8") as handle:
             for row in rows:
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
     return len(rows)
+
+
+PERF_DAYS = 90
+PERF_MIN_N = 2
+SKIP_SECONDS = 5
+
+
+def variant_performance(db: Path | None = None, ledger: Path | None = None, today: dt.date | None = None,
+                        days: int = PERF_DAYS) -> dict:
+    """近 90 天各变式的首次作答正确率 {(tag, variant): {"n", "correct"}}。
+    只统计账本里带题号的题；重做旧题、几秒翻过的空题不算。"""
+    import sqlite3
+    db = Path(db or os.environ.get("EXAM_DB") or ROOT / "data" / "exam.db")
+    ledger = ledger_path(ledger)
+    if not db.is_file() or not ledger.is_file():
+        return {}
+    by_question = {}
+    for line in ledger.read_text(encoding="utf-8").splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("question_id"):
+            by_question[str(row["question_id"])] = (row["tag"], row["variant"])
+    if not by_question:
+        return {}
+    since = ((today or dt.date.today()) - dt.timedelta(days=days)).isoformat()
+    stats: dict = {}
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
+    try:
+        ids = list(by_question)
+        seen = set()
+        for start in range(0, len(ids), 500):
+            chunk = ids[start:start + 500]
+            marks = ",".join("?" * len(chunk))
+            for qid, external, answer, correct, seconds, when in conn.execute(
+                    f"""SELECT pa.question_id, q.external_id, pa.user_answer, pa.is_correct, pa.time_spent_sec, pa.answered_at
+                          FROM practice_answers pa JOIN questions q ON q.id = pa.question_id
+                         WHERE q.external_id IN ({marks}) ORDER BY pa.answered_at, pa.id""", chunk):
+                if qid in seen:
+                    continue
+                seen.add(qid)
+                if str(when or "")[:10] < since or (not str(answer or "").strip() and (seconds or 0) < SKIP_SECONDS):
+                    continue
+                key = by_question[str(external)]
+                row = stats.setdefault(key, {"n": 0, "correct": 0})
+                row["n"] += 1
+                row["correct"] += 1 if correct else 0
+    except sqlite3.Error:
+        return {}
+    finally:
+        conn.close()
+    return stats
+
+
+def variant_boosts(stats: dict) -> dict:
+    """正确率 → 出题系数（与资料分析同一换算）：错得多 >1，稳定全对 <1，样本少不调。"""
+    from ziliao_performance import boost_of
+    return {key: boost_of(row["n"], row["correct"]) for key, row in stats.items() if row["n"] >= PERF_MIN_N}
 
 
 def leaf_usage(db: Path = ROOT / "data" / "exam.db", days: int = HISTORY_DAYS) -> Counter:
@@ -219,7 +336,7 @@ def leaf_usage(db: Path = ROOT / "data" / "exam.db", days: int = HISTORY_DAYS) -
     return used
 
 
-def coverage(catalog: dict | None = None, ledger: Path = LEDGER) -> dict:
+def coverage(catalog: dict | None = None, ledger: Path | None = None) -> dict:
     """每个知识点各变式累计练过几次，供 Hermes 排计划时查看。"""
     catalog = load_catalog() if catalog is None else catalog
     used = usage(ledger)
@@ -317,7 +434,9 @@ def cli(argv: list[str] | None = None) -> dict:
     import argparse
     parser = argparse.ArgumentParser(description="考法变式清单：查看、新增、修改、删除")
     sub = parser.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("list", help="列出某知识点的变式及近期练习次数")
+    p = sub.add_parser("list", help="列出某知识点的变式及近期练习次数、近 90 天正确率")
+    p.add_argument("tag")
+    p = sub.add_parser("weak", help="按错得多到少排列某知识点的变式（只列有做题数据的）")
     p.add_argument("tag")
     p = sub.add_parser("add", help="新增变式（自动校验与查重）")
     p.add_argument("tag")
@@ -346,12 +465,25 @@ def cli(argv: list[str] | None = None) -> dict:
     catalog = load_catalog()
     tag = resolve_tag(args.tag, catalog)
     entry = catalog.get(tag)
-    if args.cmd == "list":
+    if args.cmd in ("list", "weak"):
         if not entry:
             return {"ok": True, "tag": tag, "variants": [], "note": "该知识点还没有变式清单，可用 add 新增"}
         used = usage()
-        return {"ok": True, "tag": tag, "title": entry.get("title"), "variants": [
-            {**v, "recent_uses": used[(tag, v["id"])]} for v in entry["variants"]]}
+        stats = variant_performance()
+        boosts = variant_boosts(stats)
+
+        def accuracy(v):
+            row = stats.get((tag, v["id"]))
+            return ({"n": row["n"], "correct": row["correct"], "rate": round(row["correct"] / row["n"], 2)}
+                    if row else None)
+        rows = [{**v, "recent_uses": used[(tag, v["id"])], "accuracy": accuracy(v),
+                 "boost": boosts.get((tag, v["id"]), 1.0)} for v in entry["variants"]]
+        if args.cmd == "weak":
+            rows = sorted((r for r in rows if r["accuracy"]), key=lambda r: (r["accuracy"]["rate"], -r["accuracy"]["n"]))
+            note = ("近 90 天还没有带考法记录的作答，先按知识点特训几批再看" if not rows else
+                    "出题时槽位写 kaofa_variant 点名，或 kaofa_focus=weak 只练错得多的")
+            return {"ok": True, "tag": tag, "title": entry.get("title"), "variants": rows, "note": note}
+        return {"ok": True, "tag": tag, "title": entry.get("title"), "variants": rows}
 
     if args.cmd == "add":
         if entry is None:

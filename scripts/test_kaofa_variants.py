@@ -156,6 +156,59 @@ class VariantTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):
                     kv.cli(["edit", share, added["added"]["id"], "--types", "bogus"])
 
+    def test_named_variant_overrides_rotation_and_lock(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp, "l.jsonl")
+            one = kv.assign_variants("数量关系", [{"tag": TAG, "count": 3, "kaofa_variant": ["选票"]}],
+                                     catalog=CATALOG, ledger=ledger, boost={})
+            two = kv.assign_variants("数量关系", [{"tag": TAG, "count": 4, "kaofa_variant": ["vote", "允许相同"],
+                                                  "brief": "只练这两种，稍难"}], catalog=CATALOG, ledger=ledger, boost={})
+            with self.assertRaises(ValueError) as bad:
+                kv.assign_variants("数量关系", [{"tag": TAG, "count": 1, "kaofa_variant": ["不存在"]}],
+                                   catalog=CATALOG, ledger=ledger, boost={})
+        self.assertEqual([s["kaofa_variant"] for s in one], ["vote"] * 3)
+        self.assertNotIn("kaofa_focus", one[0])
+        self.assertEqual(sorted(s["kaofa_variant"] for s in two), ["repeat", "repeat", "vote", "vote"])
+        self.assertTrue(all("稍难" in s["brief"] for s in two))
+        self.assertIn("可选", str(bad.exception))
+
+    def test_weak_variants_get_extra_share_and_focus(self):
+        boost = {(TAG, "average"): 1.6}
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp, "l.jsonl")
+            spread = kv.assign_variants("数量关系", [{"tag": TAG, "count": 5}], seed="w",
+                                        catalog=CATALOG, ledger=ledger, boost=boost)
+            focus = kv.assign_variants("数量关系", [{"tag": TAG, "count": 3, "kaofa_focus": "weak"}],
+                                       catalog=CATALOG, ledger=ledger, boost=boost)
+            fallback = kv.assign_variants("数量关系", [{"tag": TAG, "count": 4, "kaofa_focus": "weak"}],
+                                          catalog=CATALOG, ledger=ledger, boost={})
+        ids = [s["kaofa_variant"] for s in spread]
+        self.assertEqual(ids.count("average"), 2)
+        self.assertEqual(len(set(ids)), 4)
+        self.assertEqual({s["kaofa_variant"] for s in focus}, {"average"})
+        self.assertEqual(len({s["kaofa_variant"] for s in fallback}), 4)
+
+    def test_question_ids_enable_variant_accuracy(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger, db = Path(tmp, "l.jsonl"), Path(tmp, "exam.db")
+            slots = [{"tag": TAG, "count": 1, "kaofa_variant": v} for v in ("vote", "vote", "repeat")]
+            self.assertEqual(kv.record_variants("b", slots, ledger, question_ids=["b_01", "b_02", "b_03"]), 3)
+            with sqlite3.connect(db) as conn:
+                conn.executescript("""CREATE TABLE questions(id INTEGER PRIMARY KEY, external_id TEXT);
+                    CREATE TABLE practice_answers(id INTEGER PRIMARY KEY, question_id INTEGER, user_answer TEXT,
+                                                  is_correct INTEGER, time_spent_sec INTEGER, answered_at TEXT);""")
+                conn.executemany("INSERT INTO questions VALUES (?,?)", [(1, "b_01"), (2, "b_02"), (3, "b_03")])
+                today = dt.date.today().isoformat()
+                conn.executemany("INSERT INTO practice_answers(question_id,user_answer,is_correct,time_spent_sec,answered_at)"
+                                 " VALUES (?,?,?,?,?)", [(1, "A", 0, 80, today), (2, "B", 0, 70, today),
+                                                         (2, "C", 1, 30, today), (3, "D", 1, 40, today)])
+            stats = kv.variant_performance(db, ledger)
+            self.assertEqual(stats[(TAG, "vote")], {"n": 2, "correct": 0})
+            self.assertEqual(stats[(TAG, "repeat")], {"n": 1, "correct": 1})
+            self.assertGreater(kv.variant_boosts(stats)[(TAG, "vote")], 1.4)
+            self.assertNotIn((TAG, "repeat"), kv.variant_boosts(stats))
+
     def test_shipped_catalog_is_well_formed(self):
         catalog = kv.load_catalog()
         for tag, entry in catalog.items():

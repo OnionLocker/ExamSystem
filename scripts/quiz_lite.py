@@ -1358,6 +1358,8 @@ def parse_args() -> argparse.Namespace:
         help='多考法编排，内联 JSON 或 @路径：{"slots":[{"tag":"...","count":3,"difficulty":"hard"}]}',
     )
     parser.add_argument("--batch-id", required=True)
+    parser.add_argument("--variant", help="点名考法变式（id 或名称，逗号分隔可多个），只在这些变式里出")
+    parser.add_argument("--focus", choices=["weak"], help="weak：只在错得多的考法变式里出（无数据时退回全部变式）")
     parser.add_argument("--difficulty", choices=["easy", "mid", "hard", "auto"])
     parser.add_argument("--rounds", type=int, default=3, help="最多几轮补题，默认 3")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "data" / "hermes-batches")
@@ -1501,7 +1503,8 @@ def main() -> int:
             imported = import_batch(batch_dir, args.db)
             if imported:
                 from kaofa_variants import record_variants
-                record_variants(str(args.batch_id), slots)
+                record_variants(str(args.batch_id), slots,
+                                question_ids=[f"{args.batch_id}_{i + 1:02d}" for i in range(len(questions))])
             tick(status="done", stage="已入库", detail=f"已入库 {imported} 题",
                  passed=len(questions), progress=100)
         print(
