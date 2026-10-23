@@ -1,21 +1,15 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, X, Search } from 'lucide-react';
 import { FORMULA_GROUPS } from './formulas.js';
-
-// ============================================================
-// 公式速查面板
-// 右下角悬浮按钮 → 抽屉式弹出 → 分类 tab + 搜索 + 卡片列表
-// 全局可用，刷题时 1 秒查公式
-// ============================================================
+import { openKnowledge } from '../knowledge/nav.js';
 
 const Cheatsheet = () => {
   const [open, setOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState(FORMULA_GROUPS[0].id);
   const [query, setQuery] = useState('');
 
-  // ESC 关闭
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const onKey = (e) => {
       if (e.key === 'Escape') setOpen(false);
     };
@@ -23,12 +17,17 @@ const Cheatsheet = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
 
+  const jump = (tag) => {
+    setOpen(false);
+    openKnowledge(tag);
+  };
+
   return (
     <>
-      {/* 悬浮触发按钮 */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className={`fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-[#1a1a1a] text-white shadow-2xl shadow-black/30 flex items-center justify-center hover:scale-105 hover:bg-[#2c261c] hover:text-white transition-all ${
+        className={`fixed bottom-6 right-6 z-30 w-14 h-14 rounded-2xl bg-[#1a1a1a] text-white shadow-2xl shadow-black/30 flex items-center justify-center hover:scale-105 hover:bg-[#2c261c] transition-all ${
           open ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         title="公式速查"
@@ -36,74 +35,66 @@ const Cheatsheet = () => {
         <BookOpen size={22} strokeWidth={2.4} />
       </button>
 
-      {/* 抽屉 */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex justify-end"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6"
           onClick={() => setOpen(false)}
         >
-          {/* 背景遮罩 */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-          {/* 抽屉本体 */}
+          <div className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
           <div
-            className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cheatsheet-title"
+            className="relative w-full max-w-6xl max-h-[min(92vh,940px)] bg-[#e8d5b0] text-[#2a2418] shadow-2xl rounded-3xl border border-[#b89f69] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 标题栏 */}
-            <div className="px-6 py-5 border-b border-[#e8d5b0] flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="w-9 h-9 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center">
-                  <BookOpen size={16} />
+            <div className="px-6 sm:px-7 py-4 bg-[#f0e3c5] border-b border-[#d1c09a] flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-[#1a1a1a] text-white flex items-center justify-center shadow-sm">
+                  <BookOpen size={18} />
                 </div>
                 <div>
-                  <h3 className="font-black text-base tracking-tight">公式速查</h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">
-                    Formula Cheatsheet
+                  <h3 id="cheatsheet-title" className="font-black text-lg tracking-tight text-[#1a1a1a]">公式速查</h3>
+                  <p className="text-xs font-bold tracking-wide text-[#746b5b] mt-0.5">
+                    点每节旁的知识点，直接打开对应页
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setOpen(false)}
-                className="w-8 h-8 rounded-full bg-[#e8d5b0] hover:bg-[#e8e6dd] flex items-center justify-center"
+                className="w-9 h-9 rounded-full bg-[#e2cfa8] text-[#343127] hover:bg-[#1a1a1a] hover:text-white flex items-center justify-center transition-colors"
+                aria-label="关闭公式速查"
               >
-                <X size={14} />
+                <X size={16} />
               </button>
             </div>
 
-            {/* 搜索 */}
-            <div className="px-6 pt-4 flex-shrink-0">
+            <div className="px-6 sm:px-7 pt-4 pb-3 bg-[#f0e3c5]/60 border-b border-[#d9c7a0] flex-shrink-0">
               <div className="relative">
-                <Search
-                  size={14}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-                />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#81755f]" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜公式名 / 适用场景"
-                  className="w-full bg-[#e8d5b0]/60 border border-transparent rounded-full pl-10 pr-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#6b5428]"
+                  placeholder="搜公式、对照表或适用场景"
+                  className="w-full bg-[#f2e4c4] border border-[#c9b489] rounded-2xl pl-11 pr-4 py-3 text-[15px] font-bold text-[#1a1a1a] placeholder:text-[#81755f] focus:outline-none focus:ring-2 focus:ring-[#6b5428] focus:border-[#6b5428] transition-all"
                 />
               </div>
-            </div>
 
-            {/* 分类 tab */}
-            <div className="px-6 pt-4 flex-shrink-0">
-              <div className="flex space-x-2 overflow-x-auto pb-2">
+              <div className="flex gap-2.5 overflow-x-auto pt-3 pb-1">
                 {FORMULA_GROUPS.map((g) => {
                   const active = g.id === activeGroup;
                   return (
                     <button
                       key={g.id}
+                      type="button"
                       onClick={() => setActiveGroup(g.id)}
-                      className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-black tracking-tight transition-all ${
+                      className={`flex-shrink-0 px-4.5 py-2 rounded-full text-sm font-black tracking-tight transition-all border ${
                         active
-                          ? 'bg-[#1a1a1a] text-white'
-                          : 'bg-[#e8d5b0]/60 text-slate-500 hover:bg-[#e8d5b0]'
+                          ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-sm'
+                          : 'bg-[#f2e4c4] text-[#574b35] border-[#cfb98e] hover:bg-[#e4d2ad] hover:text-[#1a1a1a]'
                       }`}
-                      style={
-                        active ? { backgroundColor: g.color, color: '#1a1a1a' } : undefined
-                      }
                     >
                       {g.name}
                     </button>
@@ -112,9 +103,8 @@ const Cheatsheet = () => {
               </div>
             </div>
 
-            {/* 公式列表 */}
-            <div className="flex-1 overflow-y-auto px-6 pb-6 mt-2">
-              <FormulaList groupId={activeGroup} query={query} setActiveGroup={setActiveGroup} />
+            <div className="hermes-scroll flex-1 overflow-y-auto px-6 sm:px-7 py-5">
+              <FormulaList groupId={activeGroup} query={query} onJump={jump} />
             </div>
           </div>
         </div>
@@ -123,103 +113,205 @@ const Cheatsheet = () => {
   );
 };
 
-const FormulaList = ({ groupId, query, setActiveGroup }) => {
+const haystack = (section) => [
+  section.title,
+  section.tag,
+  ...(section.formulas || []).flatMap((f) => [f.name, f.formula, f.note, f.example]),
+  ...(section.tables || []).flatMap((t) => [t.title, ...t.columns, ...t.rows.flat()]),
+].filter(Boolean).join('\n').toLowerCase();
+
+const FormulaList = ({ groupId, query, onJump }) => {
   const q = query.trim().toLowerCase();
-
-  // 搜索：跨所有 group 查找；无搜索时只看当前 group
   const sourceGroups = q ? FORMULA_GROUPS : FORMULA_GROUPS.filter((g) => g.id === groupId);
-
-  const matches = [];
+  const sections = [];
   for (const g of sourceGroups) {
     for (const sec of g.sections) {
-      for (const f of sec.formulas) {
-        if (
-          !q ||
-          f.name.toLowerCase().includes(q) ||
-          f.formula.toLowerCase().includes(q) ||
-          (f.note && f.note.toLowerCase().includes(q))
-        ) {
-          matches.push({ group: g, section: sec, formula: f });
-        }
-      }
+      if (!q || haystack(sec).includes(q)) sections.push({ group: g, section: sec });
     }
   }
 
-  if (matches.length === 0) {
-    return (
-      <div className="text-center py-12 text-sm font-bold text-slate-400">
-        没有匹配的公式
-      </div>
-    );
+  if (!sections.length) {
+    return <div className="text-center py-14 text-base font-bold text-[#746b5b]">没有匹配的公式</div>;
   }
 
-  if (q) {
-    // 搜索结果模式：列表，每条带分组标签
-    return (
-      <div className="space-y-3 mt-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-          找到 {matches.length} 条
+  return (
+    <div>
+      {q && (
+        <p className="text-xs font-black tracking-widest text-[#6b5428] mb-4">
+          找到 {sections.length} 节
         </p>
-        {matches.map(({ group, section, formula }, i) => (
-          <FormulaCard
-            key={i}
-            formula={formula}
-            tag={`${group.name} · ${section.title}`}
-            tagColor={group.color}
-            onTagClick={() => setActiveGroup(group.id)}
-          />
+      )}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6">
+        {sections.map(({ group, section }) => (
+          <SectionBlock key={`${group.id}-${section.title}`} group={group} section={section} onJump={onJump} showGroup={Boolean(q)} />
         ))}
       </div>
-    );
-  }
-
-  // 浏览模式：分组渲染
-  const g = sourceGroups[0];
-  return (
-    <div className="space-y-6 mt-2">
-      {g.sections.map((sec, i) => (
-        <div key={i}>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-            {sec.title}
-          </p>
-          <div className="space-y-2.5">
-            {sec.formulas.map((f, j) => (
-              <FormulaCard key={j} formula={f} accentColor={g.color} />
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 };
 
-const FormulaCard = ({ formula, tag, tagColor, accentColor, onTagClick }) => (
-  <div className="bg-[#e8d5b0]/40 hover:bg-[#e8d5b0]/70 rounded-2xl p-4 transition-colors">
-    <div className="flex items-start justify-between gap-3 mb-2">
-      <p className="font-black text-sm tracking-tight">{formula.name}</p>
-      {tag && (
-        <button
-          onClick={onTagClick}
-          className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest"
-          style={{ backgroundColor: `${tagColor}20`, color: tagColor }}
-        >
-          {tag}
-        </button>
-      )}
+const SectionBlock = ({ group, section, onJump, showGroup }) => (
+  <section className={section.wide ? 'xl:col-span-2' : undefined}>
+    <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <span className="w-1.5 h-4 rounded-full bg-[#6b5428] flex-shrink-0" />
+        <h4 className="text-base font-black tracking-tight text-[#2a2418] min-w-0">
+          {showGroup ? `${group.name} · ` : ''}{section.title}
+        </h4>
+      </div>
+      <button
+        type="button"
+        onClick={() => onJump(section.tag)}
+        className="flex-shrink-0 px-3.5 py-1.5 rounded-full bg-[#f2e4c4] border border-[#b89f69] text-xs font-black text-[#574b35] hover:bg-[#1a1a1a] hover:text-white hover:border-[#1a1a1a] transition-colors"
+        title={section.tag}
+      >
+        知识点
+      </button>
     </div>
-    <p
-      className="font-mono text-xs font-bold mb-1.5 leading-relaxed"
-      style={{ color: accentColor || '#1a1a1a' }}
-    >
+    {section.tables?.map((table) => <LookupTable key={table.title || table.columns.join()} table={table} />)}
+    {section.formulas?.length > 0 && (
+      <div className="space-y-3">
+        {section.formulas.map((f) => (
+          <FormulaCard key={f.name} formula={f} accentColor={group.color} />
+        ))}
+      </div>
+    )}
+  </section>
+);
+
+// table.group = 每组几格（分数/% 为 2，a/b/c 为 3）。数据仍按「一行多组、从左往右」书写，
+// 这里重排成两大列、从上往下递增。tint: 'field' 按组内列区分底色，'group' 按组区分底色。
+const GROUP_COLS = 2;
+const FIELD_TINTS = ['#f6e7c4', '#ecd29c'];
+const GROUP_TINTS = ['#f6e5bd', '#f0d3b4'];
+
+const regroupTable = (table) => {
+  const size = table.group;
+  const items = table.rows.flatMap((row) => {
+    const out = [];
+    for (let i = 0; i < row.length; i += size) {
+      const item = row.slice(i, i + size);
+      if (item.some(Boolean)) out.push(item);
+    }
+    return out;
+  });
+  const height = Math.ceil(items.length / GROUP_COLS);
+  const rows = Array.from({ length: height }, (_, r) =>
+    Array.from({ length: GROUP_COLS }, (_, c) => items[c * height + r] || Array(size).fill('')).flat(),
+  );
+  const columns = Array.from({ length: GROUP_COLS }, () => table.columns.slice(0, size)).flat();
+  return { columns, rows };
+};
+
+const GroupedTable = ({ table }) => {
+  const size = table.group;
+  const { columns, rows } = regroupTable(table);
+  const tintOf = (i) => (table.tint === 'group'
+    ? GROUP_TINTS[Math.floor(i / size) % GROUP_TINTS.length]
+    : FIELD_TINTS[(i % size) % FIELD_TINTS.length]);
+  const edge = (i) => (i > 0 && i % size === 0 ? 'border-l-2 border-[#c9ad78]' : '');
+  return (
+    <div className="mb-3 overflow-x-auto rounded-2xl border border-[#cfb98e] bg-[#f0e3c5] shadow-xs">
+      {table.title && (
+        <div className="px-4 py-2.5 bg-[#ead7b2] border-b border-[#d6c299]">
+          <p className="text-[13px] font-black tracking-tight text-[#4a3a1c]">{table.title}</p>
+        </div>
+      )}
+      <table className="w-full text-[15px] border-collapse">
+        <thead>
+          <tr>
+            {columns.map((col, i) => (
+              <th
+                key={`${col}-${i}`}
+                className={`px-3.5 py-2 text-left text-xs font-black tracking-wider text-[#6e5f44] whitespace-nowrap ${edge(i)}`}
+                style={{ backgroundColor: tintOf(i) }}
+              >
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, rowIdx) => (
+            <tr key={`${rowIdx}-${row.join('|')}`} className="border-t border-[#dfc9a0]">
+              {row.map((cell, i) => (
+                <td
+                  key={`${cell}-${i}`}
+                  className={`px-3.5 py-2.5 tabular-nums whitespace-nowrap ${edge(i)} ${
+                    table.tint !== 'group' && i % size === 0
+                      ? 'font-bold text-[#4a3d28]'
+                      : 'font-black text-[#1a1a1a]'
+                  }`}
+                  style={{ backgroundColor: tintOf(i) }}
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+const LookupTable = ({ table }) => (table.group ? <GroupedTable table={table} /> : (
+  <div className="mb-3 overflow-x-auto rounded-2xl border border-[#cfb98e] bg-[#f0e3c5] shadow-xs">
+    {table.title && (
+      <div className="px-4 py-2.5 bg-[#ead7b2] border-b border-[#d6c299]">
+        <p className="text-[13px] font-black tracking-tight text-[#4a3a1c]">{table.title}</p>
+      </div>
+    )}
+    <table className="w-full text-[15px] border-collapse">
+      <thead>
+        <tr className="bg-[#ece0c3]/70">
+          {table.columns.map((col, i) => (
+            <th
+              key={`${col}-${i}`}
+              className="px-3.5 py-2 text-left text-xs font-black tracking-wider text-[#6e5f44] whitespace-nowrap"
+            >
+              {col}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {table.rows.map((row, rowIdx) => (
+          <tr
+            key={`${rowIdx}-${row.join('|')}`}
+            className="border-t border-[#dfd0ae] hover:bg-[#e8d5b0]/55 transition-colors"
+          >
+            {row.map((cell, i) => (
+              <td
+                key={`${cell}-${i}`}
+                className={`px-3.5 py-2.5 tabular-nums whitespace-nowrap ${
+                  i % 2 === 0
+                    ? 'font-bold text-[#4a3d28]'
+                    : 'font-black text-[#1a1a1a]'
+                }`}
+              >
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+));
+
+const FormulaCard = ({ formula, accentColor }) => (
+  <div className="bg-[#f0e3c5] border border-[#cfb98e] hover:border-[#9e8450] rounded-2xl px-4.5 py-4 transition-colors shadow-xs">
+    <p className="font-black text-[16px] tracking-tight text-[#1a1a1a] mb-1.5">{formula.name}</p>
+    <p className="font-mono text-[15px] font-bold mb-2 leading-relaxed text-[#2a2012] bg-[#e6d5b2]/65 px-3 py-2 rounded-xl border border-[#d8c49b]">
+      <span className="inline-block w-2 h-2 rounded-full mr-2 align-middle" style={{ backgroundColor: accentColor }} />
       {formula.formula}
     </p>
     {formula.note && (
-      <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
-        {formula.note}
-      </p>
+      <p className="text-[13.5px] text-[#4d422f] font-semibold leading-relaxed">{formula.note}</p>
     )}
     {formula.example && (
-      <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-1.5 pl-2 border-l-2 border-slate-200">
+      <p className="text-[13px] text-[#6b5c43] font-medium leading-relaxed mt-2 pl-3 border-l-2 border-[#b89f69]">
         例：{formula.example}
       </p>
     )}
