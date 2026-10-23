@@ -770,7 +770,8 @@ def _main_body(argv=None) -> int:
         validate_comparison_explanations(questions)
     constraints = {"all_original":True,"question_count":args.total,"difficulty_tier":args.difficulty,
                    "answer_distribution":"unconstrained","targeted_drill":args.targeted,
-                   "slot_plan":args.slots,"track":args.track,
+                   "slot_plan":[{k: v for k, v in s.items() if k != "definition"} for s in per_item] if per_item else args.slots,
+                   "track":args.track,
                    "track_label": "粤考日练" if args.track == TRACK_GD else "经典计算加练",
                    "chart_match": CHART_MATCH_HOOK}
     if args.targeted:

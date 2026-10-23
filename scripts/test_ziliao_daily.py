@@ -82,6 +82,21 @@ class JudgeRotationTest(unittest.TestCase):
         self.assertLess(counts["estimate-compare"], counts["truth-mix"])
 
 
+class VariantReviewTest(unittest.TestCase):
+    def test_variant_match_is_required_when_slot_has_variant(self):
+        import quality_orchestrator as qo
+        q = {"explanation": "A项符合。", "requested_slot": {"family": "share_add", "kaofa_variant_name": "多部分合计占比"}}
+        good = dict(material_consistent=True, slot_match=True, actual_family="share_add", actual_difficulty=2,
+                    difficulty_reason="一步", claim_checks=[{"index": 1, "valid": True, "reason": "核对"}])
+        self.assertTrue(any("多部分合计占比" in i for i in qo.ziliao_review_issues(q, good)))
+        self.assertTrue(qo.ziliao_review_issues(q, good | {"variant_match": {"ok": False, "reason": "退回现期比重"}}))
+        self.assertEqual(qo.ziliao_review_issues(q, good | {"variant_match": {"ok": True, "reason": "四项合计"}}), [])
+        judge = {"explanation": "A项符合。", "requested_slot": {"family": "share_add", "judge_mix_id": "hypothesis"}}
+        self.assertTrue(qo.ziliao_review_issues(judge, good))
+        plain = {"explanation": "A项符合。", "requested_slot": {"family": "share_add"}}
+        self.assertEqual(qo.ziliao_review_issues(plain, good), [])
+
+
 class SchedulerTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

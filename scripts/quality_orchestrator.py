@@ -209,6 +209,9 @@ claim_checks逐一核验输入explanation_claims的每条原解析，恰好一�
 不能只核对最终答案或替作者脑补修正。标题等无事实句可标valid=true并说明。
 全部索引必须返回，任何无效断言写valid=false，并在issues引用原句和具体问题。
 正常估算只要求精度足以唯一选项，不把合理舍入当错误。
+variant_match：requested_slot含kaofa_variant_name时，按本题实际设问结构与解题动作核对是否属于brief中“本题考法变式”所述的细分考法；
+含judge_mix_id时，核对四个陈述是否满足judge_mix的考查组合。退回本题型最常见的默认问法、只换场景不换解题动作、
+或四句与组合要求不符，均判ok=false并在reason写明差在哪里。格式{"ok":true,"reason":"依据"}；两者都没有时返回{"ok":true,"reason":"无细分考法"}。
 所有额外字段必填，issues必须包含可用于局部修复的明确原因。
 """
 
@@ -260,7 +263,14 @@ def ziliao_review_issues(question: dict, review: dict) -> list[str]:
     difficulty = review.get("actual_difficulty")
     if type(difficulty) is not int or not 1 <= difficulty <= 5 or not review.get("difficulty_reason"):
         issues.append("缺少实际难度及依据")
-    if (question.get("requested_slot") or {}).get("track") == "gd":
+    slot = question.get("requested_slot") or {}
+    target = slot.get("kaofa_variant_name") or (f"综合分析组合 {slot['judge_mix_id']}" if slot.get("judge_mix_id") else "")
+    if target:
+        match = review.get("variant_match")
+        if not isinstance(match, dict) or match.get("ok") is not True or not str(match.get("reason") or "").strip():
+            reason = match.get("reason") if isinstance(match, dict) else "考官未返回 variant_match"
+            issues.append(f"未按细分考法「{target}」命题，须按槽位brief重出：{reason}")
+    if slot.get("track") == "gd":
         check = review.get("design_check")
         if not isinstance(check, dict) or check.get("ok") is not True or not str(check.get("reason") or "").strip():
             issues.append(f"轨A命题设计核验缺失或不通过：{check}")

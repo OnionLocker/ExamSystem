@@ -29,11 +29,20 @@ from kaofa_variants import assign_ziliao_variants, record_variants
 from ziliao_performance import adaptive_plan, summary as performance_summary
 
 ROOT = Path(__file__).resolve().parents[1]
+# 后 28 个按 2020–2026 粤考与 2024–2026 国考、2025 浙苏川真题资料分析材料主题整理。
 THEME_POOL = (
     "农业农村经济与主要农产品产量", "文化和旅游消费与接待游客", "港口货物与集装箱吞吐量", "研发投入与专利授权",
     "城镇新增就业与常住人口", "电力生产与能源消费", "数字经济核心产业与软件信息服务", "海洋生产总值与海洋产业",
     "快递业务量与邮政物流", "新能源汽车与充电设施", "医疗卫生机构与床位人员", "金融机构存贷款",
+    "社会保险参保与基金收支", "农民工规模与月均收入", "企业用水量与重复用水", "科普活动与科普示范基地",
+    "法律援助与公共法律服务", "博物馆与文物保护", "铁路旅客运输与周转量", "城镇化率与城市规模",
+    "体育场地与全民健身", "可再生能源绿证核发", "期货市场成交情况", "发明专利产业化",
+    "民航旅客与货邮运输", "公共图书馆与群众文化机构", "中医药服务与中医类医院", "技能人才培养与技工院校",
+    "居民人均可支配收入与消费支出", "电信业务收入与移动用户", "电影票房与观影人次", "支付系统业务量",
+    "机动车保有量与驾驶人", "专精特新中小企业", "林业资源与湿地保护", "节假日旅游接待",
+    "基层群众自治组织与村居委会", "教育事业发展与在校生", "住房公积金缴存与提取", "跨境电商交易规模",
 )
+THEME_RECENT_BATCHES = 6
 OLD_SKELETON = ("财政", "工业", "外贸", "进出口", "社会消费品零售")
 REGIONS = ("广东省", "深圳市", "广州市", "佛山市", "东莞市", "珠海市", "惠州市", "中山市", "江门市", "湛江市", "汕头市")
 def recent_rotation(output_dir, batches=3):
@@ -55,7 +64,7 @@ def recent_rotation(output_dir, batches=3):
     return kinds, types, mixes
 
 
-def recent_themes(output_dir, batches=2):
+def recent_themes(output_dir, batches=THEME_RECENT_BATCHES):
     """Themes of the most recent earlier batches, so consecutive papers do not reuse them."""
     plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
     latest = []
