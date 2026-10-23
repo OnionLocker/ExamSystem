@@ -494,6 +494,14 @@
     "example": "",
     "weight": 2,
     "typical": false
+   },
+   {
+    "id": "multi-score-extreme",
+    "name": "多元计分整数极值",
+    "ask": "两类题目对、错、不答计分不同，给总分与题数及附加不等式，设多个整数变量，用整数性和不等式求某项至少或至多。",
+    "example": "国2024副省：20道选择题和20道判断题，答对3分不答1分，总分82分，问判断题至少答对几道",
+    "weight": 2,
+    "typical": false
    }
   ]
  },
@@ -1693,6 +1701,22 @@
     "ask": "先由未出生缺口求孩子现龄，再用家庭总年龄扣孩子，并结合父母年龄差求父亲、母亲或生育年龄。",
     "example": "知识点页：算出孩子岁数后，再结合父母年龄差求解",
     "weight": 4,
+    "typical": false
+   },
+   {
+    "id": "multi-ratio-average",
+    "name": "多人比例与平均年龄联立",
+    "ask": "三人年龄成比例，结合若干年后和的倍数关系及多人平均年龄联立求解，再判断未来年龄条件。",
+    "example": "国2024副省：甲乙丙年龄之比3：4：5，8年后甲乙之和是丙的1.5倍，且四人平均43岁",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "future-sum-integer-extreme",
+    "name": "年龄和等式加整数极值",
+    "ask": "给某年多人年龄和等于另一人若干年后年龄，再加年龄差大小关系，化为整数不等式求某人年龄最小值。",
+    "example": "国2025副省：2024年三人年龄和与2034年甲的年龄相同，甲乙之差大于乙丙之差，求甲最小年龄",
+    "weight": 2,
     "typical": false
    }
   ]
@@ -5868,6 +5892,270 @@
     "id": "universal-to-particular",
     "name": "全称推特称",
     "ask": "由“所有S是P”或“大多数S是P”判断选项中哪项一定为真，只认“有的S是P”，排除由有的推所有和反向推导。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数字推理-机械划分-@decimal-split": {
+  "title": "小数拆分与小数作差数列",
+  "variants": [
+   {
+    "id": "whole-decimal-diff",
+    "name": "整体作差成等差",
+    "ask": "把小数当整体相邻作差，差值恒定或成简单数列，按差值续下一项。",
+    "example": "粤2023：92.46，84.42，76.38，68.34，（ ）",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "int-decimal-split",
+    "name": "整数小数分列成规律",
+    "ask": "把小数点前后拆成整数列与小数列，两列分别成等差、递推等规律后再合成。",
+    "example": "粤2020县：9.19，4.27，5.35，2.43，（ ）",
+    "weight": 4,
+    "typical": false
+   },
+   {
+    "id": "decimal-concat-ops",
+    "name": "小数部分拼接运算",
+    "ask": "小数部分由整数部分的倍数、平方等运算结果拼接而成，位数随之变化，按拼接拆位后续写。",
+    "example": "粤2023乡：1.24，2.48，3.612，4.816，（ ）",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "int-decimal-cross",
+    "name": "整数小数交叉运算",
+    "ask": "整数部分与小数部分之间或相邻项的整数、小数之间存在加减关系，需交叉验证后续写。",
+    "example": "粤2024：21.98，18.77，17.49，14.55，（ ）",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数学运算-容斥原理问题-@periodic-overlap": {
+  "title": "周期点位与区间重叠",
+  "variants": [
+   {
+    "id": "point-lcm-dedup",
+    "name": "两类等距点位重合去重",
+    "ask": "两类点按不同间隔布置，重合处只保留一类，用最小公倍数求重合点数，再按植树公式去重计数。",
+    "example": "粤2024：100米跑道每隔4米甲障碍、每隔6米乙障碍，重合点不布置甲障碍",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "interval-overlap-segments",
+    "name": "周期涂色区间重叠段数",
+    "ask": "两种颜色从同端或两端按不同长度周期涂色，画数轴标出区间，数重叠段数或总长度。",
+    "example": "粤2021乡：20厘米纸带左端每隔4厘米涂红、右端每隔5厘米涂绿，问重叠几段",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "three-period-inclusion",
+    "name": "三类周期点位容斥",
+    "ask": "三类点按不同间隔出现，两两重合与三者重合分别用最小公倍数计算，再用三集合容斥求至少一类或恰好一类的点数。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数学运算-几何问题-@reflection-shortest-path": {
+  "title": "平面反射最短路径",
+  "variants": [
+   {
+    "id": "same-side-reflection",
+    "name": "同侧两点距离和最小",
+    "ask": "两点在直线同侧，作一点的对称点后连线，用勾股定理求对称点到另一点距离即最小值。",
+    "example": "国2024执：两联络站相距10千米，与平行道路垂距12千米，求工作站距两站距离和最小值",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "opposite-side-direct",
+    "name": "异侧两点直接连线",
+    "ask": "两点在直线两侧，直接连线与直线的交点即所求，最小值为两点间距离。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   },
+   {
+    "id": "angle-two-reflections",
+    "name": "角内一点两次反射",
+    "ask": "角内一点到角两边各取一点，求三点构成的三角形周长最小，作两次对称后连线求长度。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数学运算-统筹规划问题-@linear-programming": {
+  "title": "线性规划与资源约束",
+  "variants": [
+   {
+    "id": "total-plus-cost-cap",
+    "name": "总量固定加成本上限",
+    "ask": "两种产品总量固定，另有成本或工时上限，代入总量后求高利润产品的数量边界，再求利润最大值。",
+    "example": "粤2020县：A、B文件夹共9000个，生产成本不高于15000元，求利润最大时A款产量",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "quota-balance",
+    "name": "配额增减平衡约束",
+    "ask": "一种产品消耗配额、另一种增加配额，配额总量不低于零，结合总产量上限联立边界求最大利润。",
+    "example": "粤2026：服务器扣4单位碳配额、终端加1单位，共不超过2000台，求每月最大利润",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "two-resource-vertex",
+    "name": "两类资源约束比较顶点",
+    "ask": "两种资源各有上限，分别列两条约束边界，求交点与坐标轴端点，逐个代入目标比较取最优。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   },
+   {
+    "id": "integer-boundary-adjust",
+    "name": "整数解边界调整",
+    "ask": "约束交点不是整数时，在边界附近取可行整数组合，代入比较得到最优方案。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数学运算-统筹规划问题-@parallel-scheduling": {
+  "title": "并行任务分配与最短工期",
+  "variants": [
+   {
+    "id": "balanced-split",
+    "name": "不可拆任务均衡分配",
+    "ask": "若干不可拆任务分给两台设备，以总时长一半为下限，找两组时长最接近的分法，求最短完工时间。",
+    "example": "粤2023乡：4片果园施肥分别需1.2、1.3、2、2.5小时，用2台无人机至少需要多少小时",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "comparative-advantage",
+    "name": "比较优势配套生产",
+    "ask": "两车间生产两种配套部件效率不同，按相对效率分工，各自先产优势部件，最后合作补齐所需数量。",
+    "example": "国2025副省：机械由3个A和2个B组成，甲日产6A或3B、乙日产1A或2B，生产40台至少几天",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "multi-project-teams",
+    "name": "多工程两队分配工期",
+    "ask": "两队完成多个工程，各工程单独用时不同，按效率比分配工程并安排最后合作，比较方案求最短总工期。",
+    "example": "国2026副省：甲、乙两队完成A、B、C三个工程，问两队合作至少需要多少天",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "splittable-cooperate-finish",
+    "name": "可拆任务合作收尾",
+    "ask": "任务可拆分且可合作时，先各自做效率高的部分，剩余部分合作完成，求最短总时间。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "数量关系-数学运算-经济利润问题-@business-pnl": {
+  "title": "经营收支与盈亏比例",
+  "variants": [
+   {
+    "id": "percent-offset-base",
+    "name": "百分比盈亏抵消反求基数",
+    "ask": "优惠、亏损、利润都用营业额百分比表示，净百分比对应已知金额，反求营业额。",
+    "example": "国2024地市：营业额2%税收优惠，原亏损营业额0.8%，享受优惠后盈利300万元，求营业额",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "segment-yoy-multiple",
+    "name": "分部盈亏跨年倍数",
+    "ask": "一部分利润不变、另一部分由亏转盈，给两年总利润倍数关系，列方程反求不变部分利润。",
+    "example": "国2026副省：海外业务亏损m元次年盈利2m元，国内利润不变，总利润为上年1.2倍",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "break-even-subsidy",
+    "name": "补贴后盈亏平衡",
+    "ask": "已知收入与成本的比例关系及补贴规则，求补贴后恰好不亏或达到目标利润所需的营业额或补贴比例。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "言语理解与表达-逻辑填空-语境分析-@connective-logic": {
+  "title": "关联词与条件因果关系",
+  "variants": [
+   {
+    "id": "necessary-vs-sufficient",
+    "name": "必要与充分条件辨析",
+    "ask": "前后分句是“必须具备”还是“具备就行”，区分只有才与只要就，多空需成对呼应。",
+    "example": "粤2022县：____真诚回报社会、切实履行社会责任的企业家，____能真正得到社会认可",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "concession-turn",
+    "name": "让步转折关联词",
+    "ask": "前句承认事实或假设让步，后句转折，辨析虽然但是、尽管仍然、即使也的使用条件。",
+    "example": "",
+    "weight": 3,
+    "typical": false
+   },
+   {
+    "id": "cause-inference",
+    "name": "因果与推断关联词",
+    "ask": "区分陈述因果的因为所以与由已知推结论的既然就，结合语境判断是解释原因还是推出结论。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   },
+   {
+    "id": "choice-preference",
+    "name": "选择取舍关联词",
+    "ask": "前后两种做法比较取舍，辨析与其不如、宁可也不、不是而是的语义倾向。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   }
+  ]
+ },
+ "判断推理-逻辑判断-组合排列-单题-@inequality-sums": {
+  "title": "不等式与和差比较",
+  "variants": [
+   {
+    "id": "sum-add-eliminate",
+    "name": "和式相加消元找最值",
+    "ask": "给三组两人得分之和的大小关系，任取两式相加消去公共项，推出谁最高或最低。",
+    "example": "粤2024：四人得分之和三组不等式，推出四个人中得分最低的是",
+    "weight": 4,
+    "typical": true
+   },
+   {
+    "id": "difference-ordering",
+    "name": "差值关系定排序",
+    "ask": "给若干“甲比乙多（少）”及差值大小关系，转化为不等式链，推出完整排序。",
+    "example": "",
+    "weight": 2,
+    "typical": false
+   },
+   {
+    "id": "inequality-plus-value",
+    "name": "不等式结合数值定名次",
+    "ask": "部分人给出具体数值、其余只给和差大小关系，结合数值代入不等式确定名次。",
     "example": "",
     "weight": 2,
     "typical": false
