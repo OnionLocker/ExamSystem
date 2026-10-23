@@ -131,6 +131,7 @@ AI 练题和录屏/真题复盘第一句都必须是 `### 01 · 题型`，禁止
 - `references/knowledge-point-extension.md` — 固定词表未覆盖时的考点登记、命名和复用接口
 - `references/chen-zhe-gui-methodology.md` — 陈折桂核心哲学
 - `references/translation-reasoning-cheatsheet.md` — 翻译推理记忆口诀与关联词速查表（2026-07-29 用户验证通过）
+- `references/ziliao-speed-tricks.md` — 资料分析考场速算决策手册：先看选项差距定精度，再按题型选百化分/拆分/同乘凑整/近似公式/估商代入，直除只作保底。资料分析复盘和讲题的 `#### 考场解法` 按它写
 - `references/data-analysis-cheatsheet.md` — 资料分析核心速算公式与陷阱防范速查表（增量比重放缩/乘积差值叠加/两期比重差/凑整补数与高位滚加心法）
 
 ## 真题库与用户画像（2026-08-06 建立）

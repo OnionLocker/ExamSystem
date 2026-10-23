@@ -77,6 +77,7 @@ const normalizeAudioDataUrl = (dataUrl) =>
 const DIAGRAM_RULE = '讲解配图：容斥、行程、排列组合、概率、工程、浓度、几何这类“结构本身就是难点”的题，在 `#### 考场解法` 里配一张讲解示意图。用 terminal 执行 `python3 /home/ubuntu/ExamSystem/scripts/draw_diagram.py --slug 短词`，JSON 规格从标准输入传入，模板和字段只看 `/home/ubuntu/ExamSystem/hermes-skills/gd-gongkao-coach/references/diagram-drawing.md`（第一次画先读它，这不算读源码）。把返回的 `markdown` 原样单独成段贴在对应讲解旁；返回 ok:false 说明数字算错，重算后再画，两次失败就不放图。整场最多 3 张，优先错题和空题；一行公式能算完的题不画。禁止 ASCII 字符画、Mermaid、自写 SVG/HTML。';
 // 同一类题每次复盘都要按同一套方法讲：知识点页就是教案
 const CANON_RULE = '解法口径（硬性）：知识点页是老师的教案，`#### 考场解法` 的主解法必须照本题知识点页的「考场标准动作」和对应模型写，第一句点明用的是哪个模型（例如「模型 5 · 一行总分方程」），步骤顺序与知识点页一致，不得临场另起一套。知识点页写明“唯一推荐/首选/铁律”的，不得换成别的方法当主解法；更快的其他做法最多在末尾加一行「备选：……」。`#### 草稿诊断` 以知识点页标准动作为尺子，指出偏离了哪一步；`#### 下次动作` 复述标准动作的第一步。知识点页没覆盖本题考法时，主解法可以自拟，但必须在 `#### 下次动作` 末尾写「知识点页未覆盖此考法，建议补录」。`### 01 · 题型名` 的题型名用知识点页节点标题。';
+const ziliaoSpeedRule = (root) => `10. 资料分析的 \`#### 考场解法\` 按 ${root}/hermes-skills/gd-gongkao-coach/references/ziliao-speed-tricks.md 选算法，写第一道资料题前先读一次：第一行写选项判断（最小相对差距约多少、有没有漏除 1+r 等陷阱值、哪些选项可直接排除）；列式后写所选技巧和一句理由（例如「4.5%≈1/22，误差约 1%，选项差 4%，够用」），给 1～2 行能照写的算式。禁止通篇默认截位直除；只有选项相对差距 <3% 或没有可用结构时才直除或估商代入，并写明理由。用户草稿用的拆分、凑整等方法误差够用的，先认这一步对，再给更短写法。`;
 const canonFetchRule = (root) => `${CANON_RULE}\n写第一道题的 \`#### 考场解法\` 之前，先用 terminal 执行 \`node ${root}/scripts/knowledge-content.mjs get '完整知识点标签'\` 读取本场涉及的知识点页（同一标签只读一次，带 -@节点 的标签取 -@ 前的三级标签再看对应节点），这不算读源码。`;
 // 本场结语：逐题部分讲过的不再抄一遍，只做逐题讲解做不到的事——
 // 同根因的题并成一条、对照画像和上次复盘的要求、给下一场能核对的验收。
@@ -1445,6 +1446,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
       ? [
           `[REVIEW_CONTEXT] 本会话是《${followReview.title}》的复盘，用户正边看复盘边和你交流：可能一次说好几道题、穿插提问、讲自己的思路或提别的要求，按他实际说的回应，不套固定格式。`,
           '凡是讲到某题怎么解、评价他的思路，都以本会话开头附的知识点页（[KNOWLEDGE_CANON]；没有就读对应知识点页）的考场标准动作为准，不临场换一套方法。',
+          `讲资料分析算法时按 ${projectRoot}/hermes-skills/gd-gongkao-coach/references/ziliao-speed-tricks.md：先看选项差距再选技巧，不默认截位直除。`,
           `他要出题、排计划等其他事照常做；需要学情时运行 python3 ${projectRoot}/scripts/learner_snapshot.py --compact。`,
           '[/REVIEW_CONTEXT]',
         ].join('\n')
@@ -1491,6 +1493,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           CLOSING_RULE,
           STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
+          ziliaoSpeedRule(projectRoot),
           '',
         ].join('\n')
       : '';
@@ -1540,6 +1543,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           CLOSING_RULE,
           STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
+          ziliaoSpeedRule(projectRoot),
           '',
         ].join('\n')
       : '';
@@ -1564,6 +1568,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
           CLOSING_RULE,
           STRICT_RULE,
           '9. 资料分析同样一题一题讲，但按材料成套：先 `### 材料一`，用 `> **材料**` 完整放上该篇文字/表/图，不要每题重复整篇材料；接着连续复盘该篇下的 5 道题，每题仍是 `> **原题**`（只放问句和选项）→ 作答结果 → `#### 草稿诊断` → `#### 考场解法` → `#### 下次动作`。第 5 题讲完再放 `### 材料二` 及下五题。禁止把 20 题拆散穿插，禁止省略材料。',
+          ziliaoSpeedRule(projectRoot),
           '',
         ].join('\n')
       : '';

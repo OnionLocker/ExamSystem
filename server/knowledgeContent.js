@@ -223,7 +223,7 @@ export function reportTags(markdown) {
     const tag = cells[cols.tag];
     const num = Number(cells[cols.num]);
     if (!tag || !Number.isFinite(num) || /^[-:\s]+$/.test(tag)) continue;
-    for (const t of tag.split(/[、,，；;]\s*/).filter(Boolean)) {
+    for (const t of tag.split(/[、,，；;]\s*(?=[^、,，；;\s-]+-)/).filter(Boolean)) {
       byTag.set(t, [...(byTag.get(t) || []), num]);
     }
   }
