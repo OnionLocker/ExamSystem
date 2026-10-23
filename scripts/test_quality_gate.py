@@ -84,6 +84,32 @@ def test_ziliao_review_fails_closed() -> None:
         ), patch.object(qo, "evaluation_references", return_value={}):
             assert qo.run_batch_quality(Path("."), manifest, [])["verdict"] == expected
 
+    counted = {"generation": {"batch_constraints": {"track": "gd", "question_count": 2, "slot_plan": [
+        {"count": 1}, {"count": 1}]}}}
+    false_count = dict(verdict="REJECT", type_distribution_ok=False, difficulty_distribution_ok=True,
+                       reference_alignment_ok=True, duplicate_groups=[],
+                       issues=["整套题量不足：实收1题，questions数组只有1道题，缺少1题"],
+                       design_check={"ok": False, "reason": "题量不足2题（实收1题）"})
+    with patch.object(qo, "call_flash", return_value=false_count), patch.object(
+        qo, "mechanical_answers_ok", return_value=True
+    ), patch.object(qo, "evaluation_references", return_value={}):
+        kept = qo.run_batch_quality(Path("."), counted, [{}, {}])
+    assert kept["verdict"] == "PASS", kept
+    assert kept["review"]["issues"] == []
+    assert kept["review"]["type_distribution_ok"] is True
+    mixed = dict(false_count, issues=["实收1题", "未覆盖混合增长率"],
+                 design_check={"ok": False, "reason": "缺少混合增长率"})
+    with patch.object(qo, "call_flash", return_value=mixed), patch.object(
+        qo, "mechanical_answers_ok", return_value=True
+    ), patch.object(qo, "evaluation_references", return_value={}):
+        rejected = qo.run_batch_quality(Path("."), counted, [{}, {}])
+    assert rejected["verdict"] == "REJECT"
+    assert any("混合增长率" in str(item) for item in rejected["review"]["issues"])
+    with patch.object(qo, "call_flash", side_effect=AssertionError("题量不符时不应调用模型")):
+        local = qo.run_batch_quality(Path("."), counted, [{}])
+    assert local["verdict"] == "REJECT"
+    assert "题量为 1" in local["review"]["issues"][0]
+
 
 def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:
     q = question("M01-Q1", qo.CAT_ZILIAO, "", "资料分析-基础知识-统计术语与常考概念")
@@ -107,9 +133,12 @@ def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:
     good = {"id": "M01-Q1", "answer": "A", "verdict": "PASS", "also_valid": [],
             "steps": "独立取数得A", "option_tests": {
                 k: {"stands": k == "A", "reason": "与原文比较"} for k in "ABCD"}}
+    extra_key = {k: {"stands": k == "A", "reason": "与原文比较"} for k in "ABCD"}
+    extra_key["issues"] = ["多余字段"]
     for change, expected in [({}, "PASS"), ({"issues": ["发现矛盾"]}, "REJECT"),
                              ({"option_tests": {}}, "REJECT"), ({"steps": ""}, "REJECT"),
-                             ({"also_valid": ["B"]}, "REJECT")]:
+                             ({"also_valid": ["B"]}, "REJECT"),
+                             ({"option_tests": extra_key}, "PASS")]:
         with patch.object(qo, "call_flash", return_value={"questions": [good | change]}):
             assert qo.run_route_b(root, [q])["M01-Q1"]["verdict"] == expected
 

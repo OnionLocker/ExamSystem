@@ -38,6 +38,8 @@ SYSTEM_PROMPT = """你是独立的公考资料分析图表质检员。你看到�
 3. 多系列的单位是否与系列一一对应，是否需要靠正文顺序猜测；
 4. 原图和768px图中的全部关键信息是否都能直接辨认；
 5. 图中可见数值是否与提供的材料和题目上下文冲突。
+例外：上下文带 "chart_match_option": true 的是图表匹配题的选项图，按真题惯例故意不标数值和刻度，
+只需检查图形、图例或分类标签清楚可辨，且形状与 figure_data 一致；缺少数值标签不算 complete=false。
 任何一项不清楚都必须判 REJECT。只输出一个JSON对象，不要Markdown：
 {"verdict":"PASS或REJECT","checks":{"complete":true,"no_overlap":true,"units_mapped":true,"mobile_readable":true,"context_consistent":true},"issues":["具体问题"]}"""
 
@@ -156,8 +158,11 @@ def collect_images(batch_dir: Path) -> list[dict]:
         for relative in question.get("explanation_images") or []:
             add(str(relative), base)
         for option in question.get("options") or []:
+            figure = option.get("figure") if isinstance(option.get("figure"), dict) else None
+            extra = {"chart_match_option": True,
+                     "figure_data": {k: figure.get(k) for k in ("kind", "categories", "values")}} if figure else {}
             for relative in option.get("images") or []:
-                add(str(relative), {**base, "option_key": option.get("key")})
+                add(str(relative), {**base, "option_key": option.get("key"), **extra})
     return [found[key] for key in sorted(found)]
 
 

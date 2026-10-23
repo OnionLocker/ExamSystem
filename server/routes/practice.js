@@ -626,7 +626,8 @@ const practiceReviewMarkdown = ({ session, items }) => {
     ].filter(Boolean).join('；');
     lines.push('', `### 第 ${no} 题${subtitle}`, '', String(item.content || ''));
     for (const option of item.options || []) {
-      lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}`);
+      const images = (option.images || []).map((image) => ` ![选项${option.key}](${image})`).join('');
+      lines.push(`- ${option.key}. ${String(option.text || '').replace(/\n/g, ' ')}${images}`);
     }
     lines.push(
       '',

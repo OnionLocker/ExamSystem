@@ -33,29 +33,34 @@ THEME_POOL = (
 )
 OLD_SKELETON = ("财政", "工业", "外贸", "进出口", "社会消费品零售")
 REGIONS = ("广东省", "深圳市", "广州市", "佛山市", "东莞市", "珠海市", "惠州市", "中山市", "江门市", "湛江市", "汕头市")
-MATERIAL_PLANS = (
-    {"figure_shape": None,
-     "question_plan": "长文字统计公报式材料（3–5段，350–750字）：给出总量与多个分项的现期值和同比增速（供基期量、增长量），"
-                      "两项可比较的增速或比率及其上年值（供百分点题），以及能做估算比较的几组数据。"},
-    {"figure_shape": None,
-     "question_plan": "表格至少6行×4列：各分项现期值、上年值或同比增速，以及可求平均数的第二指标（如企业数、人数、面积），"
-                      "含合计行，分项展示值之和与合计保留真实舍入差；供比重、增长率、平均数、倍数题。"},
-    {"figure_shape": "years",
-     "question_plan": "柱图为连续5–6年同一指标的时间序列（categories为年份），供年均增长与增长量；正文另给某细分指标连续两年同比增速"
-                      "（供间隔增长率），以及该细分指标与总量的现期值和增速（供比重变化）。"},
-    {"figure_shape": "two_series",
-     "question_plan": "柱图为4–8个广东地市或类别的两年数值（两个同单位series，如2024年、2025年），供比重、增长率；"
-                      "正文另给图中至少一个类别的对应数量（如机构数、人数、企业数），与图中数值配合求平均数；正文给两部分（如两类业务或两个区域）各自的现期值和增速，供混合增长率。"},
-)
-
-
-def recent_themes(output_dir):
-    """Themes of the most recent earlier batch, so consecutive papers do not reuse a combination."""
+def recent_rotation(output_dir, batches=3):
+    """最近几套（新的在前）用过的题型与材料形态，供轮转降权。"""
     plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
-    if not plans:
-        return set()
-    latest = plans[-1].parent
-    return {json.loads(p.read_text()).get("theme_key") for p in latest.glob("M0[1-4]-plan.json")}
+    dirs = []
+    for plan in reversed(plans):
+        if plan.parent not in dirs:
+            dirs.append(plan.parent)
+        if len(dirs) == batches:
+            break
+    kinds, types = [], []
+    for d in dirs:
+        loaded = [json.loads(p.read_text()) for p in sorted(d.glob("M0[1-4]-plan.json"))]
+        kinds.append({s.get("kind") for p in loaded for s in p.get("slots") or [] if s.get("kind")})
+        types.append({p.get("material_type") or {"chart": "years", "table": "table", "text": "text"}.get(p.get("format"))
+                      for p in loaded})
+    return kinds, types
+
+
+def recent_themes(output_dir, batches=2):
+    """Themes of the most recent earlier batches, so consecutive papers do not reuse them."""
+    plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
+    latest = []
+    for plan in reversed(plans):
+        if plan.parent not in latest:
+            latest.append(plan.parent)
+        if len(latest) == batches:
+            break
+    return {json.loads(p.read_text()).get("theme_key") for d in latest for p in d.glob("M0[1-4]-plan.json")}
 
 
 def pick_themes(output_dir, rng):
@@ -63,6 +68,19 @@ def pick_themes(output_dir, rng):
     fresh = [t for t in THEME_POOL if t not in used]
     pool = fresh if len(fresh) >= 4 else list(THEME_POOL)
     return rng.sample(pool, 4)
+
+
+def select_repair_materials(plans, batch_id, out, gate_text, quality):
+    """回修只针对结构化失败的篇。总审原文里出现的题号不作为回修依据。"""
+    targets = runner.failed_visual_material_ids(out) | runner.failed_data_material_ids(out)
+    if not (out / "evidence" / "system-quality.json").is_file():
+        targets.update(p["id"] for p in plans if f"{batch_id}-{p['id']}" in gate_text)
+    for result in (quality or {}).get("results") or []:
+        if any((result.get(k) or {}).get("verdict") != "PASS" for k in ("correctness", "quality")):
+            parts = str(result.get("question_id") or "").rsplit("-", 2)
+            if len(parts) == 3:
+                targets.add(parts[-2])
+    return targets or {p["id"] for p in plans}
 
 
 def import_checked(out, db):
@@ -102,32 +120,56 @@ def main():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--db", type=Path, required=True)
     parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=2)
-    parser.add_argument("--hermes-root", type=Path, default=Path.home() / ".hermes/hermes-agent")
+    parser.add_argument("--hermes-root", type=Path, default=default_hermes_root())
     parser.add_argument("--resume", type=Path, help="恢复已有批次并重新执行整套闸门，失败自动回修")
     parser.add_argument("--import", dest="import_batch", action="store_true",
                         help="完整闸门通过后调用现有校验导入器；默认仅生成验收产物")
+    parser.add_argument("--difficulty", choices=TIERS, help="整卷档位，默认mid；蓝图里的difficulty与之等价")
+    parser.add_argument("--blueprint", help='只调难度：{"difficulty":"mid","slots":{"M02":"easy","M03-Q4":"hard"}}，'
+                                            '槽位值也可写{"difficulty":"hard","note":"命题倾向"}；内联JSON或@路径')
+    parser.add_argument("--plan-only", action="store_true", help="只打印整套槽位与难度，不调用模型")
     args = parser.parse_args()
+    try:
+        blueprint_tier, overrides = parse_difficulty_blueprint(args.blueprint)
+    except (ValueError, OSError) as exc:
+        parser.error(f"蓝图无效：{exc}")
+    if args.difficulty and blueprint_tier and args.difficulty != blueprint_tier:
+        parser.error("--difficulty 与蓝图 difficulty 不一致")
+    tier = args.difficulty or blueprint_tier or "mid"
+    if args.resume and (args.difficulty or args.blueprint):
+        parser.error("--resume 沿用原批次计划，不能再改难度")
     started = time.monotonic()
     today = dt.date.today()
     batch_id = today.strftime("%Y%m%d") + "_hermes_agents_" + uuid.uuid4().hex[:8]
     out = args.resume.resolve() if args.resume else args.output_dir.resolve() / batch_id
     batch_id = out.name
+    rng = random.Random(batch_id)
+    recent_kinds, recent_types = recent_rotation(args.output_dir.resolve())
+    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types)
+    slots = apply_difficulty_overrides(rotated, overrides)
+    runner.validate_gd_quota(slots, count=20)
+    if args.plan_only:
+        print(json.dumps({"difficulty": tier, "overrides": overrides, "materials": material_types, "slots": [
+            {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"), "option_format": s.get("option_format"),
+             "difficulty": s["difficulty"], "difficulty_score": s["difficulty_score"],
+             **({"note": s["difficulty_note"]} if s.get("difficulty_note") else {})}
+            for i, s in enumerate(slots)]}, ensure_ascii=False, indent=2))
+        return 0
     out.mkdir(parents=True, exist_ok=bool(args.resume))
     (out / "images").mkdir(exist_ok=bool(args.resume))
-    slots = runner.auto_slots(20, 4, "mid", "gd")
-    runner.validate_gd_quota(slots, count=20)
-    rng = random.Random(batch_id)
     themes = pick_themes(args.output_dir.resolve(), rng)
     regions = ["广东省"] + rng.sample(REGIONS[1:], 3)
-    plans = [{"id": f"M{i+1:02}", "track": "gd", "difficulty": "mid", "format": kind,
+    tier_focus = {"easy": "难度偏易", "mid": "难度偏易到中", "hard": "难度中到难"}[tier]
+    plans = [{"id": f"M{i+1:02}", "track": "gd", "difficulty": tier,
+              "format": MATERIAL_TYPES[mtype]["format"], "figure_kind": MATERIAL_TYPES[mtype]["figure_kind"],
+              "material_type": mtype,
               "theme": f"{regions[i]}{themes[i]}", "theme_key": themes[i], "region": regions[i],
               "count": 5, "slots": slots[i*5:(i+1)*5],
-              "focus": ("真实统计公报信息组织，地名用真实广东地名；难度偏易到中；显示数从高精度底数独立舍入；"
+              "focus": (f"真实统计公报信息组织，地名用真实广东地名；{tier_focus}；显示数从高精度底数独立舍入；"
                         "四篇主题互不相同，不写财政、工业、外贸、社零老骨架"),
-              "question_plan": MATERIAL_PLANS[i]["question_plan"]
-                               + "五题题型依次为：" + "、".join(s["kind_label"] for s in slots[i*5:(i+1)*5]) + "。",
-              "figure_shape": MATERIAL_PLANS[i]["figure_shape"],
-              "chart_tasks": []} for i, kind in enumerate(runner.default_formats("gd", 4, False))]
+              "question_plan": material_question_plan(mtype, slots[i*5:(i+1)*5]),
+              "figure_shape": MATERIAL_TYPES[mtype]["figure_shape"],
+              "chart_tasks": []} for i, mtype in enumerate(material_types)]
     if any(word in plan["theme"] for plan in plans for word in OLD_SKELETON):
         raise ValueError("主题落入财政/工业/外贸/社零老骨架")
     if args.resume:
@@ -189,10 +231,12 @@ def main():
             canon.update(manifest["generation"]["kaofa_canon"])
             for image in (path / "images").glob("*.png"):
                 shutil.copy2(image, out / "images" / image.name)
-        manifest["source"] = runner.batch_source("gd", False, "mid", today.strftime("%Y%m%d"))
+        paper_tier = plans[0].get("difficulty") or "mid"
+        manifest["source"] = runner.batch_source("gd", False, paper_tier, today.strftime("%Y%m%d"))
+        manifest["difficulty_tier"] = paper_tier
         manifest["generation"]["kaofa_canon"] = canon
         constraints = manifest["generation"]["batch_constraints"]
-        constraints.update(question_count=20, targeted_drill=False, slot_plan=slots,
+        constraints.update(question_count=20, targeted_drill=False, slot_plan=slots, difficulty_tier=paper_tier,
                            tag_counts=dict(Counter(s["tag"] for s in slots)))
         constraints.pop("answer_max_per_letter", None)
         constraints.pop("answer_min_letters", None)
@@ -241,14 +285,7 @@ def main():
             data = json.loads(quality.read_text()) if quality.exists() else {}
             visual = out / "evidence/ziliao-visual-quality.json"
             figures = json.loads(visual.read_text()) if visual.exists() else {}
-            targets = runner.failed_visual_material_ids(out) | runner.failed_data_material_ids(out)
-            # A local hard-gate failure can name a material before any model evidence exists.
-            targets.update(p["id"] for p in plans if f"{batch_id}-{p['id']}" in proc.stdout + proc.stderr)
-            for result in data.get("results", []):
-                if any((result.get(k) or {}).get("verdict") != "PASS" for k in ("correctness", "quality")):
-                    targets.add(result["question_id"].rsplit("-", 2)[-2])
-            if not targets:
-                targets = {p["id"] for p in plans}
+            targets = select_repair_materials(plans, batch_id, out, proc.stdout + proc.stderr, data)
             job.update(stage="回修", detail=f"回修 {len(targets)} 篇", progress=72)
             def repair(plan):
                 feedback = {"gate_error": (proc.stdout + proc.stderr)[-4000:],
@@ -278,7 +315,7 @@ def main():
                "question_count": 20, "materials": 4,
                "worker_runs": worker_runs, "full_gate_rounds": rounds,
                "error": error, "imported": imported, "manual_content_edits": 0,
-               "chart_match_supported": False}
+               "chart_match_supported": runner.CHART_MATCH_HOOK["implemented"]}
     write(out / "paper-summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False), flush=True)
     return 0 if passed and error is None else 1

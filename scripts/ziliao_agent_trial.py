@@ -17,6 +17,32 @@ import time
 import uuid
 from collections import Counter
 
+# run_agent 的 hermes_bootstrap 会把进程重启到 hermes 专用 Python（os.execv）。
+# 若在重启前创建任何目录/文件，重启后第二次执行会 FileExistsError。
+# 因此在任何业务代码之前、且仅当当前解释器不是 hermes Python 时触发重启：
+# 先定位 hermes root 并加入 sys.path，再 import run_agent → execv 重启 → 脚本从头执行
+# （已是 hermes Python 后检测不再命中，流程正常继续）。
+if "/.hermes/" not in sys.executable:
+    _base = Path.home() / ".hermes"
+    _fixed = _base / "hermes-agent"
+    if (_fixed / "run_agent.py").is_file():
+        _hermes_root = _fixed
+    else:
+        _versions = sorted(p for p in _base.glob("hermes-agent-v*") if (p / "run_agent.py").is_file())
+        _hermes_root = _versions[-1] if _versions else _fixed
+    sys.path.insert(0, str(_hermes_root))
+    try:
+        import run_agent  # noqa: F401 触发重启
+    except Exception:
+        pass
+    if "/.hermes/" not in sys.executable:
+        # 无 hermes_bootstrap 可重启：直接退出，避免污染目录后由外部重试。
+        raise SystemExit(0)
+
+# worker 可能经 hermes root 的 runpy 启动，sys.path 不含本脚本目录；
+# 先加入 scripts 目录，保证同级模块（ziliao_parallel_runner 等）可导入。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import ziliao_parallel_runner as runner
 from generation_gate import verify
 from ziliao_checklist import VERSION, MATERIAL_RULES, QUESTION_RULES, rounding_issues, material_text_issues, paper_issues
@@ -47,7 +73,8 @@ class Trial:
         if not re.fullmatch(r"M0[1-4]", self.plan["id"]) or len(slots) != 5:
             raise ValueError("每个worker须有M01—M04编号及五个槽位")
         self.material_id = f"{out.name}-{self.plan['id']}"
-        self.frame = {"track": "gd", "difficulty": "mid", "materials": [self.plan]}
+        self.tier = str(self.plan.get("difficulty") or "mid")
+        self.frame = {"track": "gd", "difficulty": self.tier, "materials": [self.plan]}
         if resume:
             self.frame = json.loads((out / "framework.json").read_text())
             self.plan = self.frame["materials"][0]
@@ -59,7 +86,7 @@ class Trial:
             self.calculations = {c["question_id"]: c for c in json.loads((out / "calculations.json").read_text())["questions"]}
             self.invalidate()
             return
-        constraints = {"all_original": True, "question_count": 5, "difficulty_tier": "mid",
+        constraints = {"all_original": True, "question_count": 5, "difficulty_tier": self.tier,
                        "answer_distribution": "unconstrained", "targeted_drill": True,
                        "slot_plan": slots, "track": "gd", "track_label": "粤考日练",
                        "chart_match": runner.CHART_MATCH_HOOK, "answer_max_per_letter": 5,
@@ -69,9 +96,9 @@ class Trial:
         (out / "images").mkdir()
         write(out / "framework.json", self.frame)
         write(out / "manifest.json", {
-            "batch_id": out.name, "source": runner.batch_source("gd", True, "mid", today.strftime("%Y%m%d"), slots),
+            "batch_id": out.name, "source": runner.batch_source("gd", True, self.tier, today.strftime("%Y%m%d"), slots),
             "region": "广东-模拟", "year": today.year, "created_at": today.isoformat(),
-            "license": "仅用于学习与题库内部评测", "kind": "ai-generated", "difficulty_tier": "mid",
+            "license": "仅用于学习与题库内部评测", "kind": "ai-generated", "difficulty_tier": self.tier,
             "generation": {"style_marker": "GONGKAO-STYLE-v2-split", "model": runner.MODEL, "ziliao_checklist": VERSION,
                            "batch_constraints": constraints, "kaofa_canon": run["kaofa_canon"],
                            "evaluation_contexts": []}})
@@ -113,7 +140,7 @@ class Trial:
         # Accept only content and structured figure, never model-supplied paths/receipts.
         candidate = {"external_id": self.material_id, "content": material.get("content"),
                      "figure": material.get("figure"), "rounding_checks": material.get("rounding_checks")}
-        kind = {"chart": "bars", "table": "table", "text": "none"}[self.plan["format"]]
+        kind = runner.figure_kind(self.plan)
         if not candidate["content"] or (candidate["figure"] or {}).get("kind") != kind or not runner.valid_material({"material": candidate}):
             raise ValueError(f"须非空正文和指定figure.kind={kind}")
         errors = (runner.material_realism_errors(candidate, track="gd", long_text=self.plan["format"] == "text")
@@ -147,6 +174,12 @@ class Trial:
                 return ["本篇柱图须为连续5—6个年份的时间序列（categories为年份），供年均增长与增长量题使用"]
         if shape == "two_series" and len(figure.get("series") or []) < 2:
             return ["本篇柱图须为4—8个城市或类别的两年数值（两个同单位series），供比重、增长率与混合增长率题使用"]
+        if shape == "monthly":
+            first = [str(row[0]) for row in figure.get("rows") or [] if row]
+            if sum("月" in cell or "季度" in cell for cell in first) < 5:
+                return ["本篇表格首列须为月份、季度或“1—N月”累计期（至少5行），供累计与当期、月均题使用"]
+        if shape == "pie" and len(figure.get("series") or []) != 1:
+            return ["本篇饼图只能有一个series，categories为3—6个组成部分"]
         return []
 
     def put_questions(self, questions, calculations):
@@ -164,11 +197,15 @@ class Trial:
                   "answer", "explanation", "tags", "difficulty", "family"}
         for q in questions:
             qid = q["external_id"]
-            if any(o.get("figure") or o.get("images") for o in q.get("options", [])):
-                raise ValueError("选项图尚未实现，不能提供或静默丢弃选项图")
+            slot = self.plan["slots"][int(qid[-1]) - 1]
+            if slot.get("kind") == "chart_match":
+                q = self.render_option_figures(q)
+            elif any(o.get("figure") or o.get("images") for o in q.get("options", [])):
+                raise ValueError("只有图表匹配槽位能用选项图；本题去掉options[].figure")
             qs[qid] = {k: v for k, v in q.items() if k in fields}
             qs[qid]["category"], qs[qid]["question_type"] = "资料分析", "single"
-            cs[qid] = {k: v for k, v in calc[qid].items() if k in {"question_id", "correct", "options", "tolerance"}}
+            cs[qid] = {k: v for k, v in calc[qid].items()
+                       if k in {"question_id", "correct", "options", "tolerance", "ranges", "target"}}
         errors = {}
         for qid, q in qs.items():
             slot = self.plan["slots"][int(qid[-1]) - 1]
@@ -185,6 +222,18 @@ class Trial:
         self.questions, self.calculations = qs, cs
         self.save()
         return {"ok": True, "saved": ids, "total_questions": len(qs)}
+
+    def render_option_figures(self, question):
+        question = copy.deepcopy(question)
+        options = question.get("options") or []
+        if len(options) != 4 or not all(isinstance(o.get("figure"), dict) for o in options):
+            raise ValueError("图表匹配题四个选项都须给figure（kind/categories/values），text写空字符串")
+        for option in options:
+            name = f"{question['external_id']}-{option.get('key')}.png"
+            runner.render_option_figure(option["figure"], self.out / "images" / name)
+            option["images"] = [f"images/{name}"]
+            option["text"] = str(option.get("text") or "")
+        return question
 
     def review(self):
         if len(self.questions) != 5:
@@ -235,10 +284,28 @@ class Trial:
                 "material_reviews": self.material_reviews}
 
 
+def default_hermes_root():
+    """升级后目录带版本号（hermes-agent-v2026.8.27）；旧固定目录仍存在时优先用它。"""
+    base = Path.home() / ".hermes"
+    fixed = base / "hermes-agent"
+    if (fixed / "run_agent.py").is_file():
+        return fixed
+    versions = sorted(p for p in base.glob("hermes-agent-v*") if (p / "run_agent.py").is_file())
+    return versions[-1] if versions else fixed
+
+
 def make_agent(trial, hermes_root):
     sys.path.insert(0, str(hermes_root))
     from run_agent import AIAgent
     from tools.registry import registry
+    try:
+        import tools.tool_search as tool_search
+    except ImportError:
+        tool_search = None
+    if tool_search is not None:
+        # 新版 Hermes 默认挂 tool_search/describe/call 桥接工具，会破坏五工具隔离；只在本 worker 进程内关闭。
+        off = tool_search.ToolSearchConfig.from_raw({"enabled": "off"})
+        tool_search.load_config = tool_search.load_config_readonly = lambda: off
     specs = {
         "calculate": ("计算纯数字四则算式，禁止变量或函数。", {"expressions": {"type": "array", "items": {"type": "string"}}}),
         "submit_material": ("提交正文、指定图表和rounding_checks；独立审材渲染；通过后清空旧题。", {"material": {"type": "object"}}),
@@ -264,10 +331,23 @@ def make_agent(trial, hermes_root):
 
 
 def main():
+    # run_agent 的 hermes_bootstrap 会把进程重启到 hermes 专用 Python（os.execv）。
+    # 若在重启前先创建 Trial 目录，重启后第二次执行会 FileExistsError。
+    # 因此在最前面 import run_agent：非 hermes Python 时 execv 重启（进程替换，目录未创建）；
+    # 重启后（已是 hermes Python）bootstrap 不再重启，流程继续。
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    if "/.hermes/" not in sys.executable:
+        try:
+            import run_agent  # noqa: F401 触发重启；重启后本行不再命中
+        except Exception:
+            pass
+        # 若未发生重启（无 hermes_bootstrap），直接退出避免污染目录
+        if "/.hermes/" not in sys.executable:
+            return 0
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--db", type=Path, required=True)
-    parser.add_argument("--hermes-root", type=Path, default=Path.home() / ".hermes/hermes-agent")
+    parser.add_argument("--hermes-root", type=Path, default=default_hermes_root())
     parser.add_argument("--plan", type=Path, help="冻结的单篇计划，由整套调度器传入")
     parser.add_argument("--batch-id")
     parser.add_argument("--resume", type=Path, help="续跑本篇，保留工具轨迹与对话")
@@ -290,7 +370,7 @@ def main():
                   "独立审材和整篇审核各最多6次。根据反馈局部修复，不能改槽位、改闸门或编造通过。"
                   "先规划五题所需数据再submit_material；材料通过后以工具返回的next命题，put_questions后review。"
                   "纯审核响应格式错误可原样再review；有实质错误先修复再送审。每次工具失败都说明原因并自行纠错。\n"
-                  + runner.framework_prompt("mid", [trial.plan["format"]], trial.plan["slots"], "gd")
+                  + runner.framework_prompt(trial.tier, [trial.plan["format"]], trial.plan["slots"], "gd")
                   + "\n以上框架只供你内部规划，无需单独输出JSON。\n"
                   + runner.material_prompt(trial.frame, trial.plan, out.name) + "\n" + MATERIAL_RULES + "\n" + QUESTION_RULES)
         history = None

@@ -420,9 +420,10 @@ def swap_option_pair(question: dict, src: str, dst: str) -> bool:
 
 
 def remap_calculation_spec(spec: dict, src: str, dst: str) -> None:
-    options = spec.get("options")
-    if isinstance(options, dict) and src in options and dst in options:
-        options[src], options[dst] = options[dst], options[src]
+    for field in ("options", "ranges"):
+        options = spec.get(field)
+        if isinstance(options, dict) and src in options and dst in options:
+            options[src], options[dst] = options[dst], options[src]
     if str(spec.get("answer") or "").upper() == src:
         spec["answer"] = dst
 

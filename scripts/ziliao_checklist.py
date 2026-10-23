@@ -11,6 +11,11 @@ GD_PLACES = ("广东", "广州", "深圳", "珠海", "汕头", "佛山", "韶关
 PLACEHOLDER = re.compile(r"(?<![A-Za-z])[A-Z]\s*[省市县区]|某(?:省|市|县|区|地区)|[甲乙丙丁][省市县]")
 ARTIFICIAL = re.compile(r"严格限定|统计范围(?:仅|只)?(?:限定|限于)|本次统计范围|仅限于本|用于(?:命题|干扰|凑)|作为干扰")
 VAGUE = re.compile(r"计算失误|计算错误|估算误差|估算偏差|计算偏差|粗心|口算失误|误差所致")
+# 考生不会犯的凑数公式：除以(1+2r)一类、(r1+r2)×(1+r) 一类。
+CONTRIVED = (
+    re.compile(r"(?<![\d.])1\s*[+＋\-−－]\s*[2-9]\s*(?:[×*]\s*\(?\s*\d|r\b)"),
+    re.compile(r"\(\s*\d+(?:\.\d+)?\s*[%％]\s*[+＋]\s*\d+(?:\.\d+)?\s*[%％]\s*\)\s*[×*]\s*\(\s*1\s*[+＋]"),
+)
 ARITH = re.compile(r"\d(?:\.\d+)?\s*[%％]?\s*\)?\s*[×÷*/+＋\-−－]\s*\(?\s*\d")
 MATERIAL_RULES = """材料验收清单：
 先生成多一至两位小数的原创底层金额，按同一底数推导总计，再把各数分别四舍五入到公报显示精度。
@@ -40,7 +45,8 @@ growth槽可问营业收入/利润额等绝对指标的同比增长率，不可�
 综合分析每题解析至少两处写出算式；百分点/累计/缺数据三类文字陷阱每篇至多一句、全卷至多两篇使用。
 解析中明确列出的纯数字算式须与写出的结果在展示精度内一致。按舍入后的增速反推基期，
 结果可能与图表直接给的上年数略有不同；不得把图表旧数伪写成反推算式的计算结果。
-本轮未实现四图选一：禁止chart_match及A—D选项图，不能把普通读图宣称为图表匹配已解决。"""
+选项图只用于槽位kind=chart_match的图表匹配题：四个选项都给figure数据，图中不标数值，正确图须与材料算出的值一致，干扰图凭形状可区分。
+区间式、升降+程度式选项按槽位option_format出，calculation写ranges；计数题选项为个数，排序题选项为四种排列。"""
 
 
 def rounding_issues(material):
@@ -172,7 +178,17 @@ KIND_STEM_RULES = {
     "share": (r"比重|占|份额", "比重题须问占比或比重"),
     "share_change": (r"比重|占比|份额", "比重变化题须问比重的两期变化"),
     "percentage_point": (r"百分点", "百分点题须在题干或选项使用“个百分点”"),
+    "average_diff": (r"平均|人均|户均|均价|每(?:个|家|人|户|件|吨|亩|台|辆|艘|项|笔|次|架|名)", "平均数差值题须问平均数（人均、平均每…）的差值或比较"),
+    "count": (r"几个|几项|几类|几年|几种|几家|有几|多少个", "计数题须问“有几个/几项”"),
+    "sort": (r"排序|排列|从高到低|从大到小|从多到少|由高到低|由大到小", "排序题须要求按某指标排序"),
+    "projection": (r"如|若|假设|保持|按此|照此", "假设推算题须写明假设条件"),
+    "delta_share": (r"增量|增加值|增长量|贡献|拉动|新增", "增量占比题须问增量占比、贡献率或拉动"),
+    "cumulative": (r"累计|月均|日均|当月|季度|[一二三四]季度|\d+\s*[~～—\-－至]\s*\d+\s*月", "累计题须涉及累计、当月、季度或月均"),
+    "text_reading": (r"未提及|不包括|不属于|主题|原因|表述|说法|符合|关于", "文字理解题须问资料未提及、原因不包括或表述是否符合原文"),
+    "chart_match": (r"图", "图表匹配题须问哪幅图最能反映"),
 }
+
+NON_ARITH_KINDS = {"count", "sort", "chart_match", "text_reading"}
 
 
 def point_ratio_issues(question, kind=""):
@@ -219,17 +235,33 @@ def question_style_issues(question, calculation=None, slot=None):
     kind = str(slot.get("kind") or "")
     if VAGUE.search(explanation):
         issues.append(f"解析用「{VAGUE.search(explanation)[0]}」搪塞干扰项；写出该选项对应的错误算式")
+    if kind and question.get("family") and slot.get("family") and question["family"] != slot["family"]:
+        issues.append(f"题目family={question['family']}与槽位{slot['family']}（{slot.get('kind_label') or kind}）不符；按槽位题型重出")
+    for pattern in CONTRIVED:
+        found = pattern.search(explanation)
+        if found:
+            issues.append(f"干扰项公式「{found[0]}」是考生不会犯的凑数算法；改用本题型常见错法（漏乘(1+r)、基期现期倒置、取错主体或年份等）")
+            break
     issues.extend(point_ratio_issues(question, kind))
     if kind in KIND_STEM_RULES:
         pattern, message = KIND_STEM_RULES[kind]
-        blob = stem + (" ".join(str(o.get("text")) for o in question.get("options") or []) if kind == "percentage_point" else "")
+        blob = stem + (" ".join(str(o.get("text")) for o in question.get("options") or [])
+                       if kind in ("percentage_point", "share_change") else "")
         if not re.search(pattern, blob):
             issues.append(message)
     if kind == "share_change" and not re.search(r"百分点|上升|下降|提高|降低|变化|升降", stem + json.dumps(question.get("options"), ensure_ascii=False)):
         issues.append("比重变化题须问比重上升/下降或变化多少个百分点")
     if kind == "interval_growth" and not re.search(r"间隔|隔年", explanation):
         issues.append("间隔增长率题解析须写明间隔增长率公式R=r1+r2+r1×r2")
-    if family not in {"detail", "judge", None, ""}:
+    ranged = str(slot.get("option_format") or "exact") in {"interval", "direction"}
+    if ranged:
+        texts = " ".join(str(o.get("text") or "") for o in question.get("options") or [])
+        if slot.get("option_format") == "interval" and not re.search(r"不到|低于|以下|之间|超过|高于|以上|[~～—\-－至]", texts):
+            issues.append("区间式选项须写成“不到X”“在X到Y之间”“超过Y”等区间")
+        if slot.get("option_format") == "direction" and not (
+                re.search(r"上升|增加|提高|高|多", texts) and re.search(r"下降|减少|降低|低|少", texts)):
+            issues.append("升降+程度式选项须同时含上升与下降两个方向")
+    if family not in {"detail", "judge", None, ""} and not ranged and kind not in NON_ARITH_KINDS:
         keys = [str(o.get("key")) for o in question.get("options") or []]
         missing = []
         for key in keys:
@@ -260,7 +292,7 @@ def question_style_issues(question, calculation=None, slot=None):
             matched = re.search(r"(\d+(?:\.\d+)?)\s*倍", answer)
             if matched and float(matched[1]) == round(float(matched[1])):
                 issues.append("倍数题正确值为整数倍，数字不自然；调整底层数据")
-    issues.extend(_legacy_style_issues(question))
+    issues.extend(_legacy_style_issues(question, slot))
     return issues
 
 
@@ -329,10 +361,11 @@ def paper_issues(materials, questions, slots=None):
     return errors
 
 
-def _legacy_style_issues(question):
+def _legacy_style_issues(question, slot=None):
     issues = []
     stem = str(question.get("stem") or "")
-    if question.get("family") != "judge" and re.search(
+    qualitative_share = bool((slot or {}).get("quick")) and (slot or {}).get("kind") == "share_change"
+    if question.get("family") != "judge" and not qualitative_share and re.search(
         r"(?:利润率|比重|占比)(?:与|相?比|较|同比|相对|比上年|提高|增长|下降|降低|上升)", stem
     ) and "百分点" not in stem and not any("百分点" in str(o.get("text")) for o in question.get("options", [])):
         issues.append("比率两期变化须问百分点；growth槽请改问收入/利润额的增速，不能改成比率的比值增长率")
@@ -341,9 +374,11 @@ def _legacy_style_issues(question):
         matched = re.search(r"(\d+(?:\.\d+)?)\s*倍", answer)
         if matched and math.isclose(float(matched[1]), round(float(matched[1])), abs_tol=1e-9):
             issues.append("混合倍数的正确选项为整数倍；重新设计取数/底层数据，不得直接微调答案")
-    if question.get("family") == "chart_match" or any(
-        o.get("figure") or o.get("images") for o in question.get("options", [])
-    ):
-        issues.append("四图选一尚未实现，本轮禁止chart_match/选项图")
+    has_option_figures = any(o.get("figure") or o.get("images") for o in question.get("options", []))
+    if (slot or {}).get("kind") == "chart_match" or question.get("family") == "chart_match":
+        if not all(o.get("figure") for o in question.get("options", [])) or len(question.get("options", [])) != 4:
+            issues.append("图表匹配题四个选项都须带figure（选项图数据）")
+    elif has_option_figures:
+        issues.append("只有槽位kind=chart_match的图表匹配题才能使用选项图")
     issues.extend(explanation_math_issues(str(question.get("explanation") or "")))
     return issues

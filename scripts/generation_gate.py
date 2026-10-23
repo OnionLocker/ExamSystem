@@ -499,8 +499,9 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
     policy = reasoning_policy or verbal_policy or generation.get("hard_difficulty_policy", generation.get("quantity_hard_policy"))
     if evidence.get("batch_id") != manifest.get("batch_id"):
         raise ValueError("轻量复核 batch_id 不一致")
-    if "flash" not in str(evidence.get("model") or "").lower():
-        raise ValueError("轻量复核必须由 Gemini Flash 执行")
+    _review_model = str(evidence.get("model") or "").lower()
+    if "flash" not in _review_model and not _review_model.startswith("dsh-"):
+        raise ValueError("轻量复核必须由 Gemini Flash 或 DSH 子 agent 审核方执行")
     if evidence.get("questions_sha256") != digest(batch_dir / "questions.json"):
         raise ValueError("轻量复核后的 questions.json 已变更")
     if str(evidence.get("verdict") or "").upper() != "PASS":

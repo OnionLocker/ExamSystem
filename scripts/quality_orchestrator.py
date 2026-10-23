@@ -177,6 +177,9 @@ ZILIAO_BLIND_SYSTEM = """你是独立资料分析盲解官。只有冻结材料�
 逐题从材料取数、独立推导；四个选项都必须检验。对于反向设问，stands表示符合设问，而非陈述本身为真。
 综合计数必须分别判断每个编号陈述。材料矛盾、无解、多解均REJECT，不能猜标答。
 option_tests只包含题面实际存在的A、B、C、D四个键，禁止添加E或空占位选项；每项都必须有核对依据。
+图表匹配题的选项是图：figure_data给出该图各部分或各期的数值（考生看到的图不标数值，只能凭形状判断），
+按材料算出正确序列，逐项比较各图的块大小次序或升降走势是否与之一致；只有一幅图一致才PASS。
+区间式或“上升/下降了不到X”式选项：算出数值后判断落在哪个选项范围内。
 只输出JSON：{"questions":[{"id":"...","answer":"A","also_valid":[],"verdict":"PASS",
 "steps":"取数、算式和推导过程","option_tests":{"A":{"stands":true,"reason":"依据"},
 "B":{"stands":false,"reason":"依据"},"C":{"stands":false,"reason":"依据"},
@@ -187,10 +190,11 @@ ZILIAO_QUALITY_RULES = """
 每题额外返回 material_consistent、slot_match、actual_family、actual_difficulty、difficulty_reason、claim_checks。
 material_consistent：正文、图表总分项/增长/单位/范围是否自洽，若错须false且issues给具体数据。
 slot_match：按实际解题动作核对requested_slot的family、主标签和brief；classic按主标签和brief。
-actual_family取 detail/share_add/growth/base_share/avg_cmp/mix_pull/judge：
-detail仅定位/读数/分类，不计算平均、增量、比重；四陈述混合判断归judge。
-share_add为现期比重、倍数/比值或简单加减；growth为增长量/增长率/百分点差/间隔增长率；
-base_share为基期量/两期比重变化；avg_cmp为平均数/平均数增长/年均增长/跨年比较；mix_pull为混合增长率/拉动。
+actual_family取 detail/share_add/growth/base_share/avg_cmp/mix_pull/judge/chart_match：
+detail仅定位/读数/分类或文字理解（资料未提及、原因不包括），不计算平均、增量、比重；四陈述混合判断归judge。
+share_add为现期比重、倍数/比值或简单加减；growth为增长量/增长率/百分点差/间隔增长率/差值增长率/假设推算/累计与当期；
+base_share为基期量/两期比重变化；avg_cmp为平均数/平均数增长/平均数差值/年均增长/跨项比较/计数/排序；
+mix_pull为混合增长率/拉动/增量占比（贡献率）；chart_match为四个选项都是图、选出最能反映某组数据的图。
 不要把所有读图题都算detail。requested_slot.kind_label是本题必须考的具体题型，slot_match须同时核对。
 每个干扰项须对应可复现的错误算法且解析写出算式，空话（计算失误/估算误差）判不通过；
 选项需精算才能区分（相对差<3%）、分子分母口径不一致、依赖材料外常识均判不通过。
@@ -248,7 +252,7 @@ def ziliao_review_issues(question: dict, review: dict) -> list[str]:
         if review.get(field) is not True:
             issues.append(f"资料审核 {field} 缺失或不通过")
     family = review.get("actual_family")
-    if family not in {"detail", "share_add", "growth", "base_share", "avg_cmp", "mix_pull", "judge"}:
+    if family not in {"detail", "share_add", "growth", "base_share", "avg_cmp", "mix_pull", "judge", "chart_match"}:
         issues.append("缺少实际考法分类")
     expected = (question.get("requested_slot") or {}).get("family")
     if expected and expected != "classic" and family != expected:
@@ -423,7 +427,9 @@ def public_question(question: dict, include_answer: bool = False) -> dict:
         "stem_images": question.get("stem_images") or [],
         "has_stem_image": bool(question.get("stem_images")),
         "options": [
-            {"key": option.get("key"), "text": option.get("text"), "has_image": bool(option.get("images"))}
+            {"key": option.get("key"), "text": option.get("text"), "has_image": bool(option.get("images")),
+             **({"figure_data": {k: option["figure"].get(k) for k in ("kind", "categories", "values")}}
+                if isinstance(option.get("figure"), dict) else {})}
             for option in question.get("options") or []
         ],
         "tags": question.get("tags") or [],
@@ -600,6 +606,15 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
         details = {}
         if not spec:
             issues.append("missing calculation spec")
+        elif isinstance(spec.get("ranges"), dict):
+            from ziliao_tracks import range_calculation_issues
+            try:
+                target = float(safe_eval(spec["correct"]))
+                keys = {str(option.get("key")) for option in question.get("options") or []}
+                issues.extend(range_calculation_issues(target, spec["ranges"], str(question.get("answer") or ""), keys))
+                details = {"correct_value": target, "ranges": spec["ranges"]}
+            except Exception as exc:
+                issues.append(str(exc))
         else:
             try:
                 tolerance = float(spec.get("tolerance", 1e-9))
@@ -634,11 +649,13 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
                 issues.append(str(exc))
         if question.get("category") == CAT_ZILIAO:
             review = blind.get(qid) or {}
-            tests = review.get("option_tests") or {}
-            keys = {str(o.get("key")) for o in question.get("options") or []}
+            raw_tests = review.get("option_tests") or {}
+            ordered_keys = [str(o.get("key")) for o in question.get("options") or []]
+            # 只认正式选项。模型若在 option_tests 里多写 issues 等字段，不因此否定已经对齐的答案。
+            tests = {key: raw_tests.get(key) for key in ordered_keys}
             if (review.get("verdict") != "PASS" or review.get("answer") != question.get("answer")
                     or review.get("also_valid") != [] or not str(review.get("steps") or "").strip()
-                    or review.get("issues", []) != [] or set(tests) != keys
+                    or review.get("issues", []) != []
                     or any(not isinstance(t, dict) or type(t.get("stands")) is not bool or not t.get("reason") for t in tests.values())
                     or [k for k, t in tests.items() if isinstance(t, dict) and t.get("stands") is True] != [question.get("answer")]):
                 issues.append("资料独立盲解未通过：" + json.dumps(review, ensure_ascii=False))
@@ -1037,6 +1054,34 @@ def run_reference_quality(manifest: dict, questions: list[dict]) -> dict:
 
 
 
+def _question_count_error(constraints: dict, questions: list[dict]) -> str | None:
+    """题量只由程序核对。模型把 20 数成 19 时，不得据此打回整套。"""
+    actual = len(questions)
+    expected = constraints.get("question_count")
+    if isinstance(expected, int) and not isinstance(expected, bool) and expected != actual:
+        return f"题量为 {actual}，batch_constraints.question_count 为 {expected}"
+    expanded = 0
+    for slot in constraints.get("slot_plan") or []:
+        count = slot.get("count", 1) if isinstance(slot, dict) else None
+        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+            return "slot_plan 的 count 无效"
+        expanded += count
+    if constraints.get("slot_plan") and expanded != actual:
+        return f"题量为 {actual}，slot_plan 展开后为 {expanded}"
+    return None
+
+
+def _false_count_issue(text: str, actual: int) -> bool:
+    """模型声称的实收题数与程序核验不一致，且这段话没有指出具体考法缺陷。"""
+    text = str(text or "")
+    if re.search(r"间隔增长率|年均|倍数|比重|平均数|基期|增长量|增长率|混合|百分点|综合分析|考法", text):
+        return False
+    claimed = [int(n) for n in re.findall(r"(?:实收|只有|仅有|数组只有|questions只有)\D{0,8}(\d+)", text)]
+    claimed += [int(n) for n in re.findall(r"(\d+)\s*道题", text)]
+    claimed += [int(n) for n in re.findall(r"缺少\s*(\d+)\s*题", text)]
+    return any(n != actual for n in claimed)
+
+
 def _letter_cluster_issue(item) -> bool:
     text = str(item).lower()
     return any(
@@ -1083,16 +1128,35 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
                 "issues": [str(exc)],
                 "answer_distribution_ok": mechanical_answers_ok(manifest, questions),
             }
+    constraints = (manifest.get("generation") or {}).get("batch_constraints") or {}
+    count_error = _question_count_error(constraints, questions)
+    if count_error:
+        return {
+            "verdict": "REJECT",
+            "review": {
+                "verdict": "REJECT",
+                "type_distribution_ok": False,
+                "difficulty_distribution_ok": True,
+                "reference_alignment_ok": True,
+                "duplicate_groups": [],
+                "issues": [count_error],
+                "answer_distribution_ok": True,
+            },
+        }
     payload = {
-        "batch_constraints": (manifest.get("generation") or {}).get("batch_constraints") or {},
+        "batch_constraints": constraints,
         "kaofa_canon": (manifest.get("generation") or {}).get("kaofa_canon") or {},
         "questions": [public_question(q, include_answer=True) | {"difficulty": q.get("difficulty")} for q in questions],
         "evaluation_references_by_question": evaluation_references(manifest),
     }
-    gd = payload["batch_constraints"].get("track") == "gd" and not payload["batch_constraints"].get("targeted_drill")
+    gd = constraints.get("track") == "gd" and not constraints.get("targeted_drill")
     design = (GD_PAPER_RULES +
               '额外返回design_check={"ok":true,"reason":"引用题号和取数点说明细节、范围、百分点及各篇图表独有数据的实际覆盖"}。'
               '未覆盖则ok=false且issues给出具体缺陷。' if gd else "")
+    design += (
+        f"程序已核验本题量为{len(questions)}题，与question_count及slot_plan一致。"
+        "不得因题量、缺题或数组长度打回；type_distribution_ok只判断考法覆盖，不判断题数。"
+    )
     review = call_flash(BATCH_SYSTEM + design, json.dumps(payload, ensure_ascii=False))
     if not isinstance(review, dict):
         review = {}
@@ -1101,19 +1165,28 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
         if not isinstance(check, dict) or check.get("ok") is not True or not str(check.get("reason") or "").strip():
             review.setdefault("issues", []).append(f"轨A整套设计核验缺失或不通过：{check}")
     review["answer_distribution_ok"] = mechanical_answers_ok(manifest, questions)
-    if review["answer_distribution_ok"]:
-        kept = [item for item in (review.get("issues") or []) if not _letter_cluster_issue(item)]
-        dropped = len(review.get("issues") or []) - len(kept)
-        review["issues"] = kept
-        if (
-            dropped
-            and not kept
-            and not review.get("duplicate_groups")
-            and review.get("type_distribution_ok") is True
-            and review.get("difficulty_distribution_ok") is True
-            and review.get("reference_alignment_ok") is True
-        ):
-            review["verdict"] = "PASS"
+    kept = []
+    dropped_letter = False
+    dropped_count = False
+    for item in review.get("issues") or []:
+        if review["answer_distribution_ok"] and _letter_cluster_issue(item):
+            dropped_letter = True
+            continue
+        if _false_count_issue(item, len(questions)):
+            dropped_count = True
+            continue
+        kept.append(item)
+    review["issues"] = kept
+    if (
+        not kept
+        and not review.get("duplicate_groups")
+        and review.get("difficulty_distribution_ok") is True
+        and review.get("reference_alignment_ok") is True
+        and (dropped_count or (dropped_letter and review.get("type_distribution_ok") is True))
+    ):
+        if dropped_count:
+            review["type_distribution_ok"] = True
+        review["verdict"] = "PASS"
     checks = (
         str(review.get("verdict") or "").upper() == "PASS",
         review.get("type_distribution_ok") is True,

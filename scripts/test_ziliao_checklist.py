@@ -69,6 +69,20 @@ def main():
     assert any("整数百分比" in s for s in question_style_issues(whole, slot={"family": "growth", "kind": "share"}))
     assert any("年均" in s for s in question_style_issues(good, slot={"family": "avg_cmp", "kind": "annual_growth"}))
     assert any("间隔增长率" in s for s in question_style_issues(good, slot={"family": "growth", "kind": "interval_growth"}))
+    contrived = deepcopy(good)
+    contrived["explanation"] += "另：3.64/(1 + 2 * 0.078)≈3.15；(14.2% + 18.5%) * (1 + 18.5%)≈38.7%。"
+    assert any("凑数" in s for s in question_style_issues(contrived, slot=slot))
+    natural = deepcopy(good)
+    natural["explanation"] += "基期3.64/(1+7.8%)≈3.38；间隔(1+8.8%)×(1+5.0%)-1≈14.2%。"
+    assert not any("凑数" in s for s in question_style_issues(natural, slot=slot))
+    drifted = dict(good, family="detail")
+    assert any("不符" in s for s in question_style_issues(drifted, slot={"family": "avg_cmp", "kind": "average"}))
+    rise = {"family": "base_share", "stem": "下列类别中，占合计比重比上年上升的是", "answer": "B",
+            "options": [{"key": k, "text": t} for k, t in zip("ABCD", ["城区", "松山湖", "滨海湾", "水乡"])],
+            "explanation": "合计增速5.7%。A项：4.1%-5.7%=-1.6个百分点；B项正确：8.5%-5.7%=2.8个百分点；"
+                           "C项：5.0%-5.7%=-0.7个百分点；D项：3.2%-5.7%=-2.5个百分点。"}
+    quick = {"family": "base_share", "kind": "share_change", "quick": True}
+    assert not question_style_issues(rise, slot=quick), question_style_issues(rise, slot=quick)
 
     chart = {"external_id": "b-M03", "content": "广东省快递业务量持续增长。",
              "figure": {"kind": "bars", "categories": ["2021年", "2022年", "2023年", "2024年", "2025年"],

@@ -21,7 +21,7 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
         quizNudge: [
           '这是资料分析整套出题请求。资料分析整套必须走 agent-paper 高质量通道（scripts/ziliao_agent_paper.py），禁止用 parallel runner（ziliao_parallel_runner.py）出整套；用户要求宁要质不要量。不使用 quiz_lite。',
           '固定广东省考轨A、4篇×5题：每篇由独立 Gemini 子Agent（gemini-3.8-flash-high）出材料和五题，工具计算、盲解、逐篇自审，合并后再过整套闸门，失败自动回修最多三轮；主题轮换、题型覆盖与硬检查由脚本完成。',
-          `调用（terminal 后台运行，background=true、notify_on_complete=true，命令原样执行，不要打印密钥）：cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db /home/ubuntu/.hermes/hermes-agent/.venv/bin/python scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import`,
+          `调用（terminal 后台运行，background=true、notify_on_complete=true，命令原样执行，不要打印密钥）：cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import`,
           '整套约需10–30分钟，等待后台完成通知；“已开始”不算成功。用户提到经典计算、指定难度或形态时也仍按此整套入口出广东省考卷，并告知整套只提供这一高质量版本。',
           '成功标准：退出码0、最后一行JSON passed=true、error为空且imported=20；只报告batch_dir末段批次号与入库题数。失败按脚本原文报告，不手写题、不绕过质量门、不改用 parallel runner 补出。',
         ].join('\n'),
@@ -59,7 +59,7 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
     '当前知识内容节点的定义由脚本在生成前登记、冻结并交给出题和审核；Hermes 不要为网页子点另造历史画像标签。新增或修改节点走 knowledge-content apply，保存并重新查看目录后才能按新拆分出题。',
     `政治理论/常识判断先运行 python3 ${projectRoot}/scripts/policy_sources.py status，并按 quiz-pipeline/references/politics-common-workflow.md 核验权威原文。缓存正文用该脚本 show <来源ID>，联网读原文及发布栏目用 inspect '<HTTPS地址>'，不要猜缓存路径或研究内部Python函数。update_review_due=true须先读取网页实际内容，再用review-updates登记source_ids/urls/findings/note；findings每个URL包含20–500字连续原文quote及具体finding。只看HTTP200/字节数不算查新。refresh只重抓原文，不代替新发布/修订/替代核验。缺源先add，禁止伪造核验日期或凭记忆出题。可用--sources明确选择相关资料。`,
     '图形推理、空间推理、科学推理去粉笔/已有外采真题，不调用图题生成器或实验模式。',
-    `资料分析整套（20题、4篇、“一套/整套”、广东省考/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套：terminal 后台执行 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db /home/ubuntu/.hermes/hermes-agent/.venv/bin/python scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import ，成功须 passed=true 且 imported=20。只有单篇5题（--count ≤5 --materials 1）或指定资料考点专项（至多2篇10题）才用 ziliao_parallel_runner.py。`,
+    `资料分析整套（20题、4篇、“一套/整套”、广东省考/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套：terminal 后台执行 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import ，成功须 passed=true 且 imported=20。只有单篇5题（--count ≤5 --materials 1）或指定资料考点专项（至多2篇10题）才用 ziliao_parallel_runner.py。`,
     '正式生成调用 terminal，background=true、notify_on_complete=true，等待后台完成 JSON；第一句“开始出题”不算成功。不要自己写 questions.json，不要手跑 generation_gate/import-batch，不用 ls/search_files/查库寻找入口。',
     '成功只报真实 batch_id 和 imported 数量；失败原样报告脚本 message，不另写题、不绕过审核。工具连续失败两次停止，等待用户指示。',
   ].join('\n');

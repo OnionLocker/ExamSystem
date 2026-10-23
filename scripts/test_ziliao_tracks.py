@@ -29,12 +29,14 @@ class QuotaTest(unittest.TestCase):
 
     def test_kind_quota_rejects_missing_or_excess(self):
         slots = tracks.gd_slots_20()
-        slots[11].update(kind=tracks.KIND_RATE)
-        with self.assertRaisesRegex(ValueError, "间隔增长率"):
-            tracks.validate_gd_quota(slots)
+        for index, slot in enumerate(slots):
+            if slot.get("kind") in (tracks.KIND_SHARE, tracks.KIND_SHARE_CHANGE):
+                slots[index] = dict(slot, kind=tracks.KIND_MULTIPLE, family=tracks.FAMILY_SHARE_ADD)
+        with self.assertRaisesRegex(ValueError, "比重类"):
+            tracks.validate_gd_kinds(slots)
         slots = tracks.gd_slots_20()
-        slots[12].update(kind=tracks.KIND_RATE)
-        slots[16].update(kind=tracks.KIND_RATE)
+        for index in (12, 16, 18):
+            slots[index].update(kind=tracks.KIND_RATE)
         with self.assertRaisesRegex(ValueError, "同一题型至多3题"):
             tracks.validate_gd_kinds(slots)
 
@@ -47,10 +49,55 @@ class QuotaTest(unittest.TestCase):
 
     def test_over_mix_rejected(self):
         slots = tracks.gd_slots_20()
-        slots[2]["family"] = "mix_pull"
-        slots[3]["family"] = "mix_pull"
+        slots[7]["family"] = "mix_pull"
+        slots[8]["family"] = "mix_pull"
         with self.assertRaisesRegex(ValueError, "混合或拉动|mix_pull"):
             tracks.validate_gd_quota(slots)
+
+    def test_gd_20_forces_average_growth_and_qualitative_share_change(self):
+        slots = tracks.gd_slots_20()
+        self.assertIn("平均数增长率", slots[7]["brief"])
+        qualitative = slots[18]
+        self.assertEqual(qualitative["kind"], tracks.KIND_SHARE_CHANGE)
+        self.assertTrue(qualitative["quick"])
+        self.assertEqual(qualitative["difficulty_score"], 2)
+        self.assertEqual([s["kind"] for s in slots].count(tracks.KIND_SHARE_CHANGE), 2)
+        self.assertIn("总量减去已列分项", tracks.track_material_rules("gd", {"id": "M02"}))
+
+
+class DifficultyBlueprintTest(unittest.TestCase):
+    def test_material_then_question_overrides(self):
+        tier, overrides = tracks.parse_difficulty_blueprint(
+            '{"difficulty":"mid","slots":{"M03-Q4":{"difficulty":"hard","note":"贴近真题"},"M03":"easy"}}')
+        self.assertEqual(tier, "mid")
+        slots = tracks.apply_difficulty_overrides(tracks.gd_slots_20("mid"), overrides)
+        self.assertEqual([s["difficulty"] for s in slots[10:15]], ["easy", "easy", "easy", "hard", "easy"])
+        self.assertEqual(slots[13]["difficulty_score"], 4)
+        self.assertEqual(slots[13]["difficulty_note"], "贴近真题")
+        self.assertEqual(slots[0]["difficulty"], "mid")
+        tracks.validate_gd_quota(slots)
+        rules = tracks.track_question_rules("gd", slots[13], 4)
+        self.assertIn("难档", rules)
+        self.assertIn("贴近真题", rules)
+        self.assertIn("两增速直接相减", rules)
+
+    def test_rejects_structure_changes(self):
+        bad = [
+            '{"slots":{"M05":"hard"}}',
+            '{"slots":{"M01-Q6":"hard"}}',
+            '{"slots":{"M01":"insane"}}',
+            '{"slots":{"M01":{"difficulty":"hard","kind":"mixed_growth"}}}',
+            '{"difficulty":"hard","count":10}',
+        ]
+        for raw in bad:
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                tracks.parse_difficulty_blueprint(raw)
+
+    def test_hard_tier_raises_calculation_scores_only(self):
+        mid, hard = tracks.gd_slots_20("mid"), tracks.gd_slots_20("hard")
+        self.assertEqual(hard[0]["difficulty_score"], mid[0]["difficulty_score"])
+        self.assertEqual(hard[18]["difficulty_score"], mid[18]["difficulty_score"])
+        self.assertEqual(hard[1]["difficulty_score"], mid[1]["difficulty_score"] + 1)
 
     def test_resolve_defaults(self):
         gd = tracks.resolve_track_slots("gd", 20, 4, "mid")
@@ -193,8 +240,8 @@ class DifficultyAndExplainTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "细节查找"):
             tracks.validate_gd_question_mix([{"stem": "未提及的是"}] * 2 + questions[1:19])
 
-    def test_chart_match_is_hook_only(self):
-        self.assertFalse(tracks.CHART_MATCH_HOOK["implemented"])
+    def test_chart_match_renders_option_figures(self):
+        self.assertTrue(tracks.CHART_MATCH_HOOK["implemented"])
         question = {
             "external_id": "M04-Q1",
             "options": [
@@ -403,6 +450,102 @@ class GateIntegrationTest(unittest.TestCase):
             ]), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "难度|difficulty"):
                 generation_gate.validate_paper_hard_rules(manifest, questions, Path(tmp))
+
+
+class RotationTest(unittest.TestCase):
+    def test_rotating_papers_pass_quota_and_vary(self):
+        import random
+        from collections import Counter
+        rng = random.Random(3)
+        recent_kinds, recent_types, seen, totals = [], [], set(), Counter()
+        for _ in range(40):
+            types, slots = tracks.gd_rotating_paper("mid", rng, recent_kinds, recent_types)
+            tracks.validate_gd_quota(slots, count=20)
+            self.assertEqual(types[0], "text")
+            self.assertTrue(any(t in tracks.TABLE_TYPES for t in types) and any(t in tracks.CHART_TYPES for t in types))
+            kinds = [s["kind"] for s in slots]
+            self.assertEqual([s["family"] for s in slots[4::5]], ["judge"] * 4)
+            for kind, count in Counter(k for k in kinds if k != tracks.KIND_JUDGE).items():
+                self.assertLessEqual(count, tracks.kind_cap(kind) if kind in tracks.KIND_SPECS else 1)
+            for index, slot in enumerate(slots):
+                if slot["kind"] in tracks.KIND_SPECS:
+                    self.assertIn(types[index // 5], tracks.KIND_SPECS[slot["kind"]]["types"])
+            self.assertGreaterEqual(sum(s.get("option_format") in ("interval", "direction") for s in slots), 2)
+            seen.add(tuple(kinds))
+            totals.update(kinds)
+            recent_kinds = [set(kinds)] + recent_kinds[:2]
+            recent_types = [set(types)] + recent_types[:2]
+        self.assertGreater(len(seen), 35)
+        for kind in (tracks.KIND_COUNT, tracks.KIND_SORT, tracks.KIND_AVG_DIFF, tracks.KIND_CHART_MATCH,
+                     tracks.KIND_PROJECTION, tracks.KIND_CUMULATIVE, tracks.KIND_TEXT_READING):
+            self.assertGreater(totals[kind], 0, kind)
+        self.assertGreater(totals[tracks.KIND_SHARE], totals[tracks.KIND_MIX])
+
+    def test_recent_kinds_are_downweighted(self):
+        import random
+        from collections import Counter
+        fresh, penalized = Counter(), Counter()
+        for seed in range(60):
+            _, slots = tracks.gd_rotating_paper("mid", random.Random(seed))
+            fresh.update(s["kind"] for s in slots)
+            _, slots = tracks.gd_rotating_paper("mid", random.Random(seed), [{tracks.KIND_COUNT, tracks.KIND_SORT}] * 3)
+            penalized.update(s["kind"] for s in slots)
+        self.assertLess(penalized[tracks.KIND_COUNT] + penalized[tracks.KIND_SORT],
+                        (fresh[tracks.KIND_COUNT] + fresh[tracks.KIND_SORT]) * 0.6)
+
+    def test_question_plan_lists_kinds_and_data_needs(self):
+        import random
+        types, slots = tracks.gd_rotating_paper("mid", random.Random(5))
+        plan = tracks.material_question_plan(types[1], slots[5:10])
+        self.assertIn("五题题型依次为", plan)
+        self.assertIn(tracks.MATERIAL_TYPES[types[1]]["plan"][:10], plan)
+
+    def test_ranged_calculation(self):
+        ranges = {"A": [None, 5], "B": [5, 10], "C": [10, 15], "D": [15, None]}
+        self.assertEqual(tracks.range_calculation_issues(7.3, ranges, "B", set("ABCD")), [])
+        self.assertTrue(tracks.range_calculation_issues(7.3, ranges, "C", set("ABCD")))
+        self.assertTrue(any("过近" in i for i in tracks.range_calculation_issues(10.1, ranges, "C", set("ABCD"))))
+        direction = {"A": [0, 1000], "B": [1000, None], "C": [-1000, 0], "D": [None, -1000]}
+        self.assertEqual(tracks.range_calculation_issues(-1320, direction, "D", set("ABCD")), [])
+        self.assertTrue(tracks.range_calculation_issues(5, {"A": [0, 1]}, "A", set("ABCD")))
+
+    def test_chart_match_checks_target_and_distinguishable_shapes(self):
+        cats = ["同城", "异地", "国际", "其他"]
+        good = {"answer": "B", "options": [
+            {"key": "A", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [40, 40, 10, 10]}},
+            {"key": "B", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [19, 59, 15, 7]}},
+            {"key": "C", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [59, 19, 15, 7]}},
+            {"key": "D", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [19, 45, 29, 7]}},
+        ]}
+        calc = {"target": ["58.3", "182.6", "46.9", "21.4"]}
+        self.assertEqual(tracks.chart_match_issues(good, calc), [])
+        close = json.loads(json.dumps(good))
+        close["options"][3]["figure"]["values"] = [20, 57, 16, 7]
+        self.assertTrue(any("无法区分" in i for i in tracks.chart_match_issues(close, calc)))
+        wrong = json.loads(json.dumps(good))
+        wrong["answer"] = "A"
+        self.assertTrue(any("target" in i for i in tracks.chart_match_issues(wrong, calc)))
+        years = ["2021", "2022", "2023", "2024"]
+        trend = {"answer": "A", "options": [
+            {"key": k, "text": "", "figure": {"kind": "line", "categories": years, "values": v}}
+            for k, v in zip("ABCD", ([5.5, 1.3, -3.3, 5.6], [1.3, 5.5, -3.3, 5.6], [5.5, 1.3, 3.3, 5.6], [-5.5, 1.3, -3.3, 5.6]))
+        ]}
+        self.assertEqual(tracks.chart_match_issues(trend, {"target": ["5.5", "1.3", "-3.3", "5.6"]}), [])
+
+    def test_ranged_and_chart_slots_skip_exact_option_rules(self):
+        from ziliao_checklist import question_style_issues
+        interval = {"family": "growth", "stem": "2024年某指标同比增长", "answer": "B", "explanation": "算得7.3%，落在B区间。",
+                    "options": [{"key": "A", "text": "不到5%"}, {"key": "B", "text": "在5%到10%之间"},
+                                {"key": "C", "text": "在10%到15%之间"}, {"key": "D", "text": "超过15%"}]}
+        slot = {"family": "growth", "kind": tracks.KIND_RATE, "option_format": "interval"}
+        self.assertEqual(question_style_issues(interval, slot=slot), [])
+        direction = {"family": "avg_cmp", "stem": "平均每笔金额比上年同期", "answer": "B", "explanation": "算得多1320元。",
+                     "options": [{"key": "A", "text": "上升了不到1000元"}, {"key": "B", "text": "上升了1000元以上"},
+                                 {"key": "C", "text": "下降了不到1000元"}, {"key": "D", "text": "下降了1000元以上"}]}
+        slot = {"family": "avg_cmp", "kind": tracks.KIND_AVG_DIFF, "option_format": "direction"}
+        self.assertEqual(question_style_issues(direction, slot=slot), [])
+        figure_on_plain = {"family": "share_add", "options": [{"key": "A", "figure": {"kind": "pie"}}]}
+        self.assertTrue(any("chart_match" in i for i in question_style_issues(figure_on_plain, slot={"kind": tracks.KIND_SHARE})))
 
 
 if __name__ == "__main__":

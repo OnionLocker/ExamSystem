@@ -122,7 +122,7 @@ class ZiliaoWorkflow(unittest.TestCase):
         plan = json.loads(out.getvalue())
         self.assertEqual(plan["track"], "gd")
         self.assertTrue(plan["source"].startswith("粤考日练-"))
-        self.assertFalse(plan["chart_match"]["implemented"])
+        self.assertTrue(plan["chart_match"]["implemented"])
         self.assertTrue(str(plan["model"]).startswith("gemini-"))
 
     def test_frozen_material_rejects_nonfinite_or_string_chart_values(self):

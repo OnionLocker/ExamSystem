@@ -30,6 +30,10 @@ from ziliao_tracks import (
     validate_gd_quota,
     explanation_missing_years,
     classify_judge_form,
+    chart_match_issues,
+    range_calculation_issues,
+    uses_ranges,
+    KIND_CHART_MATCH,
     CHART_MATCH_HOOK,
     ZILIAO_INFERENCE_RULES,
     ZILIAO_FIGURE_RULES,
@@ -89,7 +93,7 @@ def framework_prompt(difficulty="mid", formats=None, slots=None, track=TRACK_GD)
 产品轨：{"粤考日练（轨A）" if track == TRACK_GD else "经典计算加练（轨B）"}。{track_framework_rules(track)}
 {ZILIAO_FIGURE_RULES}
 输出JSON：{{"difficulty":"{difficulty}","materials":[{{"id":"M01","theme":"...","format":"text/table/chart","focus":"...","question_plan":"...","chart_tasks":[]}}]}}
-材料编号严格依次M01、M02等；形态按此顺序：{json.dumps(formats)}。chart只用bars，table只用table，text只用none；禁止mixed。柱图4—8分类，表格至少6行4列。
+材料编号严格依次M01、M02等；形态按此顺序：{json.dumps(formats)}。chart按计划figure_kind用bars、pie或line，table只用table，text只用none；禁止mixed。柱图4—8分类，饼图3—6部分，折线5—8期，表格至少6行4列。
 各篇主题和信息组织应不同。图表必须承担找数、筛选、求和、趋势或表文结合任务，不能只是装饰。
 题目槽位：{json.dumps(slots or [], ensure_ascii=False)}。材料须提供槽位考法所需数据与口径；不得更换考法，不得把细节/综合槽改成混合或拉动。
 按槽位 difficulty_score 拉开梯度（1秒杀找数 / 2一步 / 3两步 / 4四陈述综合），禁止规划成全员3。比较类须预留可枚举的完整年份点。"""
@@ -142,8 +146,12 @@ def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
 至少一组穷尽分项的展示值之和与合计保留真实舍入差，不要正好相等；不能为制造毛数故意改总量，不能用舍入掩盖超出精度范围的差异。
 不要添加不必要的总增速；已给总增速必须与分项加权关系一致。图表长分类名用清楚简称，并在正文释义。
 本批槽位需要反推金额，所有金额及其增速必须同为现价名义口径；不得添加不变价增速来规避总分自洽检查。面向考生的材料不要写「按现价计算」或「因四舍五入，分项之和与总计略有差异」这类注。
-    format为chart时只能返回bars figure，format为table时只能返回table figure，format为text时kind必须为none，绝不返回mixed。bars的categories为4-10个且每个series.values等长非空数字数组；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
-严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"none或table或bars","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}},"rounding_checks":[]}}}}。"""
+    本篇figure.kind必须为「{figure_kind(item)}」，绝不返回mixed或其他种类。bars的categories为4-8个、line为5-8期，且每个series.values为等长非空数字数组；pie只有一个series，categories为3-6个部分名称、values为各部分绝对量；table至少6行、至少4列。图表数字、标题、单位、分类完整；不要双轴。图表要保留足够无关项，让题目能考察定位、筛选和排除，而不是只读一个数字。
+严格输出JSON：{{"material":{{"external_id":"{batch_id}-{item['id']}","content":"...","figure":{{"kind":"{figure_kind(item)}","title":"...","unit":"...","headers":[],"rows":[],"categories":[],"series":[]}},"rounding_checks":[]}}}}。"""
+
+
+def figure_kind(item: dict) -> str:
+    return str(item.get("figure_kind") or {"chart": "bars", "table": "table", "text": "none"}.get(str(item.get("format")), "none"))
 
 def question_prompt(material: dict, plan: dict, index: int, batch_id: str, slot=None) -> str:
     slot = slot or {}
@@ -235,9 +243,13 @@ def render_material(material: dict, image_dir: Path) -> None:
     if kind == "table":
         cmd = ["python3","scripts/render_ziliao_figure.py","table","--title",str(figure.get("title") or ""),"--unit",str(figure.get("unit") or ""),"--headers",",".join(map(str,figure.get("headers") or [])),"--rows"]
         cmd += [",".join(map(str,row)) for row in (figure.get("rows") or [])]
-    elif kind == "bars":
-        cmd = ["python3","scripts/render_ziliao_figure.py","bars","--title",str(figure.get("title") or ""),"--ylabel",str(figure.get("unit") or ""),"--categories",",".join(map(str,figure.get("categories") or [])),"--series"]
+    elif kind in ("bars", "line"):
+        cmd = ["python3","scripts/render_ziliao_figure.py",kind,"--title",str(figure.get("title") or ""),"--ylabel",str(figure.get("unit") or ""),"--categories",",".join(map(str,figure.get("categories") or [])),"--series"]
         cmd += [f"{series.get('name','系列')}:{','.join(map(str,series.get('values') or []))}" for series in (figure.get("series") or [])]
+    elif kind == "pie":
+        values = ((figure.get("series") or [{}])[0].get("values") or [])
+        cmd = ["python3","scripts/render_ziliao_figure.py","pie","--title",str(figure.get("title") or ""),"--unit",str(figure.get("unit") or ""),"--slices"]
+        cmd += [f"{name},{value}" for name, value in zip(figure.get("categories") or [], values)]
     else: raise ValueError(f"unsupported figure kind: {kind}")
     subprocess.run(cmd + ["--out",str(path)], cwd=ROOT, check=True); material["images"] = [f"images/{path.name}"]; material["figure"] = figure
 
@@ -249,14 +261,34 @@ def valid_material(result: dict) -> bool:
     if kind == "table":
         rows = figure.get("rows") or []
         return len(figure.get("headers") or []) >= 4 and len(rows) >= 6 and all(len(row) == len(figure["headers"]) for row in rows)
-    if kind == "bars":
+    if kind in ("bars", "line", "pie"):
         categories = figure.get("categories") or []
         series = figure.get("series") or []
-        return (4 <= len(categories) <= 8 and 1 <= len(series) <= 8 and bool(categories)
+        size_ok = {"bars": 4 <= len(categories) <= 8 and 1 <= len(series) <= 8,
+                   "line": 5 <= len(categories) <= 8 and 1 <= len(series) <= 3,
+                   "pie": 3 <= len(categories) <= 6 and len(series) == 1}[kind]
+        return (size_ok and bool(categories)
                 and all(len(item.get("values") or []) == len(categories)
                         and all(type(value) in (int, float) and math.isfinite(value) for value in item["values"])
+                        and (kind != "pie" or all(value > 0 for value in item["values"]))
                         for item in series))
     return False
+
+
+def render_option_figure(figure: dict, path: Path) -> None:
+    """图表匹配的选项图：不标数值，按真题惯例只凭形状判断。"""
+    kind = str(figure.get("kind") or "")
+    categories = [str(c) for c in figure.get("categories") or []]
+    values = [float(v) for v in figure.get("values") or []]
+    if kind == "pie":
+        cmd = ["python3", "scripts/render_ziliao_figure.py", "pie", "--no-values", "--slices",
+               *[f"{name},{value}" for name, value in zip(categories, values)]]
+    elif kind in ("line", "bars"):
+        cmd = ["python3", "scripts/render_ziliao_figure.py", kind, "--no-values", "--compact",
+               "--categories", ",".join(categories), "--series", "数值:" + ",".join(f"{v:g}" for v in values)]
+    else:
+        raise ValueError(f"unsupported option figure kind: {kind}")
+    subprocess.run(cmd + ["--out", str(path)], cwd=ROOT, check=True)
 
 def auto_slots(count: int, materials: int, difficulty: str, track: str = TRACK_GD) -> list[dict]:
     """Default slots: 轨A 粤向配额，轨B 经典 10 类轮转。"""
@@ -285,7 +317,7 @@ def question_errors(question: dict, calculation: dict, material: dict, plan: dic
     options = question.get("options") or []
     if len(options) != 4 or {str(o.get("key")) for o in options} != {"A", "B", "C", "D"}:
         errors.append("必须恰有A-D四个选项")
-    elif len({str(o.get("text") or "") for o in options}) != 4:
+    elif len({str(o.get("text") or "") or json.dumps(o.get("figure") or {}, sort_keys=True) for o in options}) != 4:
         errors.append("四个选项必须存在且互不重复")
     if str(question.get("answer") or "") not in {"A", "B", "C", "D"}:
         errors.append("answer必须是A-D之一")
@@ -295,7 +327,16 @@ def question_errors(question: dict, calculation: dict, material: dict, plan: dic
         if signature and signature == other:
             errors.append("题干结构与本篇其他题重复")
             break
-    if not skip_calculation(slot):
+    if slot.get("kind") == KIND_CHART_MATCH:
+        errors.extend(chart_match_issues(question, calculation))
+    elif uses_ranges(slot):
+        try:
+            target = float(safe_eval(calculation.get("correct")))
+            errors.extend(range_calculation_issues(target, calculation.get("ranges"), str(question.get("answer") or ""),
+                                                   {str(o.get("key")) for o in options}))
+        except Exception as exc:
+            errors.append(f"计算式不可复算：{exc}")
+    elif not skip_calculation(slot):
         try:
             target = safe_eval(calculation.get("correct"))
             values = {str(k): safe_eval(v) for k, v in (calculation.get("options") or {}).items()}

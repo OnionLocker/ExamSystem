@@ -2,6 +2,7 @@
 """资料分析双轨：粤考日练（轨 A）与经典计算加练（轨 B）。"""
 from __future__ import annotations
 
+import json
 import math
 import os
 import re
@@ -41,15 +42,16 @@ ZILIAO_INFERENCE_RULES = """推断边界：范围扩大不自动等于错误。�
 所有判定必须基于资料的具体数值和逻辑，不能凭“范围扩大/累计vs当年”模板猜命题意图。"""
 
 ZILIAO_FIGURE_RULES = """渲染能力：bars只画同单位series.values柱形及其数值，只有一个纵轴；
-不支持柱顶另标增速、折线、双轴或混合单位。若题目需要增长率，写在正文，明确为正文给出，
-图标题仅描述实际柱形指标，禁止宣称图中有未编码的百分比或标注。本规则优先于框架中的图形建议。"""
+line只画同单位series.values折线及各点数值（1—3条），只有一个纵轴；pie只画一个series的各部分数值及占比。
+不支持柱顶另标增速、柱线混合、双轴或混合单位。若题目需要增长率，写在正文，明确为正文给出，
+图标题仅描述实际图形指标，禁止宣称图中有未编码的百分比或标注。本规则优先于框架中的图形建议。"""
 
 GD_DESIGN_RULES = """粤考轨A命题与验收（难度偏易到中，宁要质不要量）：
 每题按槽位kind考对应题型，不得换考法；同一篇五题求的未知量和公式互不相同。
 细节槽只做直接定位或读数，实际难度1–2；不得设计人为口径陷阱，不得复读材料中的范围说明当正确项。
 比较/平均题若需逐个求比值，题干明确限定最多4个候选主体；选项只有4个不等于题干已限定。
 已知本期量A及本期增速r、求本期增长量时，须有误用A*r的干扰项；预测下一期增加量时A*r是正确算法。
-两期比重差须有直接相减两增速a-b的干扰项（明确以百分点表述）；错误路径不能碰巧也等于正确答案。
+数值型两期比重差须有直接相减两增速a-b的干扰项（明确以百分点表述）；定性升降判定题选项为主体名，不受此限；错误路径不能碰巧也等于正确答案。
 每个干扰项都对应一条可复现的错误算法（如基期现期倒置、漏乘(1+r)、增速直接相加、取错年份或行列），
 解析逐项写出“X项：错误算式=结果”；禁止用“计算失误”“估算误差”“粗心”等空话解释干扰项。
 选项间距合理：数值选项两两相对差距至少3%，不得出现需精算才能区分的近选项（如15.3%与15.5%）。
@@ -65,8 +67,8 @@ import model_router
 GD_DESIGN_RULES += "\n" + QUESTION_RULES
 
 GD_PAPER_RULES = """轨A整套要求（targeted_drill为true时只按指定槽位）：
-整套覆盖间隔增长率、年均增长、倍数、比重变化、平均数、基期量、增长量、增长率、比重、混合增长率、百分点与综合分析；
-同一题型至多3题，细节查找/读数/读图排序全卷至多1题；综合问法按槽位跨篇轮换，四道综合题的考查组合互不相同。
+每题按槽位kind与option_format出题，题型由系统按广东真题频率轮转分配，不得自行换题型或换选项格式；
+同一题型至多3题，细节查找/读数/文字理解/读图排序全卷至多1题；综合问法按槽位跨篇轮换，四道综合题的考查组合互不相同。
 四篇主题互不相同，使用广东省及其地市真实地名，不用G省、S市、某省等占位。
 每篇图表至少两个取数点仅在图表出现并进入计算。分项展示值之和与合计保留真实舍入差，不写四舍五入附注。"""
 
@@ -80,13 +82,14 @@ FAMILY_MIX_PULL = "mix_pull"
 
 # 轨 A 20 题配额：family 是审核员可判别的大类，kind 是用户要求覆盖的具体题型。
 GD_QUOTA = {
-    FAMILY_DETAIL: (1, 1),
+    FAMILY_DETAIL: (0, 1),
     FAMILY_JUDGE: (4, 4),
-    FAMILY_SHARE_ADD: (2, 4),
-    FAMILY_GROWTH: (4, 6),
-    FAMILY_BASE_SHARE: (2, 3),
-    FAMILY_AVG_CMP: (2, 3),
-    FAMILY_MIX_PULL: (1, 2),
+    FAMILY_SHARE_ADD: (1, 5),
+    FAMILY_GROWTH: (3, 8),
+    FAMILY_BASE_SHARE: (0, 4),
+    FAMILY_AVG_CMP: (2, 6),
+    FAMILY_MIX_PULL: (0, 2),
+    "chart_match": (0, 1),
 }
 
 KIND_DETAIL = "detail_lookup"
@@ -102,19 +105,37 @@ KIND_ANNUAL = "annual_growth"
 KIND_INTERVAL = "interval_growth"
 KIND_MIX = "mixed_growth"
 KIND_JUDGE = "judge"
+KIND_AVG_DIFF = "average_diff"
+KIND_COUNT = "count"
+KIND_SORT = "sort"
+KIND_PROJECTION = "projection"
+KIND_DELTA_SHARE = "delta_share"
+KIND_DIFF_GROWTH = "diff_growth"
+KIND_CUMULATIVE = "cumulative"
+KIND_TEXT_READING = "text_reading"
+KIND_CHART_MATCH = "chart_match"
+FAMILY_CHART = "chart_match"
 KIND_LABELS = {
     KIND_DETAIL: "细节查找/读数", KIND_BASE: "基期量", KIND_DELTA: "增长量", KIND_RATE: "增长率",
     KIND_POINT: "百分点", KIND_SHARE: "比重", KIND_SHARE_CHANGE: "比重变化", KIND_MULTIPLE: "倍数",
     KIND_AVERAGE: "平均数/平均数增长", KIND_ANNUAL: "年均增长", KIND_INTERVAL: "间隔增长率",
     KIND_MIX: "混合增长率", KIND_JUDGE: "综合分析",
+    KIND_AVG_DIFF: "平均数差值/比较", KIND_COUNT: "计数", KIND_SORT: "排序",
+    KIND_PROJECTION: "假设推算", KIND_DELTA_SHARE: "增量占比/贡献率", KIND_DIFF_GROWTH: "差值增长率",
+    KIND_CUMULATIVE: "累计与当期/月均", KIND_TEXT_READING: "文字理解", KIND_CHART_MATCH: "图表匹配",
 }
 KIND_FAMILY = {
     KIND_DETAIL: FAMILY_DETAIL, KIND_BASE: FAMILY_BASE_SHARE, KIND_DELTA: FAMILY_GROWTH,
     KIND_RATE: FAMILY_GROWTH, KIND_POINT: FAMILY_GROWTH, KIND_SHARE: FAMILY_SHARE_ADD,
     KIND_SHARE_CHANGE: FAMILY_BASE_SHARE, KIND_MULTIPLE: FAMILY_SHARE_ADD, KIND_AVERAGE: FAMILY_AVG_CMP,
     KIND_ANNUAL: FAMILY_AVG_CMP, KIND_INTERVAL: FAMILY_GROWTH, KIND_MIX: FAMILY_MIX_PULL, KIND_JUDGE: FAMILY_JUDGE,
+    KIND_AVG_DIFF: FAMILY_AVG_CMP, KIND_COUNT: FAMILY_AVG_CMP, KIND_SORT: FAMILY_AVG_CMP,
+    KIND_PROJECTION: FAMILY_GROWTH, KIND_DELTA_SHARE: FAMILY_MIX_PULL, KIND_DIFF_GROWTH: FAMILY_GROWTH,
+    KIND_CUMULATIVE: FAMILY_GROWTH, KIND_TEXT_READING: FAMILY_DETAIL, KIND_CHART_MATCH: FAMILY_CHART,
 }
-REQUIRED_KINDS = tuple(KIND_LABELS)
+LEGACY_KINDS = (KIND_DETAIL, KIND_BASE, KIND_DELTA, KIND_RATE, KIND_POINT, KIND_SHARE, KIND_SHARE_CHANGE,
+                KIND_MULTIPLE, KIND_AVERAGE, KIND_ANNUAL, KIND_INTERVAL, KIND_MIX, KIND_JUDGE)
+REQUIRED_KINDS = LEGACY_KINDS
 KIND_MAX = 3
 DETAIL_MAX = 1
 
@@ -135,6 +156,42 @@ FAMILY_DIFFICULTY = {
     FAMILY_AVG_CMP: 3,
     FAMILY_MIX_PULL: 4,
     FAMILY_JUDGE: 4,
+    FAMILY_CHART: 3,
+}
+
+TIERS = ("easy", "mid", "hard")
+
+# 档位只改变取数层数、步骤和选项间距，不改变题型配额与综合问法。
+DIFFICULTY_GUIDE = {
+    "easy": "易档：所需数据集中在一句或一行，一步计算；选项首位或量级即可区分（两两相对差约8%以上）；不跨段取数。",
+    "mid": "中档：一到两步；可有一次跨句或表文结合取数；选项两两相对差≥3%，截位估算即可区分。",
+    "hard": "难档：两到三步，如先由总量减已列分项、跨段或表文结合取数、先反推基期再计算；"
+            "可有两个选项首位相同、需算到第二位，但相对差仍≥3%且答案唯一；不得靠口径陷阱制造难度。",
+}
+JUDGE_DIFFICULTY_GUIDE = {
+    "easy": "易档综合：至少一句直接读数或一眼定性即可判断，其余为一步计算。",
+    "mid": "中档综合：一句可直接读数或定性秒判，两句一步估算比较，一句两步计算。",
+    "hard": "难档综合：四句都需计算，至少两句需两步以上（如先反推基期再比较比重）。",
+}
+
+# 干扰项优先取考生真实会犯的错；凭空公式由 ziliao_checklist.CONTRIVED 拦截。
+TYPICAL_ERRORS = {
+    KIND_BASE: "现期×(1−r)（近似公式误用）、现期×(1+r)（方向反）、直接取现期值、误用相邻主体或上年的增速",
+    KIND_DELTA: "现期×r（漏除1+r）、取相邻主体或相邻年份数据、相邻年份相减取反",
+    KIND_RATE: "（现期−基期）÷现期（分母用错）、取错年份或行列、增长量÷现期",
+    KIND_POINT: "把百分点差写成“高X%”、取其中一项的上年增速或增速变动值、两增速相加",
+    KIND_SHARE: "分母取上级总量或其他口径合计、分子取相邻主体、整体用上年（基期）数据",
+    KIND_SHARE_CHANGE: "两增速直接相减当作百分点、升降方向判反、漏乘现期比重或漏除(1+部分增速)；定性题错项为比重实际下降（或上升）的主体",
+    KIND_MULTIPLE: "分子分母颠倒、用现期倍数代替基期倍数、取错主体",
+    KIND_AVERAGE: "分子分母颠倒、总量除以其他主体的数量；平均数增长率误用a−b或(a−b)/(1+a)",
+    KIND_ANNUAL: "年份差n多算或少算一年、总增长率直接÷n、起点年取错",
+    KIND_INTERVAL: "r1+r2漏加交叉项r1×r2、只用其中一年增速、取错年份的增速",
+    KIND_MIX: "两增速简单平均、权重颠倒（用另一部分的量加权）、两增速相加",
+    KIND_AVG_DIFF: "两期平均数直接用总量增速代替、分子分母颠倒、用现期总量除以基期数量、方向判反",
+    KIND_PROJECTION: "把增量当增速逐年复利、年份少算或多算一年、用基期年起算",
+    KIND_DELTA_SHARE: "用现期比重代替增量比重、分母用整体现期量、分子用部分现期量",
+    KIND_DIFF_GROWTH: "直接用两项增速相减当差值增速、用现期差额除以现期差额、方向判反",
+    KIND_CUMULATIVE: "把累计值当当月值、用累计增速当当月增速、月数少算一个月",
 }
 
 CLASSIC_TAGS = [
@@ -147,12 +204,12 @@ CLASSIC_FORMATS_4 = ["chart", "table", "text", "chart"]
 
 # 图表匹配：本轮只留挂点，不强制、不假实现选项图配额
 CHART_MATCH_HOOK = {
-    "implemented": False,
+    "implemented": True,
     "family": "chart_match",
     "reason": (
-        "粤考常见「下列哪幅图反映……」需为 A–D 各渲一张饼/柱/折线并挂 options[].images。"
-        "当前 runner 只渲染材料图；render_option_figures() 已预留："
-        "若题目自带 options[].figure 则程序出图，但轨 A 配额不强制本槽，避免假实现。"
+        "粤考常见「下列哪幅图反映……」：槽位 kind=chart_match 时，题目为 A–D 各给 options[].figure（饼图或折线），"
+        "worker 用 render_option_figures() 程序出图并挂 options[].images；正确图按 calculation.target 复算，"
+        "干扰图须凭形状可区分。整套按 CHART_MATCH_RATE 概率安排至多 1 道。"
     ),
 }
 
@@ -181,18 +238,20 @@ def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid", kind: str 
         "family": family,
         "brief": brief,
         "difficulty": paper_tier,
-        "difficulty_score": difficulty_score(family, paper_tier),
+        "difficulty_score": difficulty_score(family, paper_tier, quick),
     }
     if kind:
         slot["kind"] = kind
         slot["kind_label"] = KIND_LABELS[kind]
+    if quick:
+        slot["quick"] = True
     return slot
 
 
-def difficulty_score(family: str, paper_tier: str = "mid") -> int:
-    base = FAMILY_DIFFICULTY.get(family, 3)
+def difficulty_score(family: str, paper_tier: str = "mid", quick: bool = False) -> int:
+    base = 2 if quick else FAMILY_DIFFICULTY.get(family, 3)
     if paper_tier == "hard":
-        return min(5, base + (0 if family == FAMILY_DETAIL else 1 if family in {FAMILY_MIX_PULL, FAMILY_JUDGE} else 0))
+        return min(5, base + (0 if family == FAMILY_DETAIL or quick else 1))
     if paper_tier == "easy" and family not in {FAMILY_DETAIL, FAMILY_JUDGE}:
         return max(1, base - 1)
     return base
@@ -240,8 +299,9 @@ def judge_slot_fields(material_index: int) -> dict:
 
 
 def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
-    """4×5 粤考槽位：覆盖12类计算/定位题型+4道综合，同类≤3、细节≤1；每篇Q5综合且问法与组合跨篇轮换。"""
-    s = lambda family, tag, kind, brief: _slot(family, tag, brief, paper_tier, kind)
+    """4×5 粤考槽位：覆盖12类计算/定位题型+4道综合，同类≤3、细节≤1；每篇Q5综合且问法与组合跨篇轮换。
+    M02-Q3 固定平均数增长率，M04-Q4 为两期比重升降定性秒判。"""
+    s = lambda family, tag, kind, brief, quick=False: _slot(family, tag, brief, paper_tier, kind, quick)
     slots = [
         # M01 长文字
         s(FAMILY_DETAIL, ZILIAO_QI, KIND_DETAIL, "文字定位：直接找出某个具体数值或分类归属，一步可得，不做计算，不设人为口径陷阱"),
@@ -252,7 +312,7 @@ def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
         # M02 表格
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "现期比重：表中某分项占合计比重；正确值不是整数百分比"),
         s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率：由表中两年数值计算同比增长率，或在至多4项中比较增长率"),
-        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数或平均数增长率：如户均、人均、单位产出及其同比增速(a-b)/(1+b)"),
+        s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数增长率：表中某分项的户均、人均或单位产出比上年增长百分之几，用(a-b)/(1+b)，a为总量增速、b为数量增速；题干含“平均”“户均”“人均”等；干扰项含a-b直接相减、(a-b)/(1+a)"),
         s(FAMILY_SHARE_ADD, ZILIAO_QI, KIND_MULTIPLE, "倍数：现期倍数或基期倍数（A是B的多少倍），基期倍数须各自反推；正确值不是整数倍"),
         s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
         # M03 多年柱图
@@ -265,7 +325,11 @@ def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
         s(FAMILY_AVG_CMP, ZILIAO_AVG, KIND_AVERAGE, "平均数：用图中某类别数值与正文给出的对应数量求平均数（如每个机构、每名人员对应量），或比较两类别平均数；不出读图排序题，正确值不是整数"),
         s(FAMILY_SHARE_ADD, ZILIAO_SHARE, KIND_SHARE, "比重：某城市或类别占合计比重，合计由正文给出或图中求和；正确值不是整数百分比"),
         s(FAMILY_MIX_PULL, ZILIAO_MIX, KIND_MIX, "混合增长率：两部分合计的增长率，介于两部分增速之间且偏向基数大的一方；干扰项含两增速简单平均"),
-        s(FAMILY_GROWTH, ZILIAO_RATE, KIND_RATE, "增长率：由图中两年数值求某类别增长率，或在至多4个类别中比较增长率"),
+        s(FAMILY_BASE_SHARE, ZILIAO_SHARE_DIFF, KIND_SHARE_CHANGE,
+          "两期比重升降定性判定：题干如“下列类别中，占合计比重比上年上升的是”，四个选项为图中类别名；"
+          "只需比较各类别增速与合计增速的大小，不必算出比重；恰有一个类别比重上升（或下降）。"
+          "解析逐项写“X项：部分增速−合计增速=a%−b%=…个百分点”并判方向；计算清单correct=1，正确项1、错项0",
+          quick=True),
         s(FAMILY_JUDGE, ZILIAO_CMP, KIND_JUDGE, ""),
     ]
     for material_index, slot_index in enumerate((4, 9, 14, 19)):
@@ -273,16 +337,374 @@ def gd_slots_20(paper_tier: str = "mid") -> list[dict]:
     return slots
 
 
+# ---------------------------------------------------------------------------
+# 题型池轮转：每套按广东真题频率加权抽题型，最近几套用过的降权；材料形态也轮换。
+# weight 取自 2020–2026 广东省考资料分析逐题统计（综合分析单列，每篇末题固定）。
+
+MATERIAL_TYPES = {
+    "text": {"format": "text", "figure_kind": "none", "figure_shape": None, "weight": 0,
+             "plan": "长文字统计公报式材料（3–5段，350–750字）：给出总量与多个分项的现期值和同比增速，"
+                     "部分主体只给增速或只给绝对量，至少一个分项需由总量减其他分项得到；可含一段政策举措或原因表述。"},
+    "table": {"format": "table", "figure_kind": "table", "figure_shape": None, "weight": 3,
+              "plan": "表格至少6行×4列：各分项现期值、上年值或同比增速，以及第二指标（如企业数、人数、面积）及其上年值或增速；"
+                      "含合计行，分项展示值之和与合计保留真实舍入差。"},
+    "monthly": {"format": "table", "figure_kind": "table", "figure_shape": "monthly", "weight": 1.5,
+                "plan": "月度或季度表格：首列为月份或“1—N月”累计期（至少6行），列出当月值、累计值或累计同比增速；"
+                        "正文另给全年总量或上年同期数据，供累计反推当月、月均、季度汇总与同比判断。"},
+    "years": {"format": "chart", "figure_kind": "bars", "figure_shape": "years", "weight": 2.5,
+              "plan": "柱图为连续5–6年同一指标的时间序列（categories为年份），供年均增长、增长量、增速趋势；"
+                      "正文另给某细分指标连续两年同比增速，以及该细分指标与总量的现期值和增速。"},
+    "two_series": {"format": "chart", "figure_kind": "bars", "figure_shape": "two_series", "weight": 2,
+                   "plan": "柱图为4–8个广东地市或类别的两年数值（两个同单位series），各类别增速与合计增速有高有低；"
+                           "正文另给部分类别的对应数量（如机构数、人数、企业数），以及两部分各自的现期值和增速。"},
+    "pie": {"format": "chart", "figure_kind": "pie", "figure_shape": "pie", "weight": 1.5,
+            "plan": "饼图为某总量的3–6个组成部分（categories为部分名称，series只有一个、values为各部分绝对量），图中显示各部分数值与占比；"
+                    "正文给总量及各部分或总量的同比增速等相关指标，供比重、比重变化、基期、增长量计算。"},
+    "line": {"format": "chart", "figure_kind": "line", "figure_shape": "years", "weight": 1.5,
+             "plan": "折线图为连续5–8期（年份）同一指标的数值序列（1–2条同单位折线），各点标注数值；"
+                     "正文另给相关总量或增速，供增长量、增长率、年均与走势判断。"},
+}
+TABLE_TYPES = ("table", "monthly")
+CHART_TYPES = ("years", "two_series", "pie", "line")
+CHART_MATCH_PIE_TYPES = ("pie", "table", "two_series", "text")
+CHART_MATCH_TREND_TYPES = ("years", "line", "monthly")
+
+OPTION_FORMAT_WEIGHTS = {"exact": 0.55, "interval": 0.25, "direction": 0.2}
+
+KIND_SPECS = {
+    KIND_SHARE: {"weight": 10, "types": ("text", "table", "two_series", "pie", "monthly"), "formats": ("exact", "interval"),
+                 "brief": "比重：某部分占整体的比重（现期比重、多部分合计占比或隔级比重）；正确值不是整数百分比",
+                 "need": "部分与整体的同口径现期值"},
+    KIND_SHARE_CHANGE: {"weight": 5, "types": ("text", "table", "two_series", "pie"), "formats": ("exact", "direction"),
+                        "brief": "两期比重：某部分占整体的比重比上年上升/下降多少个百分点，用a/b×(r1-r2)/(1+r1)；干扰项含直接相减两增速",
+                        "need": "部分与整体的现期值及各自同比增速"},
+    KIND_AVERAGE: {"weight": 6, "types": ("table", "two_series", "text", "monthly", "pie"), "formats": ("exact", "interval"),
+                   "brief": "平均数或平均数增长率：人均、户均、每个X对应量，或平均数比上年增长百分之几（(a-b)/(1+b)）；正确值不是整数",
+                   "need": "总量与对应数量（人数、企业数等）及其增速"},
+    KIND_AVG_DIFF: {"weight": 3, "types": ("table", "two_series", "text"), "formats": ("exact", "direction"),
+                    "brief": "平均数差值或比较：平均每X比上年（或比另一主体）多/少多少，先分别求两个平均数再作差；不能用总量增速代替",
+                    "need": "两期（或两主体）的总量与数量"},
+    KIND_ANNUAL: {"weight": 4, "types": ("years", "line", "table"), "formats": ("exact", "interval"),
+                  "brief": "年均增长：用首末年份数据求年均增长量或年均增长率，年份差n须正确；题干含“年均”",
+                  "need": "连续多年同一指标的数值"},
+    KIND_RATE: {"weight": 6, "types": ("text", "table", "years", "two_series", "monthly", "line"), "formats": ("exact", "interval"),
+                "brief": "增长率：由两期数值求同比增长率，或在至多4项中比较增长率",
+                "need": "同一指标两期数值，或增量与基期"},
+    KIND_DELTA: {"weight": 4, "types": ("text", "table", "years", "two_series", "line", "monthly", "pie"),
+                 "formats": ("exact", "interval", "direction"),
+                 "brief": "增长量：已知现期与增速求增长量A×r/(1+r)（干扰项含误用A×r），或由两期数值相减、求增长量最多的年份",
+                 "need": "现期值与同比增速，或两期数值"},
+    KIND_BASE: {"weight": 2, "types": ("text", "table", "pie", "monthly"), "formats": ("exact", "interval"),
+                "brief": "基期量：由现期量和同比增速反推上年值；干扰项含现期×(1-r)、现期×(1+r)",
+                "need": "现期值与同比增速"},
+    KIND_MULTIPLE: {"weight": 3, "types": ("text", "table", "years", "two_series", "pie"), "formats": ("exact", "interval"),
+                    "brief": "倍数或比例：A是B的多少倍（现期或基期倍数，基期倍数须各自反推），或两量之比最接近哪个比例；正确值不是整数倍",
+                    "need": "两个可比主体的数值（基期倍数还需各自增速）"},
+    KIND_POINT: {"weight": 2, "types": ("text", "table"), "formats": ("exact", "direction"),
+                 "brief": "百分点：两项增速或比率之差、或某增速比上年提高/回落多少个百分点；选项用“个百分点”",
+                 "need": "两项增速或比率，或同一增速的两期值"},
+    KIND_INTERVAL: {"weight": 1, "types": ("text", "years", "line"), "formats": ("exact",),
+                    "brief": "间隔增长率：某指标连续两年同比增速r1、r2，求比两年前增长百分之几R=r1+r2+r1×r2；解析写明“间隔增长率”",
+                    "need": "某指标连续两年同比增速"},
+    KIND_MIX: {"weight": 0.8, "types": ("text", "two_series", "pie", "table"), "formats": ("exact", "interval"),
+               "brief": "混合增长率：两部分合计的增长率，介于两部分增速之间且偏向基期量大的一方；干扰项含两增速简单平均",
+               "need": "两部分各自现期值和增速"},
+    KIND_COUNT: {"weight": 3, "types": ("table", "years", "two_series", "monthly", "line"), "formats": ("exact",),
+                 "brief": "计数：在材料所列主体或年份中，满足某条件（如增速超过X%、比重超过X%、同比增长、高于平均水平）的有几个；选项为个数",
+                 "need": "至少5个可逐一判断的主体或时期"},
+    KIND_SORT: {"weight": 3, "types": ("table", "two_series", "text", "monthly"), "formats": ("exact",),
+                "brief": "排序：把3—4个主体按增速、增长量、平均数或比重从高到低排列；四个选项为四种不同排列",
+                "need": "3—4个主体的两期数值，或现期值与增速"},
+    KIND_PROJECTION: {"weight": 1.5, "types": ("years", "line", "text", "monthly"), "formats": ("exact", "interval"),
+                      "brief": "假设推算：如保持某年增量（或增速）不变，哪一年首次超过X；或若后续月份保持前几月平均水平，全年将比上年增长多少",
+                      "need": "连续多期数值及可延续的增量或增速"},
+    KIND_DELTA_SHARE: {"weight": 1.2, "types": ("text", "table", "two_series"), "formats": ("exact", "interval"),
+                       "brief": "增量占比/贡献率：部分增量占整体增量的比重（增长贡献率），或部分拉动整体增长多少个百分点",
+                       "need": "部分与整体的现期值及增速（或两期值）"},
+    KIND_DIFF_GROWTH: {"weight": 1.2, "types": ("text", "table"), "formats": ("exact", "direction", "interval"),
+                       "brief": "差值的增长率：顺差、收支盈余、净增额等差值指标比上年增长百分之几；先分别求两期差值再求增速",
+                       "need": "构成差值的两个指标（如出口与进口）的两期值，或现期值与增速"},
+    KIND_CUMULATIVE: {"weight": 1.5, "types": ("monthly",), "formats": ("exact", "interval"),
+                      "brief": "累计与当期：由1—N月累计与1—(N−1)月累计求当月（季）值或其增速，或求月均、日均；月数须正确",
+                      "need": "1—N月累计与前期累计，或累计值与月数"},
+    KIND_DETAIL: {"weight": 1.2, "types": ("text", "table", "years", "two_series"), "formats": ("exact",),
+                  "brief": "直接定位或读数：找出具体数值、类别或排名第一项，一步可得，不做计算",
+                  "need": ""},
+    KIND_TEXT_READING: {"weight": 1.5, "types": ("text",), "formats": ("exact",),
+                        "brief": "文字理解：依据材料文字判断“资料未提及的是”“原因不包括”“主题是”或某说法是否符合原文，不做计算；错误项与原文有明确出入",
+                        "need": "成段的政策举措、原因或主题表述（不只是数字）"},
+}
+
+KIND_TAGS = {
+    KIND_SHARE: ZILIAO_SHARE, KIND_SHARE_CHANGE: ZILIAO_SHARE_DIFF, KIND_AVERAGE: ZILIAO_AVG,
+    KIND_AVG_DIFF: ZILIAO_AVG, KIND_ANNUAL: ZILIAO_AVG, KIND_RATE: ZILIAO_RATE, KIND_POINT: ZILIAO_RATE,
+    KIND_INTERVAL: ZILIAO_RATE, KIND_DIFF_GROWTH: ZILIAO_RATE, KIND_DELTA: ZILIAO_DELTA,
+    KIND_PROJECTION: ZILIAO_DELTA, KIND_BASE: ZILIAO_BASE, KIND_CUMULATIVE: ZILIAO_BASE,
+    KIND_MULTIPLE: ZILIAO_QI, KIND_DETAIL: ZILIAO_QI, KIND_TEXT_READING: ZILIAO_QI, KIND_MIX: ZILIAO_MIX,
+    KIND_DELTA_SHARE: ZILIAO_SPEC, KIND_COUNT: ZILIAO_CMP, KIND_SORT: ZILIAO_CMP,
+}
+
+GD_JUDGE_FORM_POOL = GD_JUDGE_FORMS + (
+    {"form": "有误", "stem": "根据资料，下列说法有误的是"},
+    {"form": "有误", "stem": "根据资料，以下说法不正确的是"},
+    {"form": "正确", "stem": "根据资料，以下说法正确的是"},
+)
+
+CORE_GROUPS = (
+    ("比重类", {KIND_SHARE, KIND_SHARE_CHANGE, KIND_DELTA_SHARE}, 2),
+    ("平均类", {KIND_AVERAGE, KIND_AVG_DIFF, KIND_ANNUAL}, 2),
+    ("增长类", {KIND_RATE, KIND_DELTA, KIND_BASE, KIND_POINT, KIND_INTERVAL, KIND_DIFF_GROWTH,
+              KIND_PROJECTION, KIND_CUMULATIVE}, 4),
+)
+NON_EXACT_MIN = 2
+CHART_MATCH_RATE = 0.75
+
+
+def chart_match_brief(material_type: str) -> tuple[str, str]:
+    if material_type in CHART_MATCH_TREND_TYPES:
+        return ZILIAO_RATE, ("图表匹配：题干问“下列选项中最能准确反映……连续4—5期同比增速（或同比增量）变化趋势的是”，"
+                             "四个选项各为一幅折线图（figure.kind=line，categories为期次，values为该指标各期数值），图中不标数值；"
+                             "正确图与材料算出的序列一致，三个干扰图各对应一种真实错误（如把增量当增速、用现期值代替增速、相邻期顺序颠倒），"
+                             "且仅凭各点升降走势或高低次序即可与正确图区分")
+    return ZILIAO_SHARE, ("图表匹配：题干问“下列饼图中最能准确反映……各组成部分占比关系的是”，并写明各部分名称；"
+                          "四个选项各为一幅饼图（figure.kind=pie，categories为3—5个部分名称，values为各部分占比或数值），图中不标数值；"
+                          "正确图与材料算出的占比一致，三个干扰图各对应一种真实错误（如用上年数据、两个部分对调、遗漏“其他”项），"
+                          "且仅凭各块相对大小即可与正确图区分（至少一块占比相差5个百分点以上或大小次序不同）")
+
+
+def _recency_factor(kind: str, recent: list) -> float:
+    factor = 1.0
+    for kinds, penalty in zip(recent or [], (0.4, 0.65, 0.85)):
+        if kind in kinds:
+            factor *= penalty
+    return factor
+
+
+def _weighted_pick(rng, items: list, weights: list):
+    total = sum(weights)
+    if total <= 0:
+        return rng.choice(items)
+    point = rng.random() * total
+    for item, weight in zip(items, weights):
+        point -= weight
+        if point <= 0:
+            return item
+    return items[-1]
+
+
+def pick_material_types(rng, recent_types: list | None = None) -> list[str]:
+    recent_types = recent_types or []
+    for _ in range(200):
+        chosen = ["text"]
+        pool = [t for t in MATERIAL_TYPES if t != "text"]
+        while len(chosen) < 4:
+            options = [t for t in pool if t not in chosen]
+            weights = [MATERIAL_TYPES[t]["weight"] * _recency_factor(t, recent_types) for t in options]
+            chosen.append(_weighted_pick(rng, options, weights))
+        if any(t in TABLE_TYPES for t in chosen) and any(t in CHART_TYPES for t in chosen):
+            rest = chosen[1:]
+            tables = [t for t in rest if t in TABLE_TYPES]
+            charts = [t for t in rest if t in CHART_TYPES]
+            rng.shuffle(charts)
+            return ["text", *tables, *charts]
+    return ["text", "table", "years", "two_series"]
+
+
+def kind_cap(kind: str) -> int:
+    weight = KIND_SPECS.get(kind, {}).get("weight", 0)
+    return 1 if weight < 2 else 2 if weight < 5 else KIND_MAX
+
+
+def _option_format(rng, kind: str) -> str:
+    formats = KIND_SPECS.get(kind, {}).get("formats") or ("exact",)
+    return _weighted_pick(rng, list(formats), [OPTION_FORMAT_WEIGHTS[f] for f in formats])
+
+
+def _core_ok(kinds: list[str]) -> bool:
+    counts = Counter(kinds)
+    return all(sum(counts[k] for k in group) >= need for _, group, need in CORE_GROUPS)
+
+
+def rotating_slot(kind: str, material_type: str, paper_tier: str, option_format: str, rng) -> dict:
+    if kind == KIND_CHART_MATCH:
+        tag, brief = chart_match_brief(material_type)
+        slot = _slot(FAMILY_CHART, tag, brief, paper_tier, kind)
+        slot["chart_variant"] = "trend" if material_type in CHART_MATCH_TREND_TYPES else "pie"
+    else:
+        spec = KIND_SPECS[kind]
+        quick = kind == KIND_SHARE_CHANGE and material_type in ("two_series", "table") and rng.random() < 0.4
+        brief = spec["brief"]
+        if quick:
+            brief = ("两期比重升降定性判定：题干如“下列类别中，占合计比重比上年上升的是”，四个选项为类别名；"
+                     "只需比较各类别增速与合计增速，恰有一个类别比重上升（或下降）；计算清单correct=1、正确项1、错项0")
+        slot = _slot(KIND_FAMILY[kind], KIND_TAGS[kind], brief, paper_tier, kind, quick)
+        if quick:
+            option_format = "exact"
+    slot["option_format"] = option_format
+    slot["material_type"] = material_type
+    slot["rotation"] = True
+    return slot
+
+
+def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | None = None,
+                      recent_types: list | None = None) -> tuple[list[str], list[dict]]:
+    """返回（四篇材料形态，20 个槽位）。题型按真题权重×近期降权抽取，满足核心覆盖与配额。"""
+    import random
+    rng = rng or random.Random()
+    recent_kinds = recent_kinds or []
+    for _ in range(500):
+        types = pick_material_types(rng, recent_types)
+        want_chart = rng.random() < CHART_MATCH_RATE
+        chart_host = None
+        if want_chart:
+            hosts = [i for i, t in enumerate(types) if i > 0 and (t in CHART_MATCH_PIE_TYPES or t in CHART_MATCH_TREND_TYPES)]
+            chart_host = rng.choice(hosts) if hosts else None
+        counts, picked, detail_used, mix_used = Counter(), [], False, 0
+        for index, material_type in enumerate(types):
+            chosen = [KIND_CHART_MATCH] if index == chart_host else []
+            while len(chosen) < 4:
+                pool = []
+                for kind, spec in KIND_SPECS.items():
+                    if material_type not in spec["types"] or kind in chosen or counts[kind] >= kind_cap(kind):
+                        continue
+                    if KIND_FAMILY[kind] == FAMILY_DETAIL and (detail_used or any(KIND_FAMILY[c] == FAMILY_DETAIL for c in chosen)):
+                        continue
+                    if KIND_FAMILY[kind] == FAMILY_MIX_PULL and mix_used >= 1:
+                        continue
+                    pool.append(kind)
+                if not pool:
+                    break
+                kind = _weighted_pick(rng, pool, [KIND_SPECS[k]["weight"] * _recency_factor(k, recent_kinds) for k in pool])
+                chosen.append(kind)
+                counts[kind] += 1
+                detail_used = detail_used or KIND_FAMILY[kind] == FAMILY_DETAIL
+                mix_used += KIND_FAMILY[kind] == FAMILY_MIX_PULL
+            if len(chosen) < 4:
+                break
+            rank = lambda k: (0 if KIND_FAMILY[k] == FAMILY_DETAIL else 2 if k == KIND_CHART_MATCH else 1,
+                              FAMILY_DIFFICULTY.get(KIND_FAMILY[k], 3))
+            picked.append((material_type, sorted(chosen, key=rank)))
+        if len(picked) != 4:
+            continue
+        kinds = [k for _, ks in picked for k in ks]
+        if not _core_ok(kinds):
+            continue
+        slots = []
+        for material_type, ks in picked:
+            for kind in ks:
+                slots.append(rotating_slot(kind, material_type, paper_tier, _option_format(rng, kind), rng))
+            slots.append(_slot(FAMILY_JUDGE, ZILIAO_CMP, "", paper_tier, KIND_JUDGE))
+        non_exact = [s for s in slots if s.get("option_format") not in (None, "exact")]
+        if len(non_exact) < NON_EXACT_MIN:
+            candidates = [s for s in slots if s.get("kind") in KIND_SPECS and not s.get("quick")
+                          and len(KIND_SPECS[s["kind"]]["formats"]) > 1 and s.get("option_format") == "exact"]
+            rng.shuffle(candidates)
+            for slot in candidates[:NON_EXACT_MIN - len(non_exact)]:
+                slot["option_format"] = next(f for f in KIND_SPECS[slot["kind"]]["formats"] if f != "exact")
+        forms = rng.sample(list(GD_JUDGE_FORM_POOL), len(GD_JUDGE_FORM_POOL))
+        unique_forms, seen = [], set()
+        for spec in forms:
+            if spec["form"] not in seen:
+                unique_forms.append(spec)
+                seen.add(spec["form"])
+        mixes = rng.sample(list(GD_JUDGE_MIXES), 4)
+        for material_index in range(4):
+            spec, mix = unique_forms[material_index], mixes[material_index]
+            slots[material_index * 5 + 4].update({
+                "judge_form": spec["form"], "judge_stem": spec["stem"], "judge_mix": mix,
+                "brief": (f"综合分析。题干必须以「{spec['stem']}」开头（形式={spec['form']}）。"
+                          "禁止改成其他问法。" f"本篇组合——{mix}每句解析写出核算算式；错误项必须确实不成立。"),
+            })
+        try:
+            validate_gd_quota(slots, count=20)
+        except ValueError:
+            continue
+        return types, slots
+    raise RuntimeError("题型轮转无法在约束内组卷")
+
+
+def material_question_plan(material_type: str, slots: list[dict]) -> str:
+    needs = []
+    for index, slot in enumerate(slots, 1):
+        kind = slot.get("kind")
+        if kind == KIND_CHART_MATCH:
+            need = ("可算出各组成部分占比的总量与分项" if slot.get("chart_variant") == "pie"
+                    else "连续5期以上可求同比增速或增量的数值")
+        else:
+            need = KIND_SPECS.get(kind, {}).get("need") or ""
+        if need:
+            needs.append(f"Q{index}{KIND_LABELS.get(kind, kind)}需{need}")
+    return (MATERIAL_TYPES[material_type]["plan"]
+            + "五题题型依次为：" + "、".join(str(s.get("kind_label") or s.get("kind")) for s in slots) + "。"
+            + ("各题所需数据：" + "；".join(needs) + "。" if needs else ""))
+
+
+_DIFFICULTY_KEY = re.compile(r"M0([1-4])(?:-Q([1-5]))?")
+
+
+def parse_difficulty_blueprint(raw) -> tuple[str | None, dict[str, dict]]:
+    """Hermes 蓝图：{"difficulty":"mid","slots":{"M02":"easy","M03-Q4":{"difficulty":"hard","note":"..."}}}。
+    只允许调整难度与命题倾向说明；题型、配额、综合问法不开放。"""
+    if raw in (None, ""):
+        return None, {}
+    data = raw
+    if isinstance(raw, str):
+        text = raw.strip()
+        data = json.loads(Path(text[1:]).read_text() if text.startswith("@") else text)
+    if not isinstance(data, dict) or set(data) - {"difficulty", "slots"}:
+        raise ValueError("资料整套蓝图只接受 difficulty 与 slots 两个字段")
+    tier = data.get("difficulty")
+    if tier is not None and tier not in TIERS:
+        raise ValueError(f"整卷 difficulty 须为 {'/'.join(TIERS)}")
+    overrides = {}
+    for key, value in (data.get("slots") or {}).items():
+        if not _DIFFICULTY_KEY.fullmatch(str(key)):
+            raise ValueError(f"蓝图槽位键须为 M01–M04 或 M01-Q1–M04-Q5：{key}")
+        spec = {"difficulty": value} if isinstance(value, str) else value
+        if not isinstance(spec, dict) or set(spec) - {"difficulty", "note"} or spec.get("difficulty") not in TIERS:
+            raise ValueError(f"{key} 须写 easy/mid/hard，或 {{\"difficulty\":...,\"note\":...}}")
+        note = spec.get("note")
+        if note is not None and (not isinstance(note, str) or len(note) > 120):
+            raise ValueError(f"{key} 的 note 须为 120 字以内的文字")
+        overrides[str(key)] = spec
+    return tier, overrides
+
+
+def apply_difficulty_overrides(slots: list[dict], overrides: dict[str, dict]) -> list[dict]:
+    """先按篇再按题覆盖档位，并同步 difficulty_score。"""
+    result = [dict(slot) for slot in slots]
+    ordered = sorted(overrides.items(), key=lambda kv: "-Q" in kv[0])
+    for key, spec in ordered:
+        matched = _DIFFICULTY_KEY.fullmatch(key)
+        material, question = int(matched[1]) - 1, matched[2]
+        positions = [material * 5 + int(question) - 1] if question else range(material * 5, material * 5 + 5)
+        for position in positions:
+            if position >= len(result):
+                raise ValueError(f"蓝图槽位 {key} 超出本套题量")
+            slot = result[position]
+            tier = spec["difficulty"]
+            slot["difficulty"] = tier
+            slot["difficulty_score"] = difficulty_score(str(slot.get("family") or ""), tier, bool(slot.get("quick")))
+            if spec.get("note"):
+                slot["difficulty_note"] = spec["note"]
+    return result
+
+
 def validate_gd_kinds(slots: list[dict]) -> None:
     kinds = Counter(str(slot.get("kind") or "") for slot in slots)
-    missing = [KIND_LABELS[k] for k in REQUIRED_KINDS if not kinds.get(k)]
-    if missing:
-        raise ValueError(f"轨A整套缺少题型：{'、'.join(missing)}")
+    unknown = [k for k in kinds if k and k not in KIND_LABELS]
+    if unknown:
+        raise ValueError(f"轨A出现未定义题型：{'、'.join(unknown)}")
+    for name, group, need in CORE_GROUPS:
+        if sum(kinds.get(k, 0) for k in group) < need:
+            raise ValueError(f"轨A整套{name}题型至少{need}题")
     over = [f"{KIND_LABELS.get(k, k)}{n}题" for k, n in kinds.items() if k != KIND_JUDGE and n > KIND_MAX]
     if over:
         raise ValueError(f"轨A同一题型至多{KIND_MAX}题：{'、'.join(over)}")
-    if kinds.get(KIND_DETAIL, 0) > DETAIL_MAX:
-        raise ValueError(f"轨A细节查找/读数至多{DETAIL_MAX}题")
+    if sum(n for k, n in kinds.items() if KIND_FAMILY.get(k) == FAMILY_DETAIL) > DETAIL_MAX:
+        raise ValueError(f"轨A细节查找/读数/文字理解至多{DETAIL_MAX}题")
+    if kinds.get(KIND_CHART_MATCH, 0) > 1:
+        raise ValueError("轨A图表匹配至多1题")
     if kinds.get(KIND_JUDGE, 0) != 4:
         raise ValueError("轨A须有4道综合分析")
     for slot in slots:
@@ -620,7 +1042,134 @@ def apply_slot_difficulty(question: dict, slot: dict, paper_tier: str = "mid") -
 
 
 def skip_calculation(slot: dict) -> bool:
-    return str(slot.get("family") or "") in {FAMILY_DETAIL, FAMILY_JUDGE}
+    return (str(slot.get("family") or "") in {FAMILY_DETAIL, FAMILY_JUDGE, FAMILY_CHART}
+            or str(slot.get("kind") or "") == KIND_SORT)
+
+
+def uses_ranges(slot: dict) -> bool:
+    return str(slot.get("option_format") or "exact") in {"interval", "direction"}
+
+
+OPTION_FORMAT_RULES = {
+    "interval": ("选项采用区间式：四个区间互不重叠、首尾相接（如“不到5%”“在5%到10%之间”“在10%到15%之间”“超过15%”），"
+                 "正确值落在且仅落在一个区间内，与最近区间端点的相对距离≥3%。calculation写correct（算式）和ranges，"
+                 "如{\"A\":[null,5],\"B\":[5,10],\"C\":[10,15],\"D\":[15,null]}（左闭右开，null表示无界，单位与选项一致，百分数写百分数值），不写options。"
+                 "解析写出算得的数值并说明落在哪个区间。"),
+    "direction": ("选项采用“升降+程度”式：四个选项为“上升（增加/高）了不到X”“上升了X以上”“下降（减少/低）了不到X”“下降了X以上”，"
+                  "X为同一阈值，正确值与X的相对差≥5%。calculation写correct（下降为负数）和ranges，"
+                  "如{\"A\":[0,X],\"B\":[X,null],\"C\":[-X,0],\"D\":[null,-X]}，不写options。解析写出算得的数值和方向。"),
+}
+
+KIND_QUESTION_RULES = {
+    KIND_COUNT: ("计数题：选项为个数（如1、2、3、4），解析逐一列出每个主体或时期的判断算式和结论，再汇总个数；"
+                 "calculation.correct直接写正确个数，options写各选项个数。"),
+    KIND_SORT: ("排序题：选项为四种不同排列（用主体名或①②③④），解析逐项算出排序依据的数值；"
+                "calculation写correct=1、options正确项1错项0。"),
+    KIND_AVG_DIFF: "平均数差值题：先分别求两期（或两主体）平均数再作差或比较，解析写出两个平均数的算式。",
+    KIND_PROJECTION: "假设推算题：题干写明假设条件（如“如保持2024年同比增量不变”），解析逐年（或逐月）推算到结论；年份类答案calculation.correct写年份。",
+    KIND_DELTA_SHARE: "增量占比题：分子为部分增量、分母为整体增量（贡献率），或拉动增长=部分增量/整体基期；解析分别写出增量算式。",
+    KIND_DIFF_GROWTH: "差值增长率题：先分别求现期与基期的差值（如顺差=出口−进口），再求差值的增长率；解析写出两期差值。",
+    KIND_CUMULATIVE: "累计与当期题：当月值=1—N月累计−1—(N−1)月累计，月均=累计÷月数；解析写明月数。",
+    KIND_CHART_MATCH: ("图表匹配题：四个选项都是图，options[i].text写空字符串，options[i].figure写该图数据"
+                       "（饼图{\"kind\":\"pie\",\"categories\":[...],\"values\":[...]}，折线{\"kind\":\"line\",\"categories\":[...],\"values\":[...]}），"
+                       "四幅图categories相同、数据互不相同。calculation写correct=1、options正确项1错项0，并加target数组："
+                       "按categories顺序给出正确图每个点的算式（饼图写各部分数值或占比算式，折线写各期增速或增量算式）。"
+                       "解析先写出各点算式，再逐项说明A—D图与正确值哪里不符。"),
+}
+
+
+def option_format_rules(slot: dict) -> str:
+    return OPTION_FORMAT_RULES.get(str(slot.get("option_format") or "exact"), "")
+
+
+def _bound(value):
+    if value is None or (isinstance(value, str) and value.strip().lower() in {"", "null", "none"}):
+        return None
+    return float(value)
+
+
+def range_matches(target: float, ranges: dict) -> list[str]:
+    hits = []
+    for key, bounds in (ranges or {}).items():
+        lo, hi = (_bound(bounds[0]), _bound(bounds[1])) if isinstance(bounds, (list, tuple)) and len(bounds) == 2 else (None, None)
+        if lo is None and hi is None:
+            continue
+        if (lo is None or target >= lo) and (hi is None or target < hi):
+            hits.append(str(key))
+    return hits
+
+
+def range_calculation_issues(target: float, ranges: dict, answer: str, keys: set[str]) -> list[str]:
+    issues = []
+    if not isinstance(ranges, dict) or set(map(str, ranges)) != keys:
+        return ["区间/升降选项须在calculation.ranges里给出A—D四个区间"]
+    hits = range_matches(target, ranges)
+    if hits != [answer]:
+        issues.append(f"算得{target:.6g}落在区间{hits}，但答案是{answer}")
+    edges = [b for bounds in ranges.values() for b in map(_bound, bounds) if b not in (None, 0)]
+    near = [e for e in edges if abs(target - e) / abs(e) < 0.02]
+    if near:
+        issues.append(f"正确值{target:.6g}距区间端点{near[0]:g}过近（相对差<2%），需精算才能判断；调整阈值或数据")
+    return issues
+
+
+def _shape_signature(kind: str, values: list[float]) -> tuple:
+    if kind == "pie":
+        total = sum(values) or 1
+        shares = [v / total * 100 for v in values]
+        return ("pie", tuple(sorted(range(len(shares)), key=lambda i: -shares[i])), tuple(shares))
+    steps = tuple((b > a) - (b < a) for a, b in zip(values, values[1:]))
+    return ("trend", steps, tuple(sorted(range(len(values)), key=lambda i: -values[i])))
+
+
+def chart_match_issues(question: dict, calculation: dict) -> list[str]:
+    """图表匹配：正确图须与 target 算式一致，干扰图须仅凭形状可区分。"""
+    from quality_orchestrator import safe_eval
+    options = question.get("options") or []
+    figures = {str(o.get("key")): o.get("figure") for o in options}
+    if len(figures) != 4 or not all(isinstance(f, dict) and f.get("kind") in {"pie", "line", "bars"} for f in figures.values()):
+        return ["图表匹配题四个选项都须带figure（kind为pie/line/bars）"]
+    kinds = {f["kind"] for f in figures.values()}
+    cats = {tuple(map(str, f.get("categories") or [])) for f in figures.values()}
+    if len(kinds) != 1 or len(cats) != 1 or not next(iter(cats)):
+        return ["四幅选项图须同一图形种类、相同categories"]
+    kind, categories = kinds.pop(), list(cats.pop())
+    try:
+        series = {k: [float(v) for v in f.get("values") or []] for k, f in figures.items()}
+        target = [float(safe_eval(e)) for e in calculation.get("target") or []]
+    except Exception as exc:
+        return [f"图表匹配数据或target不可复算：{exc}"]
+    if len(target) != len(categories) or any(len(v) != len(categories) for v in series.values()):
+        return ["target与各选项图values须与categories等长"]
+    issues = []
+    answer = str(question.get("answer") or "")
+    if kind == "pie" and len(categories) < 3:
+        issues.append("饼图至少3个部分")
+    if kind != "pie" and len(categories) < 4:
+        issues.append("走势图至少4个期次")
+    correct = series.get(answer) or []
+    if kind == "pie":
+        total_c, total_t = sum(correct) or 1, sum(target) or 1
+        off = max(abs(c / total_c - t / total_t) * 100 for c, t in zip(correct, target))
+        if off > 1.5:
+            issues.append(f"正确选项饼图占比与target相差{off:.1f}个百分点")
+    else:
+        scale = max(abs(t) for t in target) or 1
+        off = max(abs(c - t) for c, t in zip(correct, target)) / scale
+        if off > 0.03:
+            issues.append(f"正确选项走势图数值与target相差{off:.0%}")
+    sig = _shape_signature(kind, correct)
+    for key, values in series.items():
+        if key == answer:
+            continue
+        other = _shape_signature(kind, values)
+        if kind == "pie":
+            diff = max(abs(a - b) for a, b in zip(sig[2], other[2]))
+            if sig[1] == other[1] and diff < 5:
+                issues.append(f"{key}项饼图与正确图各块大小次序相同且最大差<5个百分点，凭图形无法区分")
+        elif sig[1] == other[1] and sig[2] == other[2]:
+            issues.append(f"{key}项走势图与正确图升降走势和高低次序都相同，凭图形无法区分")
+    return issues
 
 
 def track_framework_rules(track: str) -> str:
@@ -631,13 +1180,21 @@ def track_framework_rules(track: str) -> str:
         )
     return (
         "本批是「粤考日练」轨A，对照近年粤考卷面：以计算题为主、少量直接定位、每篇末题综合分析，难度偏易到中。"
-        "默认 4 篇形态 text/table/chart/chart；M01 为长文字（350–750字）。"
+        "4 篇形态按计划（M01 为长文字350–750字，其余为表格、月度表、柱图、饼图或折线图）。"
         "图序列禁止等差或等差增量；禁止总计整万+人均整十。"
         "难度按秒杀找数/一步/两步/四陈述综合拉开，禁止全员 difficulty=3。"
         "四篇 Q5 综合分析的题干已写在槽位 judge_stem：属实、不能推出、正确的有、能够推出，组合见 judge_mix，禁止四篇都写成「下列说法正确/有误的是」。"
         "各篇question_plan按五个槽位kind预留所需数据；有图表则至少两个只在图表出现的取数点进入计算。"
-        "禁止九主体全表人均排序，禁止chart_match。主题按计划给定，四篇互不相同；地名用广东省及其地市真实名称。"
+        "禁止九主体全表人均排序；图表匹配只在槽位kind=chart_match时出。主题按计划给定，四篇互不相同；地名用广东省及其地市真实名称。"
     )
+
+
+GD_DISCLOSURE_RULES = (
+    "信息披露按真实统计公报习惯，不做逐项齐全的报表：不必每个主体都同时给现期值和增速，"
+    "至少一个主体只给现期值或只给增速；至少一处题目所需的数要由总量减去已列分项、或由两句数据合成才能得到，"
+    "给考生留出定位和筛选成本；可穿插一到两句同领域但本篇题目用不到的指标（如投资额、项目数）。"
+    "上述取舍不得让任何槽位缺数据，题目所需的每个数仍须能由材料唯一确定。"
+)
 
 
 def track_material_rules(track: str, item: dict) -> str:
@@ -658,13 +1215,49 @@ def track_material_rules(track: str, item: dict) -> str:
             "地名使用计划给定的广东省或地市真实名称，禁止G省、S市、某省、甲市等占位。"
             "禁止“本次统计范围严格限定为”“仅限于”这类人为设置的口径句和命题提示；按统计公报自然行文。"
             "图表保留至少两个不在正文复述、且会进入计算的取数点。"
+            + GD_DISCLOSURE_RULES
         )
     if track == TRACK_GD and str(item.get("id") or "") == "M01":
-        return extra + "M01 写成统计公报式长文：先总述再「其中/分领域看」，3–5 段、350–750 字，数据密度适中。"
+        return extra + ("M01 写成统计公报式长文：先总述再「其中/分领域看」，3–5 段、350–750 字，数据密度适中；"
+                        "段内可混写两三类指标，不写成一段一个维度的报表式排布。")
     return extra
 
 
+def slot_difficulty_rules(track: str, slot: dict) -> str:
+    if track != TRACK_GD:
+        return ""
+    tier = str(slot.get("difficulty") or "mid")
+    if tier not in TIERS:
+        return ""
+    family = str(slot.get("family") or "")
+    if family == FAMILY_DETAIL:
+        text = "本题为直接定位，档位只影响定位距离（难档可跨段），不增加计算。"
+    elif slot.get("quick"):
+        text = ("本题为定性/估算秒判题，15–40秒可完成，不需精确计算。"
+                + ("难档：候选主体增速与合计增速差距可小到1个百分点以内，需细看。" if tier == "hard" else ""))
+    elif family == FAMILY_JUDGE:
+        text = JUDGE_DIFFICULTY_GUIDE[tier]
+    else:
+        text = DIFFICULTY_GUIDE[tier]
+    note = str(slot.get("difficulty_note") or "")
+    return text + (f"命题倾向（不得因此改变题型）：{note}" if note else "")
+
+
+def typical_error_rules(slot: dict) -> str:
+    errors = TYPICAL_ERRORS.get(str(slot.get("kind") or ""))
+    if not errors:
+        return ""
+    return (f"干扰项优先取本题型考生常见错法（至少两项来自此列）：{errors}；其余可用看错主体、年份或单位。"
+            "禁止为凑选项构造考生不会犯的公式，如除以(1+2r)、(r1+r2)×(1+r2)、把无关数翻倍或乘无关系数。")
+
+
 def track_question_rules(track: str, slot: dict, index: int) -> str:
+    rules = _track_question_rules(track, slot, index)
+    extra = slot_difficulty_rules(track, slot) + (typical_error_rules(slot) if track == TRACK_GD else "")
+    return rules + KIND_QUESTION_RULES.get(str(slot.get("kind") or ""), "") + option_format_rules(slot) + extra
+
+
+def _track_question_rules(track: str, slot: dict, index: int) -> str:
     family = str(slot.get("family") or "")
     if track == TRACK_GD and family == FAMILY_JUDGE:
         stem = str(slot.get("judge_stem") or "")
@@ -682,11 +1275,20 @@ def track_question_rules(track: str, slot: dict, index: int) -> str:
         )
     kind = str(slot.get("kind") or "")
     head = f"本题题型={slot.get('kind_label') or kind}，按此考法出题。" if kind else ""
+    if kind == KIND_TEXT_READING:
+        return head + (
+            "本题是文字理解：依据材料原文判断“资料未提及”“原因不包括”“主题是”或说法是否符合原文，不做计算。"
+            "三个错误项各与原文有明确出入（偷换主体、无中生有、因果倒置），解析逐项引用原文。计算清单可写正确项=1、错项=0。"
+        )
     if family == FAMILY_DETAIL:
         return head + (
             "本题是直接定位或读数：找出具体数值、类别或排名第一项，一步可得。错误项来自相邻数据或张冠李戴。"
             "不得计算人均、增长量、比重，不设人为口径陷阱，也不得偷换成四陈述综合判断。计算清单可写正确项=1、错项=0。"
         )
+    if family == FAMILY_CHART or kind in (KIND_COUNT, KIND_SORT):
+        return head + "解析逐项写出判断依据的算式；比较类覆盖题干完整范围。"
+    if uses_ranges(slot):
+        return head + "错误区间应对应考生常见错算落入的区间；正确值不是整数百分比或整数倍。"
     tail = "每个干扰项写出对应错误算式及结果；选项两两相对差距至少3%；正确值不是整数百分比或整数倍。"
     if family == FAMILY_AVG_CMP or "比较" in str(slot.get("brief") or ""):
         return head + "比较类解析必须覆盖题干完整范围；需逐项求比值时题干明确限定至多4个主体。" + tail

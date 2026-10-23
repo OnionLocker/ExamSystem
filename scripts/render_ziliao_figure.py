@@ -139,14 +139,17 @@ def render_bars(
     categories: list[str],
     series: list[tuple[str, list[float]]],
     out: Path,
+    kind: str = "bars",
+    show_values: bool = True,
+    compact: bool = False,
 ) -> None:
     if len(series) > 1 and any(separator in ylabel for separator in ("/", "／")):
-        raise ValueError("多系列柱状图不得把不同单位合并写在同一纵轴；请把单位分别写入系列名称")
+        raise ValueError("多系列图不得把不同单位合并写在同一纵轴；请把单位分别写入系列名称")
     face_title = font(22)
-    face = font(18)
+    face = font(16 if compact else 18)
     face_value = font(13)
-    left, right, top, bottom = 64, 24, 70, 92
-    plot_w, plot_h = 700, 250
+    left, right, top, bottom = (40 if not show_values else 64), 24, (30 if compact and not title else 70), 92
+    plot_w, plot_h = (420, 200) if compact else (700, 250)
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
     title_lines = wrap_text(probe, title, face_title, left + plot_w + right - 24)
     group_w = plot_w / max(len(categories), 1)
@@ -176,26 +179,33 @@ def render_bars(
     bar_w = group_w * 0.62 / n_ser
     origin_y = top + plot_h * axis_max / span
 
-    draw.line((left, top, left, origin_y), fill=LINE, width=2)
+    draw.line((left, top, left, top + plot_h), fill=LINE, width=2)
     draw.line((left, origin_y, left + plot_w, origin_y), fill=LINE, width=2)
     tick_count = max(1, round(span / step))
-    for i in range(tick_count + 1):
-        val = axis_min + step * i
-        yy = top + plot_h - plot_h * i / tick_count
-        draw.line((left - 4, yy, left, yy), fill=LINE, width=1)
-        label = f"{val:g}" if float(val).is_integer() else f"{val:.1f}"
-        lw, lh = measure(draw, label, face)
-        draw.text((left - lw - 8, yy - lh // 2), label, fill=INK, font=face)
-    if ylabel:
+    if show_values:
+        for i in range(tick_count + 1):
+            val = axis_min + step * i
+            yy = top + plot_h - plot_h * i / tick_count
+            draw.line((left - 4, yy, left, yy), fill=LINE, width=1)
+            label = f"{val:g}" if float(val).is_integer() else f"{val:.1f}"
+            lw, lh = measure(draw, label, face)
+            draw.text((left - lw - 8, yy - lh // 2), label, fill=INK, font=face)
+    if ylabel and show_values:
         _, yh = measure(draw, ylabel, face)
         draw.text((left, top - yh - 8), ylabel, fill=INK, font=face)
 
     value_labels: list[tuple[float, float, float, str, bool]] = []
+    points: list[list[tuple[float, float]]] = [[] for _ in series]
     for ci, category in enumerate(categories):
         gx = left + group_w * ci + group_w * 0.19
         for si, (_, vals) in enumerate(series):
             val = vals[ci] if ci < len(vals) else 0
             value_y = origin_y - plot_h * val / span
+            if kind == "line":
+                cx = left + group_w * ci + group_w / 2
+                points[si].append((cx, value_y))
+                value_labels.append((cx, value_y - 6, value_y + 6, f"{val:g}", True))
+                continue
             x0 = gx + si * bar_w
             x1 = x0 + bar_w - 3
             y0, y1 = sorted((origin_y, value_y))
@@ -205,10 +215,21 @@ def render_bars(
             cw, _ = measure(draw, category_line, face)
             draw.text((left + group_w * ci + (group_w - cw) / 2, top + plot_h + 10 + line_index * 24), category_line, fill=INK, font=face)
 
+    for si, line_points in enumerate(points):
+        if len(line_points) < 2:
+            continue
+        draw.line(line_points, fill=BAR_FILLS[si % 3] if si else INK, width=3)
+        for x, y in line_points:
+            r = 5
+            if si % 2:
+                draw.rectangle((x - r, y - r, x + r, y + r), fill=BG, outline=INK, width=2)
+            else:
+                draw.ellipse((x - r, y - r, x + r, y + r), fill=INK)
+
     # Draw value labels last so bars cannot cover them. A solid backing masks grid
     # lines, and a fixed gap keeps glyphs clear of each bar top after scaling.
     placed: list[tuple[int, int, int, int]] = []
-    for center_x, bar_top, bar_bottom, label, positive in value_labels:
+    for center_x, bar_top, bar_bottom, label, positive in (value_labels if show_values else []):
         label_y = bar_top - 6 if positive else bar_bottom + 18
         bbox = draw.textbbox((center_x, label_y), label, font=face_value, anchor="mb")
         while any(not (bbox[2] < box[0] or bbox[0] > box[2] or bbox[3] < box[1] or bbox[1] > box[3]) for box in placed):
@@ -221,21 +242,27 @@ def render_bars(
 
     lx = left
     ly = height - 28
-    for si, (name, _) in enumerate(series):
-        draw.rectangle((lx, ly, lx + 16, ly + 12), fill=BAR_FILLS[si % 3], outline=INK)
-        draw.text((lx + 22, ly - 2), name, fill=INK, font=face)
+    for si, (name, _) in enumerate(series if (show_values or len(series) > 1) else []):
+        if kind == "line":
+            draw.line((lx, ly + 6, lx + 22, ly + 6), fill=BAR_FILLS[si % 3] if si else INK, width=3)
+        else:
+            draw.rectangle((lx, ly, lx + 16, ly + 12), fill=BAR_FILLS[si % 3], outline=INK)
+        draw.text((lx + 28, ly - 2), name, fill=INK, font=face)
         nw, _ = measure(draw, name, face)
-        lx += 22 + nw + 18
+        lx += 28 + nw + 18
     img.save(out, "PNG")
 
 
-def render_pie(title: str, slices: list[tuple[str, float]], out: Path) -> None:
+def render_pie(title: str, slices: list[tuple[str, float]], out: Path, show_values: bool = True, unit: str = "") -> None:
     face_title = font(20)
     face = font(15)
     total = sum(val for _, val in slices) or 1
     box = 220
-    pad_top, pad_side, legend_h = 48, 20, 22 * max(len(slices), 1) + 16
-    width = pad_side * 2 + box
+    pad_top, pad_side, legend_h = (48 if title else 16), 20, 22 * max(len(slices), 1) + 16
+    probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
+    legend_w = max((measure(probe, f"{name}  {val:g}{unit} (100.0%)" if show_values else name, face)[0] + 22
+                    for name, val in slices), default=0)
+    width = max(pad_side * 2 + box, pad_side * 2 + legend_w, measure(probe, title, face_title)[0] + 24 if title else 0)
     height = pad_top + box + legend_h
     img = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(img)
@@ -257,7 +284,7 @@ def render_pie(title: str, slices: list[tuple[str, float]], out: Path) -> None:
         pct = 100.0 * val / total
         fill = BAR_FILLS[index % len(BAR_FILLS)]
         draw.rectangle((pad_side, ly + 4, pad_side + 14, ly + 16), fill=fill, outline=INK)
-        label = f"{name}  {val:g} ({pct:.1f}%)"
+        label = f"{name}  {val:g}{unit} ({pct:.1f}%)" if show_values else name
         draw.text((pad_side + 22, ly), label, fill=INK, font=face)
         ly += 22
     img.save(out, "PNG")
@@ -285,24 +312,31 @@ def main() -> int:
     table.add_argument("--headers", required=True)
     table.add_argument("--rows", nargs="+", required=True)
     table.add_argument("--out", type=Path, required=True)
-    bars = sub.add_parser("bars")
-    bars.add_argument("--title", default="")
-    bars.add_argument("--ylabel", default="")
-    bars.add_argument("--categories", required=True)
-    bars.add_argument("--series", nargs="+", required=True)
-    bars.add_argument("--out", type=Path, required=True)
+    for name in ("bars", "line"):
+        chart = sub.add_parser(name)
+        chart.add_argument("--title", default="")
+        chart.add_argument("--ylabel", default="")
+        chart.add_argument("--categories", required=True)
+        chart.add_argument("--series", nargs="+", required=True)
+        chart.add_argument("--no-values", action="store_true")
+        chart.add_argument("--compact", action="store_true")
+        chart.add_argument("--out", type=Path, required=True)
     pie = sub.add_parser("pie")
     pie.add_argument("--title", default="")
+    pie.add_argument("--unit", default="")
     pie.add_argument("--slices", nargs="+", required=True)
+    pie.add_argument("--no-values", action="store_true")
     pie.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.cmd == "table":
         render_table(args.title, args.headers.split(","), parse_rows(args.rows), args.out, args.unit, args.note)
-    elif args.cmd == "bars":
-        render_bars(args.title, args.ylabel, args.categories.split(","), parse_series(args.series), args.out)
+    elif args.cmd in ("bars", "line"):
+        render_bars(args.title, args.ylabel, args.categories.split(","), parse_series(args.series), args.out,
+                    kind=args.cmd, show_values=not args.no_values, compact=args.compact)
     else:
-        render_pie(args.title, [(name, float(val)) for name, val in (item.rsplit(",", 1) for item in args.slices)], args.out)
+        render_pie(args.title, [(name, float(val)) for name, val in (item.rsplit(",", 1) for item in args.slices)],
+                   args.out, show_values=not args.no_values, unit=args.unit)
     print(args.out)
     return 0
 

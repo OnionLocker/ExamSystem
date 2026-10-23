@@ -7,7 +7,7 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 from ziliao_agent_trial import Trial, verify
-from ziliao_agent_paper import sync_reviewed_version, import_checked
+from ziliao_agent_paper import sync_reviewed_version, import_checked, select_repair_materials
 
 
 def main():
@@ -96,6 +96,19 @@ def main():
             else:
                 raise AssertionError("Import failure must not be reported as success")
         print("PASS: import requires current receipt, uses selected database, propagates failure")
+        plans = [{"id": "M02"}, {"id": "M04"}]
+        batch_id = "batch"
+        evidence = trial.out / "evidence"
+        evidence.mkdir()
+        (evidence / "system-quality.json").write_text("{}", encoding="utf-8")
+        quality = {"results": [
+            {"question_id": "batch-M02-Q2", "correctness": {"verdict": "REJECT"}, "quality": {"verdict": "PASS"}},
+            {"question_id": "batch-M04-Q1", "correctness": {"verdict": "PASS"}, "quality": {"verdict": "PASS"}},
+        ]}
+        gate_text = "batch-M02-Q1 batch-M04-Q5 实收19题"
+        assert select_repair_materials(plans, batch_id, trial.out, gate_text, quality) == {"M02"}
+        (evidence / "system-quality.json").unlink()
+        assert select_repair_materials(plans, batch_id, trial.out, "硬闸门失败 batch-M04", {}) == {"M04"}
 
 
 if __name__ == "__main__":
