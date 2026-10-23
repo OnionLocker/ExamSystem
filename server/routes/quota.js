@@ -21,8 +21,9 @@ const AUTH_DIR = process.env.CLIPROXY_AUTH_DIR || path.join(os.homedir(), '.cli-
 const CLIPROXY_CONFIG =
   process.env.CLIPROXY_CONFIG || path.join(os.homedir(), 'CLIProxyAPI', 'config.yaml');
 
-// Antigravity CLI 的固定标识，换了拿不到数据
-const UA = 'antigravity/cli/1.0.13 (aidev_client; os_type=darwin; arch=arm64)';
+// 旧的 antigravity/cli/1.0.13 只会带回闲置的 Claude/GPT 组，Gemini 额度被藏起来，面板就一直是 100%。
+// 管理页用的 hub 标识能同时拿到 Gemini 和 Claude。
+const UA = 'antigravity/hub/2.23.0 darwin/arm64';
 const QUOTA_HOSTS = [
   'daily-cloudcode-pa.googleapis.com',
   'daily-cloudcode-pa.sandbox.googleapis.com',
