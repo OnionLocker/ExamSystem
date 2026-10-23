@@ -1,5 +1,41 @@
 """言语专用命题与语境复核；目录、补题、证据和入库仍由 quiz_lite 负责。"""
 import json
+from pathlib import Path
+
+
+def verbal_corpus_refs() -> str:
+    """从 data/manual-verbal-corpus/ 读取最近权威语料摘要，返回可注入参考段落。
+
+    只读最新一份 corpus.json，抽取 authority>=3 且含实质内容的条目；
+    无素材或读取失败时返回空字符串（调用方静默跳过，不影响原有出题）。
+    """
+    try:
+        base = Path(__file__).resolve().parents[1] / 'data' / 'manual-verbal-corpus'
+        days = sorted(base.iterdir(), reverse=True) if base.is_dir() else []
+        for day in days:
+            corpus = day / 'corpus.json'
+            if not corpus.is_file():
+                continue
+            data = json.loads(corpus.read_text(encoding='utf-8'))
+            refs = []
+            for cat, items in (data.get('results') or {}).items():
+                for item in items:
+                    if int(item.get('authority') or 0) < 3:
+                        continue
+                    summary = str(item.get('summary') or '')
+                    title = str(item.get('title') or '')
+                    if not title or len(summary) < 20:
+                        continue
+                    refs.append(f"- [{item.get('site')}] {title}：{summary[:300]}")
+                    if len(refs) >= 4:
+                        break
+                if len(refs) >= 4:
+                    break
+            if refs:
+                return '真实权威语料参考（仅作题材来源，可基于其主题改写题干，不得照抄原文段落）：\n' + '\n'.join(refs)
+    except Exception:
+        return ''
+    return ''
 
 USAGE_EXAMPLES = """以下是校准辨析方式的反例，不是指定题材、选词或禁用表：
 教育部《成语典》“饮鸩止渴”的比喻义是只顾解决眼前困难、不顾后患，不要求性命攸关；“因地制宜”按不同环境的实际情况采取适当办法，不限自然地理。
@@ -66,11 +102,25 @@ necessity_claims是程序摘取的高风险用法断言；整体解析仍按上�
 
 
 def writer_prompt(run, asks, kept, cards):
+    diffs = {str(a.get('difficulty') or 'auto') for a in asks}
+    extra = []
+    if 'hard' in diffs or 'mid' in diffs:
+        extra.append(
+            'mid/hard档要求接近省考真题火候：主旨句不得直接出现在“因此/然而/可见/关键在于/唯有/必须”等标志词后，'
+            '须藏在论证中段或需要考生归纳；干扰项做成语义纠缠型（半对半错、程度偏差、主体偷换、无中生有），'
+            '禁止一眼跑偏的选项；文段语体多样化，可用科普、文化、经济评论等，不全用政策腔。'
+        )
+    if 'hard' in diffs:
+        extra.append(
+            'hard档进一步要求：文段信息密度更高、论证层次更隐蔽；至少一个干扰项与正确项高度相似、'
+            '需仔细权衡才能排除；正确答案不要求绝对无懈可击，但必须是唯一最佳。'
+        )
     return '\n'.join([
         '你负责广东省考言语理解文字题。items每项一道，保留全局index。',
         json.dumps({'items': asks, 'topic_definitions': cards, 'already_kept': kept}, ensure_ascii=False),
         '目标是让学生练到指定知识点。目录定义限定考查范围，讲解卡的口诀只是参考，不要求复制其步骤或表达。',
         'easy/mid/hard只是命题倾向，auto自由安排。基础题也有训练价值，不为难度堆术语、空格或复杂干扰。',
+        *extra,
         '文段、选词、文体、设问和正确解法自由设计；语境自然、信息完整，四项A/B/C/D中有唯一正确或唯一最佳项。',
         '按指定题型命题：填空须有空格，混搭填空包含成语与实词或虚词，排序有句子和次序选项。不得把指定子点换成相邻考点。',
         '先完整代入选项，确认题文能支持择优。允许部分词都可用，只需整组选项能区分。不要为了证明标答而添设原文没有的前提。',
@@ -82,7 +132,10 @@ def writer_prompt(run, asks, kept, cards):
         '同批题材和辨析关系有变化，不照搬参考卡例题、不靠换词换场景重复同题；优先自然常见语境，不全用抽象技术议论文。',
         '附有退回原因时解决具体问题；repair=analysis_only时保留原题干、选项与答案，只修解析并接受重审。若题目本身双解或标答无依据，返回unsuitable:true。',
         'kaodian_signal说明实际考查动作。解析直接给学生，不输出试错、改题草稿。遵守每个item的brief。',
-        '近期题面（仅提醒避免重复，不是词语禁用表）：' + json.dumps(run.get('yanyu_avoid') or {}, ensure_ascii=False),
+        *([verbal_corpus_refs()] if verbal_corpus_refs() else []),
+        '近期题面与主题避让（recent_topics 是最近批次已用主题，本次必须避开相同或高度相似的主题；'
+        'family_counts 是近 14 天各主题族出现次数，出现 ≥2 次的族不得再用，可换考点、换问法、换角度，但文段主题不能重复；'
+        'recent_openings 是题干开头指纹，仅作参考）：' + json.dumps(run.get('yanyu_avoid') or {}, ensure_ascii=False),
         '只输出JSON：{"questions":[{"index":1,"stem":"...","kaodian_signal":"...",'
         '"options":[{"key":"A","text":"..."},{"key":"B","text":"..."},{"key":"C","text":"..."},{"key":"D","text":"..."}],'
         '"answer":"A","analysis":"..."}]}。使用中文引号，确实不能满足范围时可返回unsuitable:true。',

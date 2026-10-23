@@ -94,12 +94,47 @@ def framework_prompt(difficulty="mid", formats=None, slots=None, track=TRACK_GD)
 题目槽位：{json.dumps(slots or [], ensure_ascii=False)}。材料须提供槽位考法所需数据与口径；不得更换考法，不得把细节/综合槽改成混合或拉动。
 按槽位 difficulty_score 拉开梯度（1秒杀找数 / 2一步 / 3两步 / 4四陈述综合），禁止规划成全员3。比较类须预留可枚举的完整年份点。"""
 
+def real_gazette_refs() -> str:
+    """从 data/manual-ziliao-corpus/ 读取最近真实统计公报素材，返回可注入的参考段落。
+
+    只读最新一份 corpus.json，抽取 authority>=3 且含数字的 summary 片段；
+    无素材或读取失败时返回空字符串（调用方静默跳过，不影响原有出题）。
+    """
+    try:
+        base = ROOT / 'data' / 'manual-ziliao-corpus'
+        days = sorted(base.iterdir(), reverse=True) if base.is_dir() else []
+        for day in days:
+            corpus = day / 'corpus.json'
+            if not corpus.is_file():
+                continue
+            data = json.loads(corpus.read_text(encoding='utf-8'))
+            refs = []
+            for cat, items in (data.get('results') or {}).items():
+                for item in items:
+                    if int(item.get('authority') or 0) < 3:
+                        continue
+                    summary = str(item.get('summary') or '')
+                    if any(ch.isdigit() for ch in summary[:200]):
+                        refs.append(f"- [{item.get('site')}] {item.get('title')}：{summary[:400]}")
+                    if len(refs) >= 5:
+                        break
+                if len(refs) >= 5:
+                    break
+            if refs:
+                return '真实统计公报数据参考（仅作数据底数来源，可基于其数值构造自洽材料，不得照抄原文段落）：\n' + '\n'.join(refs)
+    except Exception:
+        return ''
+    return ''
+
+
 def material_prompt(frame: dict, item: dict, batch_id: str) -> str:
     track = frame.get("track") or TRACK_GD
+    real_refs = real_gazette_refs()
     return f"""你是独立的资料分析材料设计模型，只负责{item['id']}，不出题。
 产品轨：{"粤考日练" if track == TRACK_GD else "经典计算加练"}。{track_material_rules(track, item)}
 本批难度 {frame.get('difficulty', 'mid')}。方向与已确认考点：{json.dumps(item, ensure_ascii=False)}。生成一篇数据足够、篇幅适当的原创统计材料。
 {ZILIAO_INFERENCE_RULES}
+{real_refs}
 材料自洽，所有题目所需数字必须来自正文或结构化图表。地名用广东省及其地市真实名称（如广东省、深圳、广州、佛山、东莞），禁止G省、S市、某省等占位。
 {ZILIAO_FIGURE_RULES}
 先确定独立的底层数，再计算总量、合计、占比和总增速，禁止独立随机编造互相约束的统计数。

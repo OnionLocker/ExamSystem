@@ -1,5 +1,41 @@
 """文字判断专用命题与审核；复用 quiz_lite 的目录、补题、回执和入库。"""
 import json
+from pathlib import Path
+
+
+def logic_corpus_refs() -> str:
+    """从 data/manual-logic-corpus/ 读取最近科研/调查语料摘要，返回可注入参考段落。
+
+    只读最新一份 corpus.json，抽取 authority>=3 且含实质内容的条目；
+    无素材或读取失败时返回空字符串（调用方静默跳过，不影响原有出题）。
+    """
+    try:
+        base = Path(__file__).resolve().parents[1] / 'data' / 'manual-logic-corpus'
+        days = sorted(base.iterdir(), reverse=True) if base.is_dir() else []
+        for day in days:
+            corpus = day / 'corpus.json'
+            if not corpus.is_file():
+                continue
+            data = json.loads(corpus.read_text(encoding='utf-8'))
+            refs = []
+            for cat, items in (data.get('results') or {}).items():
+                for item in items:
+                    if int(item.get('authority') or 0) < 3:
+                        continue
+                    summary = str(item.get('summary') or '')
+                    title = str(item.get('title') or '')
+                    if not title or len(summary) < 20:
+                        continue
+                    refs.append(f"- [{item.get('site')}] {title}：{summary[:300]}")
+                    if len(refs) >= 4:
+                        break
+                if len(refs) >= 4:
+                    break
+            if refs:
+                return '真实科研/调查语料参考（仅作情境与题材来源，可基于其场景构造论证题干，不得照抄原文或编造具体数据结论）：\n' + '\n'.join(refs)
+    except Exception:
+        return ''
+    return ''
 
 WRITER_SCHEMA = {
     'type': 'object', 'required': ['questions'], 'additionalProperties': False,
@@ -91,10 +127,25 @@ CLAIMS = """你只检查逻辑教学断言是否有依据，不做选择题，�
 
 
 def writer_prompt(run, asks, kept, cards):
+    diffs = {str(a.get('difficulty') or 'auto') for a in asks}
+    extra = []
+    if 'hard' in diffs or 'mid' in diffs:
+        extra.append(
+            'mid/hard档要求接近省考真题火候：论证结构更隐蔽，不能靠标志词直接秒杀；'
+            '干扰项做成语义纠缠型（半对半错、程度偏差、偷换主体、以偏概全），禁止一眼跑偏；'
+            '情境优先采用科研实验、调查研究、机制分析等真实可感场景，避免空泛政策腔。'
+        )
+    if 'hard' in diffs:
+        extra.append(
+            'hard档进一步要求：至少两个干扰项与正确项高度相似，需仔细权衡论证力度或逻辑方向才能排除；'
+            '结论与论据之间的缺口更隐蔽，必要前提或削弱点不直接显式给出。'
+        )
     return '\n'.join([
         '你负责广东省考文字判断专项。items每项一道，保留全局index。',
         json.dumps({'items': asks, 'topic_definitions': cards, 'already_kept': kept}, ensure_ascii=False),
         DIFFICULTY, LOGIC,
+        *extra,
+        *([logic_corpus_refs()] if logic_corpus_refs() else []),
         '在考点内自由设计情境、设问和解法，四项A/B/C/D有唯一正确或唯一最佳项。不要写教材术语选择题代替实际推理。',
         '干扰项对应真实常见误推；同批变化论证关系或约束结构，不能只换人名、数字或行业。',
         'analysis直接给学生关键推理与其他选项的主要差异，简洁但充分；不要求固定标题、算式或穷尽所有解法。通常用100至200字说明关键依据即可（不是硬限），删除多余的强断言，不因选择题有最佳答案就宣称已证明因果。',
