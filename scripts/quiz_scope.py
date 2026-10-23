@@ -71,6 +71,9 @@ def catalog(conn=None) -> dict[str, dict]:
             if old not in aliases or aliases[old] == old:
                 continue
             target = resolve_database_alias(old, aliases)
+            # 旧大类标签指向本节点所属的知识点，只是说明旧大类就是这个知识点，不是把子考点并掉。
+            if target == fenbi_l3_of(node["tag"]) and "-@" in node["tag"]:
+                continue
             candidates = ([target] if target in nodes else mapped_content.get(target, []))
             if len(candidates) != 1 or candidates[0] == node["tag"]:
                 continue
