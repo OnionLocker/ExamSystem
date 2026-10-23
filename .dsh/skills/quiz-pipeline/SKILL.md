@@ -127,12 +127,13 @@ python3 -c "import sys; sys.path.insert(0,'scripts'); from yanyu_variety import 
   ],
   "review": {
     "blind": {"1": {"answer": "C", "steps": "...", "also_valid": [], "unsolvable": false, "actual_difficulty": "easy", "difficulty_reason": "..."}},
-    "examiner": {"1": {"verdict": "PASS", "actual_difficulty": "easy", "difficulty_reason": "...", "analysis_check": "...", "necessity_checks": [], "difficulty_ok": true, "kaodian_ok": true, "style_ok": true, "analysis_ok": true, "brief_ok": true, "issues": []}}
+    "examiner": {"1": {"verdict": "PASS", "actual_difficulty": "easy", "difficulty_reason": "...", "analysis_check": "...", "necessity_checks": [], "difficulty_ok": true, "kaodian_ok": true, "style_ok": true, "analysis_ok": true, "brief_ok": true, "variant_match": {"ok": true, "reason": "无细分考法"}, "issues": []}}
   }
 }
 ```
 
 - 言语题：考官项还需提供 `usage_checks`（用法断言逐条核查；解析无用法断言则给 []）；判断推理还需 `question_check`。言语 auto 难度按盲解官+考官两位**较低评级**记录（不虚标）。
+- 槽位分配了考法变式（`kaofa_variant_name`）时，考官项还须提供 `variant_match`：核对本题实际设问结构与解题动作是否匹配该变式，`ok` 必须为 true 且 `reason` 给依据；缺字段或被判定不匹配会被闸门打回重出。
 
 ### 出题要求（DSH 生成题目时）
 
@@ -156,10 +157,11 @@ python3 -c "import sys; sys.path.insert(0,'scripts'); from yanyu_variety import 
 ```
 你是广东省考行测命题审核官。用 read 读取 <题目文件>（含题干选项答案解析）。下面附带各题考点讲解卡 definition，作为考法口径依据。
 逐题核对五维：difficulty_ok（难度对档）/kaodian_ok（锁定考法，对照讲解卡）/style_ok（像真题）/analysis_ok（解析可复算）/brief_ok（无额外要求）。
-输出 JSON：{"examiner": {"1": {"verdict": "PASS", "actual_difficulty": "easy/mid/hard", "difficulty_reason": "...", "analysis_check": "重算过的推导", "necessity_checks": [{"claim": "原句", "valid": true, "reason": "依据"}], "usage_checks": [], "difficulty_ok": true, "kaodian_ok": true, "style_ok": true, "analysis_ok": true, "brief_ok": true, "issues": []}}}
+输出 JSON：{"examiner": {"1": {"verdict": "PASS", "actual_difficulty": "easy/mid/hard", "difficulty_reason": "...", "analysis_check": "重算过的推导", "necessity_checks": [{"claim": "原句", "valid": true, "reason": "依据"}], "usage_checks": [], "variant_match": {"ok": true, "reason": "依据"}, "difficulty_ok": true, "kaodian_ok": true, "style_ok": true, "analysis_ok": true, "brief_ok": true, "issues": []}}}
 - necessity_checks：从解析里提取含"必须/只能/必然/不能"的句子逐条核验；没有就给空数组（须与程序提取一致）
 - usage_checks：言语必需字段——核查解析中含用法限制断言的句子（搭配不当/仅用于/多用于/通常用于/适用对象/为中性词等），逐条判定 valid；没有就给空数组
 - question_check：判断推理必需字段——独立核对题面条件是否完整、答案是否唯一，给 {"valid": true, "reason": "PASS ..."} 形式
+- variant_match：题目文件里若注明了“本题考法变式：xxx”（brief 或 requested_slot 的 kaofa_variant_name），则必须核对本题实际设问结构与解题动作是否属于该变式（对照讲解卡 definition 与变式要求），返回 {"ok": true, "reason": "依据"}；退回该考点最常见默认考法、或只换场景不换解题动作 → ok=false 并在 reason 写明差在哪。没有注明考法变式就给 {"ok": true, "reason": "无细分考法"}。
 - 任一 false → REJECT 并在 issues 写明；全部 true 才 PASS
 ```
 
@@ -188,7 +190,7 @@ pwsh({
 
 - batch_id 用 `YYYYMMDD_dsh_<考点>_<两位序号>`（区别于 hermes 前缀）。
 - 成功回执 `status=success`、`imported=N`；失败把 `message` 原样告诉用户。
-- **闸门会校验**：盲解官答案必须等于题面键定答案、also_valid 为空、考官五维全 true、necessity_checks 覆盖全部必要性断言、批内不撞题（build_dsh_review 已加 duplicate_question 检查）、难度槽位一致、选项排序。审核证据不达标会被拒，不是故障。
+- **闸门会校验**：盲解官答案必须等于题面键定答案、also_valid 为空、考官五维全 true、necessity_checks 覆盖全部必要性断言、批内不撞题（build_dsh_review 已加 duplicate_question 检查）、难度槽位一致、选项排序。槽位分配了考法变式时还校验 `variant_match` 必须 ok=true。审核证据不达标会被拒，不是故障。
 - **被拒处理**：按 message 定位是哪题哪项没过，修对应题（题干/解析/审核证据），换新 batch_id 重导；已通过的题不用重写，保留在 review.json 里继续用。
 
 ### 注意事项

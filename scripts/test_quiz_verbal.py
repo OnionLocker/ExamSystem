@@ -144,7 +144,10 @@ class VerbalReview(unittest.TestCase):
             return {'questions': [dict(examiner_ok('mid'), id=i['question']['id'], necessity_checks=[dict(claim_index=j,valid=True,reason='测试原句核查') for j in range(len(i['necessity_claims']))]) for i in payload['items']]}
         with patch.object(quiz_lite, 'call', model):
             questions, _, log = quiz_lite.build_batch(self.run, 2, 'test')
-        self.assertEqual(calls, [[1, 2], [3, 4], [2]])
+        # 同轮各组并行出题，[1,2] 与 [3,4] 的先后取决于线程调度（不保证顺序）；最后一组是第 2 轮重写被退回的第 2 题，顺序确定。
+        self.assertEqual(len(calls), 3)
+        self.assertCountEqual(calls[:2], [[1, 2], [3, 4]])
+        self.assertEqual(calls[-1], [2])
         self.assertEqual([q['stem'] for q in questions], stems)
         self.assertEqual([q['difficulty'] for q in questions], [3] * 4)
         self.assertEqual(log[1]['asked'], [2])

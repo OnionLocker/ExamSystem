@@ -139,11 +139,14 @@ EXAMINER_SYSTEM = (
     "先尝试否定断言并构造满足原题的反例，再给判定；证明一种分配可行不等于排除了其他分配。"
     "不得遗漏；一条不成立即 analysis_ok=false。没有此类原句时返回空数组。\n"
     "brief_ok：逐题满足 declared_brief 的额外命题要求；跨题配额按 batch_slots 和整批题核对。无额外要求则为 true。\n"
+    "variant_match：declared_brief 里注明了“本题考法变式：xxx”时，必须核对本题实际设问结构与解题动作是否属于该变式，"
+    "返回 {\"ok\": true, \"reason\": \"依据\"}；退回该考点最常见默认考法、或只换场景不换解题动作 → ok=false 并在 reason 写明差在哪。"
+    "没有注明考法变式就给 {\"ok\": true, \"reason\": \"无细分考法\"}。\n"
     '只输出 JSON：{"questions":[{"id":"...","actual_difficulty":"mid",'
     '"difficulty_reason":"具体解法与删条件对照...","analysis_check":"关键推导与反例检查...",'
     '"necessity_checks":[{"claim_index":0,"valid":true,"reason":"具体推导或反例"}],'
     '"verdict":"PASS","difficulty_ok":true,'
-    '"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"brief_ok":true,"issues":[]}]}\n'
+    '"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"brief_ok":true,"variant_match":{"ok":true,"reason":"依据"},"issues":[]}]}\n'
     "五项全 true 才给 PASS；任一为 false 必须 REJECT，并在 issues 里写明具体哪一步错、怎么错的。"
 )
 
@@ -709,6 +712,14 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
             for label, ok in flags.items():
                 if ok is not True:
                     issues.append(label)
+            # 考法变式程序化核对（服务器链路，与 DSH 链路一致）：槽位分配了细分考法时，
+            # 考官必须证明本题确按该变式的设问结构与解题动作命题，退回默认考法/只换场景会被打回。
+            variant_name = str(per_item[index].get("kaofa_variant_name") or "").strip()
+            if variant_name:
+                match = examiner_item.get("variant_match")
+                if not isinstance(match, dict) or match.get("ok") is not True \
+                        or not str(match.get("reason") or "").strip():
+                    issues.append(f"未按细分考法「{variant_name}」命题，须对照该变式的解题动作重出")
             if str(examiner_item.get("verdict") or "").upper() != "PASS":
                 issues.append("考官未明确通过")
                 if isinstance(examiner_item.get("issues"), list):
@@ -745,6 +756,7 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
                 "style_ok": (examiner_item or {}).get("style_ok"),
                 "analysis_ok": (examiner_item or {}).get("analysis_ok"),
                 "brief_ok": (examiner_item or {}).get("brief_ok"),
+                "variant_match": (examiner_item or {}).get("variant_match"),
                 "issues": [str(item)[:300] for item in (examiner_item or {}).get("issues") or []],
             },
             "issues": issues,
@@ -861,6 +873,15 @@ def build_dsh_review(run: dict, review_path: Path, source: str, progress=None) -
                                ("brief_ok", "未满足额外命题要求")):
                 if examiner_item.get(key) is not True:
                     issues.append(label)
+            # 考法变式程序化核对：槽位分配了细分考法时，考官必须证明本题确按该变式的
+            # 设问结构与解题动作命题，退回最常见默认考法/只换场景会被打回。
+            variant_name = str(slot.get("kaofa_variant_name") or "").strip()
+            if variant_name:
+                match = examiner_item.get("variant_match")
+                if not isinstance(match, dict) or match.get("ok") is not True \
+                        or not str(match.get("reason") or "").strip():
+                    issues.append(f"未按细分考法「{variant_name}」命题，须对照该变式的解题动作重出")
+
             if run['module'] == '言语理解与表达' and run.get('yanyu_avoid') and examiner_item.get("topic_ok") is not True:
                 issues.append("考官未核验主题新颖度（topic_ok）")
             if str(examiner_item.get("verdict") or "").upper() != "PASS":
@@ -945,6 +966,7 @@ def build_dsh_review(run: dict, review_path: Path, source: str, progress=None) -
                 "analysis_ok": (examiner_item or {}).get("analysis_ok"),
                 "brief_ok": (examiner_item or {}).get("brief_ok"),
                 "topic_ok": (examiner_item or {}).get("topic_ok"),
+                "variant_match": (examiner_item or {}).get("variant_match"),
                 "issues": [str(item)[:300] for item in (examiner_item or {}).get("issues") or []],
             },
             "issues": [],

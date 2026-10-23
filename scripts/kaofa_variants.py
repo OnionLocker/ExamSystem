@@ -18,7 +18,10 @@ LEDGER = ROOT / "data" / "kaofa-variant-ledger.jsonl"
 MODULES = {"数量关系", "言语理解与表达", "判断推理"}
 RECENT_DAYS = 30
 HISTORY_DAYS = 120
-TYPICAL_HANDICAP = 2.0
+# 典型（最常见默认）考法按其真题频率降权：乘一个 <1 的系数，而不是固定加罚分。
+# 固定加罚分会导致高频典型考法被压到低频非典型后面（真题常考的反而少练）；乘系数则
+# 既让默认考法不易霸占轮转，又保留“真题频率高就该多出”的权重排序。
+TYPICAL_DISCOUNT = 0.6
 
 
 def load_catalog(path: Path | None = None) -> dict:
@@ -56,8 +59,12 @@ def usage(ledger: Path | None = None, today: dt.date | None = None) -> Counter:
 
 def pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random) -> dict:
     def score(v):
-        load = used[(tag, v["id"])] + (TYPICAL_HANDICAP if v.get("typical") else 0)
-        return (taken[v["id"]], load / max(1, int(v.get("weight") or 1)), rng.random())
+        w = max(1, int(v.get("weight") or 1))
+        if v.get("typical"):
+            # 典型考法按真实频率降权，但保留权重排序：高频典型仍优先于低频非典型。
+            w = max(1, int(round(w * TYPICAL_DISCOUNT)))
+        load = used[(tag, v["id"])]
+        return (taken[v["id"]], load / w, rng.random())
     return min(variants, key=score)
 
 

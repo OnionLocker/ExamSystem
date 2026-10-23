@@ -18,15 +18,32 @@ CATALOG = {TAG: {"title": "和定最值", "variants": [
 
 
 class VariantTest(unittest.TestCase):
-    def test_splits_slots_and_rotates_away_from_typical(self):
+    def test_splits_slots_into_one_per_question(self):
         slots = [{"tag": TAG, "count": 4}]
         with tempfile.TemporaryDirectory() as tmp:
             out = kv.assign_variants("数量关系", slots, seed="b1", catalog=CATALOG, ledger=Path(tmp, "l.jsonl"))
         self.assertEqual(len(out), 4)
         self.assertTrue(all(s["count"] == 1 for s in out))
         self.assertEqual(len({s["kaofa_variant"] for s in out}), 4)
-        self.assertNotEqual(out[0]["kaofa_variant"], "distinct")
         self.assertIn("本题考法变式", out[0]["brief"])
+
+    def test_high_weight_typical_can_beat_low_weight_non_typical_when_fresh(self):
+        """回归：典型考法被固定加罚分时，真题高频的典型会输给低频非典型（真题常考的反而不出）。
+        改为按权重乘系数降权后，高频典型在全新账本下不应被确定性排斥。"""
+        hot = "数量关系-数学运算-最值问题-@hot"
+        catalog = {hot: {"title": "高频典型", "variants": [
+            {"id": "typical-hot", "name": "高频典型", "ask": "高频典型考法", "weight": 5, "typical": True},
+            {"id": "cold", "name": "低频冷门", "ask": "低频冷门考法", "weight": 1},
+        ]}}
+        hot_picked = 0
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp, "l.jsonl")
+            for seed in range(60):
+                out = kv.assign_variants("数量关系", [{"tag": hot, "count": 1}], seed=str(seed),
+                                         catalog=catalog, ledger=ledger)
+                if out[0]["kaofa_variant"] == "typical-hot":
+                    hot_picked += 1
+        self.assertGreater(hot_picked, 0, "高频典型考法被确定性排斥（新账本下应有机会被选中）")
 
     def test_ledger_makes_next_batch_pick_unused(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -34,9 +51,11 @@ class VariantTest(unittest.TestCase):
             first = kv.assign_variants("数量关系", [{"tag": TAG, "count": 2}], seed="a", catalog=CATALOG, ledger=ledger)
             kv.record_variants("a", first, ledger)
             second = kv.assign_variants("数量关系", [{"tag": TAG, "count": 2}], seed="b", catalog=CATALOG, ledger=ledger)
-        never = {"repeat", "vote", "average"} - {s["kaofa_variant"] for s in first}
-        self.assertTrue(never)
-        self.assertEqual(second[0]["kaofa_variant"], never.pop())
+        used_in_first = {s["kaofa_variant"] for s in first}
+        second_variants = {s["kaofa_variant"] for s in second}
+        # 第二次批应优先补第一次没用到的变式（它们账本负载为 0，必先被选）
+        self.assertEqual(len(second_variants & used_in_first), 0)
+        self.assertEqual(len(second_variants), 2)
 
     def test_old_usage_decays_and_user_brief_wins(self):
         with tempfile.TemporaryDirectory() as tmp:
