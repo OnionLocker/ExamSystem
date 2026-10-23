@@ -929,11 +929,14 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
         else:
             if current_nodes is None:
                 current_nodes = catalog()
-            expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes)
+                from kaofa_variants import leaf_usage
+                leaf_counts = leaf_usage(getattr(args, "db", None) or DB)
+            expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes, usage=leaf_counts)
             scope_tag = expanded[0]["scope_tag"]
             offset = allocated.get(scope_tag, 0)
             if offset:
-                expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes, allocation_offset=offset)
+                expanded = scope_slots(tag_in, count, args.module, nodes=current_nodes, allocation_offset=offset,
+                                       usage=leaf_counts)
             allocated[scope_tag] = offset + count
             tag = expanded[0]["tag"]
         head = tag.split("-", 1)[0]

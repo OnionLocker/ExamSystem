@@ -586,35 +586,32 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
         if tag not in cards:
             cards[tag] = run_canon_card(run, tag)
         claims_by_id[str(question["external_id"])] = lite_necessity_claims(question, verbal=True, usage_v2=True, reasoning=run['module'] == '判断推理')
-        examiner_items.append(
-            {
-                "question": public(question, with_answer=True),
-                "declared_kaofa": tag,
-                "declared_difficulty": tier_of(run, slot),
-                "declared_brief": slot.get("brief", ""),
-                "blind_work": blind.get(str(question["external_id"])),
-                "necessity_claims": [{"claim_index": i, "claim": claim}
-                                     for i, claim in enumerate(claims_by_id[str(question["external_id"])])],
-            }
-        )
-        if run['module'] in {'数量关系', '言语理解与表达', '判断推理'}:
-            # Each examiner reasons independently of the other reviewer's answer.
-            examiner_items[-1].pop("blind_work")
+        item = {
+            "question": public(question, with_answer=True),
+            "declared_kaofa": tag,
+            "declared_difficulty": tier_of(run, slot),
+            "declared_brief": slot.get("brief", ""),
+            "necessity_claims": [{"claim_index": i, "claim": claim}
+                                 for i, claim in enumerate(claims_by_id[str(question["external_id"])])],
+        }
         if quantity:
-            examiner_items[-1]['sibling_topics'] = slot.get('sibling_topics', [])
-    examiner_payload = json.dumps(
-        {
-            "items": examiner_items,
-            "kaofa_canon": {tag: card for tag, card in cards.items() if card},
-            "batch_slots": run.get("slots", []),
-            "batch_questions": [public(q, with_answer=True) for q in (
-                (batch_questions or questions) if not quantity or any(s.get('brief') for s in per_item) else questions)],
-        },
-        ensure_ascii=False,
-    )
-    examiner = indexed(call(EXAMINER, "逐题审核：\n" + examiner_payload, 0.0, 300))
+            item['sibling_topics'] = slot.get('sibling_topics', [])
+        examiner_items.append(item)
 
-    usage = {}
+    def examiner_call(items):
+        payload = json.dumps(
+            {
+                "items": items,
+                "kaofa_canon": {tag: card for tag, card in cards.items() if card},
+                "batch_slots": run.get("slots", []),
+                "batch_questions": [public(q, with_answer=True) for q in (
+                    (batch_questions or questions) if not quantity or any(s.get('brief') for s in per_item) else questions)],
+            },
+            ensure_ascii=False,
+        )
+        return indexed(call(EXAMINER, "逐题审核：\n" + payload, 0.0, 300))
+
+    usage_spec = None
     if run['module'] in {'言语理解与表达', '判断推理'}:
         if run['module'] == '判断推理':
             from quiz_reasoning import CLAIMS as USAGE
@@ -1395,6 +1392,8 @@ def main() -> int:
                     expanded.append({**slot, 'count': 1, 'question_type': slot.get('question_type') or layout[cursor]})
                     cursor += 1
             slots = expanded
+        from kaofa_variants import assign_variants
+        slots = assign_variants(module, slots, seed=str(args.batch_id))
         total = sum(int(slot["count"]) for slot in slots)
         if args.difficulty == 'auto' and module not in {'数量关系', '言语理解与表达', '判断推理', *SOURCE_MODULES}:
             raise ValueError('auto 难度目前仅用于数量关系、言语理解与表达、文字判断、政治理论和常识判断')
@@ -1478,6 +1477,9 @@ def main() -> int:
         else:
             tick(stage="入库", detail="正在写入题库", passed=len(questions), progress=97, status="running")
             imported = import_batch(batch_dir, args.db)
+            if imported:
+                from kaofa_variants import record_variants
+                record_variants(str(args.batch_id), slots)
             tick(status="done", stage="已入库", detail=f"已入库 {imported} 题",
                  passed=len(questions), progress=100)
         print(

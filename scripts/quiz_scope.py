@@ -223,7 +223,8 @@ def source_name(module: str, slots: list[dict], date, difficulty=None) -> str:
     return f'广东省考行测-{module}{topic}-{level}-{date:%Y%m%d}'
 
 
-def scope_slots(scope, count, module="", *, conn=None, nodes=None, all_leaves=False, allocation_offset=0) -> list[dict]:
+def scope_slots(scope, count, module="", *, conn=None, nodes=None, all_leaves=False, allocation_offset=0,
+                usage=None) -> list[dict]:
     if isinstance(count, bool) or not isinstance(count, int) or not 1 <= count <= 15:
         raise ValueError("专项配题数量须为 1–15")
     if isinstance(allocation_offset, bool) or not isinstance(allocation_offset, int) or allocation_offset < 0:
@@ -274,6 +275,9 @@ def scope_slots(scope, count, module="", *, conn=None, nodes=None, all_leaves=Fa
     if all_leaves:
         count = len(pool)
     else:
+        if usage is not None and count < len(pool):
+            order = {node["tag"]: index for index, node in enumerate(pool)}
+            pool = sorted(pool, key=lambda node: (usage.get(node["tag"], 0), order[node["tag"]]))
         offset = allocation_offset % len(pool)
         pool = pool[offset:] + pool[:offset]
         pool = pool[:count]
