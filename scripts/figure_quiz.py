@@ -34,6 +34,11 @@ MAX_COUNT = 15
 MODULE_SCOPES = {"判断推理": "判断推理-图形推理", "科学推理": "科学推理"}
 
 
+def _get_families():
+    from figure_families import families
+    return families
+
+
 def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -41,7 +46,10 @@ def _digest(path: Path) -> str:
 def scope_families(tag: str) -> list:
     """考点或范围 -> 题型族列表。精确题型族优先；父级范围（如 空间类、科学推理-电学）展开成其下全部题型族。"""
     tag = (tag or "").strip()
-    fams = list(families().values())
+    try:
+        fams = list(_get_families()().values())
+    except (ImportError, ModuleNotFoundError):
+        return []
     exact = [f for f in fams if f.TAG == tag]
     if exact:
         return exact
@@ -87,6 +95,8 @@ def is_figure_request(args) -> bool:
 
 
 def plan(args) -> tuple[str, list[dict]]:
+    from figure_families import families
+    from figure_families.core import LETTERS, TIERS, make_item
     slots = []
     requested = requested_tags(args)
     if not requested:
@@ -278,6 +288,9 @@ def import_batch(batch_dir: Path, db: Path, batch_id: str) -> int:
 
 
 def run(args) -> int:
+    from figure_families import families
+    from figure_families.audit import audit_batch, figure_digests, part_paths
+    from figure_families.core import LETTERS, TIERS, make_item
     started = time.monotonic()
     os.environ["EXAM_DB"] = str(args.db)
     batch_dir = None
@@ -377,6 +390,7 @@ def list_families() -> list[dict]:
 
 
 if __name__ == "__main__":
+    from figure_families import families
     if len(sys.argv) > 1 and sys.argv[1] == "list":
         print(json.dumps(list_families(), ensure_ascii=False, indent=2))
         raise SystemExit(0)
