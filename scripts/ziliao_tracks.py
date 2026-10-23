@@ -58,9 +58,10 @@ GD_DESIGN_RULES = """粤考轨A命题与验收（难度偏易到中，宁要质�
 综合题四陈述以数据核算为主（估算比较、多步计算、真假混合），每句都要写出核算过程；
 “百分点与百分比混淆”“累计当当年”“缺数据无法比较”这类文字陷阱每篇至多一句，全卷合计至多两句。
 若有图表，本篇至少两个只在图表出现的数据进入题目计算，并在解析算式中写出；多年序列用于年均或增长量计算。
-禁止规划尚未支持的chart_match或四幅选项图。"""
+只有槽位kind=chart_match的题才能用选项图（options[].figure），其他题不得出选项图。"""
 
 from ziliao_checklist import QUESTION_RULES
+import model_router
 GD_DESIGN_RULES += "\n" + QUESTION_RULES
 
 GD_PAPER_RULES = """轨A整套要求（targeted_drill为true时只按指定槽位）：
@@ -160,27 +161,20 @@ _CMP_HINT = re.compile(r"最快|最多|最少|最高|最低|超过|高于|低于
 
 
 def resolve_gemini_model() -> str:
-    return (
-        os.environ.get("ZILIAO_GEMINI_MODEL")
-        or os.environ.get("DAILY_GEMINI_MODEL")
-        or os.environ.get("QUIZ_LITE_MODEL")
-        or "gemini-3.8-flash-high"
-    )
+    # 跟随模型路由；保留旧的按用途环境变量覆盖（显式设置时优先）
+    return model_router.resolve_model("ziliao")
 
 
 def has_gemini_credentials() -> bool:
-    if os.environ.get("CLIPROXY_API_KEY", "").strip():
+    try:
+        model_router.resolve_api_key()
         return True
-    env_path = Path.home() / ".hermes" / ".env"
-    if not env_path.is_file():
+    except RuntimeError:
         return False
-    for line in env_path.read_text().splitlines():
-        if line.startswith("CLIPROXY_API_KEY=") and line.split("=", 1)[1].strip():
-            return True
-    return False
 
 
-def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid", kind: str | None = None) -> dict:
+def _slot(family: str, tag: str, brief: str, paper_tier: str = "mid", kind: str | None = None,
+          quick: bool = False) -> dict:
     slot = {
         "tag": tag,
         "count": 1,

@@ -407,7 +407,7 @@ def cmd_generate(args) -> dict:
         "time_limit_min": None if drill else TIME_LIMIT_MIN,
         "source_note": f"材料为虚构，按 2024–2026 年广东省考申论{paper_type}真题的材料形式与设问方式命制。",
         "materials": materials, "questions": questions,
-        "meta": {"pipeline": "shenlun_quiz", "model": "gemini-3.8-flash-high", "paper_type": paper_type, "drill": drill,
+        "meta": {"pipeline": "shenlun_quiz", "model": MODEL, "paper_type": paper_type, "drill": drill,
                  "theme": theme, "plan": plan, "review_rounds": history,
                  "seconds": round(time.monotonic() - started, 1)},
     }

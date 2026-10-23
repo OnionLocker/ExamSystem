@@ -20,7 +20,12 @@ const MODEL = process.env.EXAM_ANALYSIS_MODEL || 'gemini-3.7-flash-high';
 const PROXY = (process.env.CLIPROXY_BASE_URL || 'http://127.0.0.1:8889/v1').replace(/\/v1\/?$/, '');
 const SEGMENT_SEC = 600;
 
+// 模型路由：active profile 决定用哪个模型 / 哪个 API。
+// 录屏复盘是视觉任务（看视频/PDF），active 模型不支持视觉时必须明确报错，不能静默失败。
+import { readModelRouter, activeModel as routeModel, activeBaseUrl as routeBase, activeApiKey as routeKey, supportsVision } from './modelRoute.js';
+
 const readKey = () => {
+  try { return routeKey(); } catch { /* fall through to cliproxy legacy */ }
   if (process.env.CLIPROXY_API_KEY) return process.env.CLIPROXY_API_KEY.trim();
   try {
     const t = fs.readFileSync(path.join(os.homedir(), '.hermes', '.env'), 'utf8');
@@ -28,6 +33,14 @@ const readKey = () => {
     if (line) return line.split('=')[1].trim().replace(/^["']|["']$/g, '');
   } catch { /* ignore */ }
   return '';
+};
+
+// 视觉门控：当前模型支持视觉时才用模型分析录屏/PDF；否则明确报错。
+const ensureVisionCapable = () => {
+  if (supportsVision()) return;
+  const r = readModelRouter();
+  const label = r.profile?.label || r.active || '当前模型';
+  throw new Error(`当前模型（${label}）不支持录屏复盘：录屏分析需要视觉能力，请先在「模型」页签切换到支持视觉的模型（如 Gemini）。`);
 };
 
 const setState = (id, patch) => {
@@ -84,8 +97,11 @@ const readSseText = async (res) => {
 };
 
 const askGemini = async (parts, { minTokens = 200, retries = 2, timeoutMs = 15 * 60 * 1000 } = {}) => {
+  ensureVisionCapable();
   const key = readKey();
-  if (!key) throw new Error('找不到 CLIPROXY_API_KEY');
+  if (!key) throw new Error('找不到模型 API key（检查 ~/.hermes/.env）');
+  const model = process.env.EXAM_ANALYSIS_MODEL || routeModel();
+  const proxy = routeBase().replace(/\/v1\/?$/, '');
 
   const body = JSON.stringify({
     contents: [{ role: 'user', parts }],
@@ -96,7 +112,7 @@ const askGemini = async (parts, { minTokens = 200, retries = 2, timeoutMs = 15 *
   for (let i = 0; i <= retries; i++) {
     try {
       // 非流式走 Antigravity 会被 5 分钟掐掉；SSE 才能把 10 分钟片子看完
-      const r = await fetch(`${PROXY}/v1beta/models/${MODEL}:streamGenerateContent?alt=sse`, {
+      const r = await fetch(`${proxy}/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         body,
@@ -441,6 +457,7 @@ const processOne = async (id) => {
   const segDir = path.join(VIDEO_DIR, `seg_${id}`);
 
   try {
+    ensureVisionCapable();
     setState(id, { status: 'running', stage: '读取录屏信息', progress: 3, error: null });
     if (!src) throw new Error('找不到上传的录屏文件');
 

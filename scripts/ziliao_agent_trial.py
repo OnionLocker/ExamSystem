@@ -252,7 +252,7 @@ def make_agent(trial, hermes_root):
         registry.register(name=name, toolset="examsystem_trial", schema={"name": name, "description": description,
             "parameters": {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}},
             handler=lambda args, _name=name, **kw: trial.invoke(_name, args))
-    agent = AIAgent(model=runner.MODEL, base_url=runner.BASE, api_key=os.environ["CLIPROXY_API_KEY"],
+    agent = AIAgent(model=runner.MODEL, base_url=runner.BASE, api_key=runner.key(),
                     provider="custom", api_mode="chat_completions", enabled_toolsets=["examsystem_trial"],
                     max_iterations=40, max_tokens=16000, tool_delay=0, quiet_mode=True,
                     skip_context_files=True, skip_memory=True, load_soul_identity=False,

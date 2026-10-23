@@ -24,10 +24,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from kaodian_taxonomy import canonicalize, is_fenbi_l3, parse_fenbi_tag, registered_knowledge_points, tags_for_canon_lookup, validate_ai_primary_tag
 from normalize_ai_batch import generation_payload_extras
 from scheduler_common import DB, ROOT, load_snapshot, local_today
+from service_node import service_node
+import model_router
 
 
-MODEL = "gemini-3.8-flash-high"
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
+MODEL = model_router.resolve_model("quiz_lite")
+BASE_URL = model_router.resolve_base_url()
 RETRIES = 3
 FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.I | re.M)
 FIGURE_HINT = re.compile(r"图形推理|科学推理|空间类")
@@ -58,6 +60,11 @@ MODULES = {
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
+    # 兼容旧行为：直接读 CLIPROXY_API_KEY
     if key := os.environ.get("CLIPROXY_API_KEY", "").strip():
         return key
     env_file = Path.home() / ".hermes" / ".env"
@@ -65,7 +72,7 @@ def api_key() -> str:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("CLIPROXY_API_KEY="):
                 return line.split("=", 1)[1].strip()
-    raise RuntimeError("CLIPROXY_API_KEY not found")
+    raise RuntimeError("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 def parse_json(text: str) -> dict:

@@ -7,12 +7,18 @@ import argparse
 import base64
 import json
 import os
+import sys
 import urllib.request
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_router
 
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("QUESTION_IMAGE_REVIEW_MODEL", "gemini-3-flash")
+if not model_router.supports_vision():
+    raise SystemExit("当前模型不支持图片审核（需要视觉能力）；请先在「模型」页签切换到支持视觉的模型（如 Gemini）。")
+
+BASE_URL = model_router.resolve_base_url()
+MODEL = model_router.resolve_model("image_review")
 
 SYSTEM_PROMPTS = {
     "candidate": """You are a blind civil-service exam candidate reviewing actual figures.
@@ -32,6 +38,10 @@ SETTER_VERDICT: PASS or REJECT""",
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     if key := os.environ.get("CLIPROXY_API_KEY", "").strip():
         return key
     env_file = Path.home() / ".hermes" / ".env"
@@ -39,7 +49,7 @@ def api_key() -> str:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("CLIPROXY_API_KEY="):
                 return line.split("=", 1)[1].strip()
-    raise SystemExit("CLIPROXY_API_KEY not found")
+    raise SystemExit("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 def image_part(path: Path) -> dict:

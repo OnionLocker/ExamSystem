@@ -44,9 +44,15 @@ from quiz_generator import (
     yanyu_contract_issues,
 )
 from scheduler_common import DB, ROOT, local_today
+from service_node import service_node
 from policy_sources import SOURCE_MODULES, source_pack
+import model_router
 
-MODEL = "gemini-3.8-flash-high"
+MODEL = model_router.resolve_model("quiz_lite")
+# CLIProxy 本身不限并发，按凭据轮询。启用中的反重力账号有 3 个，AI Studio key 也在池里。
+# 三路同时打满时，多路会停在 503 换凭据上直到客户端超时；两路可以完成。全流程共用这一个上限。
+MODEL_PARALLEL = 2
+_MODEL_SLOTS = threading.BoundedSemaphore(MODEL_PARALLEL)
 MAX_COUNT = 15
 # 凌晨的每日复习卷（batch_id 以 daily- 开头）整卷 20 题；Hermes 点名的专项仍是 15。
 DAILY_MAX_COUNT = 20

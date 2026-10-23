@@ -30,10 +30,11 @@ from normalize_ai_batch import generated_questions, scratchpad_leak
 from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper, validate_panduan_paper
 from ziliao_tracks import (resolve_gemini_model, ZILIAO_INFERENCE_RULES, ZILIAO_FIGURE_RULES,
                            GD_DESIGN_RULES, GD_PAPER_RULES, track_material_rules)
+import model_router
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
+BASE_URL = model_router.resolve_base_url()
 MODEL = resolve_gemini_model()
 MOBILE_WIDTH = 320
 RETRIES = 2
@@ -283,6 +284,10 @@ def sha256(path: Path) -> str:
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     if key := os.environ.get("CLIPROXY_API_KEY", "").strip():
         return key
     env_file = Path.home() / ".hermes" / ".env"
@@ -290,7 +295,7 @@ def api_key() -> str:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("CLIPROXY_API_KEY="):
                 return line.split("=", 1)[1].strip()
-    raise RuntimeError("CLIPROXY_API_KEY not found")
+    raise RuntimeError("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 def response_text(payload: dict) -> str:

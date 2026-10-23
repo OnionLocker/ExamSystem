@@ -20,14 +20,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from scheduler_common import DB, local_today
 from spoken_quiz_intent import parse_spoken_intent
+import model_router
 
+if not model_router.supports_audio():
+    raise SystemExit("当前模型不支持语音转写（需要音频能力）；请先在「模型」页签切换到支持语音的模型（如 Gemini）。")
 
-MODEL = os.environ.get("VOICE_TRANSCRIBE_MODEL", os.environ.get("DAILY_GEMINI_MODEL", "gemini-3.8-flash-high"))
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
+MODEL = model_router.resolve_model("voice")
+BASE_URL = model_router.resolve_base_url()
 FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.I | re.M)
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     if key := os.environ.get("CLIPROXY_API_KEY", "").strip():
         return key
     env_file = Path.home() / ".hermes" / ".env"
@@ -35,7 +42,7 @@ def api_key() -> str:
         for line in env_file.read_text(encoding="utf-8").splitlines():
             if line.startswith("CLIPROXY_API_KEY="):
                 return line.split("=", 1)[1].strip().strip("\"'")
-    raise RuntimeError("CLIPROXY_API_KEY not found")
+    raise RuntimeError("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 def taken_batch_ids(db_path: Path) -> set[str]:

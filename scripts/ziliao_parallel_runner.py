@@ -8,6 +8,8 @@ from collections import Counter
 from quiz_generator import resolve_slots, run_canon_card
 from kaodian_taxonomy import validate_ai_primary_tag
 from scheduler_common import DB
+from service_node import service_node
+import model_router
 from quality_orchestrator import equivalent, safe_eval, review_ziliao_material
 from ziliao_tracks import (
     TRACK_GD,
@@ -39,7 +41,7 @@ from ziliao_checklist import (VERSION as CHECKLIST_VERSION, MATERIAL_RULES, mate
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = resolve_gemini_model()
-BASE = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
+BASE = model_router.resolve_base_url()
 GATE_ATTEMPTS = 3
 TAGS = [
     "资料分析-基础知识-统计术语与常考概念", "资料分析-ABRX类-基期量计算与比较",
@@ -52,14 +54,20 @@ BALANCED_TAGS = TAGS[:]
 CALCULATION_RULE = """calculation.correct和options中的值必须是JSON数字或仅含数字及+-*/括号的算式字符串。
 禁止Python函数、变量、if、列表推导、count、index或中文；不要把题面选项字母写成算式。
 比较/排序/计数题直接填写独立算出的年份、排名或个数（例如2021或2），在解析中枚举全部比较点，
-系统另有不看验算清单的盲解核验。数值题选项用与正确值相同单位；不能为匹配答案随意增大容差。"""
+系统另有不看验算清单的盲解核验。数值题选项用与正确值相同单位；不能为匹配答案随意增大容差。
+区间式、升降+程度式选项不写options，改写ranges（A—D各一个[下界,上界]，左闭右开，null为无界）；
+图表匹配题写correct=1、options正确项1错项0，另加target（正确图各点算式数组）。"""
 
 def key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     if os.environ.get("CLIPROXY_API_KEY"):
         return os.environ["CLIPROXY_API_KEY"]
     for line in (Path.home() / ".hermes" / ".env").read_text().splitlines():
         if line.startswith("CLIPROXY_API_KEY="): return line.split("=", 1)[1].strip()
-    raise RuntimeError("CLIPROXY_API_KEY not found")
+    raise RuntimeError("模型 API key not found（检查 ~/.hermes/.env）")
 
 def call(prompt: str, max_tokens: int = 12000) -> dict:
     last = None

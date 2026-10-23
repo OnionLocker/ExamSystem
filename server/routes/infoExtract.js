@@ -3,38 +3,42 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { activeModel, activeBaseUrl, activeApiKey } from '../modelRoute.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const router = express.Router();
 
-const CLIPROXY_BASE = process.env.CLIPROXY_BASE_URL || 'http://127.0.0.1:8889/v1';
-const MODEL = 'gemini-3.8-flash-high';
-
 function getApiKey() {
-  if (process.env.CLIPROXY_API_KEY) return process.env.CLIPROXY_API_KEY;
-  const envPath = join(process.env.HOME, '.hermes', '.env');
+  // 跟随模型路由：key 由 router.json 的 api_key_env 决定（进程 env → ~/.hermes/.env）
   try {
-    const lines = readFileSync(envPath, 'utf-8').split('\n');
-    for (const line of lines) {
-      if (line.startsWith('CLIPROXY_API_KEY=')) {
-        return line.split('=')[1].trim();
+    return activeApiKey();
+  } catch (err) {
+    // 兼容旧行为：直接读 CLIPROXY_API_KEY
+    if (process.env.CLIPROXY_API_KEY) return process.env.CLIPROXY_API_KEY;
+    const envPath = join(process.env.HOME, '.hermes', '.env');
+    try {
+      const lines = readFileSync(envPath, 'utf-8').split('\n');
+      for (const line of lines) {
+        if (line.startsWith('CLIPROXY_API_KEY=')) {
+          return line.split('=')[1].trim();
+        }
       }
-    }
-  } catch { /* 配置文件不存在时继续抛出统一的缺少密钥错误 */ }
-  throw new Error('CLIPROXY_API_KEY not found');
+    } catch { /* 配置文件不存在时继续抛出统一的缺少密钥错误 */ }
+    throw err;
+  }
 }
 
 async function callGemini(messages) {
-  const response = await fetch(`${CLIPROXY_BASE}/chat/completions`, {
+  const response = await fetch(`${activeBaseUrl()}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${getApiKey()}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: activeModel(),
       messages,
       temperature: 0.7,
       max_tokens: 4000,

@@ -9,14 +9,20 @@ import io
 import json
 import os
 import re
+import sys
 import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageOps
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_router
 
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("QUESTION_IMAGE_MODEL", "gemini-3.1-flash-image")
+if not model_router.supports_image_output():
+    raise SystemExit("当前模型不支持生成图片（需要图像生成能力）；请先在「模型」页签切换到支持图片的模型（如 Gemini）。")
+
+BASE_URL = model_router.resolve_base_url()
+MODEL = model_router.resolve_model("image")
 STYLE_GUARD = """You are a professional figure illustrator for China's civil-service Administrative Aptitude Test.
 Render only the concrete figure facts supplied below.
 
@@ -33,6 +39,10 @@ Concrete IMAGE_FACTS:
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     key = os.environ.get("CLIPROXY_API_KEY", "").strip()
     if key:
         return key
@@ -40,7 +50,7 @@ def api_key() -> str:
     for line in env_file.read_text(encoding="utf-8").splitlines():
         if line.startswith("CLIPROXY_API_KEY="):
             return line.split("=", 1)[1].strip()
-    raise SystemExit("CLIPROXY_API_KEY not found")
+    raise SystemExit("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 def data_url(path: Path) -> str:

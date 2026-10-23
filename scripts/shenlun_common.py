@@ -19,8 +19,9 @@ from pathlib import Path
 
 from quiz_generator import BASE_URL, api_key
 from scheduler_common import DB, ROOT
+import model_router
 
-MODEL = "gemini-3.8-flash-high"
+MODEL = model_router.resolve_model("quiz_lite")
 LEVEL = "县镇卷"
 PAPER_TYPES = ("县镇卷", "省市卷")
 QTYPES = ("归纳概括", "综合分析", "提出对策", "贯彻执行", "文章写作")

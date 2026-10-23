@@ -23,14 +23,18 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import sys
 import fitz
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import model_router
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC_DIR = ROOT / "data" / "uploads" / "真题"
 OUT_DIR = ROOT / "data" / "zhenti"
 
-BASE_URL = os.environ.get("CLIPROXY_BASE_URL", "http://127.0.0.1:8889/v1").rstrip("/")
-MODEL = os.environ.get("CLIPROXY_PDF_MODEL", "gemini-3.7-flash-high")
+BASE_URL = model_router.resolve_base_url()
+MODEL = model_router.resolve_model("pdf")
 PAGES_PER_CHUNK = 4
 WORKERS = 2
 RETRIES = 3
@@ -69,6 +73,10 @@ PROMPT = """你是公考真题结构化标注员。下面是一份行测真题 P
 
 
 def api_key() -> str:
+    try:
+        return model_router.resolve_api_key()
+    except RuntimeError:
+        pass
     key = os.environ.get("CLIPROXY_API_KEY", "").strip()
     if key:
         return key
@@ -76,7 +84,7 @@ def api_key() -> str:
     for line in env.read_text(encoding="utf-8").splitlines():
         if line.startswith("CLIPROXY_API_KEY="):
             return line.split("=", 1)[1].strip()
-    raise SystemExit("CLIPROXY_API_KEY not found")
+    raise SystemExit("模型 API key not found（检查 ~/.hermes/.env）")
 
 
 KEY = api_key()

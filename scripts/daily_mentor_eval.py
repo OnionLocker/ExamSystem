@@ -40,30 +40,36 @@ FALLBACK_MODEL = "gemini-3.8-flash-high"
 def load_judge_endpoint():
     """评委模型复用 Hermes 自己那条通道。
 
-    以前这里单独存一份 URL + key：Hermes 换成本地代理之后没人同步这边，
-    脚本连着好几天拿 401，可失败只落在 cron 日志里，热力图就这么静悄悄断了。
-    改成直接读 Hermes 的 config.yaml —— 它自己能跑通，评委就一定能跑通。
-    环境变量只在配置里读不到时兜底。
+    优先走统一模型路由（model-router.json）：切换模型后评委自动跟随。
+    读取失败时回退到 Hermes config.yaml / 环境变量。
     """
     url = os.environ.get("CLIPROXY_URL", "")
     key = os.environ.get("CLIPROXY_API_KEY", "")
     model = MODEL_NAME
     try:
-        import yaml
-
-        with open(HERMES_CONFIG, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f) or {}
-        prov = (cfg.get("providers") or {}).get("cliproxy") or {}
-        base = str(prov.get("base_url") or "").rstrip("/")
-        if base:
-            url = base + "/chat/completions"
-        if prov.get("api_key"):
-            key = str(prov["api_key"])
-        hermes_model = cfg.get("model") or {}
-        if not model and isinstance(hermes_model, dict):
-            model = str(hermes_model.get("default") or "")
+        import model_router
+        url = model_router.resolve_base_url() + "/chat/completions"
+        key = model_router.resolve_api_key()
+        if not model:
+            model = model_router.resolve_model("daily")
     except Exception as e:
-        print(f"读取 Hermes 配置失败，回退到环境变量: {e}", file=sys.stderr)
+        print(f"读取模型路由失败，回退到 Hermes 配置: {e}", file=sys.stderr)
+        try:
+            import yaml
+
+            with open(HERMES_CONFIG, encoding="utf-8") as f:
+                cfg = yaml.safe_load(f) or {}
+            prov = (cfg.get("providers") or {}).get("cliproxy") or {}
+            base = str(prov.get("base_url") or "").rstrip("/")
+            if base:
+                url = base + "/chat/completions"
+            if prov.get("api_key"):
+                key = str(prov["api_key"])
+            hermes_model = cfg.get("model") or {}
+            if not model and isinstance(hermes_model, dict):
+                model = str(hermes_model.get("default") or "")
+        except Exception as e2:
+            print(f"读取 Hermes 配置失败，回退到环境变量: {e2}", file=sys.stderr)
     return url, key, model or FALLBACK_MODEL
 
 

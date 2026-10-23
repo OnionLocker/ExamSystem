@@ -24,6 +24,7 @@ import {
   Check,
   Focus,
   NotebookPen,
+  Cpu,
 } from 'lucide-react';
 import Login from './Login.jsx';
 import TopBarTimer from './pomodoro/TopBarTimer.jsx';
@@ -54,6 +55,7 @@ const ShenlunHome = lazy(() => import('./shenlun/ShenlunHome.jsx'));
 const ExamReview = lazy(() => import('./examReview/ExamReview.jsx'));
 const Knowledge = lazy(() => import('./knowledge/Knowledge.jsx'));
 const InfoExtract = lazy(() => import('./infoExtract/InfoExtract.jsx'));
+const ModelSettings = lazy(() => import('./model/ModelSettings.jsx'));
 
 // ---------------- date utils ----------------
 const pad = (n) => String(n).padStart(2, '0');
@@ -107,6 +109,7 @@ const NAV_ITEMS = [
   { id: 'aiPractice', icon: Target, label: 'AI 练题' },
   { id: 'shenlun', icon: NotebookPen, label: '申论' },
   { id: 'mixer', icon: Sliders, label: '声音混音器' },
+  { id: 'model', icon: Cpu, label: '模型' },
 ];
 
 const mergeNavOrder = (saved) => {
@@ -911,9 +914,18 @@ const AppInner = () => {
             />
           )}
 
-          {activeTab === 'shenlun' && <ShenlunHome />}
+          {activeTab === 'shenlun' && (
+            <div className={shenlunFs ? 'h-full min-h-0' : ''}>
+              <ShenlunHome
+                fullscreen={shenlunFullscreen}
+                onToggleFullscreen={() => setShenlunFullscreen((v) => !v)}
+              />
+            </div>
+          )}
 
           {activeTab === 'mixer' && <Mixer />}
+
+          {activeTab === 'model' && <ModelSettings />}
           </Suspense>
         </div>
       </main>

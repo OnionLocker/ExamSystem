@@ -416,6 +416,24 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
   const [pendingAudio, setPendingAudio] = useState(null);
   const [popout, setPopout] = useState(null);
   const [recording, setRecording] = useState(false);
+  // 当前模型是否支持语音输入（来自 /api/model 的 active profile）
+  const [voiceSupported, setVoiceSupported] = useState(null);
+  const [voiceBlockedLabel, setVoiceBlockedLabel] = useState('');
+  // 拉取当前模型的语音能力：active 模型不支持语音时禁用录音并提示
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const r = await api('/api/model');
+        if (!alive) return;
+        const active = (r.profiles || []).find((p) => p.id === r.active);
+        setVoiceSupported(active ? Boolean(active.supports_audio) : true);
+        setVoiceBlockedLabel(active ? active.label : '');
+      } catch { /* 拉不到就按支持处理（保持原行为） */ }
+    };
+    void load();
+    return () => { alive = false; };
+  }, [active]);
   const [recordSec, setRecordSec] = useState(0);
   const [recStream, setRecStream] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
@@ -1278,6 +1296,11 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
 
   const startRecording = useCallback(async () => {
     if (recording || busy || sendingRef.current) return;
+    if (voiceSupported === false) {
+      setBanner(`当前模型（${voiceBlockedLabel || '当前模型'}）不支持语音输入，请改用文字，或在「模型」页签切换模型。`);
+      pickAudioFile();
+      return;
+    }
     const canLive = Boolean(navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined');
     if (!canLive) {
       if (typeof window !== 'undefined' && !window.isSecureContext) {
@@ -1352,7 +1375,7 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
         ? '没有麦克风权限'
         : `录音失败：${err.message || err}`);
     }
-  }, [busy, recording, ingestAudioBlob, pickAudioFile]);
+  }, [busy, recording, voiceSupported, voiceBlockedLabel, ingestAudioBlob, pickAudioFile]);
 
   useEffect(() => () => {
     if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop();
@@ -2956,8 +2979,10 @@ const HermesChat = ({ seed, onSeedConsumed, active = true, fullscreen = false, o
             <button
               type="button"
               onClick={startRecording}
-              disabled={busy || attaching || recording}
-              title="口述给 Hermes（小键盘 .）"
+              disabled={busy || attaching || recording || voiceSupported === false}
+              title={voiceSupported === false
+                ? `当前模型（${voiceBlockedLabel || '当前模型'}）不支持语音输入`
+                : '口述给 Hermes（小键盘 .）'}
               className="p-3 rounded-2xl shrink-0 bg-white border border-black/10 text-[#1a1a1a] hover:bg-black/5 transition-colors disabled:opacity-30"
             >
               <Mic size={18} />
