@@ -102,7 +102,8 @@ ZILIAO_SKIP_KINDS = {"judge", "chart_match"}
 
 
 def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool = False, catalog: dict | None = None,
-                           ledger: Path = LEDGER, today: dt.date | None = None) -> list[dict]:
+                           ledger: Path = LEDGER, today: dt.date | None = None,
+                           boost: dict | None = None) -> list[dict]:
     """资料分析每题挑一个细分考法。整套卷按槽位题型（kind）与材料形态筛选，保留原有题型配额；
     专项不限题型，在该考点全部细分考法里轮转。综合判断、图表匹配、定性快判和锁定考法的槽位不动。"""
     catalog = load_catalog() if catalog is None else catalog
@@ -124,7 +125,7 @@ def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool 
             continue
         tag = str(slot["tag"])
         taken = taken_by_tag.setdefault(tag, Counter())
-        variant = _ziliao_pick(tag, pool, used, taken, rng)
+        variant = _ziliao_pick(tag, pool, used, taken, rng, boost)
         taken[variant["id"]] += 1
         brief = str(slot.get("brief") or "").strip()
         slot.update({"kaofa_variant": variant["id"], "kaofa_variant_name": variant["name"],
@@ -138,11 +139,15 @@ def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool 
 ZILIAO_RECENT_DECAY = 0.7
 
 
-def _ziliao_pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random) -> dict:
-    """资料分析按真题权重抽取：同批先不重复，近期每练一次权重乘 0.7，常考考法仍更常出现。"""
+def _ziliao_pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random,
+                 boost: dict | None = None) -> dict:
+    """资料分析按真题权重抽取：同批先不重复，近期每练一次权重乘 0.7，常考考法仍更常出现；
+    boost 为学员表现系数（错得多的细分考法 >1）。"""
+    boost = boost or {}
     least = min(taken[v["id"]] for v in variants)
     pool = [v for v in variants if taken[v["id"]] == least]
-    weights = [max(1, int(v.get("weight") or 1)) * ZILIAO_RECENT_DECAY ** used[(tag, v["id"])] for v in pool]
+    weights = [max(1, int(v.get("weight") or 1)) * ZILIAO_RECENT_DECAY ** used[(tag, v["id"])]
+               * boost.get((tag, v["id"]), 1.0) for v in pool]
     point = rng.random() * sum(weights)
     for variant, weight in zip(pool, weights):
         point -= weight

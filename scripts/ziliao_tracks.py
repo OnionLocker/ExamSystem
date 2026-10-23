@@ -547,11 +547,12 @@ def rotating_slot(kind: str, material_type: str, paper_tier: str, option_format:
 
 
 def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | None = None,
-                      recent_types: list | None = None) -> tuple[list[str], list[dict]]:
-    """返回（四篇材料形态，20 个槽位）。题型按真题权重×近期降权抽取，满足核心覆盖与配额。"""
+                      recent_types: list | None = None, kind_boost: dict | None = None) -> tuple[list[str], list[dict]]:
+    """返回（四篇材料形态，20 个槽位）。题型按真题权重×近期降权×学员表现系数抽取，满足核心覆盖与配额。"""
     import random
     rng = rng or random.Random()
     recent_kinds = recent_kinds or []
+    kind_boost = kind_boost or {}
     for _ in range(500):
         types = pick_material_types(rng, recent_types)
         want_chart = rng.random() < CHART_MATCH_RATE
@@ -574,7 +575,8 @@ def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | No
                     pool.append(kind)
                 if not pool:
                     break
-                kind = _weighted_pick(rng, pool, [KIND_SPECS[k]["weight"] * _recency_factor(k, recent_kinds) for k in pool])
+                kind = _weighted_pick(rng, pool, [KIND_SPECS[k]["weight"] * _recency_factor(k, recent_kinds)
+                                                  * kind_boost.get(k, 1.0) for k in pool])
                 chosen.append(kind)
                 counts[kind] += 1
                 detail_used = detail_used or KIND_FAMILY[kind] == FAMILY_DETAIL

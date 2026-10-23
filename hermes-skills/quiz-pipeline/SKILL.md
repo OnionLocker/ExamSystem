@@ -114,6 +114,8 @@ terminal({
   - 整套（`ziliao_agent_paper.py`）：题型仍按广东真题频率轮转、配额不变，脚本再给每题挑一个同题型、适配材料形态、近期练得少的细分考法；综合分析和图表匹配不分配。`--plan-only` 每题显示 `variant`。
   - 专项（`ziliao_parallel_runner.py --tag`）：不限题型，在该主标签全部细分考法里轮转，并按每篇材料形态过滤。用户只说“增长量出5题”时不写 brief，脚本自动铺开；明确锁定（“只练现期求增长量”）时按 brief 出。
   - 入库后两条通道都记入 `data/kaofa-variant-ledger.jsonl`。
+  - 整套默认按近 60 天做题表现加权（`scripts/ziliao_performance.py`，不用遗忘曲线）：错得多的题型和细分考法多出，稳定全对的少出，样本少时不调；`--no-adaptive` 关闭。每套的系数存在批次目录 `adaptive.json`。
+  - 每日资料分析整套由 Hermes 定时任务在 04:40 自动出（07:40 补跑，仅前一次失败时重出），入口 `scripts/daily_ziliao_scheduler.py`；当天已入库或上一套一题没做会跳过。用户问“今天资料怎么没出/按什么出”时先看 `python3 scripts/daily_ziliao_scheduler.py --dry-run`。
   - 新增资料分析考法必须带 `--kind`，按需带 `--types`、`--need`：`python3 scripts/kaofa_variants.py add '资料分析-ABRX类-增长量计算与现期推算' --name '…' --ask '…' --example '粤2025：…' --kind growth_amount --types years,line --need '连续多期数值'`。`kind` 不合法或 `types` 写错会被拒绝。
 
 ### 2b. 要多个考法混在一批，就用 `--blueprint`

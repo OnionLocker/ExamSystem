@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -25,6 +26,7 @@ from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd
                            material_question_plan, parse_difficulty_blueprint)
 from service_node import service_node
 from kaofa_variants import assign_ziliao_variants, record_variants
+from ziliao_performance import adaptive_plan, summary as performance_summary
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME_POOL = (
@@ -129,7 +131,11 @@ def main():
     parser.add_argument("--blueprint", help='只调难度：{"difficulty":"mid","slots":{"M02":"easy","M03-Q4":"hard"}}，'
                                             '槽位值也可写{"difficulty":"hard","note":"命题倾向"}；内联JSON或@路径')
     parser.add_argument("--plan-only", action="store_true", help="只打印整套槽位与难度，不调用模型")
+    parser.add_argument("--batch-id", help="指定批次号（每日调度用 daily-YYYYMMDD-ziliao-…）；默认自动生成")
+    parser.add_argument("--no-adaptive", action="store_true", help="不按做题表现调题型与细分考法权重")
     args = parser.parse_args()
+    if args.batch_id and not re.fullmatch(r"[\w-]{1,160}", args.batch_id):
+        parser.error("batch-id 只能包含字母、数字、汉字、下划线和连字符")
     try:
         blueprint_tier, overrides = parse_difficulty_blueprint(args.blueprint)
     except (ValueError, OSError) as exc:
@@ -141,16 +147,20 @@ def main():
         parser.error("--resume 沿用原批次计划，不能再改难度")
     started = time.monotonic()
     today = dt.date.today()
-    batch_id = today.strftime("%Y%m%d") + "_hermes_agents_" + uuid.uuid4().hex[:8]
+    batch_id = args.batch_id or today.strftime("%Y%m%d") + "_hermes_agents_" + uuid.uuid4().hex[:8]
     out = args.resume.resolve() if args.resume else args.output_dir.resolve() / batch_id
     batch_id = out.name
     rng = random.Random(batch_id)
+    adaptive = ({"kind_boost": {}, "variant_boost": {}} if args.no_adaptive
+                else adaptive_plan(args.db.resolve(), today, args.output_dir.resolve()))
     recent_kinds, recent_types = recent_rotation(args.output_dir.resolve())
-    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types)
-    slots = assign_ziliao_variants(apply_difficulty_overrides(rotated, overrides), seed=batch_id)
+    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types, adaptive["kind_boost"])
+    slots = assign_ziliao_variants(apply_difficulty_overrides(rotated, overrides), seed=batch_id,
+                                   boost=adaptive["variant_boost"])
     runner.validate_gd_quota(slots, count=20)
     if args.plan_only:
-        print(json.dumps({"difficulty": tier, "overrides": overrides, "materials": material_types, "slots": [
+        print(json.dumps({"difficulty": tier, "overrides": overrides, "adaptive": performance_summary(adaptive),
+                          "materials": material_types, "slots": [
             {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"),
              "variant": s.get("kaofa_variant_name"), "option_format": s.get("option_format"),
              "difficulty": s["difficulty"], "difficulty_score": s["difficulty_score"],
@@ -185,6 +195,7 @@ def main():
     else:
         for plan in plans:
             write(out / f"{plan['id']}-plan.json", plan)
+        write(out / "adaptive.json", performance_summary(adaptive))
         rounds, worker_runs = [], []
     print(f"batch_dir={out}", flush=True)
     from generation_progress import Job
