@@ -4,7 +4,7 @@
 //   remark-gfm    表格 / 删除线 / 任务列表
 //   remark-math + rehype-katex   LaTeX 公式（数资、资料分析必需）
 //   highlight.js  代码块高亮
-import { normalizeOriginalQuestionOptions } from './reviewFormat.js';
+import { normalizeOriginalQuestionOptions, repairMaterialCharts } from './reviewFormat.js';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -125,6 +125,37 @@ const questionNumberOf = (title) => {
 const looksLikePracticeReview = (content) =>
   /(?:\*\*作答结果\*\*|####\s*草稿诊断|>\s*\*\*原题\*\*|###\s*0*\d+\s*[·．])/.test(String(content || ''));
 
+const reportRequests = new Map();
+const fetchPracticeReport = (sessionId) => {
+  if (!reportRequests.has(sessionId)) {
+    const request = api(`/api/practice/sessions/${sessionId}/report`);
+    request.catch(() => reportRequests.delete(sessionId));
+    reportRequests.set(sessionId, request);
+  }
+  return reportRequests.get(sessionId);
+};
+
+const NO_MATERIALS = [];
+const usePracticeMaterials = (sessionId) => {
+  const [loaded, setLoaded] = useState(null);
+  useEffect(() => {
+    if (!sessionId) return undefined;
+    let cancelled = false;
+    fetchPracticeReport(sessionId)
+      .then((report) => {
+        if (cancelled) return;
+        const seen = new Map();
+        for (const item of report?.items || []) {
+          if (item?.material && !seen.has(item.material.id)) seen.set(item.material.id, item.material);
+        }
+        setLoaded({ sessionId, materials: [...seen.values()] });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [sessionId]);
+  return loaded?.sessionId === sessionId ? loaded.materials : NO_MATERIALS;
+};
+
 const usePracticeDrafts = (sessionId) => {
   const [map, setMap] = useState(null);
   const [panel, setPanel] = useState(null);
@@ -139,7 +170,7 @@ const usePracticeDrafts = (sessionId) => {
     }
     let cancelled = false;
     setMap(null);
-    api(`/api/practice/sessions/${sessionId}/report`)
+    fetchPracticeReport(sessionId)
       .then((report) => {
         if (cancelled) return;
         const mapped = new Map();
@@ -378,7 +409,11 @@ const MarkdownMessage = memo(function MarkdownMessage({
   draftLoadingNumber: draftLoadingNumberProp,
   onOpenDraft: onOpenDraftProp,
 }) {
-  const displayContent = useMemo(() => normalizeOriginalQuestionOptions(content), [content]);
+  const materials = usePracticeMaterials(practiceSessionId);
+  const displayContent = useMemo(
+    () => repairMaterialCharts(normalizeOriginalQuestionOptions(content), materials),
+    [content, materials],
+  );
   const own = usePracticeDrafts(
     !draftQuestionsProp && practiceSessionId ? practiceSessionId : null,
   );

@@ -7,6 +7,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { materialsFromReport, repairMaterialCharts } from '../src/hermes/reviewFormat.js';
+
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const STATE_DB = process.env.HERMES_STATE_DB
   || path.join(process.env.HERMES_HOME || path.join(os.homedir(), '.hermes'), 'state.db');
@@ -67,6 +69,15 @@ const fileOf = (seg) => {
   return path.join(ARCHIVE_DIRS[seg.kind], name);
 };
 
+const reportMaterials = (seg) => {
+  if (seg.kind !== 'practice') return [];
+  try {
+    return materialsFromReport(readFileSync(path.join(ROOT, seg.source), 'utf8'));
+  } catch {
+    return [];
+  }
+};
+
 const render = (seg, sessionId) => [
   `# Hermes 复盘讲评：${seg.title}`,
   '',
@@ -78,7 +89,7 @@ const render = (seg, sessionId) => [
   '',
   '## 讲评',
   '',
-  seg.review.join('\n\n') || '（本场讲评未完成）',
+  repairMaterialCharts(seg.review.join('\n\n'), reportMaterials(seg)) || '（本场讲评未完成）',
   ...(seg.followups.length ? ['', '## 复盘后的追问', ''] : []),
   ...seg.followups.flatMap((f) => [
     `### 我：${f.user.split('\n')[0].slice(0, 60) || '（附件或语音）'}`,

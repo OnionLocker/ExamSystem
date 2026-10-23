@@ -502,12 +502,14 @@ const getPracticeReport = (sessionId) => {
          q.content, q.options, q.question_type, q.sub_category, q.category,
          q.external_id,
          q.correct_answer, q.explanation, q.stem_images, q.explanation_images,
-         q.tags, q.source_evidence,
+         q.tags, q.source_evidence, q.material_id,
+         m.content AS material_content, m.images AS material_images,
          EXISTS(SELECT 1 FROM practice_answers earlier
                  WHERE earlier.question_id=pa.question_id AND earlier.session_id<pa.session_id) AS is_repeat,
          pd.question_id AS has_draft
        FROM practice_answers pa
        JOIN questions q ON q.id = pa.question_id
+       LEFT JOIN materials m ON m.id = q.material_id
        LEFT JOIN practice_drafts pd
          ON pd.session_id = pa.session_id AND pd.question_id = pa.question_id
        WHERE pa.session_id = ?
@@ -523,6 +525,11 @@ const getPracticeReport = (sessionId) => {
     question_id: r.question_id,
     external_id: r.external_id,
     content: r.content,
+    material: r.material_id && r.material_content ? {
+      id: r.material_id,
+      content: r.material_content,
+      images: parseOptions(r.material_images),
+    } : null,
     options: r.question_type === 'judge' ? judgeOptions(parseOptions(r.options)) : parseOptions(r.options),
     stem_images: parseOptions(r.stem_images),
     explanation_images: parseOptions(r.explanation_images),
@@ -584,6 +591,25 @@ const practiceReviewMarkdown = ({ session, items }) => {
   }
 
   lines.push('', '## 复盘重点');
+
+  // 资料分析等组题材料：先放整篇材料（正文+图表图片），再讲题，每题不重复材料。
+  // 材料可能被多题共用，按首次出现顺序去重渲染；图表数据在图片里，必须嵌 markdown 图片。
+  const materials = [];
+  for (const item of items) {
+    if (item.material && !materials.some((m) => m.id === item.material.id)) {
+      materials.push(item.material);
+    }
+  }
+  if (materials.length) {
+    for (const [index, material] of materials.entries()) {
+      lines.push('', `### 材料${'一二三四五六七八九十'[index] || index + 1}`, '');
+      lines.push(material.content || '');
+      for (const image of material.images || []) {
+        if (image) lines.push('', `![材料图表](${image})`);
+      }
+    }
+  }
+
   if (focusItems.length === 0) {
     lines.push('', '本场没有错题、草稿异常或明显慢题。正确且快速的题无需逐题展开。');
     return lines.join('\n');

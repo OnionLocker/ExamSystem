@@ -502,3 +502,84 @@ assert.equal(imageMimeOf({mime: 'image/jpeg', dataUrl: 'data:image/jpeg;base64,A
 assert.equal(imageMimeOf({mime: 'application/octet-stream', dataUrl: 'data:image/webp;base64,AA=='}), 'image/webp');
 assert.equal(imageMimeOf({mime: 'application/pdf', dataUrl: 'data:application/pdf;base64,AA=='}), '');
 assert.equal(imageMimeOf({name: 'fake.png', dataUrl: 'data:text/plain;base64,AA=='}), '');
+
+const { materialsFromReport, repairMaterialCharts } = await import('../src/hermes/reviewFormat.js');
+
+const reportMaterials = materialsFromReport([
+  '### 材料一', '', '2024年末，广东省共有医疗卫生机构6.32万个，比上年增加。', '',
+  '### 材料二', '', '2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。', '',
+  '![材料图表](/q-images/b1/m02-bars.png)', '',
+  '### 01 · 现期查找', '', '题干',
+].join('\n'));
+assert.deepEqual(reportMaterials.map((m) => m.images), [[], ['/q-images/b1/m02-bars.png']]);
+
+const fakeChart = [
+  '### 材料二', '',
+  '> **材料**', '> ',
+  '> 2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。', '> ',
+  '> <center><b>2019—2024年东莞市软件和信息技术服务业营业收入</b></center>', '> ',
+  '> ![图表](https://dummyimage.com/600x400/fff/000.png&text=2019:218.4,+2020:247.2)',
+  '> *(柱状图数据：2019年218.4亿元、2020年247.2亿元)*', '',
+  '### 06 · 增长量计算', '', '由柱状图数据，枚举各年增量。',
+].join('\n');
+const repaired = repairMaterialCharts(fakeChart, reportMaterials);
+assert.match(repaired, /> !\[材料图表\]\(\/q-images\/b1\/m02-bars\.png\)/);
+assert.doesNotMatch(repaired, /dummyimage|柱状图数据：|<center>/);
+assert.match(repaired, /由柱状图数据，枚举各年增量。/);
+
+const byContent = repairMaterialCharts(fakeChart.replace('### 材料二', '### 材料'), reportMaterials);
+assert.match(byContent, /m02-bars\.png/);
+
+const captionOnly = repairMaterialCharts([
+  '### 材料二', '> 2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。',
+  '> （柱状图数据：2019年218.4亿元）',
+].join('\n'), reportMaterials);
+assert.match(captionOnly, /m02-bars\.png/);
+assert.doesNotMatch(captionOnly, /柱状图数据/);
+
+const realKept = repairMaterialCharts([
+  '### 材料二', '> ![材料图表](/q-images/b1/m02-bars.png)', '> *(柱状图数据：2019年218.4亿元)*',
+].join('\n'), reportMaterials);
+assert.equal(realKept.match(/m02-bars\.png/g).length, 1);
+assert.doesNotMatch(realKept, /柱状图数据/);
+
+const unknown = repairMaterialCharts([
+  '> ![图表](https://dummyimage.com/600x400/fff/000.png&text=1)', '> *(柱状图数据：2019年218.4亿元)*',
+].join('\n'), []);
+assert.doesNotMatch(unknown, /dummyimage/);
+assert.match(unknown, /柱状图数据/);
+
+console.log('material chart repair: ok');
+
+const { reportTags } = await import('../server/knowledgeContent.js');
+assert.deepEqual(reportTags([
+  '| 题号 | 知识点 |', '|---|---|',
+  '| 6 | 资料分析-比重类-现期、基期与隔级比重 |',
+  '| 7 | 资料分析-ABRX类-增长率计算模型、资料分析-比重类-比重趋势、比重差与比值差 |',
+].join('\n')).map((e) => e.tag), [
+  '资料分析-比重类-现期、基期与隔级比重',
+  '资料分析-ABRX类-增长率计算模型',
+  '资料分析-比重类-比重趋势、比重差与比值差',
+]);
+console.log('report tags keep 、 inside one tag: ok');
+
+const transcribed = repairMaterialCharts([
+  '### 材料二', '', '> **材料**',
+  '> 2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。', '> ',
+  '> **2019—2024年东莞市营业收入柱状图**', '> 2019年：218.4亿元；2020年：247.2亿元。', '',
+  '> **原题**', '> 2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。下列说法正确的是', '',
+  '### 材料一', '', '> **材料**', '> 2024年末，广东省共有医疗卫生机构6.32万个，比上年增加。',
+].join('\n'), reportMaterials);
+assert.match(transcribed, /> !\[材料图表\]\(\/q-images\/b1\/m02-bars\.png\)/);
+assert.doesNotMatch(transcribed, /柱状图\*\*|218\.4/);
+assert.match(transcribed, /> \*\*原题\*\*\n> 2024年，东莞市/);
+assert.match(transcribed, /医疗卫生机构6\.32万个，比上年增加。$/);
+
+const tableRewrite = repairMaterialCharts([
+  '> 2024年，东莞市深入推进制造业数字化转型，数字经济核心产业发展势头良好。',
+  '> | 年份 | 收入 |', '> | :--- | :--- |', '> | 2019 | 218.4 |',
+].join('\n'), reportMaterials);
+assert.equal(tableRewrite.match(/m02-bars\.png/g).length, 1);
+assert.doesNotMatch(tableRewrite, /\| 2019/);
+assert.equal(repairMaterialCharts(tableRewrite, reportMaterials), tableRewrite);
+console.log('transcribed material chart restore: ok');
