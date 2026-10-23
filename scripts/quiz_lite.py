@@ -755,6 +755,222 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
     return out
 
 
+def build_dsh_review(run: dict, review_path: Path, source: str, progress=None) -> tuple[list[dict], dict, list[dict]]:
+    """DSH 出题模式：读入 DSH 生成的题目与子 agent 审核证据，不经服务器模型。
+
+    review.json 结构：
+    {
+      "module": "数量关系",                      # 须与 --module 一致
+      "auditor": "dsh-subagent",                # 审核方标识（evidence.model 用）
+      "questions": [                            # 原始题目，须含 stem/options/answer/analysis
+        {"stem": "...", "options": [{"key": "A", "text": "..."}, ...],
+         "answer": "A", "analysis": "...", "question_type": "single"}
+      ],
+      "review": {
+        "blind": {                              # 盲解官：DSH 子 agent 不给答案独立做题
+          "1": {"answer": "A", "steps": "...", "also_valid": [], "unsolvable": false,
+                "actual_difficulty": "mid", "difficulty_reason": "..."}
+        },
+        "examiner": {                           # 考官：看答案核对五维
+          "1": {"verdict": "PASS", "actual_difficulty": "mid", "difficulty_reason": "...",
+                "analysis_check": "...", "difficulty_ok": true, "kaodian_ok": true,
+                "style_ok": true, "analysis_ok": true, "brief_ok": true,
+                "necessity_checks": [{"claim": "原句", "valid": true, "reason": "..."}],
+                "issues": []}
+        }
+      }
+    }
+
+    结构校验（local_issues）与闸门逐项校验照常执行；necessity_checks 按原句顺序
+    与程序提取的 claims 对齐，逐条必须有效判定且全部成立。
+    """
+    import difflib
+
+    if not review_path.is_file():
+        raise ValueError(f"DSH 审核证据不存在：{review_path}")
+    try:
+        payload = json.loads(review_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"DSH 审核证据 JSON 无法解析：{exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("DSH 审核证据须为 JSON 对象")
+    run['dsh_auditor'] = str(payload.get("auditor") or "dsh-subagent").strip() or "dsh-subagent"
+    if str(payload.get("module") or "") != run["module"]:
+        raise ValueError(f"DSH 审核证据 module 不一致：{payload.get('module')}，期望 {run['module']}")
+    total = int(run["planned_count"])
+    per_item = expand_slots(run["slots"])
+    raw_questions = payload.get("questions") or []
+    if not isinstance(raw_questions, list) or len(raw_questions) != total:
+        raise ValueError(f"DSH 题目数量须为 {total}，实际 {len(raw_questions)}")
+    review = payload.get("review") or {}
+    blind_all = review.get("blind") or {}
+    examiner_all = review.get("examiner") or {}
+    if not isinstance(blind_all, dict) or not isinstance(examiner_all, dict):
+        raise ValueError("DSH 审核证据缺少 blind/examiner 角色记录")
+
+    questions: list[dict] = []
+    results: dict[str, dict] = {}
+    feedback: dict[int, list[str]] = {}
+    rejected = []
+    started = time.monotonic()
+
+    def note(**kwargs):
+        if progress is None:
+            return
+        try:
+            progress(**kwargs)
+        except Exception:
+            return
+
+    note(stage="DSH 导入", detail=f"校验 {total} 题结构与审核证据", progress=10, status="running")
+    for index, raw in enumerate(raw_questions):
+        if not isinstance(raw, dict):
+            raise ValueError(f"第 {index + 1} 题不是对象")
+        slot = per_item[index]
+        tag = str(slot["tag"])
+        qid = f"{run['batch_id']}_{index + 1:02d}"
+        question = stamp(run, raw, index, slot, source)
+        issues = local_issues(question)
+        if duplicate_question(question, questions):
+            issues.append("与本批次已有题目撞题，换情境与数据重出")
+        if issues:
+            feedback[index] = issues
+            rejected.append({"question_id": qid, "issues": issues})
+            continue
+        blind_item = blind_all.get(str(index + 1)) or {}
+        examiner_item = examiner_all.get(str(index + 1)) or {}
+        if not isinstance(blind_item, dict) or not isinstance(examiner_item, dict):
+            issues.append("缺少盲解官或考官证据")
+        else:
+            # 言语主题撞车硬检查：近 14 天已用主题族/相似指纹，本次必须换主题
+            if run['module'] == '言语理解与表达':
+                from yanyu_variety import topic_conflict
+                avoid = run.get('yanyu_avoid')
+                conflict = topic_conflict(str(question.get('stem') or ''), avoid)
+                if conflict:
+                    issues.append(conflict)
+            # 盲解官独立解出的答案必须等于题面键定答案
+            blind_answer = str(blind_item.get("answer") or "").strip().upper()
+            if blind_answer != str(question.get("answer") or "").strip().upper():
+                issues.append(f"盲解官独立解出 {blind_answer or '空'}，题面键定 {question.get('answer')}："
+                              f"{str(blind_item.get('steps') or '')[:400]}")
+            extras = [str(k).strip().upper() for k in (blind_item.get("also_valid") or []) if str(k).strip().upper() != str(question.get("answer") or "").strip().upper()]
+            if extras:
+                issues.append(f"盲解官认为 {'/'.join(extras)} 同样成立，答案不唯一")
+            if blind_item.get("unsolvable") is not False:
+                issues.append(f"盲解官认为此题无解：{str(blind_item.get('reason') or '')[:300]}")
+            for key, label in (("difficulty_ok", "难度不匹配声明档位"), ("kaodian_ok", "没落在指定考法上"),
+                               ("style_ok", "不像广东省考真题"), ("analysis_ok", "解析无法复算或与答案不自洽"),
+                               ("brief_ok", "未满足额外命题要求")):
+                if examiner_item.get(key) is not True:
+                    issues.append(label)
+            if run['module'] == '言语理解与表达' and run.get('yanyu_avoid') and examiner_item.get("topic_ok") is not True:
+                issues.append("考官未核验主题新颖度（topic_ok）")
+            if str(examiner_item.get("verdict") or "").upper() != "PASS":
+                issues.append("考官未明确通过")
+            # necessity_claims 程序化提取，necessity_checks 按原句顺序对齐
+            claims = lite_necessity_claims(question, verbal=run['module'] == '言语理解与表达',
+                                           usage_v2=True, reasoning=run['module'] == '判断推理')
+            checks = examiner_item.get("necessity_checks")
+            if not isinstance(checks, list) or len(checks) != len(claims):
+                issues.append("必要性断言核验未覆盖全部原句")
+            else:
+                aligned = []
+                for i, check in enumerate(checks):
+                    if not isinstance(check, dict):
+                        issues.append("必要性断言核验格式错误")
+                        break
+                    claim_text = str(check.get("claim") or "").strip()
+                    expected = str(claims[i] or "").strip()
+                    ratio = difflib.SequenceMatcher(None, claim_text, expected).ratio() if (claim_text and expected) else 0.0
+                    if ratio < 0.8:
+                        issues.append(f"必要性断言第 {i + 1} 条与原句不一致")
+                        break
+                    if not isinstance(check.get("valid"), bool) or not isinstance(check.get("reason"), str) or not check["reason"].strip():
+                        issues.append(f"必要性断言第 {i + 1} 条缺少有效判定或依据")
+                        break
+                    if not check["valid"]:
+                        issues.append(f"必要性断言不成立：{expected}；{check['reason']}")
+                        break
+                    aligned.append({"claim_index": i, "valid": True, "reason": check["reason"]})
+                else:
+                    examiner_item = {**examiner_item, "necessity_checks": aligned}
+            reasoning_issues = lite_reasoning_issues(blind_item or {}, examiner_item or {}, tier_of(run, slot),
+                                                     claims, run['module'], current_hard_policy(run['module']))
+            issues.extend(reasoning_issues)
+            if run['module'] == '判断推理':
+                check = examiner_item.get('question_check')
+                if not isinstance(check, dict) or check.get('valid') is not True or not str(check.get('reason') or '').startswith('PASS'):
+                    issues.append('独立题面核查缺失或未通过')
+        if issues:
+            feedback[index] = issues
+            rejected.append({"question_id": qid, "issues": issues})
+            continue
+        # auto 难度落库：言语/判断/政治常识按两位审核较低评级（与 build_batch 一致），其余按考官实际评级
+        _tier = tier_of(run, slot)
+        if _tier == 'auto':
+            _blind_level = TIER_TO_LEVEL.get((blind_item or {}).get('actual_difficulty'))
+            _examiner_level = TIER_TO_LEVEL.get((examiner_item or {}).get('actual_difficulty'))
+            if _blind_level is None or _examiner_level is None:
+                issues.append(f"第 {index + 1} 题盲解官或考官未给出有效实际难度")
+                feedback[index] = issues
+                rejected.append({"question_id": qid, "issues": issues})
+                continue
+            if run['module'] in {'言语理解与表达', '判断推理', *SOURCE_MODULES}:
+                question['difficulty'] = min(_blind_level, _examiner_level)
+            else:
+                question['difficulty'] = _examiner_level
+        # 通过：按 review() 输出结构记录（necessity_checks 已对齐）
+        results[qid] = {
+            "question_id": qid,
+            "answer": str(question.get("answer") or ""),
+            "verdict": "PASS",
+            "blind": {
+                "actual_difficulty": (blind_item or {}).get("actual_difficulty"),
+                "difficulty_reason": (blind_item or {}).get("difficulty_reason"),
+                "answer": str((blind_item or {}).get("answer") or "").strip().upper(),
+                "also_valid": [str(k).strip().upper() for k in (blind_item or {}).get("also_valid") or []],
+                "unsolvable": (blind_item or {}).get("unsolvable"),
+                "steps": str((blind_item or {}).get("steps") or "")[:1500],
+            },
+            "examiner": {
+                "actual_difficulty": (examiner_item or {}).get("actual_difficulty"),
+                "difficulty_reason": (examiner_item or {}).get("difficulty_reason"),
+                "analysis_check": (examiner_item or {}).get("analysis_check"),
+                "necessity_checks": (examiner_item or {}).get("necessity_checks"),
+                "usage_checks": (examiner_item or {}).get("usage_checks"),
+                "question_check": (examiner_item or {}).get("question_check"),
+                "necessity_claims": claims,
+                "verdict": str((examiner_item or {}).get("verdict") or "REJECT").upper(),
+                "difficulty_ok": (examiner_item or {}).get("difficulty_ok"),
+                "kaodian_ok": (examiner_item or {}).get("kaodian_ok"),
+                "style_ok": (examiner_item or {}).get("style_ok"),
+                "analysis_ok": (examiner_item or {}).get("analysis_ok"),
+                "brief_ok": (examiner_item or {}).get("brief_ok"),
+                "topic_ok": (examiner_item or {}).get("topic_ok"),
+                "issues": [str(item)[:300] for item in (examiner_item or {}).get("issues") or []],
+            },
+            "issues": [],
+        }
+        questions.append(question)
+
+    if rejected or len(questions) != total:
+        passed_indices = {int(str(q["external_id"]).rsplit("_", 1)[1]) - 1 for q in questions}
+        detail = "; ".join(
+            f"第{index + 1}题：{'、'.join(feedback.get(index, ['未产出']))[:300]}"
+            for index in range(total) if index not in passed_indices
+        )
+        raise RuntimeError(f"DSH 审核未通过 {len(questions)}/{total} 题（{detail}）")
+    log = [{
+        "round": 1,
+        "asked": list(range(1, total + 1)),
+        "accepted": total,
+        "rejected": rejected,
+        "seconds": round(time.monotonic() - started, 1),
+    }]
+    return questions, results, log
+
+
 def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = None, progress=None) -> tuple[list[dict], dict, list[dict]]:
     """出稿 → 双审 → 只重出不合格的题。返回题目、逐题证据、每轮记录。"""
     if audit_dir is not None and audit_dir.exists() and any(audit_dir.iterdir()):
@@ -1041,7 +1257,7 @@ def write_batch(run: dict, batch_dir: Path, questions: list[dict], source: str) 
     )
 
 
-def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) -> None:
+def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict], *, model_label: str | None = None) -> None:
     """写逐题复核证据并签发精简收据，import-batch 仍然要校验它。"""
     questions = json.loads((batch_dir / "questions.json").read_text(encoding="utf-8"))
     ids = [str(question["external_id"]) for question in questions]
@@ -1049,7 +1265,7 @@ def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) 
         "version": 9 if run['module'] == '判断推理' else 8 if run['module'] in SOURCE_MODULES else 7 if run['module'] == '言语理解与表达' else 3,
         "kind": "examsystem-lite-review",
         "batch_id": run["batch_id"],
-        "model": MODEL,
+        "model": model_label or MODEL,
         "reviewed_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "verdict": "PASS" if all(results[qid]["verdict"] == "PASS" for qid in ids) else "REJECT",
         "rounds": log,
@@ -1060,7 +1276,7 @@ def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) 
     if run['module'] in SOURCE_MODULES:
         evidence['policy_difficulty_policy'] = POLICY_PRACTICE_POLICY
     if run['module'] in {'言语理解与表达', '判断推理'}:
-        evidence['usage_model'] = MODEL
+        evidence['usage_model'] = model_label or MODEL
     if run['module'] == '数量关系':
         evidence['quantity_hard_policy'] = QUANTITY_HARD_POLICY
     elif run['module'] == '言语理解与表达':
@@ -1082,7 +1298,7 @@ def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) 
         "lite_review": {
             "path": str(evidence_path.relative_to(batch_dir)),
             "sha256": digest(evidence_path),
-            "model": MODEL,
+            "model": model_label or MODEL,
         },
     }
     (batch_dir / RECEIPT).write_text(
@@ -1132,6 +1348,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--sources', help='政治/常识权威资料 ID，逗号分隔；默认按标签匹配')
     parser.add_argument('--as-of', help='资料截止日期 YYYY-MM-DD，默认今天')
     parser.add_argument('--question-type', choices=['single', 'multi', 'judge'], help='政治单考点可指定题型')
+    parser.add_argument(
+        '--dsh-import', type=Path,
+        help='DSH 出题模式：读入 DSH 生成的题目+审核证据 JSON（由 DSH 子 agent 审核，不经服务器模型），'
+             '复用现有签名/闸门/入库管线。JSON 结构见 build_dsh_review。',
+    )
     return parser.parse_args()
 
 
@@ -1235,14 +1456,18 @@ def main() -> int:
         register_slots(slots, args.db)
         audit_token = MODEL_AUDIT_DIR.set(batch_dir / 'model-responses')
         try:
-            questions, results, log = build_batch(run, max(1, args.rounds), source, batch_dir, progress=tick)
+            if args.dsh_import:
+                questions, results, log = build_dsh_review(run, args.dsh_import, source, progress=tick)
+            else:
+                questions, results, log = build_batch(run, max(1, args.rounds), source, batch_dir, progress=tick)
         finally:
             MODEL_AUDIT_DIR.reset(audit_token)
         # 复核与签发之间不许有任何东西再动 questions.json，否则证据对不上题面。
         tick(stage="签收", detail=f"已过审 {len(questions)}/{total}", passed=len(questions),
              progress=92, round_no=len(log), status="running")
         write_batch(run, batch_dir, questions, source)
-        sign(batch_dir, run, results, log)
+        sign(batch_dir, run, results, log,
+             model_label=run.get('dsh_auditor') if args.dsh_import else None)
         from generation_gate import verify
         tick(stage="闸门", detail="正在核验收据", passed=len(questions), progress=95, status="running")
         verify(batch_dir)
