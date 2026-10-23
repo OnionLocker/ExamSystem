@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, Check, X, ScanSearch } from 'lucide-react';
+import { useIsPhone } from './useIsPhone.js';
 import { generate } from './generators.js';
 import { playBgm, stopBgm } from './bgm.js';
 import { playCorrect, playWrong } from './sfx.js';
@@ -51,6 +53,7 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
   const [revealed, setRevealed] = useState(false);
   const [frozenMs, setFrozenMs] = useState(null);
   const [fontId, setFontId] = useState('m');
+  const isPhone = useIsPhone();
   const ready = !!session?.ready;
   const isRace = session?.mode === 'race';
   const fontPx = FONT_SIZES.find((f) => f.id === fontId)?.px ?? 20;
@@ -165,10 +168,37 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
   const hasMaterial = Array.isArray(current.material);
   const fontNeeded = hasMaterial;
 
-  return (
-    <div className="max-w-3xl mx-auto relative pb-8">
-      <BgmControls position="top-right" />
-      <div className="flex items-center justify-between mb-4">
+  const btnPad = isPhone ? 'py-5 text-lg' : 'py-4';
+  const actions = !revealed ? (
+    <button
+      onClick={reveal}
+      className={`w-full bg-[#ff6b6b] text-white font-black ${btnPad} rounded-2xl hover:brightness-110 transition-all tracking-widest text-sm`}
+    >
+      完成
+    </button>
+  ) : (
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        onClick={() => settle(true)}
+        className={`flex items-center justify-center gap-2 bg-emerald-500 text-white font-black ${btnPad} rounded-2xl hover:brightness-110 transition-all`}
+      >
+        <Check size={18} strokeWidth={3} />
+        对
+      </button>
+      <button
+        onClick={() => settle(false)}
+        className={`flex items-center justify-center gap-2 bg-[#ff6b6b] text-white font-black ${btnPad} rounded-2xl hover:brightness-110 transition-all`}
+      >
+        <X size={18} strokeWidth={3} />
+        错
+      </button>
+    </div>
+  );
+
+  const tree = (
+    <div className={isPhone ? 'relative px-3 pt-1 pb-36' : 'max-w-3xl mx-auto relative pb-8'}>
+      <BgmControls position={isPhone ? 'top-[max(0.5rem,env(safe-area-inset-top))] right-2' : 'top-right'} />
+      <div className={`flex items-center justify-between mb-4 ${isPhone ? 'h-12 pr-12' : ''}`}>
         <button
           onClick={handleExit}
           className="flex items-center space-x-2 text-slate-400 hover:text-black transition-colors"
@@ -191,7 +221,7 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
 
       <div className="relative">
         <div
-          className={`bg-[#1a1a1a] text-white rounded-[2.5rem] p-7 md:p-9 shadow-xl shadow-black/10 relative overflow-hidden ${
+          className={`bg-[#1a1a1a] text-white rounded-[1.75rem] sm:rounded-[2.5rem] p-5 sm:p-7 md:p-9 shadow-xl shadow-black/10 relative overflow-hidden ${
             isRace && ready ? 'race-bg' : ''
           }`}
         >
@@ -306,36 +336,12 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
               </div>
             )}
 
-            <div className="mt-6">
-              {!revealed ? (
-                <button
-                  onClick={reveal}
-                  className="w-full bg-[#ff6b6b] text-white font-black py-4 rounded-2xl hover:brightness-110 transition-all tracking-widest text-sm"
-                >
-                  完成
-                </button>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => settle(true)}
-                    className="flex items-center justify-center gap-2 bg-emerald-500 text-white font-black py-4 rounded-2xl hover:brightness-110 transition-all"
-                  >
-                    <Check size={18} strokeWidth={3} />
-                    对
-                  </button>
-                  <button
-                    onClick={() => settle(false)}
-                    className="flex items-center justify-center gap-2 bg-[#ff6b6b] text-white font-black py-4 rounded-2xl hover:brightness-110 transition-all"
-                  >
-                    <X size={18} strokeWidth={3} />
-                    错
-                  </button>
-                </div>
-              )}
-            </div>
+            {!isPhone && <div className="mt-6">{actions}</div>}
 
             <div className="mt-5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest opacity-40">
-              <span>{revealed ? '1 对 · 2 错 · Esc 跳过' : 'Enter / 空格 完成 · Esc 跳过'}</span>
+              <span>
+                {isPhone ? '' : revealed ? '1 对 · 2 错 · Esc 跳过' : 'Enter / 空格 完成 · Esc 跳过'}
+              </span>
               <span>
                 自报正确 {correctCount} / 已答 {records.length}
               </span>
@@ -345,7 +351,7 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
 
         {!ready && (
           <div
-            className="absolute inset-0 z-30 rounded-[2.5rem] overflow-hidden flex items-center justify-center cursor-pointer"
+            className="absolute inset-0 z-30 rounded-[1.75rem] sm:rounded-[2.5rem] overflow-hidden flex items-center justify-center cursor-pointer min-h-[50dvh]"
             onClick={handleReady}
             role="button"
             tabIndex={0}
@@ -360,7 +366,7 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
                 className="inline-block text-4xl md:text-5xl font-black italic mb-4"
                 style={{ color: isRace ? '#ff6b6b' : '#8d7348' }}
               >
-                按 SPACE 开始
+                {isPhone ? '点击开始' : '按 SPACE 开始'}
               </div>
               <p className="text-sm font-medium text-white/60">
                 想好后点完成看答案，自己点对或错。排位全凭自觉。
@@ -369,6 +375,21 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
           </div>
         )}
       </div>
+
+      {isPhone && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[105] px-3 pt-1 bg-[#f3e6c8] border-t border-[#e0cfa8] shadow-[0_-8px_20px_rgba(0,0,0,0.06)]"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))' }}
+        >
+          <button
+            onClick={() => settle(false, true)}
+            className="w-full mb-2 text-xs font-black tracking-widest text-[#6b5428]/70 py-1"
+          >
+            跳过本题
+          </button>
+          {actions}
+        </div>
+      )}
 
       <style>{`
         .race-bg::before {
@@ -380,6 +401,17 @@ const SelfReportSession = ({ session, setSession, onExit, onFinishRace }) => {
         }
       `}</style>
     </div>
+  );
+
+  if (!isPhone) return tree;
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] bg-[#f3e6c8] overflow-y-auto overscroll-contain"
+      style={{ touchAction: 'manipulation', paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      {tree}
+    </div>,
+    document.body,
   );
 };
 

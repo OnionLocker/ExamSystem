@@ -36,6 +36,7 @@ import { loadLog, summarize, ENTRY_TYPES, digestDay, loadDigest } from './studyL
 import { KNOWLEDGE_OPEN_EVENT } from './knowledge/nav.js';
 import { checkAuth, clearToken, getToken, logout as apiLogout, setOnUnauthorized } from './api.js';
 import { unlockBgmAudio } from './practice/bgm.js';
+import { useIsPhone } from './practice/useIsPhone.js';
 import { cloudGet, cloudSet, hydrateCloudStorage, flushCloudPending } from './cloudStorage.js';
 import LoadingState from './LoadingState.jsx';
 
@@ -223,10 +224,12 @@ const AppInner = () => {
     navDrag.current = null;
     setNavDragging(null);
   };
+  const [phoneNavOpen, setPhoneNavOpen] = useState(false);
   const selectNav = (id) => {
     if (navSorting || navDrag.current?.moved) return;
     if (id === 'practice') unlockBgmAudio();
     setActiveTab(id);
+    setPhoneNavOpen(false);
   };
   const toggleNavSorting = () => {
     navDrag.current = null;
@@ -260,8 +263,14 @@ const AppInner = () => {
     setHermesSeed({ upload: file, nonce: Date.now() });
     setActiveTab('hermes');
   };
-  const [hermesFullscreen, setHermesFullscreen] = useState(readHermesFs);
+  const [hermesFullscreen, setHermesFullscreen] = useState(() => readStoredFullscreen(HERMES_FS_KEY));
+  const [shenlunFullscreen, setShenlunFullscreen] = useState(() => readStoredFullscreen(SHENLUN_FS_KEY));
   const hermesFs = activeTab === 'hermes' && hermesFullscreen;
+  const shenlunFs = activeTab === 'shenlun' && shenlunFullscreen;
+  const shellFs = hermesFs || shenlunFs;
+  // 手机上主要练数资：侧栏收成抽屉、去掉大留白；其它模块手机布局保持原样
+  const isPhone = useIsPhone();
+  const phonePractice = isPhone && activeTab === 'practice' && !shellFs;
   const openTodayTask = (task) => {
     if (task.taskType !== 'ai_batch') unlockBgmAudio();
     setTaskNavigation({ ...task, nonce: Date.now() });
@@ -719,17 +728,28 @@ const AppInner = () => {
     // 屏幕外。100dvh 跟随动态视口；不支持的浏览器忽略 inline style，退回 h-screen。
     <div
       className={`flex h-screen text-[#1a1a1a] font-sans overflow-hidden overscroll-none ${
-        hermesFs ? 'bg-white p-0' : 'bg-[#e8d5b0] p-4'
+        shellFs ? 'bg-white p-0' : phonePractice ? 'bg-[#e8d5b0] p-0' : 'bg-[#e8d5b0] p-4'
       }`}
       style={{
         height: '100dvh',
         // 只给 iPad/触控留空：状态栏会盖住全屏顶栏。Windows 全屏不要这段空隙，顶栏贴顶。
-        paddingTop: hermesFs && window.matchMedia('(pointer: coarse)').matches
+        paddingTop: shellFs && window.matchMedia('(pointer: coarse)').matches
           ? 'max(2rem, env(safe-area-inset-top, 0px))'
-          : undefined,
+          : phonePractice
+            ? 'env(safe-area-inset-top, 0px)'
+            : undefined,
       }}
     >
-      <aside className={`${hermesFs ? 'hidden' : ''} w-24 lg:w-64 flex flex-col p-4 space-y-4 lg:space-y-6 min-h-0`}>
+      {phonePractice && phoneNavOpen && (
+        <div className="fixed inset-0 z-[80] bg-black/40" onClick={() => setPhoneNavOpen(false)} />
+      )}
+      <aside className={`${
+        shellFs
+          ? 'hidden'
+          : phonePractice
+            ? (phoneNavOpen ? 'fixed inset-y-0 left-0 z-[90] bg-[#e8d5b0] shadow-2xl pt-[max(1rem,env(safe-area-inset-top))]' : 'hidden')
+            : ''
+      } w-24 lg:w-64 flex flex-col p-4 space-y-4 lg:space-y-6 min-h-0`}>
         <div className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-2 flex-shrink-0">
           <div className="w-10 h-10 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">
             学
@@ -797,14 +817,30 @@ const AppInner = () => {
         </div>
       </aside>
 
-      <main className={`flex-1 flex flex-col overflow-hidden ${
-        hermesFs
+      <main className={`flex-1 min-w-0 flex flex-col overflow-hidden ${
+        shellFs
           ? 'bg-white'
-          : activeTab === 'infoExtract'
-            ? ''
-            : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
+          : phonePractice
+            ? 'bg-transparent'
+            : activeTab === 'infoExtract'
+              ? ''
+              : 'bg-white/60 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-black/[0.03] border border-white/50'
       }`}>
-        <header className={`${hermesFs || activeTab === 'knowledge' || activeTab === 'infoExtract' ? 'hidden' : ''} h-24 flex items-center justify-between ${activeTab === 'studyBoost' ? 'px-4 sm:px-10' : 'px-10'}`}>
+        {phonePractice && (
+          <div className="flex items-center justify-between h-12 px-3 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setPhoneNavOpen(true)}
+              title="菜单"
+              className="w-9 h-9 bg-[#1a1a1a] rounded-xl flex items-center justify-center text-white font-black text-sm active:scale-95 transition-transform"
+            >
+              学
+            </button>
+            <span className="text-sm font-black tracking-tight">数资练习</span>
+            <span className="w-9" />
+          </div>
+        )}
+        <header className={`${shellFs || phonePractice || activeTab === 'knowledge' || activeTab === 'infoExtract' ? 'hidden' : ''} h-24 flex items-center justify-between ${activeTab === 'studyBoost' ? 'px-4 sm:px-10' : 'px-10'}`}>
           <div>
             <h2 className={`text-2xl font-black tracking-tight ${activeTab === 'studyBoost' ? 'whitespace-nowrap' : ''}`}>
               {activeTab === 'dashboard' && '欢迎回来，Russell！'}
@@ -820,6 +856,7 @@ const AppInner = () => {
               {activeTab === 'aiPractice' && 'AI 练题 · 定向强化'}
               {activeTab === 'shenlun' && '申论 · 县镇卷 / 省市卷'}
               {activeTab === 'mixer' && '声音混音器'}
+              {activeTab === 'model' && '模型选择'}
             </h2>
             <p className="text-sm font-medium text-slate-400">保持节奏，稳步提升。</p>
           </div>
@@ -829,15 +866,19 @@ const AppInner = () => {
         {/* Hermes 对话页要占满高度且自己管滚动，故单独用 overflow-hidden 容器 */}
         <div
           className={
-            activeTab === 'hermes'
+            phonePractice
+              ? 'flex-1 overflow-y-auto overscroll-y-contain px-3 pt-1 pb-24'
+              : activeTab === 'hermes'
               ? (hermesFs ? 'flex-1 overflow-hidden' : 'flex-1 overflow-hidden px-10 pb-6 pt-2')
-              : activeTab === 'knowledge'
-                ? 'flex-1 min-h-0 overflow-hidden px-5 pb-2 pt-1 xl:px-8'
-                : activeTab === 'infoExtract'
-                  ? 'flex-1 overflow-hidden'
-                  : activeTab === 'dashboard' || activeTab === 'studyBoost'
-                    ? 'flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-10 pt-4 space-y-10'
-                    : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
+              : activeTab === 'shenlun'
+                ? (shenlunFs ? 'flex-1 min-h-0 overflow-hidden' : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10')
+                : activeTab === 'knowledge'
+                  ? 'flex-1 min-h-0 overflow-hidden px-5 pb-2 pt-1 xl:px-8'
+                  : activeTab === 'infoExtract'
+                    ? 'flex-1 overflow-hidden'
+                    : activeTab === 'dashboard' || activeTab === 'studyBoost'
+                      ? 'flex-1 overflow-y-auto overscroll-y-contain p-3 sm:p-10 pt-4 space-y-10'
+                      : 'flex-1 overflow-y-auto overscroll-y-contain p-10 pt-4 space-y-10'
           }
         >
           <Suspense fallback={<PageLoading />}>
@@ -931,7 +972,7 @@ const AppInner = () => {
       </main>
 
       {renderEditor()}
-      <Suspense fallback={null}>{activeTab !== 'hermes' && <Cheatsheet />}</Suspense>
+      <Suspense fallback={null}>{activeTab !== 'hermes' && !shenlunFs && !phonePractice && <Cheatsheet />}</Suspense>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import {
   ChevronRight,
@@ -41,6 +42,7 @@ import {
   litTodayCategoryIds,
   TODAY_TASKS_REFRESH_EVENT,
 } from './todayTasks.js';
+import { useIsPhone } from './useIsPhone.js';
 const RACE_SIZE_DEFAULT = 10;
 const RACE_SIZE_PRESETS = [5, 10, 20, 50];
 const RACE_SIZE_MIN = 1;
@@ -82,6 +84,25 @@ const fmtDuration = (ms) => {
 // 传 records 进来是为了不在同一场里把同一道错题连出两次。
 const nextQuestion = (genKey, subId, records = []) =>
   pickWrong(subId, records.map((r) => r.prompt)) || generate(genKey);
+
+// 手机键盘的「−」「/」只给真会用到的题型：抽样看该生成器的答案形态
+const keypadExtras = (genKey) => {
+  let neg = false;
+  let frac = false;
+  if (!genKey) return { neg, frac };
+  for (let i = 0; i < 60 && !(neg && frac); i += 1) {
+    let q;
+    try {
+      q = generate(genKey);
+    } catch {
+      break;
+    }
+    const a = String(q?.answer ?? '');
+    if (a.startsWith('-')) neg = true;
+    if (q?.answerKind === 'frac' || /[/:]/.test(a)) frac = true;
+  }
+  return { neg, frac };
+};
 
 // ---------------- 主组件 ----------------
 const NumericPractice = ({ taskNavigation, onTaskNavigationConsumed, onNavigateTask }) => {
@@ -285,14 +306,14 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-5 sm:space-y-8">
       {/* 段位总览横幅 */}
       <RankDashboard onClickCategory={onPick} />
 
       <WeakSpots onPickSub={onPickSub} onPickTask={onPickTask} />
 
       <div>
-        <h2 className="text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
+        <h2 className="text-3xl sm:text-4xl font-black tracking-tighter italic uppercase">数资练习</h2>
         <p className="text-sm font-medium text-slate-400 mt-2">
           选择一个练习分类，进入题库开始训练，或挑战「晋升模式」冲击更高段位。
         </p>
@@ -300,7 +321,7 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
 
       <button
         onClick={onOpenGames}
-        className="w-full text-left rounded-[2rem] p-6 bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 transition-all group overflow-hidden relative"
+        className="w-full text-left rounded-[2rem] p-5 sm:p-6 bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10 transition-all group overflow-hidden relative"
       >
         <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#2c261c]/10 blur-2xl" />
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
@@ -332,7 +353,7 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
         </div>
       </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
         {CATEGORIES.map((cat) => {
           const Icon = categoryIcons[cat.id] || Calculator;
           const disabled = !cat.available;
@@ -341,13 +362,13 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
               key={cat.id}
               onClick={() => onPick(cat.id)}
               disabled={disabled}
-              className={`text-left rounded-[2rem] p-8 transition-all group ${
+              className={`text-left rounded-[2rem] p-5 sm:p-8 transition-all group ${
                 disabled
                   ? 'bg-white border border-[#e8d5b0] opacity-60 cursor-not-allowed'
                   : 'bg-[#1a1a1a] text-white hover:-translate-y-1 hover:shadow-xl hover:shadow-black/10'
               }`}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-6">
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                     disabled ? 'bg-[#e8d5b0] text-[#1a1a1a]' : 'bg-[#2c261c] text-white'
@@ -390,7 +411,7 @@ const HomeView = ({ onPick, onPickSub, onPickTask, onOpenGames }) => {
                 {cat.desc}
               </p>
               {!disabled && (
-                <p className="text-[10px] font-black uppercase tracking-widest mt-6 opacity-50">
+                <p className="text-[10px] font-black uppercase tracking-widest mt-3 sm:mt-6 opacity-50">
                   {visibleSubs(cat).length} 个子项
                 </p>
               )}
@@ -520,7 +541,7 @@ const SubsView = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-5 sm:space-y-8">
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
@@ -559,7 +580,7 @@ const SubsView = ({
         })}
       </div>
 
-      <div className="bg-white rounded-[2rem] p-6 border border-[#e8d5b0] space-y-3">
+      <div className="bg-white rounded-[2rem] p-4 sm:p-6 border border-[#e8d5b0] space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">选择模式</p>
           {subId && <SubRankChip subId={subId} subName={visibleSubs(cat).find((s) => s.id === subId)?.name} />}
@@ -597,10 +618,10 @@ const SubsView = ({
         )}
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <button
           onClick={onStart}
-          className="flex-1 bg-[#1a1a1a] text-white font-black py-5 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+          className="flex-1 bg-[#1a1a1a] text-white font-black py-5 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-sm sm:text-xs flex items-center justify-center space-x-2"
         >
           <Play size={16} />
           <span>开始练习</span>
@@ -609,7 +630,7 @@ const SubsView = ({
         <button
           onClick={openPopup}
           title="悬浮小窗练习（Chrome/Edge 支持无边框悬浮窗）"
-          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] hover:bg-[#2c261c] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+          className="hidden sm:flex px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] hover:bg-[#2c261c] transition-all uppercase tracking-widest text-xs items-center space-x-2"
         >
           <PictureInPicture2 size={14} />
           <span className="hidden sm:inline">小窗练习</span>
@@ -617,7 +638,7 @@ const SubsView = ({
         )}
         <button
           onClick={onOpenHistory}
-          className="px-8 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center space-x-2"
+          className="py-3.5 sm:py-0 px-8 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <HistoryIcon size={14} />
           <span>历史记录</span>
@@ -697,7 +718,7 @@ const RaceSizePicker = ({ value, onChange }) => {
   const isPreset = RACE_SIZE_PRESETS.includes(Number(value));
   const clamp = (n) => Math.max(RACE_SIZE_MIN, Math.min(RACE_SIZE_MAX, n));
   return (
-    <div className="ml-10 mt-2 flex items-center flex-wrap gap-2">
+    <div className="ml-0 sm:ml-10 mt-2 flex items-center flex-wrap gap-2">
       <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-1">
         题数
       </span>
@@ -768,6 +789,9 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   const [showTable, setShowTable] = useState(false);
   const timerRef = useRef(null);
   const pendingRef = useRef(null); // { newRecords, isLast }
+  const isPhone = useIsPhone();
+  const genKey = session?.genKey;
+  const baseExtras = useMemo(() => keypadExtras(genKey), [genKey]);
 
   const ready = !!session?.ready;
   const isRace = session?.mode === 'race';
@@ -889,6 +913,33 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
   function backspace() {
     setSession((s) => (s ? { ...s, input: s.input.slice(0, -1) } : s));
   }
+  function clearInput() {
+    setSession((s) => (s ? { ...s, input: '' } : s));
+  }
+  function toggleSign() {
+    setSession((s) => {
+      if (!s) return s;
+      if (s.input.startsWith('-')) return { ...s, input: s.input.slice(1) };
+      if (s.input.length >= 12) return s;
+      return { ...s, input: `-${s.input}` };
+    });
+  }
+
+  // 反馈展示期间点数字：直接进下一题并把这个数字记上，不吞掉手快的输入
+  function pressKey(key) {
+    if (!session.ready || showTable) return;
+    navigator.vibrate?.(8);
+    if (feedback) {
+      flushAdvance();
+      if (key === 'ok' || key === 'skip' || key === 'clear' || key === 'back') return;
+    }
+    if (key === 'ok') submit();
+    else if (key === 'skip') skip();
+    else if (key === 'clear') clearInput();
+    else if (key === 'back') backspace();
+    else if (key === 'sign') toggleSign();
+    else appendChar(key);
+  }
 
   const scheduleAdvance = (newRecords, fb) => {
     pendingRef.current = { newRecords };
@@ -993,6 +1044,49 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         : 'bg-[#ff6b6b]/20 ring-2 ring-[#ff6b6b]'
     : 'bg-white/10 ring-0';
 
+  const hasTable = session.subId === 'pctToFrac' || session.subId === 'square';
+  const tableModals = (
+    <>
+      {showTable && session.subId === 'square' && (
+        <SquareTableModal onClose={() => setShowTable(false)} />
+      )}
+      {showTable && session.subId === 'pctToFrac' && (
+        <BaiHuaFenTableModal onClose={() => setShowTable(false)} />
+      )}
+    </>
+  );
+
+  if (isPhone) {
+    const answerStr = String(current.answer ?? '');
+    const extras = {
+      neg: baseExtras.neg || answerStr.startsWith('-'),
+      frac: baseExtras.frac || /[/:]/.test(answerStr),
+    };
+    // 挂到 body：内容区的 backdrop-blur 会让 fixed 相对它定位，铺不满屏
+    return createPortal(
+      <>
+        <PhoneSession
+          session={session}
+          feedback={feedback}
+          ready={ready}
+          isRace={isRace}
+          progress={progress}
+          elapsed={elapsed}
+          totalElapsed={totalElapsed}
+          correctCount={correctCount}
+          extras={extras}
+          hasTable={hasTable}
+          onOpenTable={() => setShowTable(true)}
+          onKey={pressKey}
+          onReady={handleReady}
+          onExit={handleExit}
+        />
+        {tableModals}
+      </>,
+      document.body,
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto relative">
       <BgmControls position="top-right" />
@@ -1015,7 +1109,7 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
             {session.subName} · {mode === 'race' ? '晋升模式' : '训练模式'}
           </span>
         </div>
-        {session.subId === 'pctToFrac' || session.subId === 'square' ? (
+        {hasTable ? (
           <button
             onClick={() => setShowTable(true)}
             title={session.subId === 'square' ? '查看常见平方数对照表（背诵用）' : '查看百化分对照表（背诵用）'}
@@ -1205,12 +1299,245 @@ const SessionView = ({ session, setSession, onExit, onFinishRace }) => {
         }
       `}</style>
 
-      {showTable && session.subId === 'square' && (
-        <SquareTableModal onClose={() => setShowTable(false)} />
+      {tableModals}
+    </div>
+  );
+};
+
+// ---------------- 手机做题页：全屏 + 大按键 ----------------
+const promptSizeCls = (text) => {
+  const n = String(text).length;
+  if (n <= 12) return 'text-5xl';
+  if (n <= 20) return 'text-4xl';
+  if (n <= 36) return 'text-2xl';
+  return 'text-xl';
+};
+
+const PhoneKey = ({ k, label, onKey, tone = 'num', className = '' }) => {
+  const toneCls = {
+    num: 'bg-[#f6dfa6] text-[#2c261c] text-3xl font-bold',
+    fn: 'bg-[#ebc97e] text-[#5a4420] text-lg font-black',
+    ok: 'bg-[#1a1a1a] text-white text-xl font-black',
+  }[tone];
+  return (
+    <button
+      type="button"
+      onPointerDown={(e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        e.preventDefault();
+        onKey(k);
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+      className={`rounded-2xl flex items-center justify-center select-none tabular-nums transition duration-75 active:scale-[0.96] active:brightness-90 ${toneCls} ${className}`}
+    >
+      {label}
+    </button>
+  );
+};
+
+const PhoneSession = ({
+  session, feedback, ready, isRace, progress, elapsed, totalElapsed, correctCount,
+  extras, hasTable, onOpenTable, onKey, onReady, onExit,
+}) => {
+  const { current, input, total, mode, records } = session;
+  const fbCls = feedback
+    ? feedback.ok
+      ? 'bg-emerald-500/25 ring-2 ring-emerald-400'
+      : feedback.skipped
+        ? 'bg-slate-400/25 ring-2 ring-slate-400'
+        : 'bg-[#ff6b6b]/25 ring-2 ring-[#ff6b6b]'
+    : 'bg-white/10';
+  const keyH = 'h-[clamp(3rem,8.2dvh,4.25rem)]';
+  const extraKeys = [
+    extras.neg && { k: 'sign', label: '±' },
+    extras.frac && { k: '/', label: '/' },
+  ].filter(Boolean);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col bg-[#f3e6c8] text-[#1a1a1a] select-none overscroll-none"
+      style={{
+        touchAction: 'manipulation',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+      }}
+    >
+      <BgmControls position="top-[max(0.5rem,env(safe-area-inset-top))] right-2" />
+
+      <div className="flex items-center h-12 pl-1 pr-14 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onExit}
+          className="flex items-center gap-1 px-2 py-2 text-[#6b5428] active:opacity-60"
+        >
+          <ChevronLeft size={20} />
+          <span className="text-sm font-black">退出</span>
+        </button>
+        <div className="flex-1 min-w-0 text-center text-xs font-black text-[#6b5428]/80 truncate">
+          {isRace && <span className="text-[#ff6b6b] mr-1">排位</span>}
+          {session.subName} · {mode === 'race' ? '晋升' : '训练'}
+        </div>
+        {hasTable ? (
+          <button
+            type="button"
+            onClick={onOpenTable}
+            className="p-2 text-[#6b5428] active:opacity-60"
+            title="对照表"
+          >
+            <BookOpen size={18} />
+          </button>
+        ) : (
+          <span className="w-9" />
+        )}
+      </div>
+
+      {isRace && ready && total !== Infinity && (
+        <div className="px-4 flex-shrink-0">
+          <BossHpBar correctCount={correctCount} total={total} />
+        </div>
       )}
-      {showTable && session.subId === 'pctToFrac' && (
-        <BaiHuaFenTableModal onClose={() => setShowTable(false)} />
+
+      <div
+        className={`relative mx-3 flex-1 min-h-0 rounded-[1.75rem] bg-[#1a1a1a] text-white flex flex-col px-5 pt-4 pb-4 overflow-hidden ${
+          isRace && ready ? 'race-bg' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between text-[11px] font-black tabular-nums text-white/55 relative z-10">
+          <span className="text-sm text-white/80">{progress.replace(/\s/g, '')}</span>
+          <span>
+            本题 {fmtMs(elapsed)} · 总计 {fmtDuration(totalElapsed)}
+          </span>
+        </div>
+
+        <div className="flex-1 min-h-0 flex items-center justify-center overflow-y-auto relative z-10">
+          <p className={`${promptSizeCls(current.prompt)} font-black tracking-tight text-center break-words leading-tight py-2`}>
+            {current.prompt}
+          </p>
+        </div>
+
+        <div className={`relative z-10 rounded-2xl h-[4.5rem] flex-shrink-0 flex items-center justify-center gap-3 px-4 transition-all duration-150 ${fbCls}`}>
+          {feedback && (
+            <span
+              className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-white ${
+                feedback.ok ? 'bg-emerald-500' : feedback.skipped ? 'bg-slate-400' : 'bg-[#ff6b6b]'
+              }`}
+              style={{ animation: 'fb-pop 180ms ease-out' }}
+            >
+              {feedback.ok ? <Check size={22} strokeWidth={3.5} /> : <X size={22} strokeWidth={3.5} />}
+            </span>
+          )}
+          <p className="text-4xl font-black tracking-tight tabular-nums truncate">
+            {feedback && !feedback.ok ? (
+              <>
+                {!feedback.skipped && <span className="text-white/40 mr-3 line-through">{input}</span>}
+                <span className="text-amber-300">{feedback.answer}</span>
+              </>
+            ) : input === '' ? (
+              <span className="text-white/25 text-xl font-bold">点下方键盘作答</span>
+            ) : (
+              input
+            )}
+          </p>
+        </div>
+
+        <div className="relative z-10 mt-2 text-right text-[10px] font-black tabular-nums text-white/40">
+          正确 {correctCount} / 已答 {records.length}
+        </div>
+      </div>
+
+      <div className="px-3 pt-3 flex-shrink-0 space-y-2">
+        <div className="grid grid-cols-3 gap-2">
+          <PhoneKey k="skip" label="跳过" tone="fn" onKey={onKey} className={keyH} />
+          <PhoneKey k="clear" label="清空" tone="fn" onKey={onKey} className={keyH} />
+          <PhoneKey k="back" label="退格" tone="fn" onKey={onKey} className={keyH} />
+        </div>
+        {extraKeys.length > 0 && (
+          <div className={`grid gap-2 ${extraKeys.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {extraKeys.map((x) => (
+              <PhoneKey key={x.k} k={x.k} label={x.label} tone="fn" onKey={onKey} className="h-11 text-2xl" />
+            ))}
+          </div>
+        )}
+        <div className="grid grid-cols-3 gap-2">
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+            <PhoneKey key={d} k={d} label={d} onKey={onKey} className={keyH} />
+          ))}
+          <PhoneKey k="." label="." onKey={onKey} className={keyH} />
+          <PhoneKey k="0" label="0" onKey={onKey} className={keyH} />
+          <PhoneKey k="ok" label="确认" tone="ok" onKey={onKey} className={keyH} />
+        </div>
+      </div>
+
+      {!ready && (
+        <div
+          className="absolute inset-0 z-[110] flex items-center justify-center"
+          onClick={onReady}
+          role="button"
+          tabIndex={0}
+          aria-label="点击开始"
+        >
+          <div className="absolute inset-0 bg-[#1a1a1a]/95 backdrop-blur-md" />
+          <div className="relative text-center px-6">
+            <div className="text-[10px] font-black uppercase tracking-[0.4em] text-white/50 mb-3">
+              {isRace ? 'RANKED · BOSS BATTLE' : 'TRAINING · FOCUS'}
+            </div>
+            <div
+              className="text-5xl font-black italic mb-4"
+              style={{
+                color: isRace ? '#ff6b6b' : '#d6b779',
+                animation: 'maskBreath 2.4s ease-in-out infinite',
+              }}
+            >
+              点击开始
+            </div>
+            <div className="text-sm font-medium text-white/60">
+              {session.subName} · {total === Infinity ? '不限题数' : `${total} 题`}
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExit();
+              }}
+              className="mt-10 text-xs font-black tracking-widest text-white/45 px-4 py-2"
+            >
+              返回
+            </button>
+          </div>
+        </div>
       )}
+
+      <style>{`
+        @keyframes fb-pop {
+          0%   { transform: scale(0.3); opacity: 0; }
+          60%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes maskBreath {
+          0%, 100% { transform: scale(1);    filter: brightness(1); }
+          50%      { transform: scale(1.04); filter: brightness(1.2); }
+        }
+        @keyframes scanLine {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .race-bg::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse at top, rgba(255,107,107,0.08), transparent 60%);
+          pointer-events: none;
+        }
+        .race-bg::after {
+          content: '';
+          position: absolute;
+          top: 0; left: 0;
+          width: 30%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,107,107,0.06), transparent);
+          animation: scanLine 4s linear infinite;
+          pointer-events: none;
+        }
+      `}</style>
     </div>
   );
 };
@@ -1264,11 +1591,11 @@ const BaiHuaFenTableModal = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-[2rem] p-5 sm:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -1330,11 +1657,11 @@ const SquareTableModal = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
+        className="bg-white rounded-[2rem] p-5 sm:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -1391,7 +1718,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-10 text-center relative overflow-hidden">
+      <div className="bg-[#1a1a1a] text-white rounded-[2.5rem] p-6 sm:p-10 text-center relative overflow-hidden">
         <div className="absolute top-8 right-8 w-40 h-40 bg-[#2c261c] rounded-full blur-[50px] opacity-40" />
         <div className="relative">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-[#2c261c] text-white flex items-center justify-center mb-4">
@@ -1516,7 +1843,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
           {result.records.map((r, i) => (
             <div
               key={i}
-              className="flex items-center justify-between py-2 border-b border-[#e8d5b0] last:border-0 text-sm"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-0 py-2 border-b border-[#e8d5b0] last:border-0 text-sm"
             >
               <div className="flex items-center space-x-3 flex-1 min-w-0">
                 <span className="text-[10px] font-black text-slate-400 w-6">#{i + 1}</span>
@@ -1533,7 +1860,7 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
                 </span>
                 <span className="font-bold truncate">{r.prompt}</span>
               </div>
-              <div className="flex items-center space-x-3 flex-shrink-0 ml-3">
+              <div className="flex items-center space-x-3 flex-shrink-0 ml-[4.25rem] sm:ml-3">
                 <span className="text-xs text-slate-400">
                   {r.skipped ? '已跳过' : `你的答案: ${r.userAnswer}`}
                 </span>
@@ -1549,23 +1876,23 @@ const ResultView = ({ result, onRetry, onHome, onSubs }) => {
         </div>
       </div>
 
-      <div className="flex space-x-3">
+      <div className="flex flex-wrap gap-3">
         <button
           onClick={onRetry}
-          className="flex-1 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
+          className="flex-1 basis-full sm:basis-0 bg-[#1a1a1a] text-white font-black py-4 rounded-2xl hover:bg-[#2c261c] hover:text-white transition-all uppercase tracking-widest text-xs flex items-center justify-center space-x-2"
         >
           <RotateCcw size={14} />
           <span>再来一组</span>
         </button>
         <button
           onClick={onSubs}
-          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+          className="flex-1 sm:flex-none py-3.5 sm:py-0 px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
           换个题型
         </button>
         <button
           onClick={onHome}
-          className="px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
+          className="flex-1 sm:flex-none py-3.5 sm:py-0 px-6 bg-white border border-[#e8d5b0] text-[#1a1a1a] font-black rounded-2xl hover:border-[#1a1a1a] transition-all uppercase tracking-widest text-xs"
         >
           返回
         </button>
@@ -1705,7 +2032,7 @@ const HistoryView = ({ onBack }) => {
             return (
               <div
                 key={r.id}
-                className="bg-white rounded-2xl border border-[#e8d5b0] p-5 flex items-center justify-between"
+                className="bg-white rounded-2xl border border-[#e8d5b0] p-4 sm:p-5 flex items-center justify-between gap-3"
               >
                 <div className="min-w-0">
                   <p className="text-sm font-black italic truncate">{r.subName}</p>
@@ -1713,7 +2040,7 @@ const HistoryView = ({ onBack }) => {
                     {new Date(r.completedAt).toLocaleString('zh-CN')}
                   </p>
                 </div>
-                <div className="flex items-center space-x-6 flex-shrink-0">
+                <div className="flex items-center space-x-3 sm:space-x-6 flex-shrink-0">
                   <HistoryStat label="正确率" value={`${accuracy}%`} accent />
                   <HistoryStat label="总用时" value={fmtMs(r.totalMs)} />
                   <HistoryStat label="平均" value={fmtMs(r.avgMs)} />

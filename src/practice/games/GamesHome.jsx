@@ -5,6 +5,7 @@ import MentalCarryGame from './MentalCarryGame.jsx';
 import DigitSpanGame from './DigitSpanGame.jsx';
 import { playBgm, stopBgm } from '../bgm.js';
 import BgmControls from '../BgmControls.jsx';
+import { useIsPhone } from '../useIsPhone.js';
 
 // ============================================================
 // 小游戏总入口
@@ -52,6 +53,7 @@ const GAMES = [
 
 const GamesHome = ({ onBack }) => {
   const [active, setActive] = useState(null);
+  const isPhone = useIsPhone();
 
   useEffect(() => {
     if (!active) return undefined;
@@ -148,8 +150,16 @@ const GamesHome = ({ onBack }) => {
       </div>
 
       {active && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 md:p-8">
-          <BgmControls position="top-right" />
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 md:p-8"
+          style={isPhone ? {
+            paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+            paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+          } : undefined}
+        >
+          <BgmControls
+            position={isPhone ? 'bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3' : 'top-right'}
+          />
           <button
             type="button"
             aria-label="关闭小游戏"
@@ -158,8 +168,8 @@ const GamesHome = ({ onBack }) => {
           />
           <div className="absolute inset-0 bg-slate-950/28" />
 
-          <div className="relative z-[121] flex w-full max-w-[1500px] flex-col items-center justify-center">
-            <div className="w-full max-h-[92vh] overflow-y-auto rounded-[1.75rem] sm:rounded-[2.75rem] border border-white/70 bg-white/78 p-3 shadow-[0_40px_140px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:p-4">
+          <div className="relative z-[121] flex w-full max-w-[1500px] max-h-full min-h-0 flex-col items-center justify-center">
+            <div className="w-full min-h-0 max-h-[92vh] overflow-y-auto overscroll-contain rounded-[1.75rem] sm:rounded-[2.75rem] border border-white/70 bg-white/78 p-3 shadow-[0_40px_140px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:p-4">
               {active === 'numberGrid' && (
                 <NumberGridGame onBack={() => setActive(null)} />
               )}
@@ -170,7 +180,7 @@ const GamesHome = ({ onBack }) => {
                 <DigitSpanGame onBack={() => setActive(null)} />
               )}
             </div>
-            <p className="mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
+            <p className="hidden sm:block mt-4 text-center text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">
               ESC 退出聚焦模式
             </p>
           </div>

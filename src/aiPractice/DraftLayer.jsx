@@ -15,7 +15,7 @@
 //   - 撤销就是 pop 一笔，不用记快照。
 
 import { useCallback, useEffect, useRef } from 'react';
-import { scrollHost, scrollHostBy } from './scrollHost.js';
+import { directTouchPoints, scrollHostBy, scrollHostUnderPoints } from './scrollHost.js';
 import {
   DEFAULT_PEN_MAX_W, DEFAULT_PEN_MIN_W, HL_COLOR,
   clearCanvas, paintStroke, penDot, penSegment, penStyle,
@@ -48,13 +48,9 @@ const savePenSeen = () => {
 // 翻页坚持要两根手指：写字时手掌、小指压在屏幕上都是单点接触，跟"想翻页的手指"
 // 在事件层面分不出来，只靠落笔冷却挡不干净 —— 字与字之间抬笔挪手的那一下就够
 // 页面窜出去了。两指才滚，手掌就再也顶不动页面。
+// 资料分析左右分栏，两指滚的是落点底下那一栏，不是整页。
 const FLICK_DECAY = 0.94; // 每帧衰减，甩一下有点惯性才像原生滚动
 const FLICK_MIN_V = 0.02; // px/ms，低于这个速度就停
-
-// 手掌识别：笔刚抬起的这段时间里新落下的手指一律当手掌，接触面过大的也是手掌。
-// 字与字之间手掌会抬起来再搭下去，这一下要是被当成翻页的手指，页面就会窜。
-const PALM_GRACE_MS = 500;
-const PALM_MIN_SIZE = 32; // CSS px
 
 // 落笔事件被系统吞掉、靠移动事件补起的一笔，跟上一笔收尾隔得这么近就接上，不留缺口
 const BRIDGE_MS = 120;
@@ -81,21 +77,13 @@ const DraftLayer = ({
   const liveRef = useRef(null);
   const lastPenAtRef = useRef(0);
   const lastEndRef = useRef(null);
-  // Apple Pencil 一出现，手指就换个职责：不再落墨，改为翻页。
-  // 写字时手掌搭在屏幕上也走这条路，再由 isPalm 挡掉。
+  // Apple Pencil 一出现，手指就不再落墨。两指滚动另走触摸事件。
   const penSeenRef = useRef(loadPenSeen());
 
-  // 翻页要两根手指。写字时手掌、小指搭在屏幕上都是单点接触，跟"想翻页的手指"
-  // 从事件上分不出来（Safari 也不一定给得出接触面尺寸），只靠冷却时间挡不干净：
-  // 字与字之间抬笔挪手的那一下就够页面窜出去。改成两指才滚，手掌就再也顶不动了。
-  const touchesRef = useRef(new Map()); // pointerId -> clientY
+  // 翻页要两根手指，并且走触摸事件而不是 pointer 事件：iPad 上第二根手指的
+  // pointerdown 经常不到，接触面直径又经常超过原来的手掌门槛，两指被整段丢掉。
   const panRef = useRef(null);
   const flickRef = useRef(0);
-
-  const avgTouchY = () => {
-    const ys = [...touchesRef.current.values()];
-    return ys.reduce((a, b) => a + b, 0) / (ys.length || 1);
-  };
 
   // 手指松开后按当时的速度滑一段，不然长题干只能一寸一寸拖，很难受
   const startFlick = useCallback((host, v0) => {
@@ -120,34 +108,6 @@ const DraftLayer = ({
     document.body.classList.add('draft-annotating');
     return () => document.body.classList.remove('draft-annotating');
   }, [active]);
-
-  // iPadOS 的「随手写」(Scribble) 会在系统层截走快速连续的 Pencil 落笔事件：抬笔之后
-  // 立刻落笔，这一笔的 pointerdown 根本到不了页面，于是怎么划都没墨，停顿一下才正常。
-  // 是 WebKit 的老账（Bug 217430，标记修复了又复发），fabric.js #8465、Flutter #172865、
-  // BlockSuite #7985 踩的都是同一个坑，现象都是"隔一笔丢一笔，写不连贯"。
-  //
-  // touch-action: none 和 user-select: none 都挡不住它，唯一有效的是给目标元素挂一个
-  // 非被动的 touchmove 监听并 preventDefault —— 等于告诉系统这块区域的笔画自己管，
-  // 别拿去猜文字。React 的触摸事件是被动注册的，preventDefault 不生效，只能自己挂。
-  // 不用 touchstart：一样能治 Scribble，但会带来间歇性的输入卡死。
-  //
-  // 顺带一提，Safari 至今不支持 getCoalescedEvents，取合并采样那段在 iPad 上是空转，
-  // 但它原生就按 120/240Hz 派发 pointermove，不吃亏。
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!active || !canvas) return undefined;
-    const keepPenInput = (e) => e.preventDefault();
-    canvas.addEventListener('touchmove', keepPenInput, { passive: false });
-    return () => canvas.removeEventListener('touchmove', keepPenInput);
-  }, [active]);
-
-  const endPan = () => {
-    const pan = panRef.current;
-    panRef.current = null;
-    if (pan && Math.abs(pan.v) > FLICK_MIN_V && performance.now() - pan.t < 100) {
-      startFlick(pan.host, pan.v);
-    }
-  };
 
   const redrawRef = useRef(null);
 
@@ -276,6 +236,83 @@ const DraftLayer = ({
     if (live) onStrokeEnd?.(live);
   };
 
+  // iPadOS 的「随手写」(Scribble) 会在系统层截走快速连续的 Pencil 落笔事件。
+  // touchmove 上非被动的 preventDefault 才能把笔画留在页面里。两指滚动也挂在这组
+  // 触摸事件上：pointer 事件数不到第二根手指，接触面大小又会把指尖当成手掌。
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!active || !canvas) return undefined;
+
+    const discardLive = () => {
+      const id = liveIdRef.current;
+      liveRef.current = null;
+      liveIdRef.current = null;
+      liveTsRef.current = 0;
+      rectRef.current = null;
+      committedRef.current = null;
+      if (inkCtxRef.current) clearCanvas(inkCtxRef.current);
+      if (id !== null) {
+        try { canvas.releasePointerCapture(id); } catch { /* 没捕获到 */ }
+      }
+    };
+
+    const endPan = () => {
+      const pan = panRef.current;
+      panRef.current = null;
+      if (pan && Math.abs(pan.v) > FLICK_MIN_V && performance.now() - pan.t < 100) {
+        startFlick(pan.host, pan.v);
+      }
+    };
+
+    const syncPan = (e) => {
+      if ([...e.touches].some((t) => t.touchType === 'stylus')) {
+        if (panRef.current) endPan();
+        return;
+      }
+      const pts = directTouchPoints(e.touches);
+      if (!pts) {
+        if (panRef.current) endPan();
+        return;
+      }
+      discardLive();
+      const y = pts.reduce((sum, p) => sum + p.y, 0) / pts.length;
+      const pan = panRef.current;
+      if (!pan) {
+        cancelAnimationFrame(flickRef.current);
+        panRef.current = {
+          host: scrollHostUnderPoints(pts, canvas),
+          y,
+          t: performance.now(),
+          v: 0,
+        };
+        return;
+      }
+      if (!pan.host) pan.host = scrollHostUnderPoints(pts, canvas);
+      const dy = pan.y - y;
+      scrollHostBy(pan.host, dy);
+      const now = performance.now();
+      const dt = now - pan.t;
+      if (dt > 0) pan.v = dy / dt;
+      pan.y = y;
+      pan.t = now;
+    };
+
+    const onTouchMove = (e) => {
+      e.preventDefault();
+      syncPan(e);
+    };
+    canvas.addEventListener('touchstart', syncPan, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', syncPan);
+    canvas.addEventListener('touchcancel', syncPan);
+    return () => {
+      canvas.removeEventListener('touchstart', syncPan);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', syncPan);
+      canvas.removeEventListener('touchcancel', syncPan);
+    };
+  }, [active, startFlick]);
+
   const kindOf = () => (tool === 'eraser' ? 'er' : tool === 'highlighter' ? 'hl' : 'pen');
 
   // 只有 Pencil 的压力可信：鼠标按下恒为 0.5，手指在 iPad 上给 0 或 1，统一按正常力度画。
@@ -319,13 +356,6 @@ const DraftLayer = ({
     }
   };
 
-  // 手掌：笔正压着、笔刚抬起不久、或者接触面大得不像指尖
-  const isPalm = (e) => (
-    liveRef.current
-    || performance.now() - lastPenAtRef.current < PALM_GRACE_MS
-    || Math.max(e.width || 0, e.height || 0) >= PALM_MIN_SIZE
-  );
-
   const onPointerDown = (e) => {
     if (!active) return;
     if (e.pointerType === 'pen') {
@@ -334,28 +364,13 @@ const DraftLayer = ({
         penSeenRef.current = true;
         savePenSeen();
       }
-      // 笔落下来了，先前搭在屏幕上的那些接触点都是手，别让它们继续滚页
-      touchesRef.current.clear();
+      // 笔落下来了，两指滚动立刻停
       panRef.current = null;
       cancelAnimationFrame(flickRef.current);
     }
 
-    // Pencil 出现过之后，手指就专职当翻页手，不再落墨
-    if (e.pointerType === 'touch' && penSeenRef.current) {
-      // 认作手掌的接触点从头到尾都不登记，后面再搭一根手指也凑不成"双指翻页"
-      if (isPalm(e)) return;
-      touchesRef.current.set(e.pointerId, e.clientY);
-      if (touchesRef.current.size === 2) {
-        cancelAnimationFrame(flickRef.current); // 滑动中再按下：先刹住
-        panRef.current = {
-          host: scrollHost(canvasRef.current),
-          y: avgTouchY(),
-          t: performance.now(),
-          v: 0,
-        };
-      }
-      return;
-    }
+    // 笔出现过之后，一根手指不再落墨。两指滚动由触摸事件接管。
+    if (e.pointerType === 'touch' && (penSeenRef.current || panRef.current)) return;
 
     e.preventDefault();
     startStroke(e);
@@ -390,22 +405,6 @@ const DraftLayer = ({
   const onPointerMove = (e) => {
     if (!active) return;
 
-    if (e.pointerType === 'touch' && touchesRef.current.has(e.pointerId)) {
-      touchesRef.current.set(e.pointerId, e.clientY);
-      const pan = panRef.current;
-      if (!pan || touchesRef.current.size < 2) return;
-      // 取所有接触点的平均位置：中途多搭上一根手指也不会让页面跳一下
-      const y = avgTouchY();
-      const dy = pan.y - y; // 手指往上推 → 内容往上走 → scrollTop 变大
-      scrollHostBy(pan.host, dy);
-      const now = performance.now();
-      const dt = now - pan.t;
-      if (dt > 0) pan.v = dy / dt;
-      pan.y = y;
-      pan.t = now;
-      return;
-    }
-
     if (e.pointerType === 'touch') return;
     if (e.pointerType === 'pen') lastPenAtRef.current = performance.now();
 
@@ -439,11 +438,7 @@ const DraftLayer = ({
 
   const onPointerUp = (e) => {
     if (!active) return;
-    if (e.pointerType === 'touch') {
-      touchesRef.current.delete(e.pointerId);
-      if (panRef.current && touchesRef.current.size < 2) endPan();
-      return;
-    }
+    if (e.pointerType === 'touch') return;
     if (e.pointerType === 'pen') lastPenAtRef.current = performance.now();
     if (isStale(e)) return; // 上一笔迟到的尾巴，不能拿它收这一笔
     e.preventDefault();
