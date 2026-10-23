@@ -101,10 +101,11 @@ pwsh({
 1. 抽取参数（模块/考点/题量/难度，同"第 1 步"）；言语先跑 `recent_yanyu_avoid` 查最近 14 天题库，避开重复题材/句式套路/开头句式（见下）
 2. 从 catalog 取每个槽位的讲解卡 definition，写题和审核都带（镜像服务器 kaofa_canon）
 3. 在 DSH 会话里直接生成题目 JSON（stem/options/answer/analysis/question_type）；≥15 题注意答案字母均衡（任一字母 ≤40%）
-4. 派子 agent 审核（镜像服务器三角色）：
-   - 盲解官：只给题干选项（不给答案），独立解题 → answer/steps/also_valid/unsolvable/actual_difficulty/difficulty_reason
-   - 考官：给题干+选项+答案+解析+讲解卡，核对五维 → verdict/actual_difficulty/analysis_check/necessity_checks/五维标志/issues
+4. 派子 agent 审核（镜像服务器三角色）。**按 chunk 并行以提速：把题目按 ≤5 题/组拆开，每组各派一个盲解官 + 一个考官子 agent 并行跑；言语/判断再各配一个用法核查官。同时最多起 6 个子 agent（≈3 组并行）**；分批跑时等当前批返回再起下一批，不要无上限起。每组审核字段照下：
+   - 盲解官：只给该组题干选项（不给答案），独立解题 → answer/steps/also_valid/unsolvable/actual_difficulty/difficulty_reason
+   - 考官：给该组题干+选项+答案+解析+讲解卡，核对五维 → verdict/actual_difficulty/analysis_check/necessity_checks/五维标志/issues
    - 用法核查官（言语/判断推理）：不给答案，只核对解析里的用法断言/题面条件 → usage_checks / question_check
+   - 合并时按题号对齐（blind.examiner 的下标 = 全局题号），不同组的证据拼成一个 review.json。
 5. 组装 review.json（module/auditor/questions/review.blind/review.examiner）
 6. 跑 quiz_lite.py --dsh-import review.json（后台）→ 闸门校验 → 入库
 7. 被拒时修对应题重导（换新 batch_id），不整批重来
@@ -196,7 +197,7 @@ pwsh({
 ### 注意事项
 
 - 只有文字题能走 DSH 模式：数量/言语/逻辑/政治/常识（**均已跑通支持**）。图推（程序出图）、资料整套（agent-paper）、申论仍走各自专用入口。
-- 审核采用三角色（镜像服务器）：盲解官（答案+唯一性）+ 考官（五维+必要性断言）+ 用法核查官（言语 usage_checks / 判断 question_check，输出并入考官项）；题目和审核都带讲解卡 definition。
+- 审核采用三角色（镜像服务器）：盲解官（答案+唯一性）+ 考官（五维+必要性断言）+ 用法核查官（言语 usage_checks / 判断 question_check，输出并入考官项）；题目和审核都带讲解卡 definition。**DSH 审核按 ≤5 题/组拆并行，同时最多 6 个子 agent（≈3 组）；分批等返回再起下一批，避免无上限并发。**
 - 言语/判断推理的审核证据更严格：言语考官项须含 `usage_checks`（解析无用法断言则 []），判断推理还须含 `question_check`；闸门强制校验，缺字段会被拒。言语/判断推理 auto 难度按盲解官+考官两位**较低评级**记录（build_dsh_review 已实现，与服务器模式一致）。
 - 答案字母均衡：≥15 题时任一字母 ≤ 约 40%，按 answer_plan 均衡放置正确项。
 - 审核证据的 `necessity_checks` 会与程序提取的 claims 按顺序对齐（相似度 ≥0.8），子 agent 输出时 claim 要逐字抄录解析原句。
