@@ -58,6 +58,31 @@ class VariantTest(unittest.TestCase):
         unknown = [{"tag": "数量关系-数学运算-未知", "count": 2}]
         self.assertEqual(kv.assign_variants("数量关系", unknown, catalog=CATALOG), unknown)
 
+    def test_cli_list_add_edit_remove(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp, "catalog.json")
+            path.write_text(json.dumps(CATALOG, ensure_ascii=False))
+            with patch.object(kv, "CATALOG", path), patch.object(kv, "LEDGER", Path(tmp, "l.jsonl")):
+                listed = kv.cli(["list", "和定最值"])
+                self.assertEqual(len(listed["variants"]), 4)
+                added = kv.cli(["add", TAG, "--name", "两轮分配求极值", "--ask", "先按规则分配一轮，再在剩余总量中二次分配，求某名次极值",
+                                "--example", "粤2027：……", "--id", "two-round"])
+                self.assertEqual(added["total"], 5)
+                with self.assertRaises(SystemExit) as dup:
+                    kv.cli(["add", TAG, "--name", "允许相同", "--ask", "允许相同求名次极值"])
+                self.assertIn("高度相似", str(dup.exception))
+                kv.cli(["edit", TAG, "two-round", "--weight", "4", "--typical"])
+                entry = kv.load_catalog()[TAG]
+                self.assertEqual([v["id"] for v in entry["variants"] if v["typical"]], ["two-round"])
+                with self.assertRaises(SystemExit):
+                    kv.cli(["remove", TAG, "two-round"])
+                kv.cli(["remove", TAG, "average"])
+                with self.assertRaises(SystemExit) as too_few:
+                    kv.cli(["remove", TAG, "vote"]); kv.cli(["remove", TAG, "repeat"])
+                self.assertIn("至少保留 3 个", str(too_few.exception))
+                self.assertEqual(len(kv.load_catalog()[TAG]["variants"]), 3)
+
     def test_shipped_catalog_is_well_formed(self):
         catalog = kv.load_catalog()
         for tag, entry in catalog.items():
