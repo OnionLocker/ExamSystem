@@ -83,9 +83,66 @@ class VariantTest(unittest.TestCase):
                 self.assertIn("至少保留 3 个", str(too_few.exception))
                 self.assertEqual(len(kv.load_catalog()[TAG]["variants"]), 3)
 
+    def test_ziliao_paper_keeps_kind_and_filters_material(self):
+        share = "资料分析-比重类-现期、基期与隔级比重"
+        catalog = {share: {"title": "比重", "variants": [
+            {"id": "current", "name": "现期比重", "ask": "求现期比重", "weight": 3, "typical": True, "kind": "share"},
+            {"id": "multi", "name": "多部分合计", "ask": "多部分合计占比", "weight": 3, "kind": "share", "types": ["table"]},
+            {"id": "other-kind", "name": "两期比重", "ask": "两期比重差", "weight": 3, "kind": "share_change"},
+        ]}}
+        slots = [{"tag": share, "kind": "share", "material_type": "years", "brief": "比重"},
+                 {"tag": share, "kind": "share", "material_type": "table", "brief": "比重"},
+                 {"tag": share, "kind": "judge", "brief": "综合"},
+                 {"tag": share, "kind": "share", "quick": True, "brief": "定性"}]
+        with tempfile.TemporaryDirectory() as tmp:
+            out = kv.assign_ziliao_variants(slots, seed="p", catalog=catalog, ledger=Path(tmp, "l.jsonl"))
+        self.assertEqual(out[0]["kaofa_variant"], "current")
+        self.assertEqual(out[1]["kaofa_variant"], "multi")
+        self.assertTrue(out[1]["brief"].startswith("比重；本题考法变式"))
+        self.assertEqual(out[2:], slots[2:])
+
+    def test_ziliao_drill_rotates_all_kinds_and_respects_format(self):
+        share = "资料分析-比重类-现期、基期与隔级比重"
+        catalog = {share: {"title": "比重", "variants": [
+            {"id": "current", "name": "现期比重", "ask": "求现期比重", "weight": 3, "typical": True, "kind": "share"},
+            {"id": "monthly-only", "name": "月度累计", "ask": "月度累计占比", "weight": 5, "kind": "share", "types": ["monthly"]},
+            {"id": "two-period", "name": "两期比重", "ask": "两期比重差", "weight": 3, "kind": "share_change"},
+        ]}}
+        slots = [{"tag": share, "count": 1, "material_format": "chart"} for _ in range(3)]
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger = Path(tmp, "l.jsonl")
+            out = kv.assign_ziliao_variants(slots, seed="d", targeted=True, catalog=catalog, ledger=ledger)
+            self.assertEqual(kv.record_variants("d", out, ledger), 3)
+        self.assertNotIn("monthly-only", {s["kaofa_variant"] for s in out})
+        self.assertEqual({s["kaofa_variant"] for s in out[:2]}, {"current", "two-period"})
+        locked = [{"tag": share, "count": 1, "brief": "只练现期比重"}]
+        self.assertEqual(kv.assign_ziliao_variants(locked, targeted=True, catalog=catalog), locked)
+
+    def test_cli_ziliao_requires_kind(self):
+        from unittest.mock import patch
+        share = "资料分析-比重类-现期、基期与隔级比重"
+        catalog = {share: {"title": "比重", "variants": [
+            {"id": f"v{i}", "name": f"考法{i}", "ask": f"第{i}种比重问法", "weight": 2, "typical": i == 0, "kind": "share"}
+            for i in range(3)]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp, "catalog.json")
+            path.write_text(json.dumps(catalog, ensure_ascii=False))
+            with patch.object(kv, "CATALOG", path), patch.object(kv, "LEDGER", Path(tmp, "l.jsonl")):
+                with self.assertRaises(SystemExit) as missing:
+                    kv.cli(["add", share, "--name", "隔级比重", "--ask", "两级占比相乘求隔级比重"])
+                self.assertIn("kind", str(missing.exception))
+                added = kv.cli(["add", share, "--name", "隔级比重", "--ask", "两级占比相乘求隔级比重",
+                                "--kind", "share", "--types", "table,text", "--need", "两级占比"])
+                self.assertEqual(added["added"]["types"], ["table", "text"])
+                with self.assertRaises(SystemExit):
+                    kv.cli(["edit", share, added["added"]["id"], "--types", "bogus"])
+
     def test_shipped_catalog_is_well_formed(self):
         catalog = kv.load_catalog()
         for tag, entry in catalog.items():
+            if tag.startswith("资料分析-"):
+                for v in entry["variants"]:
+                    self.assertEqual(kv.ziliao_variant_issues(v), [], tag)
             variants = entry.get("variants") or []
             self.assertGreaterEqual(len(variants), 3, tag)
             self.assertEqual(sum(bool(v.get("typical")) for v in variants), 1, tag)

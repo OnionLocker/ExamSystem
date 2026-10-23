@@ -9,6 +9,7 @@ from quiz_generator import resolve_slots, run_canon_card
 from kaodian_taxonomy import validate_ai_primary_tag
 from scheduler_common import DB
 from service_node import service_node
+from kaofa_variants import assign_ziliao_variants, record_variants
 import model_router
 from quality_orchestrator import equivalent, safe_eval, review_ziliao_material
 from ziliao_tracks import (
@@ -717,7 +718,14 @@ def _main_body(argv=None) -> int:
     _active_job = track
     track.update(stage="准备出题", detail=f"共 {args.total} 题 · {len(args.formats)} 篇", progress=2)
     run = {"module": "资料分析", "slots": args.slots}
-    per_item = [dict(slot, definition=run_canon_card(run, slot["tag"])) for slot in args.slots for _ in range(slot["count"])]
+    n = len(args.formats)
+    item_formats = [f for i, f in enumerate(args.formats) for _ in range(args.total // n + (i < args.total % n))]
+    expanded = [slot for slot in args.slots for _ in range(slot["count"])]
+    per_item = assign_ziliao_variants(
+        [dict(slot, count=1, definition=run_canon_card(run, slot["tag"]),
+              **({"material_format": item_formats[i]} if i < len(item_formats) else {}))
+         for i, slot in enumerate(expanded)],
+        seed=batch_id, targeted=args.targeted)
     track.update(stage="材料框架", detail=f"正在设计 {len(args.formats)} 篇材料", progress=8)
     t=time.monotonic(); frame=call(framework_prompt(args.difficulty,args.formats,per_item,args.track),5000); marks["framework_seconds"]=round(time.monotonic()-t,2)
     validate_frame(frame,args)
@@ -823,6 +831,7 @@ def _main_body(argv=None) -> int:
     track.update(stage="入库", detail="正在写入题库", passed=len(questions), progress=96)
     t=time.monotonic(); imp=subprocess.run([service_node(),"scripts/import-batch.mjs",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["import_seconds"]=round(time.monotonic()-t,2); marks["total_seconds"]=round(time.monotonic()-started,2); marks["import_output"]=imp.stdout[-3000:]; (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2))
     if imp.returncode == 0:
+        record_variants(batch_id, per_item)
         track.finish(status="done", stage="已入库", detail=f"已入库 {len(questions)} 题", passed=len(questions), progress=100)
     else:
         track.finish(status="failed", stage="失败", detail="入库失败", error=(imp.stderr or imp.stdout or "")[:600], progress=96)

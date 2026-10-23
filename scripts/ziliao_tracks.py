@@ -623,6 +623,11 @@ def gd_rotating_paper(paper_tier: str = "mid", rng=None, recent_kinds: list | No
     raise RuntimeError("题型轮转无法在约束内组卷")
 
 
+def slot_label(slot: dict) -> str:
+    label = str(slot.get("kind_label") or slot.get("kind") or "")
+    return f"{label}（{slot['kaofa_variant_name']}）" if slot.get("kaofa_variant_name") else label
+
+
 def material_question_plan(material_type: str, slots: list[dict]) -> str:
     needs = []
     for index, slot in enumerate(slots, 1):
@@ -631,11 +636,11 @@ def material_question_plan(material_type: str, slots: list[dict]) -> str:
             need = ("可算出各组成部分占比的总量与分项" if slot.get("chart_variant") == "pie"
                     else "连续5期以上可求同比增速或增量的数值")
         else:
-            need = KIND_SPECS.get(kind, {}).get("need") or ""
+            need = slot.get("kaofa_need") or KIND_SPECS.get(kind, {}).get("need") or ""
         if need:
-            needs.append(f"Q{index}{KIND_LABELS.get(kind, kind)}需{need}")
+            needs.append(f"Q{index}{slot_label(slot)}需{need}")
     return (MATERIAL_TYPES[material_type]["plan"]
-            + "五题题型依次为：" + "、".join(str(s.get("kind_label") or s.get("kind")) for s in slots) + "。"
+            + "五题题型依次为：" + "、".join(slot_label(s) for s in slots) + "。"
             + ("各题所需数据：" + "；".join(needs) + "。" if needs else ""))
 
 
@@ -1275,6 +1280,8 @@ def _track_question_rules(track: str, slot: dict, index: int) -> str:
         )
     kind = str(slot.get("kind") or "")
     head = f"本题题型={slot.get('kind_label') or kind}，按此考法出题。" if kind else ""
+    if slot.get("kaofa_variant_name"):
+        head += f"细分考法={slot['kaofa_variant_name']}，按槽位brief中的考法变式命题。"
     if kind == KIND_TEXT_READING:
         return head + (
             "本题是文字理解：依据材料原文判断“资料未提及”“原因不包括”“主题是”或说法是否符合原文，不做计算。"

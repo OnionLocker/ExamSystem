@@ -99,7 +99,7 @@ terminal({
 所以返回的 `rounds` 里出现多轮、`rejected` 里有题号，都是正常工作，不是故障。
 全部通过后脚本自己签精简闸门收据并入库，你不要手跑 `generation_gate` 或 `import-batch`。
 
-### 2a-plus. 考法变式轮转（数量、言语、文字逻辑，脚本内置）
+### 2a-plus. 考法变式轮转（数量、言语、文字逻辑、资料分析，脚本内置）
 
 - 防止单知识点特训坍缩到一种默认考法：每个末级知识点在 `references/kaofa-variants.json` 里有 3–7 个考法变式（依据广东/国考真题与知识点页整理，按设问结构和解题动作区分，不按场景区分）。
 - 特训时脚本给每道题分配一个变式，写进该题的出题要求，考官按 brief_ok 核对是否真按变式出；入库后记入 `data/kaofa-variant-ledger.jsonl`，下次优先分配近 30 天练得少的变式，最典型的默认考法自动降权。
@@ -110,6 +110,11 @@ terminal({
   - 新增：`python3 scripts/kaofa_variants.py add '<知识点>' --name '≤16字' --ask '题干结构与解题动作，≤120字' --example '粤2025：真题片段' --weight 1-5 --id 英文小写连字符`。
   - 修改：`python3 scripts/kaofa_variants.py edit '<知识点>' <id> [--name/--ask/--example/--weight] [--typical]`；删除：`... remove '<知识点>' <id>`（典型考法不能直接删，每个知识点至少保留 3 个）。
 - 用户说“这道真题的考法我们没覆盖，补进去”或“给某知识点补一个考法”时：先 `list` 对照现有变式，确认是新的解题动作或设问结构（场景、数字、难度不同不算）再 `add`；`--example` 只写用户给的或真题库里真实存在的题干，没有就留空，不得编造；返回 `高度相似` 时向用户说明最接近的现有变式，确认后才加 `--force`。新增后下一次特训会优先轮到它，告诉用户即可，不必立刻出题。
+- 资料分析也用同一份清单和账本：10 个出题主标签（比重、比重差、增长率、增长量、基期量、平均、统计术语、混合增长、贡献率、比较）各有 4–10 个细分考法，每个标 `kind`（所属题型，对应整套轮转的 22 种题型）、可选 `types`（适用材料形态：text/table/monthly/years/two_series/pie/line）和 `need`（材料须提供的数据）。
+  - 整套（`ziliao_agent_paper.py`）：题型仍按广东真题频率轮转、配额不变，脚本再给每题挑一个同题型、适配材料形态、近期练得少的细分考法；综合分析和图表匹配不分配。`--plan-only` 每题显示 `variant`。
+  - 专项（`ziliao_parallel_runner.py --tag`）：不限题型，在该主标签全部细分考法里轮转，并按每篇材料形态过滤。用户只说“增长量出5题”时不写 brief，脚本自动铺开；明确锁定（“只练现期求增长量”）时按 brief 出。
+  - 入库后两条通道都记入 `data/kaofa-variant-ledger.jsonl`。
+  - 新增资料分析考法必须带 `--kind`，按需带 `--types`、`--need`：`python3 scripts/kaofa_variants.py add '资料分析-ABRX类-增长量计算与现期推算' --name '…' --ask '…' --example '粤2025：…' --kind growth_amount --types years,line --need '连续多期数值'`。`kind` 不合法或 `types` 写错会被拒绝。
 
 ### 2b. 要多个考法混在一批，就用 `--blueprint`
 

@@ -24,6 +24,7 @@ from ziliao_agent_trial import default_hermes_root, write
 from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd_rotating_paper,
                            material_question_plan, parse_difficulty_blueprint)
 from service_node import service_node
+from kaofa_variants import assign_ziliao_variants, record_variants
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME_POOL = (
@@ -146,11 +147,12 @@ def main():
     rng = random.Random(batch_id)
     recent_kinds, recent_types = recent_rotation(args.output_dir.resolve())
     material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types)
-    slots = apply_difficulty_overrides(rotated, overrides)
+    slots = assign_ziliao_variants(apply_difficulty_overrides(rotated, overrides), seed=batch_id)
     runner.validate_gd_quota(slots, count=20)
     if args.plan_only:
         print(json.dumps({"difficulty": tier, "overrides": overrides, "materials": material_types, "slots": [
-            {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"), "option_format": s.get("option_format"),
+            {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"),
+             "variant": s.get("kaofa_variant_name"), "option_format": s.get("option_format"),
              "difficulty": s["difficulty"], "difficulty_score": s["difficulty_score"],
              **({"note": s["difficulty_note"]} if s.get("difficulty_note") else {})}
             for i, s in enumerate(slots)]}, ensure_ascii=False, indent=2))
@@ -302,6 +304,8 @@ def main():
         try:
             job.update(stage="入库", detail="正在写入题库", passed=20, progress=96)
             imported = import_checked(out, args.db)
+            if imported:
+                record_variants(batch_id, slots)
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
     if passed and error is None:

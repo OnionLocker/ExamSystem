@@ -6432,5 +6432,799 @@
     "typical": false
    }
   ]
+ },
+ "资料分析-比重类-现期、基期与隔级比重": {
+  "title": "比重类-现期、基期与隔级比重",
+  "variants": [
+   {
+    "id": "current-share",
+    "name": "现期比重直接求",
+    "ask": "已知部分与整体的同口径现期值，求部分占整体的比重，正确值非整数百分比，干扰项含取错整体或取错年份。",
+    "example": "粤2025：2023年，G省城镇社会消费品零售额约占社会消费品零售额的（ ）",
+    "weight": 4,
+    "typical": true,
+    "kind": "share"
+   },
+   {
+    "id": "multi-part-share",
+    "name": "多部分合计占比",
+    "ask": "题干点名3—5个部分，先求它们之和再除以整体，干扰项含漏加一项或用部分占比直接相加后算错口径。",
+    "example": "国2025执法：北京、上海、广州、深圳4个城市五批次累计……数量之和约占全国总数的",
+    "weight": 4,
+    "typical": false,
+    "kind": "share",
+    "types": [
+     "table",
+     "two_series",
+     "pie",
+     "text",
+     "monthly"
+    ],
+    "need": "至少4个可加总的分项与合计"
+   },
+   {
+    "id": "base-period-share",
+    "name": "基期比重反推",
+    "ask": "给出现期部分值、整体值及各自增速，求上年比重 A/B×(1+b)/(1+a)，干扰项含直接用现期比重。",
+    "example": "国2024执法：截至2021年末全国累计投运的各类电化学储能电站总数中，小型电站数量占比约为",
+    "weight": 3,
+    "typical": false,
+    "kind": "share",
+    "need": "部分与整体的现期值及各自同比增速"
+   },
+   {
+    "id": "nested-share",
+    "name": "隔级比重相乘",
+    "ask": "材料给A占B的比重和B占C的比重（或B的绝对量），求A占C的比重，需逐级相乘或换算。",
+    "example": "国2024副省：2022年，中部六省中型灌区新增节水能力占全国中型灌区的",
+    "weight": 3,
+    "typical": false,
+    "kind": "share",
+    "need": "两级占比，或下级部分、中级部分与总体"
+   },
+   {
+    "id": "share-to-part",
+    "name": "由比重反求部分量",
+    "ask": "材料给整体量和某部分占比（或部分量和占比），反求部分量或整体量，单位换算是常见陷阱。",
+    "example": "粤2026：2025年1至7月，留粤就业的……相关专业省内应届高校毕业生约有（ ）万人",
+    "weight": 2,
+    "typical": false,
+    "kind": "share",
+    "need": "整体量与部分占比"
+   }
+  ]
+ },
+ "资料分析-比重类-比重趋势、比重差与比值差": {
+  "title": "比重类-比重趋势、比重差与比值差",
+  "variants": [
+   {
+    "id": "share-trend-direction",
+    "name": "两期比重升降判断",
+    "ask": "问某部分占整体的比重比上年上升还是下降，比较部分增速与整体增速即可定方向，选项可带幅度。",
+    "example": "粤2024：与2021年相比，2022年中国对外直接投资流量在全球中的占比（ ）",
+    "weight": 4,
+    "typical": true,
+    "kind": "share_change"
+   },
+   {
+    "id": "share-change-points",
+    "name": "两期比重差算百分点",
+    "ask": "求比重比上年提高或降低多少个百分点，用 a/b×(r1−r2)/(1+r1)，干扰项含直接相减两增速。",
+    "example": "国2026地市：2024年上半年，中药提取物出口额占医药保健品出口总额的比重比上年同期",
+    "weight": 4,
+    "typical": false,
+    "kind": "share_change"
+   },
+   {
+    "id": "same-period-two-shares",
+    "name": "同期两个比重比较",
+    "ask": "同一时期两组口径各算一个比重再比较或求差，如甲在其整体中的占比比乙在其整体中的占比高多少。",
+    "example": "国2026副省：2024年，全国集中式风电项目核发绿证数量占……比重比太阳能发电项目的占比高约多少个百分点",
+    "weight": 3,
+    "typical": false,
+    "kind": "share_change",
+    "need": "两组各自的部分与整体"
+   },
+   {
+    "id": "multi-year-share-trend",
+    "name": "多年比重走势",
+    "ask": "连续3年以上逐年计算比重，判断先升后降、持续上升等走势，或找比重最高的年份。",
+    "example": "国2024副省：2020~2022年，我国马铃薯出口量占产量的比重呈现何种变化趋势",
+    "weight": 3,
+    "typical": false,
+    "kind": "share_change",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "同一部分与整体连续3年以上的数值"
+   },
+   {
+    "id": "ratio-trend",
+    "name": "非比重比值的走势",
+    "ask": "两个不同指标的比值（如人数与机构数）逐年变化，判断走势或比较两期大小。",
+    "example": "国2025执法：2021-2023年，Z省各年律师人数与律师事务所总数的比值",
+    "weight": 2,
+    "typical": false,
+    "kind": "share_change",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "两个指标连续多期数值"
+   }
+  ]
+ },
+ "资料分析-ABRX类-增长率计算模型": {
+  "title": "ABRX类-增长率计算模型",
+  "variants": [
+   {
+    "id": "two-period-rate",
+    "name": "两期数值求增长率",
+    "ask": "给同一指标两期数值（或现期与增量），求同比增长率，干扰项含用现期作分母。",
+    "example": "粤2025：2023年，G省博物馆数量同比增长约（ ）",
+    "weight": 4,
+    "typical": true,
+    "kind": "growth_rate"
+   },
+   {
+    "id": "max-rate-subject",
+    "name": "多主体增速比较",
+    "ask": "在至多4个主体中比较同比增长率最高或最低者，用增量÷基期快速比较，不必逐个精算。",
+    "example": "粤2023乡：2021年，以下经济区域财政科学技术支出同比增长率最高的是",
+    "weight": 4,
+    "typical": false,
+    "kind": "growth_rate"
+   },
+   {
+    "id": "max-rate-year",
+    "name": "多年中增速最快年份",
+    "ask": "连续多年数据中找同比增速最快（或最慢）的年份，需逐年作差除基期，覆盖题干全部年份。",
+    "example": "粤2022乡：以下年份中，我国村(居)委会完成选举数同比增幅最大的是",
+    "weight": 3,
+    "typical": false,
+    "kind": "growth_rate",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "同一指标连续4年以上数值"
+   },
+   {
+    "id": "counterfactual-rate",
+    "name": "假设情形下的增速",
+    "ask": "题干假设某项政策未实施或某部分不计入，重新求整体增速，需先还原假设后的现期量。",
+    "example": "粤2022县：若2-7月未实施阶段性减半征收职工医保单位缴费，则2020年职工医保基金总收入（含生育保险）同比增长",
+    "weight": 3,
+    "typical": false,
+    "kind": "growth_rate",
+    "need": "被调整部分的数值或可还原的减免额"
+   },
+   {
+    "id": "mom-rate",
+    "name": "环比增速比较",
+    "ask": "月度或季度数据求环比增速并比较，注意环比基期是上一期而非上年同期。",
+    "example": "川2025：将我国4个地区按2022年二季度嵌入式系统软件收入环比增速从快到慢排序",
+    "weight": 2,
+    "typical": false,
+    "kind": "growth_rate",
+    "types": [
+     "monthly",
+     "table",
+     "line"
+    ],
+    "need": "连续月度或季度数值"
+   },
+   {
+    "id": "rate-points-gap",
+    "name": "比率差算百分点",
+    "ask": "两个比率（覆盖率、比重、增速）相减得多少个百分点，选项用“个百分点”，干扰项含相对比值。",
+    "example": "粤2022乡：相比第1次森林资源清查，第9次森林资源清查时，我国森林覆盖率提高了约（ ）个百分点",
+    "weight": 3,
+    "typical": false,
+    "kind": "percentage_point"
+   },
+   {
+    "id": "rate-change-points",
+    "name": "增速提高回落几点",
+    "ask": "给出两期增速，问增速比上年提高或回落多少个百分点，干扰项含两增速之比。",
+    "example": "",
+    "weight": 2,
+    "typical": false,
+    "kind": "percentage_point",
+    "need": "同一指标两期增速"
+   },
+   {
+    "id": "interval-rate",
+    "name": "间隔增长率",
+    "ask": "给连续两年同比增速，求比两年前增长 r1+r2+r1×r2，或以某年为基期求多年后的增长率。",
+    "example": "苏2025A：以2018年末为基期，2023年末全国人均公共图书馆藏量的增长率",
+    "weight": 2,
+    "typical": false,
+    "kind": "interval_growth"
+   },
+   {
+    "id": "diff-indicator-rate",
+    "name": "差值指标的增速",
+    "ask": "顺差、收支盈余等差值指标，先分别求两期差值再算增速或变化量，干扰项含两增速直接相减。",
+    "example": "粤2023县：2022年，全国居民人均收支盈余比上一年（ ）（注：收支盈余=收入-消费支出）",
+    "weight": 3,
+    "typical": false,
+    "kind": "diff_growth"
+   },
+   {
+    "id": "surplus-deficit-sign",
+    "name": "差值方向判定",
+    "ask": "比较各主体两项指标（出口与进口、收入与支出）大小，判断谁出现逆差或差值由正转负。",
+    "example": "浙2025A：2023年，在跨境电商进出口贸易中，我国与下列哪个国家出现贸易逆差",
+    "weight": 2,
+    "typical": false,
+    "kind": "diff_growth",
+    "types": [
+     "table",
+     "two_series",
+     "text"
+    ],
+    "need": "至少4个主体的两项对应指标"
+   }
+  ]
+ },
+ "资料分析-ABRX类-增长量计算与现期推算": {
+  "title": "ABRX类-增长量计算与现期推算",
+  "variants": [
+   {
+    "id": "delta-from-rate",
+    "name": "现期加增速求增长量",
+    "ask": "已知现期量与同比增速求增长量 A×r/(1+r)，用 1/n 速算，干扰项含误用 A×r。",
+    "example": "粤2021乡：2020年上半年，我国水、海产品出口额同比减少约（ ）亿美元",
+    "weight": 4,
+    "typical": true,
+    "kind": "growth_amount"
+   },
+   {
+    "id": "max-delta",
+    "name": "增长量最多的主体或年份",
+    "ask": "比较多个主体或多年的同比增量大小，现期大且增速大者优先，覆盖题干全部范围。",
+    "example": "粤2025：2017~2023年间，G省国有博物馆同比增加数量最多的是（ ）",
+    "weight": 4,
+    "typical": false,
+    "kind": "growth_amount"
+   },
+   {
+    "id": "two-period-delta",
+    "name": "两期相减求增量",
+    "ask": "直接给出两期数值，求增加或减少多少，注意单位与年份对应。",
+    "example": "粤2026：2024年，广东省体育场地数量增加约（ ）万个",
+    "weight": 3,
+    "typical": false,
+    "kind": "growth_amount"
+   },
+   {
+    "id": "delta-multiple",
+    "name": "两个增量的倍数",
+    "ask": "分别求两个指标的同比增量，再求一个是另一个的多少倍。",
+    "example": "国2024地市：2019年，蜂窝物联网终端用户数同比增量约是移动电话用户数同比增量的多少倍",
+    "weight": 2,
+    "typical": false,
+    "kind": "growth_amount",
+    "need": "两个指标的两期值或现期与增速"
+   },
+   {
+    "id": "keep-delta-breakthrough",
+    "name": "保持增量不变哪年突破",
+    "ask": "假设保持某年同比增量（或增速）不变，逐年外推，求哪一年首次超过给定值。",
+    "example": "国2025执法：如保持2023年同比增量不变，则到哪一年Z省律师办理法律业务数将首次超过150万件",
+    "weight": 3,
+    "typical": false,
+    "kind": "projection",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "连续多期数值"
+   },
+   {
+    "id": "monthly-average-full-year",
+    "name": "按前几月均值推全年",
+    "ask": "假设后续月份保持前几个月的月均水平，推算全年总量并与上年比较增减。",
+    "example": "国2025副省：如2024年5-12月，我国集成电路布图设计登记月均发证量与1-4月水平相同，则2024年全年……将比上年",
+    "weight": 2,
+    "typical": false,
+    "kind": "projection",
+    "types": [
+     "monthly",
+     "text"
+    ],
+    "need": "前几个月累计值与上年全年值"
+   },
+   {
+    "id": "rate-to-target-multiple",
+    "name": "按增速估算何时达倍数",
+    "ask": "按当年增速持续增长，比较几个指标谁率先达到基准年的2倍等目标，用增速大小与差距估算。",
+    "example": "苏2025A：按2023年的增长率估算，江苏省中医服务的下列指标率先达到2019年水平2倍的是",
+    "weight": 2,
+    "typical": false,
+    "kind": "projection",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "多个指标的当前值、基准值和增速"
+   },
+   {
+    "id": "assumption-recompute",
+    "name": "口径变化后重算",
+    "ask": "题干假设某参数改变（上座率提高5个百分点、价格不变等），用材料公式重算目标量。",
+    "example": "国2025地市：如某月北京的电影总放映场次和平均每场座位数与2023年12月相同，但上座率增加5个百分点，则该月北京将有约多少万人次观众观影",
+    "weight": 2,
+    "typical": false,
+    "kind": "projection",
+    "need": "可组成计算公式的多个参数"
+   }
+  ]
+ },
+ "资料分析-ABRX类-基期量计算与比较": {
+  "title": "ABRX类-基期量计算与比较",
+  "variants": [
+   {
+    "id": "base-from-rate",
+    "name": "现期加增速求基期",
+    "ask": "已知现期量与同比增速，求上年值 A/(1+r)，干扰项含 A×(1−r)、A×(1+r)。",
+    "example": "粤2023县：2020年，广东省省本级财政科学技术支出为（ ）亿元",
+    "weight": 4,
+    "typical": true,
+    "kind": "base_value"
+   },
+   {
+    "id": "base-compare",
+    "name": "基期量比较或求和",
+    "ask": "多个主体各自反推基期后比较大小、求和或求差，不能直接比较现期。",
+    "example": "粤2024：2020年，全国用于县域农业农村信息化建设的社会资本投入（ ）（假设2020年县的数量与2021年相同）",
+    "weight": 3,
+    "typical": false,
+    "kind": "base_value",
+    "need": "多个主体的现期值与增速"
+   },
+   {
+    "id": "base-from-delta",
+    "name": "现期加增量求基期",
+    "ask": "给出现期与增长量（或下降量），求基期并据此作进一步比较。",
+    "example": "",
+    "weight": 2,
+    "typical": false,
+    "kind": "base_value"
+   },
+   {
+    "id": "cumulative-current",
+    "name": "累计与当期互推",
+    "ask": "由1—N月累计与1—(N−1)月累计求当月值，或由各月值求某季度、累计首次超过某值的月份。",
+    "example": "国2026副省：2024年，全国基本医疗保险统筹基金累计收入第一次超过1.5万亿元是在几月",
+    "weight": 3,
+    "typical": false,
+    "kind": "cumulative",
+    "types": [
+     "monthly"
+    ],
+    "need": "1—N月逐月累计或当月值"
+   },
+   {
+    "id": "monthly-daily-average",
+    "name": "月均日均换算",
+    "ask": "累计值除以月数或天数求月均、日均，注意季度天数和闰年。",
+    "example": "国2026副省：2023年1~11月，我国对最不发达国家月均进口值约为多少亿元",
+    "weight": 2,
+    "typical": false,
+    "kind": "cumulative",
+    "types": [
+     "monthly",
+     "text"
+    ],
+    "need": "累计值与对应月份"
+   }
+  ]
+ },
+ "资料分析-平均类-一般平均值与年均增速/增量": {
+  "title": "平均类-一般平均值与年均增速/增量",
+  "variants": [
+   {
+    "id": "current-average",
+    "name": "现期平均数",
+    "ask": "总量÷个数求人均、户均、每个单位对应量，正确值非整数，注意分子分母同口径。",
+    "example": "粤2021乡：2019年G省平均每个农业科研和科技开发机构的高级职称人数最接近（ ）",
+    "weight": 4,
+    "typical": true,
+    "kind": "average"
+   },
+   {
+    "id": "max-average-subject",
+    "name": "平均数比较最大",
+    "ask": "在至多4个主体中各求平均数再比较大小，用分数比较技巧，不必全部精算。",
+    "example": "粤2021县：2020年前三季度，G省下列行业中，平均每个企业产值最高的是（ ）",
+    "weight": 3,
+    "typical": false,
+    "kind": "average"
+   },
+   {
+    "id": "average-growth-rate",
+    "name": "平均数增长率",
+    "ask": "求平均数比上年增长百分之几，用 (a−b)/(1+b)，a、b 为总量与个数的增速。",
+    "example": "国2025副省：2023年三季度，支付系统平均每笔支付业务金额比上年同期",
+    "weight": 3,
+    "typical": false,
+    "kind": "average",
+    "need": "总量与个数的现期值及增速"
+   },
+   {
+    "id": "average-ratio",
+    "name": "两个平均数的倍数",
+    "ask": "分别求两个主体的平均数，再求一个是另一个的多少倍。",
+    "example": "粤2022乡：2020年，平均每个乡镇床位数约为每个街道床位数的（ ）倍",
+    "weight": 2,
+    "typical": false,
+    "kind": "average",
+    "need": "两个主体的总量与个数"
+   },
+   {
+    "id": "average-diff",
+    "name": "平均数差值",
+    "ask": "分别求两期或两主体的平均数再作差，不能用总量增速代替。",
+    "example": "粤2022乡：2020年，全国社区卫生服务中心平均每名医师全年担负诊疗人次比全国农村乡镇卫生院的约多（ ）人次",
+    "weight": 3,
+    "typical": false,
+    "kind": "average_diff"
+   },
+   {
+    "id": "average-delta",
+    "name": "平均数增长量",
+    "ask": "求平均数比上年增加多少（单位为元/人、万元/件），先求两期平均数再相减。",
+    "example": "国2026执法：2024年，我国企业发明专利产业化平均收益比上年增长约多少万元/件",
+    "weight": 2,
+    "typical": false,
+    "kind": "average_diff",
+    "need": "两期总量与个数"
+   },
+   {
+    "id": "annual-delta",
+    "name": "年均增长量",
+    "ask": "用首末年数据求年均增加量，年份差 n 等于末年减首年，“以某年为基期”时尤其注意。",
+    "example": "粤2025：2016～2022年，G省博物馆年均增加（ ）家",
+    "weight": 4,
+    "typical": false,
+    "kind": "annual_growth",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ]
+   },
+   {
+    "id": "annual-rate",
+    "name": "年均增长率",
+    "ask": "用首末年数据求年均增长率，按 (末/首)^(1/n)−1 估算或代选项，干扰项含总增长率除以年数。",
+    "example": "粤2021县：2016年-2020年，G省社会消费品零售总额年均增长率约为（ ）",
+    "weight": 4,
+    "typical": false,
+    "kind": "annual_growth",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ]
+   }
+  ]
+ },
+ "资料分析-基础知识-统计术语与常考概念": {
+  "title": "基础知识-统计术语与常考概念",
+  "variants": [
+   {
+    "id": "current-multiple",
+    "name": "现期倍数",
+    "ask": "A 是 B 的多少倍或约为几年前的多少倍，正确值非整数倍，干扰项含倍数与多几倍混淆。",
+    "example": "粤2023乡：2021年广东农林牧渔业总产值约为9年前的（ ）倍",
+    "weight": 4,
+    "typical": true,
+    "kind": "multiple"
+   },
+   {
+    "id": "sum-multiple",
+    "name": "多项之和的倍数",
+    "ask": "两组各若干项先分别加总，再求一组是另一组的多少倍。",
+    "example": "国2025副省：2023年电饭煲、破壁机和电压力锅零售额之和约是台式单烤、电炖锅和榨汁机零售额之和的多少倍",
+    "weight": 3,
+    "typical": false,
+    "kind": "multiple",
+    "types": [
+     "table",
+     "two_series",
+     "pie",
+     "text",
+     "monthly"
+    ],
+    "need": "至少6个可分组加总的分项"
+   },
+   {
+    "id": "base-multiple",
+    "name": "基期倍数",
+    "ask": "两个主体各自用现期和增速反推基期后求倍数，干扰项含直接用现期倍数。",
+    "example": "国2026副省：2023年，全国核发绿证数量约是2022年的多少倍",
+    "weight": 2,
+    "typical": false,
+    "kind": "multiple",
+    "need": "两个主体的现期值与增速"
+   },
+   {
+    "id": "chain-multiple",
+    "name": "倍数链式换算",
+    "ask": "已知A是C的k倍、给出A与B的关系，求B是C的多少倍，需逐级换算。",
+    "example": "国2025副省：如果第15届CMC参赛人数是首届的10.85倍，问第10届CMC参赛人数是首届参赛人数的多少倍",
+    "weight": 2,
+    "typical": false,
+    "kind": "multiple"
+   },
+   {
+    "id": "nearest-ratio",
+    "name": "两量之比最接近",
+    "ask": "由人均与总量等关系反推两个主体的数量，再求比值最接近哪个比例。",
+    "example": "粤2023乡：2022年，我国城镇居民与农村居民人数之比最接近（ ）",
+    "weight": 2,
+    "typical": false,
+    "kind": "multiple",
+    "need": "能反推两主体数量的总量与人均"
+   },
+   {
+    "id": "direct-lookup",
+    "name": "直接定位读数",
+    "ask": "从文字或图表中直接找出具体数值、分类数或排名第一项，一步可得。",
+    "example": "粤2026：根据计量溯源性、准确度和用途等，国家标准物质目前分为（ ）类",
+    "weight": 3,
+    "typical": false,
+    "kind": "detail_lookup"
+   },
+   {
+    "id": "extreme-year-lookup",
+    "name": "极值年份查找",
+    "ask": "在多年数据中找出最多、最少或首次突破某值的年份，不需计算。",
+    "example": "粤2021乡：2015-2019年，G省农业科研和科技开发机构发表科学论文篇数最多的一年是（ ）",
+    "weight": 2,
+    "typical": false,
+    "kind": "detail_lookup",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ]
+   },
+   {
+    "id": "text-theme",
+    "name": "主题或面向领域",
+    "ask": "问材料中某行动计划的主题、面向的产业或包括的方面，依据原文概括，错项为无中生有或偷换。",
+    "example": "粤2026：“百万英才汇南粤”行动计划围绕的主题是（ ）",
+    "weight": 3,
+    "typical": false,
+    "kind": "text_reading",
+    "types": [
+     "text"
+    ],
+    "need": "成段的政策举措或主题表述"
+   },
+   {
+    "id": "text-not-mentioned",
+    "name": "未提及或原因不包括",
+    "ask": "问资料未提及的内容或原因不包括哪项，逐项回原文对照，错项是原文明确提到的内容。",
+    "example": "粤2026：根据资料，国家标准物质数量快速增长的原因不包括（ ）",
+    "weight": 3,
+    "typical": false,
+    "kind": "text_reading",
+    "types": [
+     "text"
+    ],
+    "need": "成段的原因或举措表述"
+   }
+  ]
+ },
+ "资料分析-盐水类-十字交叉法与混合增长率": {
+  "title": "盐水类-十字交叉法与混合增长率",
+  "variants": [
+   {
+    "id": "two-part-total-rate",
+    "name": "两部分求整体增速",
+    "ask": "已知两部分现期值和各自增速，求整体增速，介于两增速之间且偏向基期量大的一方。",
+    "example": "粤2021乡：2020年上半年，我国农产品进出口额同比增长约",
+    "weight": 4,
+    "typical": true,
+    "kind": "mixed_growth"
+   },
+   {
+    "id": "multi-segment-rate",
+    "name": "多段合计增速",
+    "ask": "三个或以上时段、主体合计的增速，先求各段基期再加总，不能简单平均。",
+    "example": "国2026执法：2025年清明假期、“五一”假期和端午假期，Y省接待游客总人次数比上年增长了",
+    "weight": 3,
+    "typical": false,
+    "kind": "mixed_growth",
+    "need": "各段现期值与增速"
+   },
+   {
+    "id": "total-part-other-rate",
+    "name": "整体与部分推另一部分",
+    "ask": "已知整体增速和其中一部分的现期值与增速，求另一部分增速，用十字交叉或线段法。",
+    "example": "",
+    "weight": 2,
+    "typical": false,
+    "kind": "mixed_growth",
+    "need": "整体与一部分的现期值及增速"
+   },
+   {
+    "id": "mixed-rate-range",
+    "name": "混合增速判区间",
+    "ask": "只需判断整体增速落在哪个区间，按“介于两增速之间、偏向量大一方”定位，不必精算。",
+    "example": "国2026副省：2024年，我国对最不发达国家进出口总值同比增速约为",
+    "weight": 2,
+    "typical": false,
+    "kind": "mixed_growth"
+   }
+  ]
+ },
+ "资料分析-特殊考点-拉动增长、贡献率与容斥": {
+  "title": "特殊考点-拉动增长、贡献率与容斥",
+  "variants": [
+   {
+    "id": "delta-share",
+    "name": "增量占比",
+    "ask": "部分增量占整体增量的比重，先分别求两者增量再相除，干扰项含用现期比重代替。",
+    "example": "粤2023县：2021-2022年间，我国新兴业务收入增加值约占我国电信业务收入增加值的（ ）",
+    "weight": 4,
+    "typical": true,
+    "kind": "delta_share"
+   },
+   {
+    "id": "contribution-rate",
+    "name": "增长贡献率",
+    "ask": "某部分对整体增长的贡献率，即部分增量÷整体增量，注意题干给的是增速还是增量。",
+    "example": "苏2025B：2023年M市东北片区接待过夜游客人次增长对全市接待过夜游客增长的贡献率为",
+    "weight": 3,
+    "typical": false,
+    "kind": "delta_share"
+   },
+   {
+    "id": "pull-growth",
+    "name": "拉动增长百分点",
+    "ask": "部分拉动整体增长多少个百分点，等于部分增量÷整体基期。",
+    "example": "",
+    "weight": 2,
+    "typical": false,
+    "kind": "delta_share",
+    "need": "部分与整体的现期值及增速"
+   },
+   {
+    "id": "capacity-contribution",
+    "name": "假设充分利用的贡献占比",
+    "ask": "题干假设新增能力全部转化，求它占整体增量的比重，需按假设构造分子。",
+    "example": "国2024副省：如全国中型灌区新增粮食生产能力均得到充分利用，则中部六省中型灌区新增粮食生产能力对全国粮食增产的贡献占比为",
+    "weight": 2,
+    "typical": false,
+    "kind": "delta_share"
+   }
+  ]
+ },
+ "资料分析-比较类-双线法与增量比较": {
+  "title": "比较类-双线法与增量比较",
+  "variants": [
+   {
+    "id": "count-condition",
+    "name": "满足条件的个数",
+    "ask": "在所列主体或年份中数满足条件（同比增加、增量超过X）的有几个，逐一判断不遗漏。",
+    "example": "粤2024：2022年，中国国民经济的18个行业大类中有（ ）个行业的对外直接投资流量同比有所增加",
+    "weight": 4,
+    "typical": true,
+    "kind": "count"
+   },
+   {
+    "id": "count-share-threshold",
+    "name": "比重超阈值的个数",
+    "ask": "数有几个主体占比超过某百分比，用阈值×整体与各部分比较，不必逐个算比重。",
+    "example": "国2025副省：资料所列厨房小家电品类当中，2023年零售额超过全品类零售总额10%的有几类",
+    "weight": 3,
+    "typical": false,
+    "kind": "count"
+   },
+   {
+    "id": "count-rate-faster",
+    "name": "增速快于上年的个数",
+    "ask": "逐个主体比较本年与上年增速（或环比增速是否加快），数满足的个数。",
+    "example": "国2026地市：我国科幻产业五大领域中，2024年营收额同比增速快于2023年水平的有几个",
+    "weight": 3,
+    "typical": false,
+    "kind": "count",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "各主体连续三期数值或两期增速"
+   },
+   {
+    "id": "count-derivable",
+    "name": "能推出的信息有几项",
+    "ask": "列出3—4项指标，判断哪些能由材料算出，关键是识别缺少的数据或口径。",
+    "example": "国2024副省：在以下信息中，能够从上述资料中推出的有几项",
+    "weight": 2,
+    "typical": false,
+    "kind": "count"
+   },
+   {
+    "id": "sort-current",
+    "name": "现期量排序",
+    "ask": "把3—4个主体按现期量从大到小排列，可能需先由占比或平均数换算。",
+    "example": "粤2024：2021年，中国下列行业的对外直接投资流量，从大到小排序正确的是（ ）",
+    "weight": 3,
+    "typical": false,
+    "kind": "sort"
+   },
+   {
+    "id": "sort-delta",
+    "name": "增长量排序",
+    "ask": "按同比增量排序，现期与增速都要用到，先排除明显项再比较剩余两项。",
+    "example": "浙2025A：将我国民航、公路、铁路和水路四种运输方式按2023年一季度旅客运输量同比增量从高到低排序",
+    "weight": 3,
+    "typical": false,
+    "kind": "sort"
+   },
+   {
+    "id": "sort-rate",
+    "name": "增速排序",
+    "ask": "按同比增速或多期增幅排序，涉及多期时先求总增幅再比较。",
+    "example": "粤2026：与1978年末相比，2023年末我国各类型城镇数量增幅排序正确的是（ ）",
+    "weight": 3,
+    "typical": false,
+    "kind": "sort"
+   },
+   {
+    "id": "cross-indicator-rank",
+    "name": "跨指标联动排名",
+    "ask": "先按甲指标找出某年份或主体，再看它在乙指标中的排名，两步定位。",
+    "example": "浙2025A：2018-2023年全国检察机关受理行政生效裁判监督案件数量最多的年份，当年受理行政执行活动……数量在这6年中从多到少排名",
+    "weight": 2,
+    "typical": false,
+    "kind": "sort",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "两个指标的连续多年数值"
+   },
+   {
+    "id": "median",
+    "name": "多年数据中位数",
+    "ask": "把多年数值排序后取中位数，偶数个取中间两数平均。",
+    "example": "苏2025B：2015-2023年，我国国有企业年末资产负债率的中位数是",
+    "weight": 2,
+    "typical": false,
+    "kind": "sort",
+    "types": [
+     "years",
+     "line",
+     "table",
+     "monthly"
+    ],
+    "need": "同一指标连续7年以上数值"
+   }
+  ]
  }
 }
