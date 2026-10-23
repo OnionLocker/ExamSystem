@@ -83,9 +83,10 @@ const weekdayFull = ['周日', '周一', '周二', '周三', '周四', '周五',
 const EVENTS_KEY = 'exam_calendar_events';
 const NAV_ORDER_KEY = 'exam_nav_order';
 const HERMES_FS_KEY = 'hermes.fullscreen';
-const readHermesFs = () => {
+const SHENLUN_FS_KEY = 'shenlun.fullscreen';
+const readStoredFullscreen = (key) => {
   try {
-    const v = localStorage.getItem(HERMES_FS_KEY);
+    const v = localStorage.getItem(key);
     if (v === '1') return true;
     if (v === '0') return false;
   } catch { /* 隐私模式 */ }
@@ -288,6 +289,10 @@ const AppInner = () => {
     try { localStorage.setItem(HERMES_FS_KEY, hermesFullscreen ? '1' : '0'); }
     catch { /* ignore */ }
   }, [hermesFullscreen]);
+  useEffect(() => {
+    try { localStorage.setItem(SHENLUN_FS_KEY, shenlunFullscreen ? '1' : '0'); }
+    catch { /* ignore */ }
+  }, [shenlunFullscreen]);
   const { getDay: getStudyDay } = useStudyHeatmap(studyVersion);
 
   // 监听学习日志变更事件（番茄钟完成、数资冲刺完成、导入、删除均会派发）

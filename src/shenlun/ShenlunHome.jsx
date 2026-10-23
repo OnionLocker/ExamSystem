@@ -6,12 +6,16 @@ import {
   CheckCircle2,
   ChevronDown,
   Clock,
+  Expand,
   Loader2,
+  Maximize2,
+  Minimize2,
   NotebookPen,
   Pause,
   Play,
   RefreshCw,
   Send,
+  Shrink,
   Trash2,
   X,
 } from 'lucide-react';
@@ -54,9 +58,103 @@ const readTimer = (paperId) => {
   try { return JSON.parse(localStorage.getItem(timerKey(paperId))) || { elapsed: 0 }; } catch { return { elapsed: 0 }; }
 };
 
+const IS_STANDALONE = typeof window !== 'undefined' && (
+  window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches
+  || window.navigator.standalone === true
+);
+const osFullscreenEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+
+function useBrowserFullscreen() {
+  const [osFs, setOsFs] = useState(false);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    const sync = () => setOsFs(!!osFullscreenEl());
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    sync();
+    return () => {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
+    };
+  }, []);
+  const toggle = () => {
+    setError('');
+    if (IS_STANDALONE) return;
+    if (osFullscreenEl()) {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exit) Promise.resolve(exit.call(document)).catch(() => {});
+      return;
+    }
+    const enabled = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+    const req = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+    if (!enabled || !req) {
+      setError('请用 Safari 打开，分享后添加到主屏幕，从桌面图标进就没有顶栏。');
+      return;
+    }
+    Promise.resolve(req.call(document.documentElement, { navigationUI: 'hide' })).catch(() => {
+      setError('浏览器拒绝了全屏。请用 Safari 打开，再分享到主屏幕。');
+    });
+  };
+  return { osFs, toggle, error };
+}
+
+function FullscreenButtons({ fullscreen, onToggleFullscreen }) {
+  const { osFs, toggle, error } = useBrowserFullscreen();
+  const btn = (on) => `flex min-h-10 shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-sm font-black ${
+    on ? 'bg-[#1a1a1a] text-white' : 'border border-[#e8d5b0] bg-white text-[#1a1a1a]'
+  }`;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onToggleFullscreen}
+        title={fullscreen ? '退出全屏，显示导航' : '全屏阅读材料'}
+        className={btn(fullscreen)}
+      >
+        {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+        {fullscreen ? '退出全屏' : '全屏'}
+      </button>
+      {!IS_STANDALONE && (
+        <button
+          type="button"
+          onClick={toggle}
+          title={osFs ? '退出浏览器全屏' : '隐藏浏览器地址栏'}
+          className={btn(osFs)}
+        >
+          {osFs ? <Shrink size={16} /> : <Expand size={16} />}
+          {osFs ? '退出顶栏' : '隐藏顶栏'}
+        </button>
+      )}
+      {error && <span className="max-w-xs text-xs font-bold leading-relaxed text-red-600">{error}</span>}
+    </>
+  );
+}
+
+function MaterialsView({ paper, scope, reading = false }) {
+  return (
+    <div className={reading ? 'mx-auto w-full max-w-3xl space-y-8' : 'space-y-5'}>
+      {paper.materials.map((m) => (
+        <section key={m.id} className={scope.length && !scope.includes(m.id) ? 'opacity-40' : ''}>
+          <h3 className={`font-black text-[#6b5428] ${reading ? 'mb-3 text-base' : 'mb-2 text-sm'}`}>{m.title}</h3>
+          {m.paragraphs.map((p) => (
+            <p
+              key={p.id}
+              className={`text-[#1a1a1a] ${reading ? 'mb-3 text-[17px] leading-[2]' : 'mb-2 text-[15px] leading-[1.9]'}`}
+              style={{ textIndent: '2em' }}
+            >
+              {p.text}
+            </p>
+          ))}
+        </section>
+      ))}
+      {paper.source_note && <p className="border-t border-[#f0e4c8] pt-3 text-xs leading-relaxed text-[#aaa]">{paper.source_note}</p>}
+    </div>
+  );
+}
+
 // ─── 列表 ─────────────────────────────────────────────────────
 
-function PaperList({ onOpen }) {
+function PaperList({ onOpen, fullscreen = false, onToggleFullscreen }) {
   const [papers, setPapers] = useState(null);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
@@ -77,8 +175,9 @@ function PaperList({ onOpen }) {
   };
 
   return (
+    <div className={fullscreen ? 'h-full min-h-0 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-8' : ''}>
     <div className="mx-auto max-w-4xl space-y-5">
-      <div className="flex items-center justify-between rounded-3xl border border-[#e8d5b0] bg-white/70 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-[#e8d5b0] bg-white/70 px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#1a1a1a] text-white">
             <NotebookPen size={18} />
@@ -88,9 +187,12 @@ function PaperList({ onOpen }) {
             <p className="text-xs font-bold text-[#888]">每题拍照上传，写完整套交卷；评分和点评在 Hermes「申论复盘」里做</p>
           </div>
         </div>
-        <button type="button" onClick={load} className="flex items-center gap-1.5 text-sm font-black text-[#6b5428]">
-          <RefreshCw size={14} /> 刷新
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <FullscreenButtons fullscreen={fullscreen} onToggleFullscreen={onToggleFullscreen} />
+          <button type="button" onClick={load} className="flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-black text-[#6b5428]">
+            <RefreshCw size={14} /> 刷新
+          </button>
+        </div>
       </div>
 
       {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>}
@@ -130,6 +232,7 @@ function PaperList({ onOpen }) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }
@@ -396,7 +499,7 @@ function Submissions({ submissions }) {
   );
 }
 
-function PaperView({ paperId, onBack }) {
+function PaperView({ paperId, onBack, fullscreen = false, onToggleFullscreen }) {
   const [paper, setPaper] = useState(null);
   const [current, setCurrent] = useState(null);
   const [error, setError] = useState('');
@@ -404,6 +507,7 @@ function PaperView({ paperId, onBack }) {
   const [timer, setTimer] = useState(() => readTimer(paperId));
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
+  const [showQuestion, setShowQuestion] = useState(false);
   const load = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
@@ -424,6 +528,11 @@ function PaperView({ paperId, onBack }) {
     const t = setInterval(() => setTimer((s) => ({ ...s, elapsed: s.elapsed + 1 })), 1000);
     return () => clearInterval(t);
   }, [paperId, timer]);
+
+  const toggleFullscreen = () => {
+    if (!fullscreen) setShowQuestion(false);
+    onToggleFullscreen?.();
+  };
 
   if (error) return <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">{error}</p>;
   if (!paper) return <div className="flex justify-center py-16 text-[#888]"><Loader2 className="animate-spin" /></div>;
@@ -451,16 +560,28 @@ function PaperView({ paperId, onBack }) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <button type="button" onClick={onBack} className="flex items-center gap-1 text-sm font-black text-[#6b5428]">
+    <div className={fullscreen ? 'flex h-full min-h-0 flex-col bg-white' : 'space-y-4'}>
+      <div className={`flex flex-wrap items-center gap-2 ${fullscreen ? 'shrink-0 border-b border-black/5 px-3 py-2' : 'gap-3'}`}>
+        <button type="button" onClick={onBack} className="flex min-h-10 items-center gap-1 text-sm font-black text-[#6b5428]">
           <ArrowLeft size={16} /> 试卷列表
         </button>
         <p className="min-w-0 flex-1 truncate text-sm font-black text-[#1a1a1a]">{paper.title}</p>
+        <FullscreenButtons fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} />
+        {fullscreen && (
+          <button
+            type="button"
+            onClick={() => setShowQuestion((v) => !v)}
+            className={`flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-black ${
+              showQuestion ? 'bg-[#1a1a1a] text-white' : 'border border-[#e8d5b0] bg-white text-[#1a1a1a]'
+            }`}
+          >
+            {showQuestion ? '看材料' : '题目'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setTimer((s) => ({ ...s, running: !s.running }))}
-          className="flex items-center gap-1.5 rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm font-black text-[#1a1a1a]"
+          className="flex min-h-10 items-center gap-1.5 rounded-xl border border-[#e8d5b0] bg-white px-3 py-2 text-sm font-black text-[#1a1a1a]"
           title="整套计时"
         >
           {timer.running ? <Pause size={14} /> : <Play size={14} />}
@@ -471,26 +592,26 @@ function PaperView({ paperId, onBack }) {
           type="button"
           disabled={submitting || !drafted.length}
           onClick={submit}
-          className="flex items-center gap-1.5 rounded-xl bg-[#1a1a1a] px-4 py-2 text-sm font-black text-white disabled:opacity-40"
+          className="flex min-h-10 items-center gap-1.5 rounded-xl bg-[#1a1a1a] px-4 py-2 text-sm font-black text-white disabled:opacity-40"
         >
           {submitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
           交卷（{drafted.length}/{paper.questions.length} 题）
         </button>
       </div>
       {notice && (
-        <p className="flex items-start gap-2 rounded-2xl bg-[#f4e6c8] px-4 py-3 text-sm font-bold text-[#6b5428]">
+        <p className={`flex items-start gap-2 bg-[#f4e6c8] px-4 py-3 text-sm font-bold text-[#6b5428] ${fullscreen ? 'shrink-0' : 'rounded-2xl'}`}>
           {notice.startsWith('已交卷') ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="mt-0.5 shrink-0" />}
           {notice}
         </p>
       )}
-      <Submissions submissions={paper.submissions} />
-      <div className="flex flex-wrap gap-2">
+      {!fullscreen && <Submissions submissions={paper.submissions} />}
+      <div className={`flex gap-2 ${fullscreen ? 'shrink-0 overflow-x-auto px-3 py-2 [scrollbar-width:none]' : 'flex-wrap'}`}>
         {paper.questions.map((q) => (
           <button
             key={q.id}
             type="button"
             onClick={() => setCurrent(q.id)}
-            className={`rounded-2xl border px-4 py-2.5 text-sm font-black ${
+            className={`shrink-0 rounded-2xl border px-4 py-2.5 text-sm font-black ${
               q.id === current ? 'border-[#1a1a1a] bg-[#1a1a1a] text-white' : 'border-[#e8d5b0] bg-white text-[#1a1a1a]'
             }`}
           >
@@ -501,29 +622,45 @@ function PaperView({ paperId, onBack }) {
           </button>
         ))}
       </div>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="max-h-[calc(100vh-220px)] space-y-5 overflow-y-auto rounded-3xl border border-[#e8d5b0] bg-white p-5 lg:sticky lg:top-0">
-          {paper.materials.map((m) => (
-            <section key={m.id} className={scope.length && !scope.includes(m.id) ? 'opacity-40' : ''}>
-              <h3 className="mb-2 text-sm font-black text-[#6b5428]">{m.title}</h3>
-              {m.paragraphs.map((p) => (
-                <p key={p.id} className="mb-2 text-[15px] leading-[1.9] text-[#1a1a1a]" style={{ textIndent: '2em' }}>{p.text}</p>
-              ))}
-            </section>
-          ))}
-          {paper.source_note && <p className="border-t border-[#f0e4c8] pt-3 text-xs leading-relaxed text-[#aaa]">{paper.source_note}</p>}
+      {fullscreen ? (
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 sm:px-8"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          {showQuestion ? (
+            <div className="mx-auto max-w-3xl space-y-4">
+              <Submissions submissions={paper.submissions} />
+              {active && <QuestionPanel key={active.id} questionId={active.id} onChanged={load} />}
+            </div>
+          ) : (
+            <MaterialsView paper={paper} scope={scope} reading />
+          )}
         </div>
-        <div className="order-first lg:order-none">
-          {active && <QuestionPanel key={active.id} questionId={active.id} onChanged={load} />}
+      ) : (
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="max-h-[calc(100vh-220px)] overflow-y-auto rounded-3xl border border-[#e8d5b0] bg-white p-5 lg:sticky lg:top-0">
+            <MaterialsView paper={paper} scope={scope} />
+          </div>
+          <div className="order-first lg:order-none">
+            {active && <QuestionPanel key={active.id} questionId={active.id} onChanged={load} />}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-export default function ShenlunHome() {
+export default function ShenlunHome({ fullscreen = false, onToggleFullscreen }) {
   const [paperId, setPaperId] = useState(null);
   return paperId
-    ? <PaperView key={paperId} paperId={paperId} onBack={() => setPaperId(null)} />
-    : <PaperList onOpen={setPaperId} />;
+    ? (
+      <PaperView
+        key={paperId}
+        paperId={paperId}
+        onBack={() => setPaperId(null)}
+        fullscreen={fullscreen}
+        onToggleFullscreen={onToggleFullscreen}
+      />
+    )
+    : <PaperList onOpen={setPaperId} fullscreen={fullscreen} onToggleFullscreen={onToggleFullscreen} />;
 }
