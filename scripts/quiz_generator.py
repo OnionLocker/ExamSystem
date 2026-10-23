@@ -857,7 +857,7 @@ def generate_and_import(run: dict, batch_dir: Path, db_path: Path, timeout: int,
             if run.get("experimental_images"):
                 return 0
             run_cmd([sys.executable, str(ROOT / "scripts" / "generation_gate.py"), "issue", str(batch_dir)], env)
-            run_cmd(["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], env)
+            run_cmd([service_node(), str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], env)
             conn = sqlite3.connect(db_path, timeout=30)
             try:
                 count = int(

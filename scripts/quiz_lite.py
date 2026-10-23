@@ -1025,7 +1025,7 @@ def sign(batch_dir: Path, run: dict, results: dict[str, dict], log: list[dict]) 
 def import_batch(batch_dir: Path, db_path: Path) -> int:
     env = {**os.environ, "EXAM_DB": str(db_path)}
     result = subprocess.run(
-        ["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)],
+        [service_node(), str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)],
         cwd=ROOT,
         env=env,
         capture_output=True,

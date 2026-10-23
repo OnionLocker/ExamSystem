@@ -27,10 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from figure_families import families  # noqa: E402
-from figure_families.audit import audit_batch, figure_digests, part_paths  # noqa: E402
-from figure_families.core import LETTERS, TIERS, make_item  # noqa: E402
 from scheduler_common import DB, ROOT, local_today  # noqa: E402
+from service_node import service_node  # noqa: E402
 
 MAX_COUNT = 15
 MODULE_SCOPES = {"判断推理": "判断推理-图形推理", "科学推理": "科学推理"}
@@ -271,7 +269,7 @@ def register_tags(slots: list[dict], db: Path) -> None:
 
 def import_batch(batch_dir: Path, db: Path, batch_id: str) -> int:
     env = {**os.environ, "EXAM_DB": str(db)}
-    result = subprocess.run(["node", str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], cwd=ROOT, env=env,
+    result = subprocess.run([service_node(), str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)], cwd=ROOT, env=env,
                             capture_output=True, text=True, encoding="utf-8")
     if result.returncode != 0:
         raise RuntimeError((result.stderr or result.stdout or "import failed").strip()[-2000:])

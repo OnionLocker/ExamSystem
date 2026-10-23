@@ -14,9 +14,16 @@ import time
 import uuid
 from collections import Counter
 
+# 本脚本可能经 hermes root 的 runpy 启动，sys.path 不含本脚本目录；
+# 先加入 scripts 目录，保证同级模块（ziliao_parallel_runner 等）可导入。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import ziliao_parallel_runner as runner
 from generation_gate import verify
-from ziliao_agent_trial import write
+from ziliao_agent_trial import default_hermes_root, write
+from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd_rotating_paper,
+                           material_question_plan, parse_difficulty_blueprint)
+from service_node import service_node
 
 ROOT = Path(__file__).resolve().parents[1]
 THEME_POOL = (
@@ -62,7 +69,7 @@ def import_checked(out, db):
     question_count = verify(out)["question_count"]
     if type(question_count) is not int or question_count <= 0:
         raise ValueError("闸门返回的题数无效，不得入库")
-    proc = subprocess.run(["node", str(ROOT / "scripts/import-batch.mjs"), str(out)],
+    proc = subprocess.run([service_node(), str(ROOT / "scripts/import-batch.mjs"), str(out)],
                           cwd=ROOT, env={**os.environ, "EXAM_DB": str(db.resolve())},
                           capture_output=True, text=True, timeout=180)
     (out / "import-output.txt").write_text(proc.stdout + proc.stderr)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json, os, subprocess, time, urllib.request
 from pathlib import Path
 from ziliao_parallel_runner import call
+from service_node import service_node
 
 ROOT = Path(__file__).resolve().parents[1]
 BATCH = "20260920_hermes_ziliao_chart_trial_01"
@@ -42,7 +43,7 @@ def main() -> int:
     (OUT / "timing.json").write_text(json.dumps(timing, ensure_ascii=False, indent=2))
     print(gate.stdout or gate.stderr)
     if gate.returncode: return gate.returncode
-    imp = subprocess.run(["node", "scripts/import-batch.mjs", str(OUT)], cwd=ROOT, text=True, capture_output=True)
+    imp = subprocess.run([service_node(), "scripts/import-batch.mjs", str(OUT)], cwd=ROOT, text=True, capture_output=True)
     print(imp.stdout or imp.stderr); return imp.returncode
 
 if __name__ == "__main__":

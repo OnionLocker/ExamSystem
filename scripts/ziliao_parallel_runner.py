@@ -737,7 +737,7 @@ def _main_body(argv=None) -> int:
         print(json.dumps({"status":"success","batch_id":batch_id,"imported":0,"batch_dir":str(out),"message":"质检通过，未入库"},ensure_ascii=False))
         return 0
     track.update(stage="入库", detail="正在写入题库", passed=len(questions), progress=96)
-    t=time.monotonic(); imp=subprocess.run(["node","scripts/import-batch.mjs",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["import_seconds"]=round(time.monotonic()-t,2); marks["total_seconds"]=round(time.monotonic()-started,2); marks["import_output"]=imp.stdout[-3000:]; (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2))
+    t=time.monotonic(); imp=subprocess.run([service_node(),"scripts/import-batch.mjs",str(out)],cwd=ROOT,env=env,text=True,capture_output=True); marks["import_seconds"]=round(time.monotonic()-t,2); marks["total_seconds"]=round(time.monotonic()-started,2); marks["import_output"]=imp.stdout[-3000:]; (out/"timing.json").write_text(json.dumps(marks,ensure_ascii=False,indent=2))
     if imp.returncode == 0:
         track.finish(status="done", stage="已入库", detail=f"已入库 {len(questions)} 题", passed=len(questions), progress=100)
     else:

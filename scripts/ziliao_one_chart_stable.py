@@ -2,6 +2,7 @@ from __future__ import annotations
 import json, subprocess, time
 from pathlib import Path
 from ziliao_parallel_runner import call
+from service_node import service_node
 
 ROOT = Path(__file__).resolve().parents[1]
 BATCH = "20260920_hermes_ziliao_chart_stable_01"
@@ -36,5 +37,5 @@ def main():
     for n,d in [('manifest.json',manifest),('materials.json',[material]),('questions.json',qs),('calculations.json',{'questions':calcs}),('frozen-data.json',frozen)]: (OUT/n).write_text(json.dumps(d,ensure_ascii=False,indent=2))
     gate=subprocess.run(['python3','scripts/generation_gate.py','issue',str(OUT)],cwd=ROOT,text=True,capture_output=True); print(gate.stdout or gate.stderr)
     if gate.returncode: return gate.returncode
-    imp=subprocess.run(['node','scripts/import-batch.mjs',str(OUT)],cwd=ROOT,text=True,capture_output=True); print(imp.stdout or imp.stderr); print(json.dumps({'total_seconds':round(time.monotonic()-start,2)})); return imp.returncode
+    imp=subprocess.run([service_node(),'scripts/import-batch.mjs',str(OUT)],cwd=ROOT,text=True,capture_output=True); print(imp.stdout or imp.stderr); print(json.dumps({'total_seconds':round(time.monotonic()-start,2)})); return imp.returncode
 if __name__=='__main__': raise SystemExit(main())

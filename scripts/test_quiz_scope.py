@@ -13,6 +13,7 @@ from kaodian_profile import coverage_report, ensure_schema, register_knowledge_p
 from quiz_generator import resolve_slots
 from quiz_lite import writer_prompt
 from quiz_scope import catalog, register_slots, resolve_scope_tag, scope_slots, source_topic
+from service_node import service_node
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINEERING = "数量关系-数学运算-工程问题"
@@ -43,7 +44,7 @@ class QuizScopeIntegrationTest(unittest.TestCase):
             console.log(JSON.stringify(store.get(tag)));
           } finally { store.close(); }
         """
-        result = subprocess.run(["node", "--input-type=module", "-e", script, ENGINEERING,
+        result = subprocess.run([service_node(), "--input-type=module", "-e", script, ENGINEERING,
                                  json.dumps(patches, ensure_ascii=False)], cwd=ROOT,
                                 check=True, text=True, capture_output=True)
         return json.loads(result.stdout)
@@ -241,7 +242,7 @@ class QuizScopeIntegrationTest(unittest.TestCase):
             conn.execute("INSERT INTO kaodian_profile(kaodian,module,subtype,note) VALUES (?,?,?,?)",
                          (ENGINEERING + "-legacy-note", "数量关系", "数学运算", "旧版登记的效率定义"))
         # import-batch opens this module before validating dynamic tags in its Python child.
-        subprocess.run(["node", "--input-type=module", "-e",
+        subprocess.run([service_node(), "--input-type=module", "-e",
                         "import db from './server/db.js'; db.close();"],
                        cwd=ROOT, check=True, text=True, capture_output=True)
         from kaodian_taxonomy import validate_ai_primary_tag

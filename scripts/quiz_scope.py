@@ -10,13 +10,14 @@ import subprocess
 from fenbi_taxonomy import fenbi_modules, fenbi_l3_of, parse_fenbi_tag, LEGACY_TO_FENBI
 from kaodian_taxonomy import (canonicalize, normalize_module, registered_knowledge_points,
                               database_aliases, resolve_database_alias)
+from service_node import service_node
 
 ROOT = Path(__file__).resolve().parents[1]
 FIGURES = re.compile(r"图形推理|科学推理|空间类|图形数阵")
 
 
 def catalog(conn=None) -> dict[str, dict]:
-    result = subprocess.run(["node", str(ROOT / "scripts/knowledge-content.mjs"), "catalog"],
+    result = subprocess.run([service_node(), str(ROOT / "scripts/knowledge-content.mjs"), "catalog"],
                             cwd=ROOT, capture_output=True, text=True, timeout=30, check=True)
     documents = json.loads(result.stdout)["topics"]
     nodes = {}

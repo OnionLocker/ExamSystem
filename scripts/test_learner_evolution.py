@@ -15,6 +15,7 @@ from daily_plan_state import reconcile, save_plan, today
 from kaodian_taxonomy import NUM_DATE
 from learner_snapshot import build_snapshot, recommend_targets, recommendation
 from kaodian_profile import record, set_learning_state
+from service_node import service_node
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,7 +42,7 @@ with tempfile.TemporaryDirectory(prefix="learner-evolution-") as temp:
     db_path = Path(temp) / "exam.db"
     env = {**os.environ, "EXAM_DB": str(db_path)}
     init = subprocess.run(
-        ["node", "--input-type=module", "-e", "await import('./server/db.js')"],
+        [service_node(), "--input-type=module", "-e", "await import('./server/db.js')"],
         cwd=ROOT,
         env=env,
         capture_output=True,
