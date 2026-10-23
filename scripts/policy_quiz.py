@@ -157,9 +157,16 @@ def review(run, questions, per_item, batch_questions, call, public, local_issues
     from concurrent.futures import ThreadPoolExecutor
     from quiz_lite import indexed
     if len(questions) > 3:
+        from quiz_lite import parallel_map
+        chunks = [questions[start:start + 3] for start in range(0, len(questions), 3)]
+        parts = parallel_map([
+            (lambda chunk=chunk: review(
+                run, chunk, per_item, batch_questions, call, public, local_issues, tier_of))
+            for chunk in chunks
+        ])
         out = {}
-        for start in range(0, len(questions), 3):
-            out.update(review(run, questions[start:start + 3], per_item, batch_questions, call, public, local_issues, tier_of))
+        for part in parts:
+            out.update(part)
         return out
     pack = run['source_pack']
     blind_payload = {'questions': [public(q, False) for q in questions], 'source_pack': pack}

@@ -53,7 +53,7 @@ must_cover_hit：列出作文实际论述到的论证方向编号。off_topic：
 TYPED = "考生答案是直接输入的文字，transcript 原样抄写下面「考生答案」即可。"
 LEVEL_NAMES = ("一类", "二类", "三类", "四类")
 VERDICT_TEXT = {"hit": "命中", "partial": "部分命中", "miss": "未命中"}
-WORKERS = 3
+WORKERS = 2
 
 
 def _set(conn, table: str, row_id: int, **fields) -> None:

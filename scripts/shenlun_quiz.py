@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import policy_sources  # noqa: E402
 from scheduler_common import local_today  # noqa: E402
-from shenlun_common import (BATCH_DIR, DRILL_DEFAULTS, INBOX_DIR, LAYOUTS, LEVEL, PAPER_TYPES, QTYPES, ROOT,  # noqa: E402
+from shenlun_common import (BATCH_DIR, DRILL_DEFAULTS, INBOX_DIR, LAYOUTS, LEVEL, MODEL, PAPER_TYPES, QTYPES, ROOT,  # noqa: E402
                             STYLE_GUIDE, TIME_LIMIT_MIN, call, check_rubric, repair_evidence, connect, dumps, materials_text, save_paper,
                             word_count)
 
@@ -41,7 +41,7 @@ SOURCE_DIR = ROOT / "data" / "shenlun-sources"
 # 申论材料多是新闻报道、评论和调研，比政治题的权威白名单宽一些；抓取与核验办法相同
 MEDIA = ("southcn.com", "nfnews.com", "ycwb.com", "gmw.cn", "cctv.com", "cnr.cn", "chinanews.com.cn", "ce.cn",
          "chinadaily.com.cn", "gd.gov.cn", "dutenews.com", "sznews.com", "gzdaily.cn")
-WORKERS = 3
+WORKERS = 2
 # 不指定主题时随机抽一个；前几项是 2024–2026 真题主题，后面是县镇卷常见方向
 THEME_POOL = (
     "百千万工程与县域富民产业", "绿美广东生态建设", "古树名木保护", "绿色工厂与绿色低碳发展", "产业科技创新与新质生产力",

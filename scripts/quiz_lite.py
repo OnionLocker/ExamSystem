@@ -20,9 +20,11 @@ import re
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
-from contextvars import ContextVar
+from concurrent.futures import ThreadPoolExecutor
+from contextvars import ContextVar, copy_context
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -146,8 +148,25 @@ EXAMINER_SYSTEM = (
 )
 
 
+def parallel_map(fns: list):
+    """按提交顺序取回结果。同时打到模型的请求数由 call 里的信号量卡住。"""
+    if not fns:
+        return []
+    if len(fns) == 1:
+        return [fns[0]()]
+    with ThreadPoolExecutor(max_workers=min(MODEL_PARALLEL, len(fns))) as pool:
+        futures = [pool.submit(copy_context().run, fn) for fn in fns]
+        return [future.result() for future in futures]
+
+
 def call(system: str, prompt: str, temperature: float, timeout: int, *,
          schema: dict | None = None) -> dict:
+    with _MODEL_SLOTS:
+        return _call(system, prompt, temperature, timeout, schema=schema)
+
+
+def _call(system: str, prompt: str, temperature: float, timeout: int, *,
+          schema: dict | None = None) -> dict:
     structured_questions = schema is not None and 'questions' in schema.get('properties', {})
     if structured_questions:
         system = '你是广东省考行测命题人。必须调用一次submit_questions提交所有题目，不在正文输出JSON或总结。'
@@ -183,7 +202,7 @@ def call(system: str, prompt: str, temperature: float, timeout: int, *,
         audit_dir = MODEL_AUDIT_DIR.get()
         if audit_dir is not None:
             audit_dir.mkdir(parents=True, exist_ok=True)
-            (audit_dir / f'{time.time_ns()}.json').write_text(
+            (audit_dir / f'{time.time_ns()}-{threading.get_ident()}.json').write_text(
                 json.dumps({'role': system.splitlines()[0], 'requested_model': MODEL,
                             'response': raw_response}, ensure_ascii=False, indent=2),
                 encoding='utf-8')
@@ -530,9 +549,14 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
         return {}
     quantity = run['module'] == '数量关系'
     if run['module'] in {'数量关系', '言语理解与表达', '判断推理'} and len(questions) > 3:
+        chunks = [questions[start:start + 3] for start in range(0, len(questions), 3)]
+        parts = parallel_map([
+            (lambda chunk=chunk: review(run, chunk, per_item, batch_questions or questions))
+            for chunk in chunks
+        ])
         out = {}
-        for start in range(0, len(questions), 3):
-            out.update(review(run, questions[start:start + 3], per_item, batch_questions or questions))
+        for part in parts:
+            out.update(part)
         return out
     if run['module'] in SOURCE_MODULES:
         from policy_quiz import review as grounded_review
@@ -549,7 +573,9 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
     blind_payload = json.dumps(
         {"questions": [public(q, with_answer=False) for q in questions]}, ensure_ascii=False
     )
-    blind = indexed(call(BLIND, "逐题独立作答：\n" + blind_payload, 0.0, 300))
+    # 数量、言语、判断的考官不看盲解结论，盲解、考官、用法审核一起提交，由上面的两路上限排队。
+    # 其余模块的考官要读盲解结论，所以等盲解返回再审。
+    independent = run['module'] in {'数量关系', '言语理解与表达', '判断推理'}
     cards: dict[str, str] = {}
     examiner_items = []
     claims_by_id = {}
@@ -605,10 +631,29 @@ def review(run: dict, questions: list[dict], per_item: list[dict], batch_questio
             schema = {'type': 'object', 'properties': {key: {
                 'type': 'string', 'description': 'PASS或REJECT，后接该句具体依据或反例',
             } for key in fields}, 'required': list(fields), 'additionalProperties': False}
-            checked = call(USAGE, json.dumps(fields, ensure_ascii=False), 0.0, 300,
-                           schema=schema)
-            usage = {claim['id']: {'id': claim['id'], 'valid': checked[key].startswith('PASS'),
-                                  'reason': checked[key]} for key, claim in fields.items()}
+            usage_spec = (USAGE, fields, schema)
+
+    jobs = [lambda: indexed(call(BLIND, "逐题独立作答：\n" + blind_payload, 0.0, 300))]
+    if independent:
+        jobs.append(lambda: examiner_call(examiner_items))
+    if usage_spec is not None:
+        usage_system, usage_fields, usage_schema = usage_spec
+        jobs.append(lambda: call(usage_system, json.dumps(usage_fields, ensure_ascii=False), 0.0, 300, schema=usage_schema))
+    results = parallel_map(jobs)
+    blind = results[0]
+    cursor = 1
+    if independent:
+        examiner = results[cursor]
+        cursor += 1
+    else:
+        for item, question in zip(examiner_items, questions):
+            item["blind_work"] = blind.get(str(question["external_id"]))
+        examiner = examiner_call(examiner_items)
+    usage = {}
+    if usage_spec is not None:
+        checked = results[cursor]
+        usage = {claim['id']: {'id': claim['id'], 'valid': checked[key].startswith('PASS'),
+                              'reason': checked[key]} for key, claim in usage_spec[1].items()}
 
     out = {}
     for question in questions:
@@ -770,40 +815,57 @@ def build_batch(run: dict, rounds: int, source: str, audit_dir: Path | None = No
         attempt_record = {"round": attempt, "items": asks, "draft": draft, "groups": []}
         group_size = 3 if run['module'] in {'数量关系', '判断推理', *SOURCE_MODULES} else 2 if run['module'] == '言语理解与表达' else len(asks)
         strict_indices = run['module'] in {'数量关系', '言语理解与表达', '判断推理', *SOURCE_MODULES}
-        for start in range(0, len(asks), group_size):
-            group = asks[start:start + group_size]
-            prior = kept + [str(q.get('stem') or '') for q in draft['questions'] if isinstance(q, dict)]
-            writer_options = {}
-            if run['module'] == '数量关系':
-                from quiz_quantity import WRITER_SCHEMA
-                writer_options['schema'] = WRITER_SCHEMA
-            elif run['module'] == '判断推理':
-                from quiz_reasoning import WRITER_SCHEMA
-                writer_options['schema'] = WRITER_SCHEMA
+        writer_options = {}
+        if run['module'] == '数量关系':
+            from quiz_quantity import WRITER_SCHEMA
+            writer_options['schema'] = WRITER_SCHEMA
+        elif run['module'] == '判断推理':
+            from quiz_reasoning import WRITER_SCHEMA
+            writer_options['schema'] = WRITER_SCHEMA
+        groups = [asks[start:start + group_size] for start in range(0, len(asks), group_size)]
+        # 同一轮各组同时出。组间看不到彼此的题干，撞题留到本组返回后的查重。
+        finished: list[dict | None] = [None] * len(groups)
+        file_lock = threading.Lock()
+
+        def produce(position: int) -> dict:
+            group = groups[position]
             drafted = passed_count()
             first, last = group[0]["index"], group[-1]["index"]
             span = str(first) if first == last else f"{first}–{last}"
             note(stage="命题", detail=f"第{attempt}轮 · 正在出第 {span} 题",
                  passed=drafted, round_no=attempt, status="running",
                  progress=min(85, drafted * 85 // total) if total else 0)
-            response = call(WRITER_SYSTEM, writer_prompt(run, group, prior), 0.5, 600, **writer_options)
+            response = call(WRITER_SYSTEM, writer_prompt(run, group, list(kept)), 0.5, 600, **writer_options)
             produced_group = [q for q in response.get('questions') or [] if isinstance(q, dict)]
             requested, candidates = {ask['index'] for ask in group}, []
-            for position, raw in enumerate(produced_group):
+            for offset, raw in enumerate(produced_group):
                 # Missing indices fall back within this group, never to the first global slots.
                 index = item_index(raw)
-                if index == 0 and position < len(group):
-                    index = group[position]['index']
+                if index == 0 and offset < len(group):
+                    index = group[offset]['index']
                 if strict_indices and index not in requested:
                     continue
                 candidates.append({**raw, 'index': index})
             indices = [item['index'] for item in candidates]
-            draft['questions'].extend(item for item in candidates
-                                      if not strict_indices or indices.count(item['index']) == 1)
-            attempt_record['groups'].append({'items': group, 'response': response})
-            if audit_dir is not None:
-                (audit_dir / f"attempt-{attempt}.json").write_text(
-                    json.dumps(attempt_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            accepted = [item for item in candidates if not strict_indices or indices.count(item['index']) == 1]
+            record = {'items': group, 'response': response, 'accepted': accepted}
+            with file_lock:
+                finished[position] = record
+                attempt_record['groups'] = [
+                    {'items': row['items'], 'response': row['response']} for row in finished if row
+                ]
+                attempt_record['draft'] = {
+                    'questions': [item for row in finished if row for item in row['accepted']]
+                }
+                if audit_dir is not None:
+                    (audit_dir / f"attempt-{attempt}.json").write_text(
+                        json.dumps(attempt_record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            return record
+
+        records = parallel_map([lambda position=position: produce(position) for position in range(len(groups))])
+        draft['questions'] = [item for record in records for item in record['accepted']]
+        attempt_record['groups'] = [{'items': record['items'], 'response': record['response']} for record in records]
+        attempt_record['draft'] = draft
 
         produced = [item for item in draft.get("questions") or [] if isinstance(item, dict)]
         fresh: list[dict] = []

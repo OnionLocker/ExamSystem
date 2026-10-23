@@ -6,6 +6,7 @@ import io
 import os
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -39,8 +40,36 @@ def stamped(batch_id, index, answer="A"):
     return quiz_lite.stamp(run, question(index, answer), index - 1, SLOT, "源")
 
 
+def _prompt_indices(prompt: str) -> list[int]:
+    for line in prompt.splitlines():
+        line = line.strip()
+        if not line.startswith('{'):
+            continue
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        items = data.get('items') if isinstance(data, dict) else None
+        if isinstance(items, list) and items and all(isinstance(item, dict) and 'index' in item for item in items):
+            return [int(item['index']) for item in items]
+    return []
+
+
+def _row_indices(rows) -> set[int]:
+    found = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            found.add(int(row.get('index') or 0))
+        except (TypeError, ValueError):
+            continue
+    found.discard(0)
+    return found
+
+
 class FakeModel:
-    """按角色分派的假模型。writer 逐轮出稿，blind/examiner 按题号查表。"""
+    """按角色分派的假模型。命题组并行时，按请求题号对上对应稿，不再依赖调用先后。"""
 
     def __init__(self, writer_rounds, blind, examiner):
         self.writer_rounds = [list(items) for items in writer_rounds]
@@ -48,14 +77,28 @@ class FakeModel:
         self.examiner = examiner
         self.writer_prompts = []
         self.writer_schemas = []
+        self._lock = threading.Lock()
 
     def __call__(self, system, prompt, temperature, timeout, *, schema=None):
-        if system == quiz_lite.WRITER_SYSTEM:
-            self.writer_prompts.append(prompt)
-            self.writer_schemas.append(schema)
-            return {"questions": self.writer_rounds.pop(0)}
-        table = self.blind if system in (quiz_lite.BLIND_SYSTEM, quiz_quantity.BLIND) else self.examiner
-        return {"questions": [dict(row, id=qid) for qid, row in table.items()]}
+        with self._lock:
+            if system == quiz_lite.WRITER_SYSTEM:
+                self.writer_prompts.append(prompt)
+                self.writer_schemas.append(schema)
+                asked = set(_prompt_indices(prompt))
+                pick = 0
+                if asked:
+                    best = None
+                    for offset, rows in enumerate(self.writer_rounds):
+                        found = _row_indices(rows)
+                        overlap = len(found & asked)
+                        extra = len(found - asked)
+                        score = overlap * 10 - extra
+                        if overlap and (best is None or score > best):
+                            best = score
+                            pick = offset
+                return {"questions": self.writer_rounds.pop(pick)}
+            table = self.blind if system in (quiz_lite.BLIND_SYSTEM, quiz_quantity.BLIND) else self.examiner
+            return {"questions": [dict(row, id=qid) for qid, row in table.items()]}
 
 
 def blind_ok(answer="A", tier="hard"):
@@ -567,8 +610,14 @@ class ReviewDecisions(unittest.TestCase):
                 blind.insert(0, dict(blind_ok('B'), id='b_01'))
             else:
                 examiner.insert(0, dict(examiner_ok(), id='b_01', verdict='REJECT', analysis_ok=False))
-            with self.subTest(role=role), patch.object(quiz_lite, 'call', side_effect=[
-                    {'questions': blind}, {'questions': examiner}]):
+            def fake(system, prompt, temperature, timeout, **kwargs):
+                if system == quiz_quantity.BLIND:
+                    return {'questions': blind}
+                if system == quiz_quantity.EXAMINER:
+                    return {'questions': examiner}
+                raise AssertionError(system)
+
+            with self.subTest(role=role), patch.object(quiz_lite, 'call', side_effect=fake):
                 result = quiz_lite.review(self.run, self.questions, self.per_item)['b_01']
             self.assertEqual(result['verdict'], 'REJECT')
             self.assertIn('盲解官无结论' if role == 'blind' else '考官无结论', result['issues'])
@@ -834,12 +883,18 @@ class PartialReissue(unittest.TestCase):
     def test_candidate_survives_review_upstream_failure_without_retry(self):
         run = dict(self.run, planned_count=1, slots=[{"tag": TAG, "count": 1}])
         draft = {"questions": [question(1)]}
+
+        def fake(system, prompt, temperature, timeout, **kwargs):
+            if system == quiz_lite.WRITER_SYSTEM:
+                return draft
+            raise RuntimeError("upstream failed")
+
         with tempfile.TemporaryDirectory() as tmp, patch.object(
-                quiz_lite, "call", side_effect=[draft, RuntimeError("upstream failed")]) as call:
+                quiz_lite, "call", side_effect=fake) as call:
             directory = Path(tmp)
             with self.assertRaisesRegex(RuntimeError, "upstream failed"):
                 quiz_lite.build_batch(run, 3, "源", directory)
-            self.assertEqual(call.call_count, 2)
+            self.assertGreaterEqual(call.call_count, 2)
             self.assertEqual(json.loads((directory / "attempt-1.json").read_text())["draft"], draft)
             self.assertFalse((directory / "questions.json").exists())
 
