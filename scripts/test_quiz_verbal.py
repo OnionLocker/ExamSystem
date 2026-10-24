@@ -30,15 +30,17 @@ class VerbalReview(unittest.TestCase):
         def call(system, prompt, temperature, timeout, *, schema=None):
             if system == quiz_lite.WRITER_SYSTEM:
                 return {'questions': [copy.deepcopy(RAW)]}
-            if system == quiz_verbal.BLIND:
+            if quiz_verbal.is_blind_system(system):
                 self.assertNotIn('"answer"', prompt)
                 self.assertNotIn('"analysis"', prompt)
+                self.assertNotIn("语句排序", system)
                 return {'questions': [dict(blind, id='v_01')]}
             if system == quiz_verbal.USAGE:
                 self.assertEqual(set(schema["required"]), set(json.loads(prompt)))
                 payload = json.loads(prompt)
                 return {key: 'PASS 测试逐句核查' for key in payload}
-            self.assertEqual(system, quiz_verbal.EXAMINER)
+            self.assertTrue(quiz_verbal.is_examiner_system(system))
+            self.assertNotIn("语句排序", system)
             self.assertNotIn('"blind_work"', prompt)
             payload = json.loads(prompt.split('\n', 1)[1])
             checks = [dict(claim_index=i, valid=True, reason='测试原句核查') for i in range(len(payload['items'][0]['necessity_claims']))]
@@ -138,12 +140,12 @@ class VerbalReview(unittest.TestCase):
             if system == quiz_verbal.USAGE:
                 return {key: 'PASS 测试逐句核查' for key in json.loads(prompt)}
             payload = json.loads(prompt.split('\n', 1)[1])
-            if system == quiz_verbal.BLIND:
+            if quiz_verbal.is_blind_system(system):
                 self.assertLessEqual(len(payload['questions']), 3)
                 return {'questions': [dict(blind_ok(tier='mid'), id=q['id']) for q in payload['questions']]}
             return {'questions': [dict(examiner_ok('mid'), id=i['question']['id'], necessity_checks=[dict(claim_index=j,valid=True,reason='测试原句核查') for j in range(len(i['necessity_claims']))]) for i in payload['items']]}
-        with patch.object(quiz_lite, 'call', model):
-            questions, _, log = quiz_lite.build_batch(self.run, 2, 'test')
+        with patch("quiz_verbal.balance_verbal_letters", return_value=0), patch.object(quiz_lite, "call", model):
+            questions, _, log = quiz_lite.build_batch(self.run, 2, "test")
         # 同轮各组并行出题，[1,2] 与 [3,4] 的先后取决于线程调度（不保证顺序）；最后一组是第 2 轮重写被退回的第 2 题，顺序确定。
         self.assertEqual(len(calls), 3)
         self.assertCountEqual(calls[:2], [[1, 2], [3, 4]])
@@ -200,7 +202,7 @@ class VerbalReview(unittest.TestCase):
                 usage_calls.append(prompt)
                 return {key: 'REJECT 解析理由错误'
                         for key in json.loads(prompt)}
-            if system == quiz_verbal.EXAMINER:
+            if quiz_verbal.is_examiner_system(system):
                 reviews.append(prompt)
             return base(system, prompt, temperature, timeout, **kwargs)
         with patch.object(quiz_lite, 'call', model):
@@ -234,6 +236,107 @@ class VerbalReview(unittest.TestCase):
         quiz_lite.sign(self.directory, self.run, results, log)
         with self.assertRaisesRegex(ValueError, '未覆盖全部原句'):
             verify(self.directory)
+
+    def test_ten_questions_are_one_batch_split_only_inside(self):
+        reading = [{"index": i, "tag": "言语理解与表达-片段阅读-中心理解题-@turning-point"} for i in range(1, 11)]
+        groups = quiz_verbal.verbal_groups(reading)
+        self.assertEqual([len(group) for group in groups], [2, 2, 2, 2, 2])
+        fills = [{"index": i, "tag": "言语理解与表达-逻辑填空-词的辨析-@collocation-object"} for i in range(1, 11)]
+        self.assertEqual([len(group) for group in quiz_verbal.verbal_groups(fills)], [3, 3, 3, 1])
+
+    def test_prompt_rules_follow_the_question_family(self):
+        run = {"yanyu_avoid": {}}
+        fill = quiz_verbal.writer_prompt(run, [{
+            "index": 1, "tag": "言语理解与表达-逻辑填空-词的辨析-@collocation-object",
+            "difficulty": "auto", "vocab_brief": "指定词：赓续（实词）。释义：接续。",
+        }], [], {})
+        self.assertIn("赓续", fill)
+        self.assertNotIn("排序要按指代", fill)
+        reading = quiz_verbal.writer_prompt(run, [{
+            "index": 1, "tag": "言语理解与表达-片段阅读-中心理解题-@turning-point", "difficulty": "auto",
+        }], [], {})
+        self.assertIn("主旨", reading)
+        self.assertNotIn("排序要按指代", reading)
+        self.assertNotIn("排序要按指代", quiz_verbal.examiner_system({"reading"}))
+        self.assertIn("排序要按指代", quiz_verbal.examiner_system({"sentence"}))
+
+    def test_one_writer_group_failing_retries_only_that_group(self):
+        self.run["planned_count"] = 4
+        self.run["slots"][0]["count"] = 4
+        stems = ["文物保护应兼顾公众使用，修缮方案要考虑居民出行与游客参观的不同需求。这段文字主要强调什么？",
+                 "江河治理需要跨区域协同，上游的污染治理与下游的生态修复不能各自推进。作者意在说明什么？",
+                 "科学假说必须接受实践检验，能够解释已有现象还不足以证明它适用于未知条件。文段的中心是什么？",
+                 "社区议事重在表达不同诉求，公开讨论应给持不同观点的居民充分说明理由的机会。主旨最恰当的是？"]
+        calls, failed = [], {"once": False}
+
+        def model(system, prompt, temperature, timeout, *, schema=None):
+            if system == quiz_lite.WRITER_SYSTEM:
+                items = json.loads(prompt.splitlines()[1])["items"]
+                indices = [item["index"] for item in items]
+                calls.append(indices)
+                if indices == [1, 2] and not failed["once"]:
+                    failed["once"] = True
+                    raise RuntimeError("模拟回答被截断")
+                return {"questions": [dict(copy.deepcopy(RAW), index=i, stem=stems[i - 1]) for i in indices]}
+            payload = json.loads(prompt.split("\n", 1)[1])
+            if quiz_verbal.is_blind_system(system):
+                return {"questions": [dict(blind_ok(tier="mid"), id=q["id"]) for q in payload["questions"]]}
+            return {"questions": [dict(examiner_ok("mid"), id=item["question"]["id"], necessity_checks=[
+                dict(claim_index=j, valid=True, reason="测试原句核查") for j in range(len(item["necessity_claims"]))
+            ]) for item in payload["items"]]}
+
+        with patch("quiz_verbal.balance_verbal_letters", return_value=0), patch.object(quiz_lite, "call", model):
+            questions, _, log = quiz_lite.build_batch(self.run, 2, "test")
+        self.assertEqual(len(calls), 3)
+        self.assertCountEqual(calls[:2], [[1, 2], [3, 4]])
+        self.assertEqual(calls[-1], [1, 2])
+        self.assertEqual([q["stem"] for q in questions], stems)
+        self.assertEqual(log[0]["accepted"], 2)
+        self.assertEqual(log[1]["asked"], [1, 2])
+
+
+class VerbalLetterBalance(unittest.TestCase):
+    def question(self, index, answer="A"):
+        return {
+            "external_id": f"b_{index:02d}",
+            "category": "言语理解与表达",
+            "question_type": "single",
+            "stem": "这段文字讨论的是公共文化服务如何触达居民。" * 2,
+            "answer": answer,
+            "analysis": f"{answer}项符合文意，故选{answer}。",
+            "explanation": f"{answer}项符合文意，故选{answer}。",
+            "options": [{"key": key, "text": f"{key}-内容{index}"} for key in "ABCD"],
+        }
+
+    def test_clumped_answers_spread_and_the_correct_wording_follows(self):
+        questions = [self.question(index) for index in range(1, 11)]
+        quiz_verbal.balance_verbal_letters(questions, locked=set(), seed="20261024")
+        counts = {letter: sum(item["answer"] == letter for item in questions) for letter in "ABCD"}
+        self.assertEqual(max(counts.values()), 3)
+        self.assertEqual(len([letter for letter, count in counts.items() if count]), 4)
+        for item in questions:
+            correct = next(option["text"] for option in item["options"] if option["key"] == item["answer"])
+            self.assertTrue(correct.startswith("A-内容"))
+            self.assertIn(f"故选{item['answer']}", item["analysis"])
+            self.assertIn(f"{item['answer']}项符合", item["analysis"])
+
+    def test_already_reviewed_letters_stay_put(self):
+        questions = [self.question(index) for index in range(1, 5)]
+        questions[1]["answer"] = "B"
+        questions[1]["analysis"] = "B项符合文意，故选B。"
+        locked = {questions[0]["external_id"], questions[1]["external_id"]}
+        quiz_verbal.balance_verbal_letters(questions, locked=locked, seed="20261024")
+        self.assertEqual([item["answer"] for item in questions[:2]], ["A", "B"])
+        self.assertEqual(questions[0]["options"][0]["text"], "A-内容1")
+        self.assertEqual(sorted(item["answer"] for item in questions), list("ABCD"))
+
+    def test_plain_number_options_are_not_reordered(self):
+        questions = [self.question(1), self.question(2)]
+        for item in questions:
+            for option, number in zip(item["options"], (12, 18, 20, 25)):
+                option["text"] = str(number)
+        quiz_verbal.balance_verbal_letters(questions, locked=set(), seed="numbers")
+        self.assertEqual([item["answer"] for item in questions], ["A", "A"])
 
 
 if __name__ == '__main__':

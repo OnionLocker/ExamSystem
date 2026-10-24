@@ -81,19 +81,29 @@ def polarity_dump(question: dict) -> str | None:
     return None
 
 
-def validate_yanyu_fills(questions: list[dict]) -> None:
+def duplicate_fill_ids(questions: list[dict]) -> list[str]:
+    """后出现的重复题干。只返回重复的那几题，先出现的保留。"""
     fills = [
         item for item in questions
         if isinstance(item, dict)
         and str(item.get("category") or "") == CAT_YANYU
         and is_fill(item)
     ]
-    seen = set()
+    seen: set[str] = set()
+    bad: list[str] = []
     for item in fills:
         stem = re.sub(r"\s+", "", stem_of(item))
         if stem in seen:
-            raise ValueError(f"同批逻辑填空题干重复：{item.get('external_id')}")
-        seen.add(stem)
+            bad.append(str(item.get("external_id") or ""))
+        else:
+            seen.add(stem)
+    return bad
+
+
+def validate_yanyu_fills(questions: list[dict]) -> None:
+    bad = duplicate_fill_ids(questions)
+    if bad:
+        raise ValueError(f"同批逻辑填空题干重复：{bad[0]}")
 
 
 def recent_yanyu_avoid(db_path: Path | None, days: int = 14) -> dict[str, Any]:
