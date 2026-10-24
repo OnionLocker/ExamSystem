@@ -55,3 +55,6 @@ batches/*/_raw/
 # Python 字节码（跑 scripts/ 里的脚本时生成）
 __pycache__/
 *.pyc
+
+# 本地临时工作目录（一次性脚本、中间产物，不入 git）
+tmp/
