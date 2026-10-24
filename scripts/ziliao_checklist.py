@@ -107,9 +107,12 @@ def explanation_math_issues(text):
         expression = expression.translate(str.maketrans("×÷−－＋", "*/--+"))
         expression = re.sub(r"(\d+(?:\.\d+)?)\s*[%％]", r"(\1/100)", expression)
         try:
-            value = float(safe_eval(expression)) * (100 if unit else 1)
+            raw = float(safe_eval(expression))
             digits = len(shown.split(".")[1]) if "." in shown else 0
             tolerance = 0.5 * 10 ** -digits + 1e-8
+            # 带%或“个百分点”时两种写法都合法：318.7÷1184.3≈26.91%（比值×100）与9.4−6.4=3.00个百分点（百分数直接运算）。
+            candidates = (raw * 100, raw) if unit else (raw,)
+            value = min(candidates, key=lambda v: abs(v - float(shown)))
             if math.isfinite(value) and abs(value - float(shown)) > tolerance:
                 issues.append(f"解析算式不符展示精度：{left[0].strip()}{match[0]}；复算为{value:.8g}，须修正结果或明确改写估算过程")
         except (ValueError, SyntaxError, TypeError, ArithmeticError):
@@ -261,7 +264,8 @@ def question_style_issues(question, calculation=None, slot=None):
         if slot.get("option_format") == "direction" and not (
                 re.search(r"上升|增加|提高|高|多", texts) and re.search(r"下降|减少|降低|低|少", texts)):
             issues.append("升降+程度式选项须同时含上升与下降两个方向")
-    if family not in {"detail", "judge", None, ""} and not ranged and kind not in NON_ARITH_KINDS:
+    qualitative = bool(slot.get("quick"))  # 定性升降判定：选项是主体名，比的是增速高低，没有“错误算式”可写
+    if family not in {"detail", "judge", None, ""} and not ranged and kind not in NON_ARITH_KINDS and not qualitative:
         keys = [str(o.get("key")) for o in question.get("options") or []]
         missing = []
         for key in keys:

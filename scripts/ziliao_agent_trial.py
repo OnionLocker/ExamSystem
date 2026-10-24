@@ -1,51 +1,27 @@
 #!/usr/bin/env python3
-"""Single scoped Hermes/Gemini worker. Produces artifacts, never imports them."""
+"""资料分析单篇产物与本地校验：材料/题目的文件管理、程序化检查与篇内完整闸门（generation_gate issue）。
+
+由 ziliao_material_pipeline 的各角色调用；不调模型写题，不入库。
+"""
 from __future__ import annotations
 
-import argparse
 import copy
 import datetime as dt
 import json
 import os
 import re
-from pathlib import Path
 import shutil
 import subprocess
 import sys
-import threading
 import time
-import uuid
 from collections import Counter
+from pathlib import Path
 
-# run_agent 的 hermes_bootstrap 会把进程重启到 hermes 专用 Python（os.execv）。
-# 若在重启前创建任何目录/文件，重启后第二次执行会 FileExistsError。
-# 因此在任何业务代码之前、且仅当当前解释器不是 hermes Python 时触发重启：
-# 先定位 hermes root 并加入 sys.path，再 import run_agent → execv 重启 → 脚本从头执行
-# （已是 hermes Python 后检测不再命中，流程正常继续）。
-if "/.hermes/" not in sys.executable:
-    _base = Path.home() / ".hermes"
-    _fixed = _base / "hermes-agent"
-    if (_fixed / "run_agent.py").is_file():
-        _hermes_root = _fixed
-    else:
-        _versions = sorted(p for p in _base.glob("hermes-agent-v*") if (p / "run_agent.py").is_file())
-        _hermes_root = _versions[-1] if _versions else _fixed
-    sys.path.insert(0, str(_hermes_root))
-    try:
-        import run_agent  # noqa: F401 触发重启
-    except Exception:
-        pass
-    if "/.hermes/" not in sys.executable:
-        # 无 hermes_bootstrap 可重启：直接退出，避免污染目录后由外部重试。
-        raise SystemExit(0)
-
-# worker 可能经 hermes root 的 runpy 启动，sys.path 不含本脚本目录；
-# 先加入 scripts 目录，保证同级模块（ziliao_parallel_runner 等）可导入。
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ziliao_parallel_runner as runner
 from generation_gate import verify
-from ziliao_checklist import VERSION, MATERIAL_RULES, QUESTION_RULES, rounding_issues, material_text_issues, paper_issues
+from ziliao_checklist import VERSION, rounding_issues, material_text_issues, paper_issues
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("materials.json", "questions.json", "calculations.json", "manifest.json", ".gate.json")
@@ -56,18 +32,15 @@ def write(path, data):
 
 
 class Trial:
-    def __init__(self, out, db, plan=None, resume=False):
+    def __init__(self, out, db, plan):
         self.out, self.db = out, db
         self.started = time.monotonic()
-        self.lock = threading.Lock()  # Hermes may dispatch sibling tool calls concurrently.
-        self.calls = []
         self.material_reviews = self.gate_attempts = 0
         self.material = None
         self.questions, self.calculations = {}, {}
-        slots = plan["slots"] if plan else runner.auto_slots(5, 1, "mid", "gd")
+        slots = plan["slots"]
         run = {"module": "资料分析", "slots": slots}
-        self.plan = {**(plan or {"id": "M01", "track": "gd", "difficulty": "mid", "format": "chart",
-                     "theme": "统计公报常见题材，自选"}),
+        self.plan = {**plan,
                      "count": 5, "slots": [
                          dict(s, definition=runner.run_canon_card(run, s["tag"])) for s in slots]}
         if not re.fullmatch(r"M0[1-4]", self.plan["id"]) or len(slots) != 5:
@@ -75,17 +48,6 @@ class Trial:
         self.material_id = f"{out.name}-{self.plan['id']}"
         self.tier = str(self.plan.get("difficulty") or "mid")
         self.frame = {"track": "gd", "difficulty": self.tier, "materials": [self.plan]}
-        if resume:
-            self.frame = json.loads((out / "framework.json").read_text())
-            self.plan = self.frame["materials"][0]
-            self.calls = json.loads((out / "tool-log.json").read_text())
-            self.material_reviews = len(list(out.glob("material-review-*.json")))
-            self.gate_attempts = len(list((out / "gate-attempts").glob("*")))
-            self.material = (json.loads((out / "materials.json").read_text()) or [None])[0]
-            self.questions = {q["external_id"]: q for q in json.loads((out / "questions.json").read_text())}
-            self.calculations = {c["question_id"]: c for c in json.loads((out / "calculations.json").read_text())["questions"]}
-            self.invalidate()
-            return
         constraints = {"all_original": True, "question_count": 5, "difficulty_tier": self.tier,
                        "answer_distribution": "unconstrained", "targeted_drill": True,
                        "slot_plan": slots, "track": "gd", "track_label": "粤考日练",
@@ -112,27 +74,6 @@ class Trial:
         write(self.out / "materials.json", [self.material] if self.material else [])
         write(self.out / "questions.json", [self.questions[k] for k in sorted(self.questions)])
         write(self.out / "calculations.json", {"questions": [self.calculations[k] for k in sorted(self.calculations)]})
-
-    def invoke(self, name, args):
-        with self.lock:
-            began = time.monotonic()
-            index = len(self.calls) + 1
-            write(self.out / f"tool-{index:02d}-input.json", {"tool": name, "arguments": args})
-            print(f"tool {index}: {name} started", flush=True)
-            try:
-                result = getattr(self, name)(**args)
-            except Exception as exc:
-                result = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
-            event = {"index": index, "tool": name, "seconds": round(time.monotonic() - began, 2), "result": result}
-            self.calls.append(event)
-            write(self.out / "tool-log.json", self.calls)
-            print(f"tool {index}: {name} ok={result.get('ok')} seconds={event['seconds']}", flush=True)
-            return json.dumps(result, ensure_ascii=False)
-
-    def calculate(self, expressions):
-        if not isinstance(expressions, list) or not 1 <= len(expressions) <= 32:
-            raise ValueError("提供1—32个纯数字四则算式")
-        return {"ok": True, "values": [{"expression": e, "value": runner.safe_eval(e)} for e in expressions]}
 
     def submit_material(self, material):
         if self.material_reviews >= 6:
@@ -162,8 +103,7 @@ class Trial:
             runner.render_material(candidate, self.out / "images")
         self.material = candidate
         self.save()
-        return {"ok": True, "material": candidate, "questions_reset": True,
-                "next": runner.paper_prompt(candidate, self.plan, self.out.name)}
+        return {"ok": True, "material": candidate, "questions_reset": True}
 
     def figure_shape_issues(self, candidate):
         figure = candidate.get("figure") or {}
@@ -221,7 +161,8 @@ class Trial:
         self.invalidate()
         self.questions, self.calculations = qs, cs
         self.save()
-        return {"ok": True, "saved": ids, "total_questions": len(qs)}
+        result = {"ok": True, "saved": ids, "total_questions": len(qs)}
+        return result
 
     def render_option_figures(self, question):
         question = copy.deepcopy(question)
@@ -277,128 +218,3 @@ class Trial:
                 evidence[name] = data
         return {"ok": False, "gate_error": (proc.stdout + proc.stderr)[-5000:], "evidence": evidence,
                 "repair": "按证据题号局部put_questions；材料错误才submit_material并重出五题；审核格式错可原样重审"}
-
-    def read_state(self):
-        return {"ok": True, "material": self.material, "questions": list(self.questions.values()),
-                "calculations": list(self.calculations.values()), "gate_attempts": self.gate_attempts,
-                "material_reviews": self.material_reviews}
-
-
-def default_hermes_root():
-    """升级后目录带版本号（hermes-agent-v2026.8.27）；旧固定目录仍存在时优先用它。"""
-    base = Path.home() / ".hermes"
-    fixed = base / "hermes-agent"
-    if (fixed / "run_agent.py").is_file():
-        return fixed
-    versions = sorted(p for p in base.glob("hermes-agent-v*") if (p / "run_agent.py").is_file())
-    return versions[-1] if versions else fixed
-
-
-def make_agent(trial, hermes_root):
-    sys.path.insert(0, str(hermes_root))
-    from run_agent import AIAgent
-    from tools.registry import registry
-    try:
-        import tools.tool_search as tool_search
-    except ImportError:
-        tool_search = None
-    if tool_search is not None:
-        # 新版 Hermes 默认挂 tool_search/describe/call 桥接工具，会破坏五工具隔离；只在本 worker 进程内关闭。
-        off = tool_search.ToolSearchConfig.from_raw({"enabled": "off"})
-        tool_search.load_config = tool_search.load_config_readonly = lambda: off
-    specs = {
-        "calculate": ("计算纯数字四则算式，禁止变量或函数。", {"expressions": {"type": "array", "items": {"type": "string"}}}),
-        "submit_material": ("提交正文、指定图表和rounding_checks；独立审材渲染；通过后清空旧题。", {"material": {"type": "object"}}),
-        "put_questions": ("保存或局部修复1—5道题和验算；本地验证失败不覆盖。结构见材料通过后的next。", {
-            "questions": {"type": "array", "items": {"type": "object"}},
-            "calculations": {"type": "array", "items": {"type": "object"}}}),
-        "review": ("整篇提交现有独立盲解、质量、图表闸门；返回可修复问题。", {}),
-        "read_state": ("读取本篇当前保存的材料、五题和验算。", {}),
-    }
-    for name, (description, props) in specs.items():
-        registry.register(name=name, toolset="examsystem_trial", schema={"name": name, "description": description,
-            "parameters": {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}},
-            handler=lambda args, _name=name, **kw: trial.invoke(_name, args))
-    agent = AIAgent(model=runner.MODEL, base_url=runner.BASE, api_key=runner.key(),
-                    provider="custom", api_mode="chat_completions", enabled_toolsets=["examsystem_trial"],
-                    max_iterations=40, max_tokens=16000, tool_delay=0, quiet_mode=True,
-                    skip_context_files=True, skip_memory=True, load_soul_identity=False,
-                    save_trajectories=False, fallback_model=[], session_id=trial.out.name,
-                    request_overrides={"temperature": 0.4, "parallel_tool_calls": False})
-    if agent.valid_tool_names != set(specs):
-        raise RuntimeError(f"工具隔离失败: {agent.valid_tool_names}")
-    return agent
-
-
-def main():
-    # run_agent 的 hermes_bootstrap 会把进程重启到 hermes 专用 Python（os.execv）。
-    # 若在重启前先创建 Trial 目录，重启后第二次执行会 FileExistsError。
-    # 因此在最前面 import run_agent：非 hermes Python 时 execv 重启（进程替换，目录未创建）；
-    # 重启后（已是 hermes Python）bootstrap 不再重启，流程继续。
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    if "/.hermes/" not in sys.executable:
-        try:
-            import run_agent  # noqa: F401 触发重启；重启后本行不再命中
-        except Exception:
-            pass
-        # 若未发生重启（无 hermes_bootstrap），直接退出避免污染目录
-        if "/.hermes/" not in sys.executable:
-            return 0
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--db", type=Path, required=True)
-    parser.add_argument("--hermes-root", type=Path, default=default_hermes_root())
-    parser.add_argument("--plan", type=Path, help="冻结的单篇计划，由整套调度器传入")
-    parser.add_argument("--batch-id")
-    parser.add_argument("--resume", type=Path, help="续跑本篇，保留工具轨迹与对话")
-    parser.add_argument("--feedback", type=Path, help="整套闸门反馈，不能更改配额或放宽审核")
-    args = parser.parse_args()
-    if "gemini" not in runner.MODEL.lower():
-        parser.error("本试验只允许 Gemini 模型")
-    batch_id = args.batch_id or dt.date.today().strftime("%Y%m%d") + "_gemini_agent_" + uuid.uuid4().hex[:8]
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", batch_id):
-        parser.error("batch-id只能含字母、数字、下划线和横线")
-    out = args.resume.resolve() if args.resume else args.output_dir.resolve() / batch_id
-    plan = json.loads(args.plan.read_text()) if args.plan else None
-    trial = Trial(out, args.db.resolve(), plan, resume=bool(args.resume))
-    result, passed, error = {}, False, None
-    print(f"batch_dir={out}", flush=True)
-    try:
-        agent = make_agent(trial, args.hermes_root)
-        prompt = ("你是Hermes里的独立资料分析出题子Agent。自主设计一篇材料和5题，调用工具计算、自检、修复。"
-                  "只能处理本篇，不入库。必须调用review且获得PASS后才能报告完成。不要只在最终回复中输出题目。"
-                  "独立审材和整篇审核各最多6次。根据反馈局部修复，不能改槽位、改闸门或编造通过。"
-                  "先规划五题所需数据再submit_material；材料通过后以工具返回的next命题，put_questions后review。"
-                  "纯审核响应格式错误可原样再review；有实质错误先修复再送审。每次工具失败都说明原因并自行纠错。\n"
-                  + runner.framework_prompt(trial.tier, [trial.plan["format"]], trial.plan["slots"], "gd")
-                  + "\n以上框架只供你内部规划，无需单独输出JSON。\n"
-                  + runner.material_prompt(trial.frame, trial.plan, out.name) + "\n" + MATERIAL_RULES + "\n" + QUESTION_RULES)
-        history = None
-        if args.resume:
-            previous = json.loads((out / "agent-result.json").read_text())
-            history = previous["messages"]
-            shutil.copy2(out / "agent-result.json", out / f"agent-result-before-{len(trial.calls)}.json")
-            prompt = ("整套合并审核未通过。沿用本篇材料和五题，按下列反馈自主修复，重新review通过后完成。"
-                      "先read_state：程序已同步整套闸门实际审过的题面/选项/验算，可能与旧对话选项顺序不同。"
-                      "只处理本篇，忽略其他篇的题号；不能改变配额。反馈：\n" + args.feedback.read_text())
-        write(out / ("resume-prompt.json" if args.resume else "prompt.json"), {"prompt": prompt, "model": runner.MODEL})
-        result = agent.run_conversation(prompt, conversation_history=history)
-        write(out / "agent-result.json", result)
-        verify(out)
-        passed = True
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
-    finally:
-        summary = {"passed": passed, "batch_dir": str(out), "model": runner.MODEL,
-                   "seconds": round(time.monotonic() - trial.started, 2), "material_reviews": trial.material_reviews,
-                   "gate_attempts": trial.gate_attempts, "tool_calls": len(trial.calls),
-                   "rejected_tool_calls": sum(c["result"].get("ok") is False for c in trial.calls),
-                   "agent_api_calls": result.get("api_calls"), "agent_total_tokens": result.get("total_tokens"),
-                   "error": error, "imported": 0, "manual_content_edits": 0}
-        write(out / "trial-summary.json", summary)
-        print(json.dumps(summary, ensure_ascii=False), flush=True)
-    return 0 if passed else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

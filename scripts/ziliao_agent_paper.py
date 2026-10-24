@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Four isolated Hermes/Gemini workers, full-paper gate, and optional checked import."""
+"""资料分析整套：蓝图分配 → 4篇单篇流水线并发出题（各自篇内审核并签名）→ 整卷轻量闸门 → 带校验入库。"""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
@@ -8,9 +8,9 @@ import os
 from pathlib import Path
 import random
 import re
-import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 from collections import Counter
@@ -21,11 +21,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import ziliao_parallel_runner as runner
 from generation_gate import verify
-from ziliao_agent_trial import default_hermes_root, write
-from ziliao_tracks import (TIERS, MATERIAL_TYPES, apply_difficulty_overrides, gd_rotating_paper, judge_mix_id,
-                           material_question_plan, parse_difficulty_blueprint)
+from ziliao_agent_trial import write
+from ziliao_tracks import TIERS, MATERIAL_TYPES, material_question_plan, parse_difficulty_blueprint
 from service_node import service_node
-from kaofa_variants import assign_ziliao_variants, record_variants
+from kaofa_variants import record_variants
+from ziliao_blueprint import build_blueprint, format_blueprint, plan_slot, pick_themes as pick_blueprint_themes
+from ziliao_assembly import assemble as assemble_paper, issue_assembly
 from ziliao_performance import adaptive_plan, summary as performance_summary
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,60 +43,8 @@ THEME_POOL = (
     "机动车保有量与驾驶人", "专精特新中小企业", "林业资源与湿地保护", "节假日旅游接待",
     "基层群众自治组织与村居委会", "教育事业发展与在校生", "住房公积金缴存与提取", "跨境电商交易规模",
 )
-THEME_RECENT_BATCHES = 6
 OLD_SKELETON = ("财政", "工业", "外贸", "进出口", "社会消费品零售")
 REGIONS = ("广东省", "深圳市", "广州市", "佛山市", "东莞市", "珠海市", "惠州市", "中山市", "江门市", "湛江市", "汕头市")
-def recent_rotation(output_dir, batches=3):
-    """最近几套（新的在前）用过的题型与材料形态，供轮转降权。"""
-    plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
-    dirs = []
-    for plan in reversed(plans):
-        if plan.parent not in dirs:
-            dirs.append(plan.parent)
-        if len(dirs) == batches:
-            break
-    kinds, types, mixes = [], [], []
-    for d in dirs:
-        loaded = [json.loads(p.read_text()) for p in sorted(d.glob("M0[1-4]-plan.json"))]
-        kinds.append({s.get("kind") for p in loaded for s in p.get("slots") or [] if s.get("kind")})
-        types.append({p.get("material_type") or {"chart": "years", "table": "table", "text": "text"}.get(p.get("format"))
-                      for p in loaded})
-        mixes.append({judge_mix_id(s) for p in loaded for s in p.get("slots") or [] if s.get("kind") == "judge"} - {None})
-    return kinds, types, mixes
-
-
-def recent_themes(output_dir, batches=THEME_RECENT_BATCHES):
-    """Themes of the most recent earlier batches, so consecutive papers do not reuse them."""
-    plans = sorted(output_dir.glob("*/M0[1-4]-plan.json"), key=lambda p: p.stat().st_mtime)
-    latest = []
-    for plan in reversed(plans):
-        if plan.parent not in latest:
-            latest.append(plan.parent)
-        if len(latest) == batches:
-            break
-    return {json.loads(p.read_text()).get("theme_key") for d in latest for p in d.glob("M0[1-4]-plan.json")}
-
-
-def pick_themes(output_dir, rng):
-    used = recent_themes(output_dir)
-    fresh = [t for t in THEME_POOL if t not in used]
-    pool = fresh if len(fresh) >= 4 else list(THEME_POOL)
-    return rng.sample(pool, 4)
-
-
-def select_repair_materials(plans, batch_id, out, gate_text, quality):
-    """回修只针对结构化失败的篇。总审原文里出现的题号不作为回修依据。"""
-    targets = runner.failed_visual_material_ids(out) | runner.failed_data_material_ids(out)
-    if not (out / "evidence" / "system-quality.json").is_file():
-        targets.update(p["id"] for p in plans if f"{batch_id}-{p['id']}" in gate_text)
-    for result in (quality or {}).get("results") or []:
-        if any((result.get(k) or {}).get("verdict") != "PASS" for k in ("correctness", "quality")):
-            parts = str(result.get("question_id") or "").rsplit("-", 2)
-            if len(parts) == 3:
-                targets.add(parts[-2])
-    return targets or {p["id"] for p in plans}
-
-
 def import_checked(out, db):
     question_count = verify(out)["question_count"]
     if type(question_count) is not int or question_count <= 0:
@@ -109,31 +58,11 @@ def import_checked(out, db):
     return question_count
 
 
-def sync_reviewed_version(out, work, mid, attempt):
-    """Return the exact normalized version reviewed by the full-paper gate."""
-    questions = [q for q in json.loads((out / "questions.json").read_text())
-                 if q["material_id"] == f"{out.name}-{mid}"]
-    ids = {q["external_id"] for q in questions}
-    calculations = [c for c in json.loads((out / "calculations.json").read_text())["questions"]
-                    if c["question_id"] in ids]
-    if len(ids) != 5 or len(calculations) != 5 or {c["question_id"] for c in calculations} != ids:
-        raise ValueError("整套回修版本缺题或验算，不得写入worker")
-    snapshot = work / f"before-full-repair-{attempt}"
-    snapshot.mkdir()
-    for name in ("questions.json", "calculations.json", ".gate.json"):
-        if (work / name).exists():
-            shutil.copy2(work / name, snapshot / name)
-    (work / ".gate.json").unlink(missing_ok=True)
-    write(work / "questions.json", questions)
-    write(work / "calculations.json", {"questions": calculations})
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--db", type=Path, required=True)
-    parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=2)
-    parser.add_argument("--hermes-root", type=Path, default=default_hermes_root())
+    parser.add_argument("--workers", type=int, choices=(1, 2, 4), default=4)
     parser.add_argument("--resume", type=Path, help="恢复已有批次并重新执行整套闸门，失败自动回修")
     parser.add_argument("--import", dest="import_batch", action="store_true",
                         help="完整闸门通过后调用现有校验导入器；默认仅生成验收产物")
@@ -163,26 +92,26 @@ def main():
     rng = random.Random(batch_id)
     adaptive = ({"kind_boost": {}, "variant_boost": {}} if args.no_adaptive
                 else adaptive_plan(args.db.resolve(), today, args.output_dir.resolve()))
-    recent_kinds, recent_types, recent_mixes = recent_rotation(args.output_dir.resolve())
-    material_types, rotated = gd_rotating_paper(tier, rng, recent_kinds, recent_types, adaptive["kind_boost"],
-                                                recent_mixes, adaptive.get("mix_boost"))
-    slots = assign_ziliao_variants(apply_difficulty_overrides(rotated, overrides), seed=batch_id,
-                                   boost=adaptive["variant_boost"])
+    blueprint = build_blueprint(seed=batch_id, tier=tier, overrides=overrides, adaptive=adaptive,
+                                output_dir=args.output_dir.resolve(), db=args.db.resolve())
+    material_types = blueprint["material_types"]
+    themes = pick_blueprint_themes(THEME_POOL, set(blueprint["recent_themes"]), rng)
+    blueprint["themes"] = themes
+    slots = [plan_slot(s) for s in blueprint["slots"]]
     runner.validate_gd_quota(slots, count=20)
     if args.plan_only:
+        print(format_blueprint(blueprint, themes), flush=True)
         print(json.dumps({"difficulty": tier, "overrides": overrides, "adaptive": performance_summary(adaptive),
-                          "materials": material_types, "slots": [
-            {"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}", "kind": s.get("kind_label"),
-             "variant": s.get("kaofa_variant_name") or (f"{s.get('judge_stem')}｜{s.get('judge_mix_id')}"
-                                                        if s.get("judge_stem") else None),
-             "option_format": s.get("option_format"),
-             "difficulty": s["difficulty"], "difficulty_score": s["difficulty_score"],
-             **({"note": s["difficulty_note"]} if s.get("difficulty_note") else {})}
-            for i, s in enumerate(slots)]}, ensure_ascii=False, indent=2))
+                          "relaxed": blueprint["relaxed"], "rotation_papers": blueprint["rotation_papers"],
+                          "slots": [{"slot": f"M{i // 5 + 1:02}-Q{i % 5 + 1}",
+                                     **{k: s.get(k) for k in ("kind_label", "kaofa_variant_name", "option_format",
+                                                              "answer_key", "kind_reason", "variant_reason",
+                                                              "format_reason", "judge_stem", "judge_mix_id",
+                                                              "difficulty", "difficulty_score")}}
+                                    for i, s in enumerate(blueprint["slots"])]}, ensure_ascii=False, indent=2))
         return 0
     out.mkdir(parents=True, exist_ok=bool(args.resume))
     (out / "images").mkdir(exist_ok=bool(args.resume))
-    themes = pick_themes(args.output_dir.resolve(), rng)
     regions = ["广东省"] + rng.sample(REGIONS[1:], 3)
     tier_focus = {"easy": "难度偏易", "mid": "难度偏易到中", "hard": "难度中到难"}[tier]
     plans = [{"id": f"M{i+1:02}", "track": "gd", "difficulty": tier,
@@ -197,156 +126,105 @@ def main():
               "chart_tasks": []} for i, mtype in enumerate(material_types)]
     if any(word in plan["theme"] for plan in plans for word in OLD_SKELETON):
         raise ValueError("主题落入财政/工业/外贸/社零老骨架")
+    keys = [s["answer_key"] for s in blueprint["slots"]]
     if args.resume:
-        previous = json.loads((out / "paper-summary.json").read_text())
-        shutil.copy2(out / "paper-summary.json", out / f"paper-summary-before-{len(previous['full_gate_rounds'])}.json")
         plans = [json.loads((out / f"M{i:02}-plan.json").read_text()) for i in range(1, 5)]
         slots = [s for p in plans for s in p["slots"]]
-        rounds, worker_runs = previous["full_gate_rounds"], previous["worker_runs"]
+        keys = [s["answer_key"] for s in json.loads((out / "paper-blueprint.json").read_text())["slots"]]
         (out / ".gate.json").unlink(missing_ok=True)
-        write(out / "paper-summary.json", {**previous, "passed": False, "status": "rechecking"})
     else:
         for plan in plans:
             write(out / f"{plan['id']}-plan.json", plan)
         write(out / "adaptive.json", performance_summary(adaptive))
-        rounds, worker_runs = [], []
+        write(out / "paper-blueprint.json", blueprint)
+        print(format_blueprint(blueprint, themes), flush=True)
     print(f"batch_dir={out}", flush=True)
     from generation_progress import Job
     job = Job(batch_id, module="资料分析", title="资料分析整套", planned=20)
+    worker_runs: list[dict] = []
 
-    def worker(plan, resume=False, feedback=None):
+    def worker(plan, attempt=1):
+        """单篇流水线（材料员→出题员→篇内审核）在子进程里跑完并签名；失败重跑一次。"""
         mid = plan["id"]
-        job.update(stage="回修" if resume else "出题",
-                   detail=f"{mid} {'回修' if resume else '生成'}中", progress=20 if resume else 15)
+        index = int(mid[1:]) - 1
         work = out / "workers" / mid / batch_id
-        cmd = [sys.executable, str(ROOT / "scripts/ziliao_agent_trial.py"),
-               "--output-dir", str(work.parent), "--batch-id", batch_id,
-               "--db", str(args.db.resolve()), "--hermes-root", str(args.hermes_root),
-               "--plan", str(out / f"{mid}-plan.json")]
-        if resume:
-            sync_reviewed_version(out, work, mid, len(rounds))
-            write(out / f"{mid}-feedback.json", feedback)
-            cmd += ["--resume", str(work), "--feedback", str(out / f"{mid}-feedback.json")]
-        log = out / f"{mid}-{'resume-' + str(len(rounds)) if resume else 'initial'}.log"
-        mark = time.monotonic()
-        print(f"{mid} {'repair' if resume else 'generation'} started", flush=True)
-        try:
-            with log.open("w") as handle:
-                proc = subprocess.run(["timeout", "--signal=TERM", "--kill-after=10s", "25m", *cmd],
-                                      cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT)
-            record = {"material": mid, "resume": resume, "seconds": round(time.monotonic()-mark, 2),
-                      "returncode": proc.returncode, "log": str(log)}
-            worker_runs.append(record)
-            print(json.dumps(record, ensure_ascii=False), flush=True)
-            if proc.returncode:
-                raise RuntimeError(f"{mid} 未自主完成，保留失败产物；见 {log}")
+        if (work / ".gate.json").is_file():
+            try:
+                verify(work)
+                return work
+            except Exception:
+                pass
+        if work.exists():
+            work.rename(work.with_name(f"{batch_id}.failed-{time.strftime('%H%M%S')}-{attempt}"))
+        cmd = [sys.executable, str(ROOT / "scripts/ziliao_material_pipeline.py"),
+               "--plan", str(out / f"{mid}-plan.json"), "--keys", "".join(keys[index * 5:index * 5 + 5]),
+               "--out", str(work), "--db", str(args.db.resolve()),
+               "--progress", str(out / "workers" / mid / "progress.json")]
+        log = out / f"{mid}-pipeline-{attempt}.log"
+        (out / "workers" / mid).mkdir(parents=True, exist_ok=True)
+        print(f"{mid} pipeline started (attempt {attempt})", flush=True)
+        with log.open("w") as handle:
+            proc = subprocess.run(["timeout", "--signal=TERM", "--kill-after=10s", "20m", *cmd],
+                                  cwd=ROOT, stdout=handle, stderr=subprocess.STDOUT)
+        summary_path = work / "pipeline-summary.json"
+        record = json.loads(summary_path.read_text()) if summary_path.is_file() else {"material": mid}
+        record.update(attempt=attempt, returncode=proc.returncode, log=str(log))
+        worker_runs.append(record)
+        write(out / "worker-runs.json", worker_runs)
+        if proc.returncode == 0:
             verify(work)
             return work
-        finally:
-            write(out / "worker-runs.json", worker_runs)
+        if attempt < 2:
+            return worker(plan, attempt + 1)
+        raise RuntimeError(f"{mid} 单篇两次未通过：{record.get('error') or log}")
 
-    def assemble(paths):
-        materials, questions, calculations, canon = [], [], [], {}
-        manifest = None
-        for path in paths:
-            verify(path)
-            materials += json.loads((path / "materials.json").read_text())
-            questions += json.loads((path / "questions.json").read_text())
-            calculations += json.loads((path / "calculations.json").read_text())["questions"]
-            manifest = json.loads((path / "manifest.json").read_text())
-            canon.update(manifest["generation"]["kaofa_canon"])
-            for image in (path / "images").glob("*.png"):
-                shutil.copy2(image, out / "images" / image.name)
-        paper_tier = plans[0].get("difficulty") or "mid"
-        manifest["source"] = runner.batch_source("gd", False, paper_tier, today.strftime("%Y%m%d"))
-        manifest["difficulty_tier"] = paper_tier
-        manifest["generation"]["kaofa_canon"] = canon
-        constraints = manifest["generation"]["batch_constraints"]
-        constraints.update(question_count=20, targeted_drill=False, slot_plan=slots, difficulty_tier=paper_tier,
-                           tag_counts=dict(Counter(s["tag"] for s in slots)))
-        constraints.pop("answer_max_per_letter", None)
-        constraints.pop("answer_min_letters", None)
-        for name, data in [("materials", materials), ("questions", questions),
-                           ("calculations", {"questions": calculations}), ("manifest", manifest),
-                           ("framework", {"track": "gd", "materials": plans})]:
-            write(out / f"{name}.json", data)
+    def watch(stop: threading.Event) -> None:
+        names = {"材料": "写材料", "材料审核": "材料审核", "出题": "出题", "篇内审核": "审核", "已通过": "完成", "失败": "失败"}
+        while not stop.wait(5):
+            parts, total = [], 0
+            for plan in plans:
+                path = out / "workers" / plan["id"] / "progress.json"
+                state = json.loads(path.read_text()) if path.is_file() else {}
+                parts.append(f"{plan['id']} {names.get(state.get('stage'), state.get('stage') or '排队')}")
+                total += int(state.get("progress") or 0)
+            job.update(stage="出题", detail="｜".join(parts), progress=min(90, total // 4))
 
-    passed, error = False, None
+    passed, error, imported = False, None, 0
+    stop = threading.Event()
     try:
-        job.update(stage="准备出题", detail="4 篇", progress=2)
-        if args.resume:
-            paths = [out / "workers" / p["id"] / batch_id for p in plans]
-        else:
-            job.update(stage="出题", detail=f"{len(plans)} 篇并行生成", progress=15)
-            with ThreadPoolExecutor(max_workers=args.workers) as pool:
-                paths = list(pool.map(worker, plans))
-            job.update(stage="组装", detail=f"{len(plans)} 篇已出稿，准备整套质检", progress=55)
-        for attempt in range(len(rounds) + 1, 4):
-            assemble(paths)
-            (out / ".gate.json").unlink(missing_ok=True)
-            for name in ("system-quality.json", "ziliao-visual-quality.json"):
-                (out / "evidence" / name).unlink(missing_ok=True)
-            snapshot = out / "gate-attempts" / str(attempt)
-            snapshot.mkdir(parents=True)
-            for name in ("materials.json", "questions.json", "calculations.json", "manifest.json"):
-                shutil.copy2(out / name, snapshot / name)
-            shutil.copytree(out / "images", snapshot / "images")
-            print(f"full-paper gate {attempt} started", flush=True)
-            job.update(stage="闸门", detail=f"整套第 {attempt} 轮质检", progress=min(90, 68 + attempt * 6))
-            mark = time.monotonic()
-            proc = subprocess.run(["python3", "scripts/generation_gate.py", "issue", str(out)],
-                                  cwd=ROOT, env={**os.environ, "EXAM_DB": str(args.db.resolve())},
-                                  text=True, capture_output=True, timeout=1200)
-            (snapshot / "output.txt").write_text(proc.stdout + proc.stderr)
-            if (out / "evidence").exists():
-                shutil.copytree(out / "evidence", snapshot / "evidence")
-            rounds.append({"attempt": attempt, "seconds": round(time.monotonic()-mark, 2), "returncode": proc.returncode})
-            if not proc.returncode:
-                verify(out)
-                passed = True
-                break
-            if attempt == 3:
-                raise RuntimeError("整套审核三轮未通过，禁止自动放行")
-            quality = out / "evidence/system-quality.json"
-            data = json.loads(quality.read_text()) if quality.exists() else {}
-            visual = out / "evidence/ziliao-visual-quality.json"
-            figures = json.loads(visual.read_text()) if visual.exists() else {}
-            targets = select_repair_materials(plans, batch_id, out, proc.stdout + proc.stderr, data)
-            job.update(stage="回修", detail=f"回修 {len(targets)} 篇", progress=72)
-            def repair(plan):
-                feedback = {"gate_error": (proc.stdout + proc.stderr)[-4000:],
-                            "batch_quality": data.get("batch_quality"),
-                            "questions": [r for r in data.get("results", []) if f"-{plan['id']}-" in r["question_id"] and r.get("verdict") != "PASS"],
-                            "visual": figures}
-                worker(plan, resume=True, feedback=feedback)
-            with ThreadPoolExecutor(max_workers=args.workers) as pool:
-                list(pool.map(repair, [p for p in plans if p["id"] in targets]))
-    except Exception as exc:
-        error = f"{type(exc).__name__}: {exc}"
-    imported = 0
-    if passed and args.import_batch:
-        try:
+        job.update(stage="出题", detail=f"4 篇并行（并发 {args.workers}）", progress=5)
+        threading.Thread(target=watch, args=(stop,), daemon=True).start()
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            paths = list(pool.map(worker, plans))
+        stop.set()
+        job.update(stage="整卷闸门", detail="核对单篇签名、内容未改动与整卷规则", progress=92)
+        source = runner.batch_source("gd", False, tier, today.strftime("%Y%m%d"))
+        assemble_paper(out, paths, slots, source, tier)
+        issue_assembly(out, paths)
+        passed = True
+        if args.import_batch:
             job.update(stage="入库", detail="正在写入题库", passed=20, progress=96)
             imported = import_checked(out, args.db)
             if imported:
                 record_variants(batch_id, slots)
-        except Exception as exc:
-            error = f"{type(exc).__name__}: {exc}"
+    except Exception as exc:
+        stop.set()
+        error = f"{type(exc).__name__}: {exc}"
     if passed and error is None:
         job.finish(status="done", stage="已入库" if imported else "已通过",
                    detail=f"{'已入库' if imported else '质检通过'} 20 题", passed=20, progress=100)
     else:
-        job.finish(status="failed", stage="失败", error=error or "未通过",
-                   detail=(error or "未通过")[:160])
-    summary = {"passed": passed, "batch_dir": str(out), "model": runner.MODEL,
-               "seconds": round(time.monotonic()-started, 2) + (previous["seconds"] if args.resume else 0),
-               "question_count": 20, "materials": 4,
-               "worker_runs": worker_runs, "full_gate_rounds": rounds,
-               "error": error, "imported": imported, "manual_content_edits": 0,
-               "chart_match_supported": runner.CHART_MATCH_HOOK["implemented"]}
+        job.finish(status="failed", stage="失败", error=error or "未通过", detail=(error or "未通过")[:160])
+    requests = Counter()
+    for run in worker_runs:
+        requests.update(run.get("requests") or {})
+    summary = {"passed": passed and error is None, "batch_dir": str(out), "model": runner.MODEL,
+               "seconds": round(time.monotonic() - started, 2), "question_count": 20, "materials": 4,
+               "workers": args.workers, "worker_runs": worker_runs, "requests": dict(requests),
+               "error": error, "imported": imported, "pipeline": "ziliao_material_pipeline+assembly"}
     write(out / "paper-summary.json", summary)
     print(json.dumps(summary, ensure_ascii=False), flush=True)
-    return 0 if passed and error is None else 1
+    return 0 if summary["passed"] else 1
 
 
 if __name__ == "__main__":

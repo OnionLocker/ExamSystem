@@ -11,6 +11,7 @@ import os
 import re
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
@@ -201,6 +202,7 @@ def review_image(item: dict, key: str) -> dict:
                 method="POST",
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
             )
+            model_router.log_call("visual")
             with urllib.request.urlopen(request, timeout=300) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             result = parse_json(response_text(payload))
@@ -230,6 +232,40 @@ def review_image(item: dict, key: str) -> dict:
     raise RuntimeError(f"{path.name} 视觉质检调用失败：{error}")
 
 
+def cache_key(item: dict) -> str:
+    """同一张图、同样的上下文、同一模型与规则才复用结论；材料图只看材料正文，不随题目变化，可在出题前先查。"""
+    contexts = [{k: v for k, v in c.items() if not (c.get("kind") == "material" and k == "questions")}
+                for c in item["contexts"]]
+    digest = hashlib.sha256()
+    for part in (MODEL, SYSTEM_PROMPT, json.dumps(contexts, ensure_ascii=False, sort_keys=True), sha256(item["path"])):
+        digest.update(part.encode("utf-8"))
+        digest.update(b"\0")
+    return "visual:" + digest.hexdigest()
+
+
+def review_all(batch_dir: Path, items: list[dict]) -> list[dict]:
+    import quality_memory
+    cached = quality_memory.load(batch_dir)["reviews"]
+    keys = [cache_key(item) for item in items]
+    pending = [index for index, key in enumerate(keys) if not isinstance(cached.get(key), dict)]
+    fresh: dict[int, dict] = {}
+    if pending:
+        key = api_key()
+        with ThreadPoolExecutor(max_workers=min(4, len(pending))) as pool:
+            fresh = dict(zip(pending, pool.map(lambda index: review_image(items[index], key), pending)))
+    passed = {keys[i]: result for i, result in fresh.items() if result["verdict"] == "PASS"}
+    if passed:
+        quality_memory.update(batch_dir, reviews=passed)
+    return [fresh.get(index) or cached[keys[index]] for index in range(len(items))]
+
+
+def precheck_material_images(batch_dir: Path) -> list[dict]:
+    """材料定稿后、出题同时先查材料图；结论按图片与材料正文记忆，篇内审核时直接命中。"""
+    items = [item for item in collect_images(batch_dir.resolve())
+             if all(context.get("kind") == "material" for context in item["contexts"])]
+    return review_all(batch_dir.resolve(), items) if items else []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("batch_dir", type=Path)
@@ -239,7 +275,7 @@ def main() -> int:
     items = collect_images(batch_dir)
     if not items:
         raise SystemExit("批次没有需要检查的图表")
-    results = [review_image(item, api_key()) for item in items]
+    results = review_all(batch_dir, items)
     verdict = "PASS" if all(item["verdict"] == "PASS" for item in results) else "REJECT"
     evidence = {
         "version": 1,

@@ -31,6 +31,7 @@ from panduan_pack import is_kepui_paper, is_panduan_paper, validate_kepui_paper,
 from ziliao_tracks import (resolve_gemini_model, ZILIAO_INFERENCE_RULES, ZILIAO_FIGURE_RULES,
                            GD_DESIGN_RULES, GD_PAPER_RULES, track_material_rules)
 import model_router
+import quality_memory
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -385,6 +386,7 @@ def call_flash(system: str, prompt: str, images: list[tuple[str, Path]] | None =
                     "Content-Type": "application/json",
                 },
             )
+            model_router.log_call("review")
             with urllib.request.urlopen(request, timeout=300) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             return parse_json(response_text(payload))
@@ -578,19 +580,37 @@ def equivalent(left: Any, right: Any, tolerance: float) -> bool:
     return left == right
 
 
-def run_ziliao_blind(questions: list[dict]) -> dict[str, dict]:
+def blind_cache_key(question: dict) -> str:
+    digest = hashlib.sha256()
+    for part in (MODEL, ZILIAO_BLIND_SYSTEM + ZILIAO_INFERENCE_RULES,
+                 json.dumps(public_question(question), ensure_ascii=False, sort_keys=True)):
+        digest.update(part.encode("utf-8"))
+        digest.update(b"\0")
+    return "blind:" + digest.hexdigest()
+
+
+def run_ziliao_blind(questions: list[dict], cached: dict | None = None) -> dict[str, dict]:
+    cached = cached or {}
+    reviews = {}
     groups = {}
     for q in questions:
-        if q.get("category") == CAT_ZILIAO:
+        if q.get("category") != CAT_ZILIAO:
+            continue
+        hit = cached.get(blind_cache_key(q))
+        if isinstance(hit, dict):
+            reviews[str(q["external_id"])] = hit
+        else:
             groups.setdefault(q.get("material_id") or q["external_id"], []).append(q)
     if not groups:
-        return {}
+        return reviews
 
     def review_group(group):
         return indexed(call_flash(ZILIAO_BLIND_SYSTEM + ZILIAO_INFERENCE_RULES, json.dumps([public_question(q) for q in group], ensure_ascii=False)))
 
     with ThreadPoolExecutor(max_workers=min(4, len(groups))) as pool:
-        return {qid: review for result in pool.map(review_group, groups.values()) for qid, review in result.items()}
+        for result in pool.map(review_group, groups.values()):
+            reviews.update(result)
+    return reviews
 
 
 def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
@@ -607,7 +627,8 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
     raw = read_json(path)
     specs = raw.get("questions") if isinstance(raw, dict) else raw
     by_id = {str(item.get("question_id")): item for item in specs or [] if isinstance(item, dict)}
-    blind = run_ziliao_blind(questions)
+    blind = run_ziliao_blind(questions, quality_memory.load(batch_dir)["reviews"])
+    blind_passed = {}
     output = {}
     for question in questions:
         qid = str(question["external_id"])
@@ -669,6 +690,8 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
                     or any(not isinstance(t, dict) or type(t.get("stands")) is not bool or not t.get("reason") for t in tests.values())
                     or [k for k, t in tests.items() if isinstance(t, dict) and t.get("stands") is True] != [question.get("answer")]):
                 issues.append("资料独立盲解未通过：" + json.dumps(review, ensure_ascii=False))
+            else:
+                blind_passed[blind_cache_key(question)] = review
             details["blind_review"] = review
         output[qid] = {
             "route": "B",
@@ -677,6 +700,8 @@ def run_route_b(batch_dir: Path, questions: list[dict]) -> dict[str, dict]:
             "calculation": details,
             "issues": issues,
         }
+    if blind_passed:
+        quality_memory.update(batch_dir, reviews=blind_passed)
     return output
 
 
@@ -953,73 +978,105 @@ def run_quality(
             rules += "\n" + path.read_text(encoding="utf-8")
     references = evaluation_references(manifest)
 
-    def review_group(group):
+    def item_of(q):
+        ziliao = q.get("category") == CAT_ZILIAO
+        return {
+            "question": public_question(q, include_answer=True),
+            "evaluation_only_real_questions": references.get(str(q["external_id"]), []),
+            **({"explanation_claims": [{"index": i, "text": s} for i, s in enumerate(explanation_claims(q), 1)]} if ziliao else {}),
+        }
+
+    def images_of(q):
+        return [(f"{q['external_id']} IMAGE {index}", path)
+                for index, path in enumerate(question_images(batch_dir, q), 1)]
+
+    def system_of(group):
         ziliao = all(q.get("category") == CAT_ZILIAO for q in group)
         gd = ziliao and ((manifest.get("generation") or {}).get("batch_constraints") or {}).get("track") == "gd"
-        payload = {
-            "items": [
-                {
-                    "question": public_question(q, include_answer=True),
-                    "evaluation_only_real_questions": references.get(str(q["external_id"]), []),
-                    **({"explanation_claims": [{"index": i, "text": s} for i, s in enumerate(explanation_claims(q), 1)]} if ziliao else {}),
-                }
-                for q in group
-            ],
-            "rules": rules,
-        }
-        images = []
-        for question in group:
-            for index, path in enumerate(question_images(batch_dir, question), 1):
-                images.append((f"{question['external_id']} IMAGE {index}", path))
         design = (GD_DESIGN_RULES +
                   '每题额外返回design_check={"ok":true,"reason":"该题口径、实际负担、适用的干扰公式或综合辨析依据"}。'
                   '逐项核对上述轨A要求，缺陷须ok=false并在issues给出题号及修法；不适用的要求说明不适用。'
                   if gd else "")
-        return indexed(call_flash(QUALITY_SYSTEM + (ZILIAO_QUALITY_RULES + ZILIAO_INFERENCE_RULES if ziliao else "") + design, json.dumps(payload, ensure_ascii=False), images))
+        return QUALITY_SYSTEM + (ZILIAO_QUALITY_RULES + ZILIAO_INFERENCE_RULES if ziliao else "") + design
+
+    def review_group(group, pending):
+        payload = {"items": [item_of(q) for q in pending], "rules": rules}
+        if len(pending) < len(group):
+            payload["context_only_questions"] = [public_question(q, include_answer=True)
+                                                 for q in group if q not in pending]
+        images = list(dict.fromkeys(image for q in pending for image in images_of(q)))
+        return indexed(call_flash(system_of(group), json.dumps(payload, ensure_ascii=False), images))
 
     groups = {}
     for q in questions:
         key = (q.get("material_id") or q["external_id"]) if q.get("category") == CAT_ZILIAO else "other"
         groups.setdefault(key, []).append(q)
-    with ThreadPoolExecutor(max_workers=min(4, max(1, len(groups)))) as pool:
-        reviews = {qid: review for result in pool.map(review_group, groups.values()) for qid, review in result.items()}
-    output = {}
-    for question in questions:
-        qid = str(question["external_id"])
-        review = reviews.get(qid)
-        issues = local_quality_issues(question)
-        if not review:
-            issues.append("quality reviewer missing")
-        else:
-            if question.get("category") == CAT_ZILIAO:
-                issues.extend(ziliao_review_issues(question, review))
-            if str(review.get("verdict") or "").upper() != "PASS":
-                issues.append("quality reviewer rejected")
-            if int(review.get("score") or 0) < 10:
-                issues.append("quality score below 10")
-            if review.get("zero_items") or review.get("hard_fail") or review.get("regression_fail"):
-                issues.append("quality hard/zero/regression failure")
-            if review.get("module_match") is not True or review.get("style_match") is not True:
-                issues.append("module or real-exam style mismatch")
-            if review.get("facts_closed") is not True or review.get("answer_unique") is not True:
-                issues.append("facts are not closed or answer is not unique")
-            distractors = review.get("distractor_paths") or {}
-            wrong_keys = {
-                str(option.get("key")) for option in question.get("options") or []
-                if str(option.get("key")) != str(question.get("answer"))
-            }
-            if set(distractors) != wrong_keys or any(not str(value).strip() for value in distractors.values()):
-                issues.append("three diagnostic distractor paths are missing")
-            mapped_ids = {str(item.get("external_id")) for item in references.get(qid, [])}
-            reviewed_ids = {str(value) for value in review.get("reference_ids") or []}
-            if mapped_ids and reviewed_ids != mapped_ids:
-                issues.append("quality reviewer did not use the mapped evaluation references")
-        output[qid] = {
-            "verdict": "PASS" if not issues else "REJECT",
-            "review": review,
-            "issues": issues,
-        }
+    keys = {
+        str(q["external_id"]): quality_cache_key(system_of(group), rules, item_of(q), images_of(q))
+        for group in groups.values() for q in group
+    }
+    cached = quality_memory.load(batch_dir)["reviews"]
+    reviews = {qid: cached[key] for qid, key in keys.items() if isinstance(cached.get(key), dict)}
+    work = [(group, [q for q in group if str(q["external_id"]) not in reviews]) for group in groups.values()]
+    work = [(group, pending) for group, pending in work if pending]
+    if work:
+        with ThreadPoolExecutor(max_workers=min(4, len(work))) as pool:
+            for result in pool.map(lambda job: review_group(*job), work):
+                reviews.update(result)
+    output = {qid: judge_quality(question, reviews.get(qid), references)
+              for question in questions for qid in [str(question["external_id"])]}
+    fresh = {keys[qid]: reviews[qid] for group, pending in work for q in pending
+             for qid in [str(q["external_id"])] if output[qid]["verdict"] == "PASS"}
+    if fresh:
+        quality_memory.update(batch_dir, reviews=fresh)
     return output
+
+
+def quality_cache_key(system: str, rules: str, item: dict, images: list[tuple[str, Path]]) -> str:
+    digest = hashlib.sha256()
+    for part in (MODEL, system, rules, json.dumps(item, ensure_ascii=False, sort_keys=True)):
+        digest.update(part.encode("utf-8"))
+        digest.update(b"\0")
+    for label, path in images:
+        digest.update(label.encode("utf-8"))
+        digest.update(sha256(path).encode("ascii") if path.is_file() else b"missing")
+    return digest.hexdigest()
+
+
+def judge_quality(question: dict, review: dict | None, references: dict[str, list[dict]]) -> dict:
+    qid = str(question["external_id"])
+    issues = local_quality_issues(question)
+    if not review:
+        issues.append("quality reviewer missing")
+    else:
+        if question.get("category") == CAT_ZILIAO:
+            issues.extend(ziliao_review_issues(question, review))
+        if str(review.get("verdict") or "").upper() != "PASS":
+            issues.append("quality reviewer rejected")
+        if int(review.get("score") or 0) < 10:
+            issues.append("quality score below 10")
+        if review.get("zero_items") or review.get("hard_fail") or review.get("regression_fail"):
+            issues.append("quality hard/zero/regression failure")
+        if review.get("module_match") is not True or review.get("style_match") is not True:
+            issues.append("module or real-exam style mismatch")
+        if review.get("facts_closed") is not True or review.get("answer_unique") is not True:
+            issues.append("facts are not closed or answer is not unique")
+        distractors = review.get("distractor_paths") or {}
+        wrong_keys = {
+            str(option.get("key")) for option in question.get("options") or []
+            if str(option.get("key")) != str(question.get("answer"))
+        }
+        if set(distractors) != wrong_keys or any(not str(value).strip() for value in distractors.values()):
+            issues.append("three diagnostic distractor paths are missing")
+        mapped_ids = {str(item.get("external_id")) for item in references.get(qid, [])}
+        reviewed_ids = {str(value) for value in review.get("reference_ids") or []}
+        if mapped_ids and reviewed_ids != mapped_ids:
+            issues.append("quality reviewer did not use the mapped evaluation references")
+    return {
+        "verdict": "PASS" if not issues else "REJECT",
+        "review": review,
+        "issues": issues,
+    }
 
 
 def run_reference_quality(manifest: dict, questions: list[dict]) -> dict:
@@ -1209,7 +1266,7 @@ def run_batch_quality(batch_dir: Path, manifest: dict, questions: list[dict]) ->
     return {"verdict": "PASS" if all(checks) else "REJECT", "review": review}
 
 
-def run(batch_dir: Path) -> dict:
+def load_generated(batch_dir: Path) -> tuple[dict, list[dict]]:
     manifest = read_json(batch_dir / "manifest.json")
     questions = read_json(batch_dir / "questions.json")
     materials = read_json(batch_dir / "materials.json") if (batch_dir / "materials.json").is_file() else []
@@ -1229,6 +1286,11 @@ def run(batch_dir: Path) -> dict:
         if str(q.get("origin") or "") != "zhenti"
         and not str(q.get("external_id") or "").startswith("zhenti-")
     ]
+    return manifest, generated
+
+
+def run(batch_dir: Path) -> dict:
+    manifest, generated = load_generated(batch_dir)
     routes = {str(q["external_id"]): classify(q) for q in generated}
     groups = {
         route: [q for q in generated if routes[str(q["external_id"])] == route]
@@ -1289,6 +1351,14 @@ def run(batch_dir: Path) -> dict:
             }
         )
     verdict = "PASS" if results and all(item["verdict"] == "PASS" for item in results) else "REJECT"
+    by_id = {str(q["external_id"]): q for q in generated}
+    cleared = {item["question_id"] for item in results
+               if item["correctness"].get("verdict") == item["quality"].get("verdict") == "PASS"}
+    quality_memory.update(
+        batch_dir,
+        passed={qid: quality_memory.fingerprint(by_id[qid]) for qid in cleared},
+        rejected=[item["question_id"] for item in results if item["question_id"] not in cleared],
+    )
     return {
         "version": 1,
         "kind": "examsystem-system-quality",

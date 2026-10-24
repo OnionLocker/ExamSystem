@@ -1,10 +1,15 @@
-# 资料分析 Gemini 工具子 Agent
+# 资料分析出题流水线
 
-这是资料分析整套的唯一入口：资料分析整套必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套。Hermes 的 quiz-pipeline skill、`HERMES.md` 和网页每轮注入的 `src/hermes/quizPrompt.js` 都把 20 题、4 篇、“一套/整套”、广东省考/默认难度的请求（语音或文字）路由到这里；`ziliao_parallel_runner.py` 只保留单篇/指定考点专项，脚本本身拒绝整套请求。使用正式机已安装的 Hermes AIAgent，不修改 Hermes 核心、不新增依赖。命题、审材、盲解、质量审核和视觉审核均使用 Gemini；审核调用与命题对话隔离，但不代表不同模型之间的能力验证。
+资料分析只有两个入口，Hermes、DSH 与每日定时任务共用：
+
+| 请求 | 入口 |
+|---|---|
+| 整套（4篇20题、“一套/整套/日练”、广东省考默认） | `scripts/ziliao_agent_paper.py` |
+| 单篇5题、点名材料形态、指定考点专项（5/10题） | `scripts/ziliao_material_pipeline.py` |
+
+每日整套由 `scripts/daily_ziliao_scheduler.py`（Hermes 定时任务 04:40，07:40 仅在失败时补跑）调用整套入口。只做粤考日练（轨A）；经典计算加练（轨B）暂不提供。
 
 ## 执行
-
-在包含本次改造代码的检出目录执行，使用 Hermes 虚拟环境的 Python：
 
     set -a
     . /home/ubuntu/ExamSystem/.env
@@ -12,33 +17,39 @@
     set +a
     export PYTHONUNBUFFERED=1
     export EXAM_DB=/home/ubuntu/ExamSystem/data/exam.db
-    /home/ubuntu/.hermes/hermes-agent/.venv/bin/python scripts/ziliao_agent_paper.py \
+    # 整套
+    python3 scripts/ziliao_agent_paper.py \
       --output-dir /home/ubuntu/ExamSystem/data/manual-ziliao-agent-paper \
-      --db /home/ubuntu/ExamSystem/data/exam.db --workers 2 --import
+      --db /home/ubuntu/ExamSystem/data/exam.db --import
+    # 单篇 / 专项
+    python3 scripts/ziliao_material_pipeline.py --format chart --import
+    python3 scripts/ziliao_material_pipeline.py --tag '资料分析-ABRX类-增长量计算与现期推算' --count 10 --import
 
-固定为轨 A、4 篇 20 题，默认 mid；`--difficulty easy|mid|hard` 调整卷档位，`--blueprint` 按篇（M01）或按题（M03-Q4）覆盖档位并可附命题倾向 note（`ziliao_tracks.parse_difficulty_blueprint`，只开放难度），`--plan-only` 打印槽位核对。题型配额见 `ziliao_tracks.gd_slots_20`（每个槽位带 kind；M02-Q3 固定平均数增长率，M04-Q4 为两期比重升降定性秒判），四种 Q5 问法与四种考查组合跨篇轮换。四篇主题从 `ziliao_agent_paper.THEME_POOL` 中抽取并避开上一批（读 output-dir 中最新批次的 `M0*-plan.json` 的 theme_key），M01 固定广东省、其余三篇随机取深圳/广州/佛山等地市。四个独立进程各持有一篇上下文；默认最多同时运行两篇，避免对审核服务突发过多请求。不要拿这个入口替代用户点名的单知识点专项。
+整套参数：`--difficulty easy|mid|hard`、`--blueprint`（按篇 M01 或按题 M03-Q4 覆盖档位，可附 note，只开放难度）、`--plan-only`（打印蓝图与每题分配理由）、`--resume <批次目录>`（复用已签名的篇，只重做未通过的篇）、`--workers 1|2|4`（默认4）。
 
-## 工具与验收边界
+单篇/专项参数：`--tag`（资料分析出题主标签）、`--count 5|10`、`--format`、`--brief`（用户原话）、`--difficulty`、`--plan-only`。
 
-- 工具仅有计算、提交材料、保存/替换本篇题目、送审、读取本篇状态。无终端、任意文件写入、改闸门或入库工具。
-- 分项与合计先由高精度底数推导，再分别舍入；台账记录底数、显示数、指标和单位。程序复算，独立 Gemini 检查台账是否对应材料；本篇至少一组有实际显示差异。不是给总计随手加减 0.1。
-- 比率两期变化问百分点；增长率槽仍可问收入、利润额等绝对指标同比。禁止为修问法偷换槽位。
-- 混合倍数正确项不接受整数倍；若换对象不足以修复，重新提交材料，不能改标答凑非整数。
-- 四图选一尚未实现，本轮明确拒绝该槽位和选项图。
-- 程序硬检查（`ziliao_checklist.py`，worker 保存/送审与整套闸门都执行；manifest 的 `ziliao_checklist` 为 `gd-agent-v2`）：占位地名与人造口径句、真实广东地名、整数百分比过多；题型关键词（年均、倍、平均、比重变化、百分点、间隔增长率）；干扰项须写“X项：错误算式”且禁用“计算失误/估算误差”，(1+k·r)、(r1+r2)×(1+r) 类凑数公式退回；题目 family 须与槽位一致；数值选项相对差 ≥3%；比重/增长率/平均数正确值非整数百分比、倍数非整数倍；每篇图表至少两个独有数据写进解析算式；年均增长使用图中至少两个年份数据；综合分析每题至少两处算式，百分点/累计/缺数据陷阱每篇至多一类、全卷至多两篇。
-- 槽位配额检查（`validate_gd_quota` / `validate_gd_kinds`）：12 类题型全覆盖，同一题型 ≤3 题，细节查找/读数/读图排序全卷 ≤1 题（`paper_issues` 另按题干与解析复核），百分点题干扰项不得等于两增速相对比值（`point_ratio_issues`），四道综合组合互不相同。
-- 材料替换会清空五题和旧回执；局部修题保留其他题。每次保存与送审均留原始输入、反馈和耗时。
-- 每篇独立审材与整篇送审各最多六次；单次 worker 最多 40 轮模型交互、25 分钟。超限保留失败，不降低门槛放行。
-- 合并后必须再过完整 20 题闸门。失败按题号/材料返回原 worker，保留原对话自主修复，最多三轮整套审核。
-- 仅 generation_gate.py verify 验证最新文件通过才记成功。通过不等于统计学意义上的稳定，也不代替用户对题目风格的评价。
+## 三层结构
+
+1. **蓝图调度器**（`scripts/ziliao_blueprint.py`，不调模型，几十毫秒）：锁定4篇材料形态与题材、20个槽位（题型、细分考法、选项形式）及答案字母。题型按广东真题频率、只按已入库卷子轮转；比重/增长率/增长量/基期量各至少1道；问法（题型+考法+选项形式）不重复；区间式每套1–2道、升降式0–1道，同一选项形式（区间/升降/排序/个数/选主体）每套≤2道，每篇非精确选项≤1道；“是……的多少倍”每套≤2道、每篇≤1道；同篇不同时出现期平均数与平均数差值；每个槽位写明分配理由，存为 `paper-blueprint.json`。排不出时按固定顺序放宽并记录。
+2. **单篇流水线**（`scripts/ziliao_material_pipeline.py`，整套时每篇一个子进程，4篇并发）：
+   - 材料员（一次请求）只写正文、图表与分项；合计和舍入台账由 `ziliao_material_tools.py` 从高精度底数独立舍入生成。
+   - 程序核对材料硬检查，不过直接带问题退回；过了就一边做模型材料审核，一边让出题员 5 题并行。材料定稿后后台先做材料图视觉质检。
+   - 出题员每题一个请求，只拿材料、本题规则与考法、其他题考什么；只写题干、解析、各选项算式与错法。选项文字、精度、顺序（数值升序、区间按整齐档位从小到大并让常见错法落入别的档、升降固定顺序）、答案字母与“X项：错误算式=结果”由程序生成；每篇答案组合与蓝图一致。
+   - 本地校验或审核只退回点名的题，回修只带该题、反馈和同篇题干。
+   - 篇内审核（`generation_gate.py issue`）：盲解、考官、整篇审核与视觉质检同时进行，通过后单篇签名；已通过且未改动的题、已查过的图不重审（`quality_memory.py`）。
+   - 模型请求超过 60–75 秒未返回自动补发一次；每个请求的提示词与回复存档在 `calls/`。
+3. **整卷轻量闸门**（`scripts/ziliao_assembly.py`）：不再整卷重审，只核对每篇签名有效、每题/材料/图片与单篇签发时一致、题号连续、答案分布（4篇中恰好3篇为ABCD各一加一个重复）、题量与主标签配比、蓝图配额与全卷机械规则，签发 `ziliao-assembly-v1` 回执；入库时 `generation_gate.py verify` 全部重新核对。专项10题同样经此闸门合成一批。
 
 ## 产物
 
-入口返回 batch_dir。目录内有可入库结构的 manifest/materials/questions/calculations、图片、最终回执，以及：
+整套 `data/manual-ziliao-agent-paper/<批次>/`：`paper-blueprint.json`、`M0*-plan.json`、`adaptive.json`、可入库的 manifest/materials/questions/calculations/images、整卷回执 `.gate.json`、`paper-summary.json`（耗时、请求数）、`worker-runs.json`，以及 `workers/M0*/<批次>/` 下每篇的签名产物、`pipeline-summary.json`（请求、退回、阶段耗时）和 `calls/`（各角色提示词与回复）。
 
-- workers/M0*/批次/tool-log.json：全部工具反馈；对应 tool-*-input.json 保留输入。
-- workers/M0*/批次/agent-result.json：实际 Gemini 模型、对话、调用量。
-- gate-attempts/：每轮完整输入与独立审核证据。
-- worker-runs.json / paper-summary.json：每篇及整套耗时、失败和自动回修次数。
+单篇/专项 `data/manual-ziliao-material/<批次>/`：结构同单篇；10 题专项在其下有两个 `workers/`。
 
-入口默认只生成验收产物；添加 --import 后仅在最终回执验证通过时调用现有 import-batch 导入器。导入器再次执行 --for-import 回执校验。入库失败返回非零并保存日志，不能只凭 passed=true 声称入库成功。入口不会部署业务服务；线上部署及已有验收批次的导入时间以 deployment.json 为准。
+## 测试
+
+- `scripts/test_ziliao_blueprint.py`：蓝图约束、轮转只认已入库、答案字母。
+- `scripts/test_ziliao_material_tools.py`：舍入台账、选项生成、解析行、模式判定。
+- `scripts/test_ziliao_material_cli.py`：单篇/专项计划与参数。
+- `scripts/test_ziliao_material_pipeline.py`（脚本式）：离线回放整条流水线，含回修、对冲、4篇组装签发与篡改拦截。

@@ -4,6 +4,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 import daily_ziliao_scheduler as sched
@@ -95,6 +96,102 @@ class VariantReviewTest(unittest.TestCase):
         self.assertTrue(qo.ziliao_review_issues(judge, good))
         plain = {"explanation": "A项符合。", "requested_slot": {"family": "share_add"}}
         self.assertEqual(qo.ziliao_review_issues(plain, good), [])
+
+
+class QualityCacheTest(unittest.TestCase):
+    def setUp(self):
+        from unittest import mock
+        import quality_orchestrator as qo
+        self.qo = qo
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.dir = Path(self.tmp.name) / "b"
+        self.dir.mkdir()
+        env = mock.patch.dict("os.environ", {"QUALITY_CACHE_DIR": str(Path(self.tmp.name) / "cache")})
+        env.start()
+        self.addCleanup(env.stop)
+        self.verdicts = {}
+        self.calls = []
+
+        def fake_call(system, prompt, images=None):
+            ids = [item["question"]["id"] for item in json.loads(prompt)["items"]]
+            self.calls.append(ids)
+            return {"questions": [{"id": qid, "verdict": self.verdicts.get(qid, "PASS")} for qid in ids]}
+
+        def fake_judge(question, review, references):
+            ok = bool(review) and review.get("verdict") == "PASS"
+            return {"verdict": "PASS" if ok else "REJECT", "review": review, "issues": [] if ok else ["x"]}
+
+        for target, value in (("call_flash", fake_call), ("judge_quality", fake_judge),
+                              ("evaluation_references", lambda manifest: {})):
+            patcher = mock.patch.object(qo, target, side_effect=value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def question(self, material, no, stem="题干"):
+        return {"external_id": f"b-{material}-Q{no}", "material_id": material, "category": "资料分析",
+                "stem": stem, "options": [{"key": k, "text": k} for k in "ABCD"], "answer": "A",
+                "explanation": "A项符合。"}
+
+    def run_quality(self, questions):
+        return self.qo.run_quality(self.dir, {"generation": {}}, questions)
+
+    def test_unchanged_passed_material_is_not_reviewed_again(self):
+        questions = [self.question("M01", 1), self.question("M02", 1)]
+        self.verdicts["b-M02-Q1"] = "REJECT"
+        self.run_quality(questions)
+        self.assertEqual(sorted(self.calls), [["b-M01-Q1"], ["b-M02-Q1"]])
+        self.calls.clear()
+        self.verdicts.clear()
+        result = self.run_quality(questions)
+        self.assertEqual(self.calls, [["b-M02-Q1"]])
+        self.assertTrue(all(item["verdict"] == "PASS" for item in result.values()))
+
+    def test_passed_blind_solve_is_not_repeated(self):
+        blind = []
+
+        def fake_blind(system, prompt, images=None):
+            items = json.loads(prompt)
+            blind.append([item["id"] for item in items])
+            return {"questions": [{"id": item["id"], "verdict": "PASS", "answer": "A", "also_valid": [],
+                                   "steps": "算", "issues": [], "option_tests": {
+                                       k: {"stands": k == "A", "reason": "r"} for k in "ABCD"}} for item in items]}
+
+        (self.dir / "calculations.json").write_text(json.dumps({"questions": [
+            {"question_id": "b-M01-Q1", "correct": "1", "options": {"A": "1", "B": "2", "C": "3", "D": "4"}}]}))
+        with unittest.mock.patch.object(self.qo, "call_flash", side_effect=fake_blind):
+            first = self.qo.run_route_b(self.dir, [self.question("M01", 1)])
+            second = self.qo.run_route_b(self.dir, [self.question("M01", 1)])
+        self.assertEqual(first["b-M01-Q1"]["verdict"], "PASS")
+        self.assertEqual(second["b-M01-Q1"]["verdict"], "PASS")
+        self.assertEqual(blind, [["b-M01-Q1"]])
+
+    def test_only_changed_question_is_reviewed_again(self):
+        self.run_quality([self.question("M01", 1), self.question("M01", 2)])
+        self.calls.clear()
+        self.run_quality([self.question("M01", 1), self.question("M01", 2, stem="改过的题干")])
+        self.assertEqual(self.calls, [["b-M01-Q2"]])
+
+
+class LockedAnswerTest(unittest.TestCase):
+    def paper(self, answers):
+        return [{"external_id": f"b-M0{i // 5 + 1}-Q{i % 5 + 1}", "material_id": f"b-M0{i // 5 + 1}",
+                 "category": "资料分析", "stem": "s", "answer": a, "explanation": f"故选{a}",
+                 "options": [{"key": k, "text": k} for k in "ABCD"]} for i, a in enumerate(answers)]
+
+    def test_redistribution_only_moves_unlocked_questions(self):
+        import normalize_ai_batch as nab
+        questions = self.paper("ABCDA" "ABCDB" "ABCDA" "BCCDD")
+        manifest = {"batch_id": "b", "generation": {}}
+        self.assertTrue(nab.answer_distribution_ok(manifest, questions))
+        questions[0]["answer"] = "D"
+        self.assertFalse(nab.answer_distribution_ok(manifest, questions))
+        locked = {q["external_id"] for q in questions} - {"b-M01-Q1"}
+        before = {q["external_id"]: q["answer"] for q in questions}
+        nab.redistribute_answers(questions, manifest, {}, locked)
+        self.assertTrue(nab.answer_distribution_ok(manifest, questions))
+        moved = [qid for qid, a in before.items() if a != next(q["answer"] for q in questions if q["external_id"] == qid)]
+        self.assertEqual(moved, ["b-M01-Q1"])
 
 
 class SchedulerTest(unittest.TestCase):

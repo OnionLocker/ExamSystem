@@ -7,12 +7,16 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 from ziliao_agent_trial import Trial, verify
-from ziliao_agent_paper import sync_reviewed_version, import_checked, select_repair_materials
+from ziliao_agent_paper import import_checked
+from ziliao_tracks import ZILIAO_SHARE
+
+PLAN = {"id": "M01", "track": "gd", "difficulty": "mid", "format": "chart", "figure_kind": "bars",
+        "slots": [{"tag": ZILIAO_SHARE, "kind": "share", "family": "share_add", "brief": "比重"} for _ in range(5)]}
 
 
 def main():
     with tempfile.TemporaryDirectory() as directory:
-        trial = Trial(Path(directory) / "trial", Path(directory) / "unused.db")
+        trial = Trial(Path(directory) / "trial", Path(directory) / "unused.db", PLAN)
         candidate = {"content": "广州市甲114.4亿元、乙86.2亿元，合计200.5亿元。",
                      "figure": {"kind": "bars", "categories": ["甲", "乙", "丙", "丁"],
                      "series": [{"name": "数值", "values": [21.3, 37.8, 29.4, 58.1]}]},
@@ -33,8 +37,13 @@ def main():
             with patch("ziliao_agent_trial.runner.review_ziliao_material", return_value={"verdict": "REJECT"}):
                 assert not trial.submit_material(candidate)["ok"]
             assert (trial.out / ".gate.json").read_text() == "old receipt"
-            invalid = json.loads(trial.invoke("put_questions", {"questions": [{"external_id": "foreign-Q1"}], "calculations": []}))
-            assert not invalid["ok"] and (trial.out / ".gate.json").exists()
+            try:
+                trial.put_questions([{"external_id": "foreign-Q1"}], [])
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("foreign question id must be refused")
+            assert (trial.out / ".gate.json").exists()
             trial.questions = {"old-Q1": {"external_id": "old-Q1"}}
             trial.calculations = {"old-Q1": {"question_id": "old-Q1"}}
             assert trial.submit_material(candidate)["ok"]
@@ -48,20 +57,6 @@ def main():
             else:
                 raise AssertionError("No receipt must never count as success")
         print("PASS: rejection preserves state; material replacement invalidates all dependent artifacts")
-        parent = Path(directory) / "paper"
-        parent.mkdir()
-        questions = [{"external_id": f"paper-M02-Q{i}", "material_id": "paper-M02",
-                      "answer": "C"} for i in range(1, 6)]
-        calculations = {"questions": [{"question_id": q["external_id"], "options": {"C": 1}} for q in questions]}
-        (parent / "questions.json").write_text(json.dumps(questions))
-        (parent / "calculations.json").write_text(json.dumps(calculations))
-        (trial.out / ".gate.json").write_text("old")
-        sync_reviewed_version(parent, trial.out, "M02", 1)
-        assert json.loads((trial.out / "questions.json").read_text())[0]["answer"] == "C"
-        assert json.loads((trial.out / "calculations.json").read_text()) == calculations
-        assert not (trial.out / ".gate.json").exists()
-        assert (trial.out / "before-full-repair-1/.gate.json").read_text() == "old"
-        print("PASS: full-paper option normalization is synchronized before repair, old receipt invalidated")
         with patch("ziliao_agent_paper.verify", side_effect=ValueError("stale receipt")), \
              patch("ziliao_agent_paper.subprocess.run") as importer:
             try:
@@ -96,20 +91,6 @@ def main():
             else:
                 raise AssertionError("Import failure must not be reported as success")
         print("PASS: import requires current receipt, uses selected database, propagates failure")
-        plans = [{"id": "M02"}, {"id": "M04"}]
-        batch_id = "batch"
-        evidence = trial.out / "evidence"
-        evidence.mkdir()
-        (evidence / "system-quality.json").write_text("{}", encoding="utf-8")
-        quality = {"results": [
-            {"question_id": "batch-M02-Q2", "correctness": {"verdict": "REJECT"}, "quality": {"verdict": "PASS"}},
-            {"question_id": "batch-M04-Q1", "correctness": {"verdict": "PASS"}, "quality": {"verdict": "PASS"}},
-        ]}
-        gate_text = "batch-M02-Q1 batch-M04-Q5 实收19题"
-        assert select_repair_materials(plans, batch_id, trial.out, gate_text, quality) == {"M02"}
-        (evidence / "system-quality.json").unlink()
-        assert select_repair_materials(plans, batch_id, trial.out, "硬闸门失败 batch-M04", {}) == {"M04"}
-
 
 if __name__ == "__main__":
     main()

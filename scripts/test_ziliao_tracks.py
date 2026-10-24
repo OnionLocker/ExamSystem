@@ -127,20 +127,6 @@ class LabelTest(unittest.TestCase):
 
 
 class RealismTest(unittest.TestCase):
-    def test_material_retry_records_local_rejection(self):
-        import ziliao_parallel_runner as runner
-        valid = {"material": {"content": "深圳市收入合计200.5亿元，其中甲114.4亿元、乙86.2亿元。", "figure": {"kind": "none"},
-                              "rounding_checks": [{"label": "收入", "unit": "亿元", "places": 1,
-                                                   "parts": [{"label": "甲", "raw": "114.36", "shown": "114.4"},
-                                                             {"label": "乙", "raw": "86.16", "shown": "86.2"}],
-                                                   "total": {"label": "合计", "raw": "200.52", "shown": "200.5"}}]}}
-        with tempfile.TemporaryDirectory() as tmp, patch.object(runner, "call", side_effect=[{"material": {}}, valid]), patch.object(
-            runner, "review_ziliao_material", return_value={"verdict": "PASS", "issues": []}
-        ) as reviewer:
-            runner.material_call({"track": "classic"}, {"id": "M01", "format": "text"}, "b", Path(tmp))
-            attempts = json.loads(Path(tmp, "evidence", "m01-material.json").read_text())["attempts"]
-            self.assertEqual([a["review"]["verdict"] for a in attempts], ["REJECT", "PASS"])
-            self.assertEqual(reviewer.call_count, 1)
 
     def test_arithmetic_first_and_second_diff(self):
         self.assertTrue(tracks.is_arithmetic_series([100, 140, 180, 220]))
@@ -287,35 +273,7 @@ class JudgeFormTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "至少 2 种"):
             tracks.validate_gd_quota(slots)
 
-    def test_prompts_lock_assigned_stem(self):
-        import ziliao_parallel_runner as runner
-        slots = tracks.gd_slots_20()
-        plan = {"id": "M02", "track": "gd", "slots": slots[5:10], "count": 5}
-        material = {"content": "G省增加值1876.4亿元", "external_id": "b-M02", "figure": {}}
-        prompt = runner.paper_prompt(material, plan, "b")
-        self.assertIn("不能从上述资料中推出的是", prompt)
-        self.assertNotIn("或同等正确/有误", prompt)
-        self.assertNotIn("第5题必须是综合正误（正确/有误/不正确）", prompt)
-        qprompt = runner.question_prompt(material, plan, 5, "b", slots[9])
-        self.assertIn("不能从上述资料中推出的是", qprompt)
-        self.assertNotIn("或同等正确/有误", qprompt)
 
-    def test_gd_design_survives_question_repair(self):
-        import ziliao_parallel_runner as runner
-        slots = tracks.gd_slots_20()
-        self.assertNotIn("required_trap", slots[9])
-        plan = {"id": "M04", "track": "gd", "slots": slots[15:20], "count": 5}
-        material = {"content": "比率从8.6%下降到6.3%。", "external_id": "b-M04", "figure": {}}
-        q = {"external_id": "b-M04-Q5"}
-        prompts = [runner.paper_prompt(material, plan, "b"),
-                   runner.question_prompt(material, plan, 5, "b", slots[19]),
-                   runner.question_repair_prompt(material, plan, q, {}, "修正解析")]
-        for prompt in prompts:
-            self.assertIn(tracks.GD_DESIGN_RULES, prompt)
-            self.assertIn("估算+多步混合", prompt)
-            self.assertIn("能够从上述资料中推出的是", prompt)
-        plan["track"] = "classic"
-        self.assertNotIn(tracks.GD_DESIGN_RULES, runner.paper_prompt(material, plan, "b"))
 
     def test_question_errors_reject_generic_correct(self):
         import ziliao_parallel_runner as runner
