@@ -44,7 +44,10 @@ MATH = """先按题干全部条件独立求解，再核对选项。只允许使�
 讲解卡定义训练范围，但卡内数学断言仍须验证，不能拿它替代证明；遇到“只能、不能、必须”先找反例，
 只保留有条件支持的结论。工程总量可任选一致单位，单独或合作完工时间均可用于合理赋值。
 星期日期题使用具体公历年份和日期，不用“某年”代替年份；平闰年、月天数或起点星期本身是考查步骤时，
-必须留给考生判断，不在题干直接报出这些结论（如“该月共有31天”也不允许）。数字和实际日历必须相容。"""
+必须留给考生判断，不在题干直接报出这些结论（如“该月共有31天”也不允许）。数字和实际日历必须相容。
+格式：分数、根号、π等公式一律写在$…$内，带分数写成$10\\frac{10}{11}$，不得裸写\\frac。
+概率题按真题口径，题干给出的单次概率与四个选项一律用最简分数（如胜率写$\\frac{3}{5}$、选项写$\\frac{81}{625}$），
+不用百分数或小数；题干若用百分数会导致选项变成长小数，须改写成分数后再命题。复核发现概率选项为百分数或小数应拒绝。"""
 
 BLIND = "你是数量关系独立解题人，看不到命题答案与解析。\n" + MATH + "\n" + DIFFICULTY + """
 每题独立作答，核验四个选项的唯一性。无正确选项、条件不足或矛盾时，unsolvable=true并说明原因。
@@ -62,9 +65,12 @@ necessity_claims中的每条原句逐一检验，不能把“可取”当“只�
 analysis_check写出核查的算式、样本空间或边界与构造，不得只写“正确”。
 题面情境、解法或表述与参考卡不同，不构成拒绝理由；真正改考相邻知识点才拒绝。
 sibling_topics列出当前目录中的相邻考点；核对核心求解任务是否已落到另列考点，不能只凭题面用了工程等情境就认定命中。
+variant_match：declared_brief注明“本题考法变式：xxx”时，核对本题实际设问结构与解题动作是否属于该变式，返回{"ok":true,"reason":"依据"}；
+退回该考点最常见默认考法、或只换场景不换解题动作则ok=false并写明差在哪。没有注明考法变式就给{"ok":true,"reason":"无细分考法"}。
 只输出JSON：{"questions":[{"id":"...","actual_difficulty":"mid","difficulty_reason":"实际解题负担",
 "analysis_check":"复算依据","necessity_checks":[{"claim_index":0,"valid":true,"reason":"证明或反例"}],
-"verdict":"PASS","difficulty_ok":true,"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"brief_ok":true,"issues":[]}]}
+"verdict":"PASS","difficulty_ok":true,"kaodian_ok":true,"style_ok":true,"analysis_ok":true,"brief_ok":true,
+"variant_match":{"ok":true,"reason":"依据"},"issues":[]}]}
 任一实质检查不通过返回REJECT及具体原因；没有必要性原句则necessity_checks为空数组。
 """
 

@@ -40,12 +40,12 @@ assert.match(buildQuizPrompt({ audio: true, projectRoot }).quizNudge, /若录音
 
 const bar = buildQuizPrompt({ text: '我只练柱状图资料分析', projectRoot });
 assert.equal(bar.wantsQuiz, true);
-assert.match(bar.quizNudge, /--track gd --count 5 --materials 1 --difficulty mid --formats chart/);
-assert.match(bar.quizNudge, /独立上下文/);
+assert.match(bar.quizNudge, /ziliao_material_pipeline\.py --format chart --import/);
+assert.match(bar.quizNudge, /材料员→程序核对→材料审核/);
 
 const table = buildQuizPrompt({ text: '只练表格资料分析，出5题', projectRoot });
-assert.match(table.quizNudge, /--formats table/);
-assert.match(table.quizNudge, /--track gd/);
+assert.match(table.quizNudge, /--format table --import/);
+assert.doesNotMatch(table.quizNudge, /ziliao_parallel_runner/);
 
 for (const text of [
   '给我出一整套资料分析，均衡一点',
@@ -58,17 +58,22 @@ for (const text of [
   const { wantsQuiz, quizNudge } = buildQuizPrompt({ text, projectRoot });
   assert.equal(wantsQuiz, true, text);
   assert.match(quizNudge, /scripts\/ziliao_agent_paper\.py --output-dir \/home\/ubuntu\/ExamSystem\/data\/manual-ziliao-agent-paper/, text);
-  assert.match(quizNudge, /--workers 2 --import/, text);
+  assert.match(quizNudge, /--db \/home\/ubuntu\/ExamSystem\/data\/exam\.db --import/, text);
+  assert.doesNotMatch(quizNudge, /--workers 2/, text);
   assert.match(quizNudge, /资料分析整套必须走 agent-paper 高质量通道/, text);
   assert.match(quizNudge, /禁止用 parallel runner/, text);
   assert.doesNotMatch(quizNudge, /python3 \S*ziliao_parallel_runner\.py/, text);
 }
 
 const voice = buildQuizPrompt({ audio: true, projectRoot }).quizNudge;
-assert.match(voice, /资料分析整套（20题、4篇、“一套\/整套”、广东省考\/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套/);
+assert.match(voice, /资料分析整套（20题、4篇、“一套\/整套”、广东省考\/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 或单篇入口拼整套/);
 assert.match(voice, /scripts\/ziliao_agent_paper\.py/);
-assert.doesNotMatch(voice, /资料分析共享材料和确定性图表走 ziliao_parallel_runner\.py/);
+assert.doesNotMatch(voice, /ziliao_parallel_runner\.py/);
+assert.match(voice, /ziliao_material_pipeline\.py/);
 
 const defaultZiliao = buildQuizPrompt({ text: '资料分析出5题', projectRoot });
-assert.match(defaultZiliao.quizNudge, /--track gd --count 5 --materials 1 --difficulty mid --formats chart/);
+assert.match(defaultZiliao.quizNudge, /scripts\/ziliao_material_pipeline\.py --import/);
+assert.doesNotMatch(defaultZiliao.quizNudge, /ziliao_parallel_runner/);
+const chartZiliao = buildQuizPrompt({ text: '资料分析柱状图出一篇', projectRoot });
+assert.match(chartZiliao.quizNudge, /ziliao_material_pipeline\.py --format chart --import/);
 console.log('Hermes quiz prompt: ok');

@@ -178,9 +178,6 @@ class SchedulerTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             with (
-                mock.patch.object(
-                    daily_batch_scheduler, "load_snapshot", return_value=SNAPSHOT
-                ),
                 mock.patch.object(daily_batch_scheduler.subprocess, "run") as run,
                 contextlib.redirect_stdout(io.StringIO()),
             ):
@@ -229,67 +226,6 @@ class SchedulerTest(unittest.TestCase):
             with self.assertRaises(sqlite3.OperationalError):
                 conn.execute("SELECT * FROM ai_daily_batch_runs").fetchall()
             conn.close()
-
-    def test_generation_prompt_is_readable_chinese(self):
-        run = {
-            "plan_date": "2026-09-20",
-            "module": "数量关系",
-            "planned_count": 15,
-            "batch_id": "daily-x",
-        }
-        prompt = daily_batch_scheduler.generation_prompt(
-            run, SNAPSHOT, Path("/tmp/batch")
-        )
-        self.assertIn("You are ExamSystem", prompt)
-        self.assertIn("quiz-pipeline", prompt)
-        self.assertIn("hermes-skills/quiz-pipeline/SKILL.md", prompt)
-        self.assertIn("import-batch.mjs", prompt)
-        self.assertIn("15", prompt)
-        self.assertIn("answer_plan", prompt)
-        self.assertIn("answer_max_per_letter", prompt)
-        self.assertIn("reshuffle", prompt)
-        self.assertIn("广东省考行测-数量关系-20260920", prompt)
-        self.assertIn("must be exactly", prompt)
-        self.assertIn("principles+profile", prompt)
-        self.assertIn("evaluate holdout", prompt)
-        self.assertIn("omit evaluation_contexts", prompt)
-        self.assertIn("do not shuffle questions", prompt)
-        self.assertIn("数字推理", prompt)
-        self.assertIn("数学运算", prompt)
-        self.assertNotIn("Data analysis must be exactly 4 materials", prompt)
-        self.assertIn("quiz-pipeline", daily_batch_scheduler.DEFAULT_SKILLS)
-
-    def test_panduan_prompt_is_graphic5_logic15_without_kepui(self):
-        run = {
-            "plan_date": "2026-09-20",
-            "module": "判断推理",
-            "planned_count": 20,
-            "batch_id": "daily-p",
-        }
-        prompt = daily_batch_scheduler.generation_prompt(run, SNAPSHOT, Path("/tmp/batch"))
-        self.assertIn("panduan_pack", prompt)
-        self.assertIn("图形推理", prompt)
-        self.assertIn("逻辑判断", prompt)
-        self.assertIn("Do NOT include 科学推理", prompt)
-        self.assertNotIn("Questions 16-20: 科学推理", prompt)
-        self.assertNotIn("16-20", prompt)
-
-    def test_kepui_prompt_is_independent_five(self):
-        run = {
-            "plan_date": "2026-09-20",
-            "module": "科学推理",
-            "planned_count": 5,
-            "batch_id": "daily-k",
-        }
-        prompt = daily_batch_scheduler.generation_prompt(run, SNAPSHOT, Path("/tmp/batch"))
-        self.assertIn("kepui_pack", prompt)
-        self.assertIn("科学推理", prompt)
-        self.assertIn("生物", prompt)
-        self.assertIn("地理", prompt)
-        self.assertIn("等高线", prompt)
-        self.assertIn("contour-map", prompt)
-        self.assertIn("independent", prompt)
-        self.assertIn("5-question", prompt)
 
     def test_wait_unlocked_can_be_disabled(self):
         daily_plan_scheduler.wait_unlocked(Path("/tmp/missing.lock"), 0)

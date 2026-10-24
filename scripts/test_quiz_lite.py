@@ -677,6 +677,15 @@ class ReviewDecisions(unittest.TestCase):
         self.assertIn("相邻整数", quiz_quantity.EXAMINER)
         self.assertEqual(self.review_with(blind_ok(), {**examiner_ok(), "analysis_ok": False})["verdict"], "REJECT")
 
+    def test_module_examiners_request_variant_match(self):
+        import quiz_reasoning
+        import quiz_verbal
+
+        for module in (quiz_quantity, quiz_verbal, quiz_reasoning):
+            with self.subTest(module=module.__name__):
+                self.assertIn('"variant_match":{"ok":true,"reason":"依据"}', module.EXAMINER)
+                self.assertIn("本题考法变式", module.EXAMINER)
+
     def test_examiner_must_substantiate_difficulty_and_analysis(self):
         for field in ("actual_difficulty", "difficulty_reason", "analysis_check"):
             for value in (None, "", []):
@@ -909,7 +918,7 @@ class PartialReissue(unittest.TestCase):
             self.assertEqual(old.read_text(), '[{"old": true}]')
             self.assertEqual(list(directory.iterdir()), [old])
 
-    def test_brief_rechecks_kept_items_after_replacement(self):
+    def test_replacement_reviews_only_new_item_against_whole_batch(self):
         self.run["slots"][0]["brief"] = "至少一题用不同场景"
         fake = FakeModel([[question(1), question(2, stem="某企业7名骨干总分590分，问排名第四者最少得多少分？")],
                           [question(2, stem="某机关8个科室共620件督办任务，问第二名最少完成多少件？")]],
@@ -928,7 +937,8 @@ class PartialReissue(unittest.TestCase):
         quiz_lite.call = call
         quiz_lite.build_batch(self.run, 3, "源")
         self.assertEqual(len(prompts), 2)
-        self.assertEqual(len(prompts[1]["items"]), 2)
+        self.assertEqual([item["question"]["id"] for item in prompts[1]["items"]], ["b_02"])
+        self.assertEqual(len(prompts[1]["batch_questions"]), 2)
 
 
 class LiteReceipt(unittest.TestCase):

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import random
@@ -21,6 +22,7 @@ from kaodian_taxonomy import (
 
 
 LETTERS = ("A", "B", "C", "D")
+MAX_FREE_SEARCH = 6
 CAT_ZILIAO = "\u8d44\u6599\u5206\u6790"
 CAT_PANDUAN = "\u5224\u65ad\u63a8\u7406"
 CAT_KEPUI = "\u79d1\u5b66\u63a8\u7406"
@@ -441,8 +443,18 @@ def load_calculations(path: Path) -> tuple[Any, dict[str, dict]]:
     return raw, by_id
 
 
-def assign_target_letters(questions: list[dict], manifest: dict) -> dict[str, str]:
+def blueprint_answer_keys(batch_dir: Path) -> list[str] | None:
+    path = batch_dir / "paper-blueprint.json"
+    if not path.is_file():
+        return None
+    keys = [slot.get("answer_key") for slot in json.loads(path.read_text(encoding="utf-8")).get("slots") or []]
+    return keys if keys and all(key in LETTERS for key in keys) else None
+
+
+def assign_target_letters(questions: list[dict], manifest: dict, planned: list[str] | None = None) -> dict[str, str]:
     generated = generated_questions(questions)
+    if planned and len(planned) == len(generated):
+        return {str(q.get("external_id")): letter for q, letter in zip(generated, planned)}
     seed = str(manifest.get("batch_id") or "batch")
     targets: dict[str, str] = {}
     ziliao_groups: dict[str, list[dict]] = {}
@@ -467,10 +479,37 @@ def assign_target_letters(questions: list[dict], manifest: dict) -> dict[str, st
     return targets
 
 
-def redistribute_answers(questions: list[dict], manifest: dict, calculations: dict[str, dict]) -> int:
+def unlocked_targets(questions: list[dict], manifest: dict, locked: set[str]) -> dict[str, str] | None:
+    """只改未锁定题的答案字母、改动题数最少地满足分布；凑不出返回 None。"""
+    free = [q for q in generated_questions(questions) if str(q.get("external_id")) not in locked]
+    if not free or len(free) > MAX_FREE_SEARCH:
+        return None
+    original = {id(q): q.get("answer") for q in free}
+    try:
+        for changes in range(1, len(free) + 1):
+            for chosen in itertools.combinations(free, changes):
+                for letters in itertools.product(LETTERS, repeat=changes):
+                    if any(letter == current_answer(q) for q, letter in zip(chosen, letters)):
+                        continue
+                    for q, letter in zip(chosen, letters):
+                        q["answer"] = letter
+                    ok = answer_distribution_ok(manifest, questions)
+                    for q in chosen:
+                        q["answer"] = original[id(q)]
+                    if ok:
+                        return {str(q.get("external_id")): letter for q, letter in zip(chosen, letters)}
+    finally:
+        for q in free:
+            q["answer"] = original[id(q)]
+    return None
+
+
+def redistribute_answers(questions: list[dict], manifest: dict, calculations: dict[str, dict],
+                         locked: set[str] | None = None, planned: list[str] | None = None) -> int:
     if answer_distribution_ok(manifest, questions):
         return 0
-    targets = assign_target_letters(questions, manifest)
+    targets = (unlocked_targets(questions, manifest, locked) if locked else None) \
+        or assign_target_letters(questions, manifest, planned)
     rewritten = 0
     for question in generated_questions(questions):
         qid = str(question.get("external_id") or "")
@@ -597,6 +636,12 @@ def repair_reference_contexts(manifest: dict, questions: list[dict]) -> bool:
     generated = generated_questions(questions)
     ids = [str(question.get("external_id")) for question in generated]
     if not ids:
+        return False
+    from reference_style import DIGEST_VERSION
+
+    # 闸门要求上下文版本等于 style_marker，而这里只能取到 DIGEST_VERSION 版的上下文。
+    marker = (manifest.get("generation") or {}).get("style_marker")
+    if marker and marker != DIGEST_VERSION:
         return False
     conn = _exam_db()
     if conn is None:
@@ -741,7 +786,10 @@ def normalize_batch(batch_dir: Path) -> dict[str, Any]:
     ensure_batch_constraints(manifest, questions)
     calc_path = batch_dir / "calculations.json"
     raw_calc, by_id = load_calculations(calc_path)
-    rewritten = redistribute_answers(questions, manifest, by_id)
+    from quality_memory import locked_ids
+
+    rewritten = redistribute_answers(questions, manifest, by_id, locked_ids(batch_dir, questions),
+                                     blueprint_answer_keys(batch_dir))
     contexts = repair_reference_contexts(manifest, questions)
     sourced = stamp_daily_source(manifest, questions, materials)
     changed = bool(filled or rewritten or contexts or sourced or ordered)

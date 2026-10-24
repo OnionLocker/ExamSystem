@@ -139,7 +139,8 @@ def test_ziliao_blind_does_not_trust_calculation(root: Path) -> None:
                              ({"option_tests": {}}, "REJECT"), ({"steps": ""}, "REJECT"),
                              ({"also_valid": ["B"]}, "REJECT"),
                              ({"option_tests": extra_key}, "PASS")]:
-        with patch.object(qo, "call_flash", return_value={"questions": [good | change]}):
+        with patch.object(qo, "call_flash", return_value={"questions": [good | change]}), \
+                patch.object(qo.quality_memory, "load", return_value={"reviews": {}, "passed": {}}):
             assert qo.run_route_b(root, [q])["M01-Q1"]["verdict"] == expected
 
 
@@ -647,6 +648,8 @@ def test_question_verdict_is_per_item() -> None:
 
 
 def main() -> None:
+    cache_dir = tempfile.TemporaryDirectory(prefix="quality-cache-test-")
+    os.environ["QUALITY_CACHE_DIR"] = cache_dir.name
     test_syllabus_mock_holdout_lookup_does_not_crash()
     test_syllabus_mock_reference_quality_passes()
     test_reference_quality_one_relevant_is_enough()

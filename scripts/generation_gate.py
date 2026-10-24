@@ -12,6 +12,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -464,6 +465,19 @@ def lite_reasoning_issues(blind: dict, examiner: dict, tier: str, claims: list[s
     return issues
 
 
+def formal_issues(question: dict, examiner: dict) -> list[str]:
+    """演绎题的形式化判定由闸门亲自重跑，不采信记录里的结论。"""
+    from logic_model import check, family_of
+    if family_of((question.get('tags') or [''])[0]) != 'deduction' or question.get('question_type', 'single') != 'single':
+        return ['只有演绎类单选题可用形式化判定代替逐句核查']
+    if examiner.get('formal') != question.get('formal'):
+        return ['复核记录的形式化与题目自带的不一致']
+    if examiner.get('formal_ok') is not True or not str(examiner.get('formal_reason') or '').strip():
+        return ['考官未确认形式化忠实于题面']
+    result = check(examiner.get('formal'), question.get('answer'))
+    return [] if result['verdict'] == 'PASS' else ['形式化重判未通过：' + '；'.join(result['issues'])]
+
+
 def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> None:
     if evidence.get("kind") != "examsystem-lite-review":
         raise ValueError("轻量复核证据 kind 错误")
@@ -557,10 +571,13 @@ def validate_lite_review(batch_dir: Path, evidence: dict, ids: list[str]) -> Non
             if examiner.get("necessity_claims") != claims:
                 raise ValueError(f"必要性断言原句与解析不一致：{qid}")
             errors = lite_reasoning_issues(blind, examiner, tier, claims, question.get("category"), policy)
-            if version == 9 or version >= 4 and question.get('category') == '言语理解与表达':
+            formal_judged = version == 9 and examiner.get('formal_check') is not None
+            if formal_judged:
+                errors += formal_issues(question, examiner)
+            elif version == 9 or version >= 4 and question.get('category') == '言语理解与表达':
                 errors += lite_reasoning_issues(blind, {**examiner, 'necessity_checks': examiner.get('usage_checks')},
                                                 tier, claims, question['category'], policy)
-            if version == 9:
+            if version == 9 and not formal_judged:
                 check = examiner.get('question_check')
                 if not isinstance(check, dict) or check.get('valid') is not True or not str(check.get('reason') or '').startswith('PASS'):
                     errors.append('独立题面核查缺失或未通过')
@@ -969,11 +986,19 @@ def issue(
     validate_paper_hard_rules(manifest, questions, batch_dir)
     validate_context_coverage(manifest, ids, questions)
     context_digests = reference_context_digests(batch_dir, manifest)
-    system_path = run_system_quality_gate(batch_dir, ids)
-    record_ziliao_difficulty(batch_dir, system_path)
-    validate_paper_hard_rules(manifest, read_json(questions_path), batch_dir)
     image_paths = ziliao_image_paths(batch_dir)
-    visual_path = run_ziliao_visual_gate(batch_dir, image_paths)
+    # 视觉质检只看图与题面，和模型审核互不依赖，同时跑；任一失败都等两边结束，留下完整证据供回修。
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        visual_job = pool.submit(run_ziliao_visual_gate, batch_dir, image_paths)
+        try:
+            system_path = run_system_quality_gate(batch_dir, ids)
+            record_ziliao_difficulty(batch_dir, system_path)
+            validate_paper_hard_rules(manifest, read_json(questions_path), batch_dir)
+        finally:
+            visual_error = visual_job.exception()
+        if visual_error:
+            raise visual_error
+        visual_path = visual_job.result()
 
     receipt = {
         "version": VERSION,
@@ -1017,6 +1042,9 @@ def verify(batch_dir: Path) -> dict:
     receipt = read_json(receipt_path)
     manifest_path = batch_dir / "manifest.json"
     questions_path = batch_dir / "questions.json"
+    from ziliao_assembly import ASSEMBLY_VERSION, verify_assembly
+    if isinstance(receipt, dict) and receipt.get("version") == ASSEMBLY_VERSION:
+        return verify_assembly(batch_dir, receipt)
     if not isinstance(receipt, dict) or receipt.get("version") not in LEGACY_VERSIONS | {VERSION, LITE_VERSION, FIGURE_VERSION}:
         raise ValueError("闸门回执版本不支持")
     manifest = read_json(manifest_path)

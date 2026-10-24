@@ -51,6 +51,14 @@ _PURPOSE_ENVS = {
 }
 
 
+def log_call(purpose: str) -> None:
+    """设置 MODEL_CALL_LOG 时，每发一次模型请求记一行用途，供统计请求次数；子进程继承同一文件。"""
+    path = os.environ.get("MODEL_CALL_LOG")
+    if path:
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(purpose + "\n")
+
+
 def _load() -> dict:
     """读 router JSON；缺失/损坏时回退到默认 profile（不阻塞脚本）。"""
     try:

@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -217,6 +218,36 @@ class NormalizeBatchTest(unittest.TestCase):
             saved_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
             self.assertTrue(nab.answer_distribution_ok(saved_manifest, saved))
             generation_gate.validate_batch_constraints(saved_manifest, saved)
+
+    def _context_db(self, root: Path) -> None:
+        conn = sqlite3.connect(root / "exam.db")
+        conn.execute("CREATE TABLE reference_context_runs (context_id TEXT, role TEXT, target TEXT, reference_ids TEXT)")
+        conn.commit()
+        conn.close()
+        os.environ["EXAM_DB"] = str(root / "exam.db")
+        self.addCleanup(os.environ.pop, "EXAM_DB", None)
+
+    def test_evaluate_contexts_skipped_when_style_marker_differs(self):
+        with tempfile.TemporaryDirectory() as temp:
+            self._context_db(Path(temp))
+            questions = [item("Q01", CAT_ZILIAO, TAG_ZILIAO, "A")]
+            manifest = {"generation": {"style_marker": "GONGKAO-STYLE-v2-split", "evaluation_contexts": []}}
+            with mock.patch.object(nab, "_fetch_context", side_effect=AssertionError("不应取上下文")):
+                self.assertFalse(nab.repair_reference_contexts(manifest, questions))
+            self.assertEqual(manifest["generation"]["evaluation_contexts"], [])
+
+    def test_evaluate_contexts_filled_when_style_marker_matches(self):
+        from reference_style import DIGEST_VERSION
+
+        with tempfile.TemporaryDirectory() as temp:
+            self._context_db(Path(temp))
+            questions = [item("Q01", CAT_SHULIANG, TAG_EQ, "A")]
+            manifest = {"generation": {"style_marker": DIGEST_VERSION}}
+            fetched = {"context_id": "refctx-1", "reference_ids": ["R1"]}
+            with mock.patch.object(nab, "_fetch_context", return_value=fetched):
+                self.assertTrue(nab.repair_reference_contexts(manifest, questions))
+            self.assertEqual(manifest["generation"]["evaluation_contexts"],
+                             [{"context_id": "refctx-1", "reference_ids": ["R1"], "question_ids": ["Q01"]}])
 
     def test_daily_source_is_stamped(self):
         questions = [item("Q01", CAT_SHULIANG, TAG_EQ, "A")]

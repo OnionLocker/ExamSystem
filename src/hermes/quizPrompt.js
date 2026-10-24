@@ -19,28 +19,27 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
       return {
         wantsQuiz,
         quizNudge: [
-          '这是资料分析整套出题请求。资料分析整套必须走 agent-paper 高质量通道（scripts/ziliao_agent_paper.py），禁止用 parallel runner（ziliao_parallel_runner.py）出整套；用户要求宁要质不要量。不使用 quiz_lite。',
-          '固定广东省考轨A、4篇×5题：每篇由独立 Gemini 子Agent（gemini-3.8-flash-high）出材料和五题，工具计算、盲解、逐篇自审，合并后再过整套闸门，失败自动回修最多三轮；主题轮换、题型覆盖与硬检查由脚本完成。',
-          `调用（terminal 后台运行，background=true、notify_on_complete=true，命令原样执行，不要打印密钥）：cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import`,
-          '整套约需10–30分钟，等待后台完成通知；“已开始”不算成功。用户提到经典计算、指定难度或形态时也仍按此整套入口出广东省考卷，并告知整套只提供这一高质量版本。',
-          '成功标准：退出码0、最后一行JSON passed=true、error为空且imported=20；只报告batch_dir末段批次号与入库题数。失败按脚本原文报告，不手写题、不绕过质量门、不改用 parallel runner 补出。',
+          '这是资料分析整套出题请求。资料分析整套必须走 agent-paper 高质量通道（scripts/ziliao_agent_paper.py），禁止用 parallel runner 或单篇入口拼整套；用户要求宁要质不要量。不使用 quiz_lite。',
+          '固定广东省考轨A、4篇×5题：脚本先按画像与轮转生成整卷蓝图（题型、细分考法、选项形式、答案字母），再让4篇单篇流水线并发（材料员→程序核对→材料审核→5题并行出题→程序排选项→篇内审核并签名），最后整卷轻量闸门核对签名与整卷规则后入库；单篇失败自动重跑一次。',
+          `调用（terminal 后台运行，background=true、notify_on_complete=true，命令原样执行，不要打印密钥）：cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --import`,
+          '整套通常4–8分钟，等待后台完成通知；“已开始”不算成功。用户提到经典计算、指定难度或形态时也仍按此整套入口出广东省考卷（难度用 --difficulty easy|hard），并告知整套只提供这一高质量版本。',
+          '成功标准：退出码0、最后一行JSON passed=true、error为空且imported=20；只报告batch_dir末段批次号与入库题数。失败按脚本原文报告，不手写题、不绕过质量门。',
         ].join('\n'),
       };
     }
     const wantsClassic = /经典计算|计算加练|混合增速加练|拉动加练/.test(spokenText)
       && !/粤考日练|广东省考|日练/.test(spokenText);
-    const track = wantsClassic ? 'classic' : 'gd';
-    const format = requestedFormat || 'chart';
-    const trackLabel = track === 'classic' ? '经典计算加练（轨B，不要标成广东省考综合训练）' : '粤考日练（轨A）';
+    const formatArg = requestedFormat ? ` --format ${requestedFormat}` : '';
     return {
       wantsQuiz,
       quizNudge: [
-        '这是资料分析单篇出题请求，走专用篇级独立上下文流程，不使用 quiz_lite。用 Gemini（CLIPROXY，模型见 ZILIAO_GEMINI_MODEL/默认 gemini-3.8-flash-high）。',
-        `只生成一篇${format === 'chart' ? '柱状图' : format === 'table' ? '表格' : '纯文字'}材料×5题，默认走${trackLabel}。材料冻结后不得因单题问题重出整篇；脚本强制执行与整套相同的资料清单硬检查。`,
-        `调用：python3 ${projectRoot}/scripts/ziliao_parallel_runner.py --track ${track} --count 5 --materials 1 --difficulty mid --formats ${format}`,
-        '快速通道只做单篇或指定考点专项；资料分析整套（20题/4篇/一套/整套/广东省考）必须走 agent-paper 高质量通道 scripts/ziliao_agent_paper.py，禁止用 parallel runner 出整套。用户要6–19题时说明只提供单篇5题或高质量整套20题，请用户选择。',
-        '失败按脚本原文报告，不手写题、不绕过质量门。成功只报告真实批次号和入库题数。',
-      ].join('\n'),
+        '这是资料分析单篇或指定考点专项请求，走资料分析单篇流水线 scripts/ziliao_material_pipeline.py（材料员→程序核对→材料审核→5题并行出题→程序排选项→篇内审核），不使用 quiz_lite。',
+        `不指定考点：只出1篇5题，调用 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_material_pipeline.py${formatArg} --import`,
+        "指定资料考点专项：加 --tag '<资料分析出题主标签>' --count 5（1篇）或 10（2篇）；用户对考法的原话用 --brief '<原话>' 传入；用户明确指定难度才加 --difficulty easy|mid|hard；点名柱图/表格/文字/饼图/折线时加 --format。先加 --plan-only 核对各篇题型与考法，再去掉它正式执行。",
+        '题量只提供单篇5题、专项10题或整套20题（整套走 scripts/ziliao_agent_paper.py）；用户要其他题量时说明并请用户选择。',
+        wantsClassic ? '经典计算加练（轨B）暂不提供，告知用户本次按粤考日练出单篇或专项。' : '',
+        '正式生成用 terminal 后台运行（background=true、notify_on_complete=true），约2–4分钟（专项10题约3–5分钟）。成功须退出码0、最后JSON passed=true 且 imported>0；只报告真实批次号和入库题数。失败按脚本原文报告，不手写题、不绕过质量门。',
+      ].filter(Boolean).join('\n'),
     };
   }
 
@@ -59,7 +58,7 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
     '当前知识内容节点的定义由脚本在生成前登记、冻结并交给出题和审核；Hermes 不要为网页子点另造历史画像标签。新增或修改节点走 knowledge-content apply，保存并重新查看目录后才能按新拆分出题。',
     `政治理论/常识判断先运行 python3 ${projectRoot}/scripts/policy_sources.py status，并按 quiz-pipeline/references/politics-common-workflow.md 核验权威原文。缓存正文用该脚本 show <来源ID>，联网读原文及发布栏目用 inspect '<HTTPS地址>'，不要猜缓存路径或研究内部Python函数。update_review_due=true须先读取网页实际内容，再用review-updates登记source_ids/urls/findings/note；findings每个URL包含20–500字连续原文quote及具体finding。只看HTTP200/字节数不算查新。refresh只重抓原文，不代替新发布/修订/替代核验。缺源先add，禁止伪造核验日期或凭记忆出题。可用--sources明确选择相关资料。`,
     '图形推理、空间推理、科学推理去粉笔/已有外采真题，不调用图题生成器或实验模式。',
-    `资料分析整套（20题、4篇、“一套/整套”、广东省考/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 出整套：terminal 后台执行 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --workers 2 --import ，成功须 passed=true 且 imported=20。只有单篇5题（--count ≤5 --materials 1）或指定资料考点专项（至多2篇10题）才用 ziliao_parallel_runner.py。`,
+    `资料分析整套（20题、4篇、“一套/整套”、广东省考/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 或单篇入口拼整套：terminal 后台执行 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --import ，成功须 passed=true 且 imported=20。资料单篇5题或指定考点专项（5或10题）用 scripts/ziliao_material_pipeline.py（专项加 --tag/--count/--brief）。`,
     '正式生成调用 terminal，background=true、notify_on_complete=true，等待后台完成 JSON；第一句“开始出题”不算成功。不要自己写 questions.json，不要手跑 generation_gate/import-batch，不用 ls/search_files/查库寻找入口。',
     '成功只报真实 batch_id 和 imported 数量；失败原样报告脚本 message，不另写题、不绕过审核。工具连续失败两次停止，等待用户指示。',
   ].join('\n');
