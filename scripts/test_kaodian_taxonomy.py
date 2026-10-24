@@ -71,7 +71,14 @@ class FenbiTreeTest(unittest.TestCase):
         self.assertNotIn("数量关系-数字推理-作商数列", tags)
         self.assertNotIn("数量关系-数字推理-图形数阵", tags)
         self.assertIn("判断推理-科学推理-科学推理-物理", tags)
-        self.assertNotIn("资料分析-ABRX类-基期量计算与比较", tags)
+        self.assertIn("资料分析-ABRX类-基期量计算与比较", tags)
+
+    def test_hyphenated_leaf_head_and_l2_defaults_resolve(self):
+        from fenbi_taxonomy import L2_DEFAULTS, lookup_fenbi_short
+        self.assertEqual(lookup_fenbi_short("判断推理-逻辑判断-组合排列"), "判断推理-逻辑判断-组合排列-单题")
+        self.assertEqual(lookup_fenbi_short("逻辑判断"), "判断推理-逻辑判断-翻译推理")
+        tags = fenbi_l3_tags()
+        self.assertEqual([tag for tag in L2_DEFAULTS.values() if tag not in tags], [])
 
     def test_hyphenated_l3_parses(self):
         parsed = parse_fenbi_tag("判断推理-逻辑判断-组合排列-单题")

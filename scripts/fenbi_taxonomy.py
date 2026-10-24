@@ -147,6 +147,15 @@ def fenbi_leaf_lookup() -> tuple[tuple[str, str], ...]:
         seen[leaf] = seen.get(leaf, 0) + 1
         rows.append((leaf, tag))
     unique = [(leaf, tag) for leaf, tag in rows if seen[leaf] == 1 and leaf not in skip and len(leaf) >= 3]
+    # 带连字符的叶子（组合排列-单题）也认主名，否则写成“…-组合排列”会落到一级默认叶子。
+    # 主名须唯一，且不能是一级分类名（时事政治、科学推理另有一级默认）。
+    l2_names = {parse_fenbi_tag(tag)[1] for _, tag in rows}
+    heads = [(leaf.split("-", 1)[0], tag) for leaf, tag in unique if "-" in leaf]
+    head_count: dict[str, int] = {}
+    for head, _ in heads:
+        head_count[head] = head_count.get(head, 0) + 1
+    unique += [(head, tag) for head, tag in heads
+               if head_count[head] == 1 and head not in seen and head not in l2_names and len(head) >= 3]
     unique.sort(key=lambda item: len(item[0]), reverse=True)
     return tuple(unique)
 
@@ -154,7 +163,7 @@ def fenbi_leaf_lookup() -> tuple[tuple[str, str], ...]:
 L2_DEFAULTS = {
     "片段阅读": "言语理解与表达-片段阅读-中心理解题",
     "语句表达": "言语理解与表达-语句表达-语句填空题",
-    "逻辑填空": "言语理解与表达-逻辑填空-混搭填空",
+    "逻辑填空": "言语理解与表达-逻辑填空-成语实词综合",
     "数字推理": "数量关系-数字推理-多级数列",
     "数学运算": "数量关系-数学运算-计数模型问题",
     "逻辑判断": "判断推理-逻辑判断-翻译推理",

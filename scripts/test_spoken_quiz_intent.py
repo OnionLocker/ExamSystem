@@ -59,7 +59,10 @@ class SpokenQuizIntentTest(unittest.TestCase):
         self.assertEqual(resolve_tag("给我出五道最值问题"), "数量关系-数学运算-最值问题")
         tag = resolve_tag("给我出五道数量关系-数学运算-最值问题-和定最值与构造")
         self.assertEqual(tag, "数量关系-数学运算-最值问题-@extreme-heding")
-        self.assertEqual(resolve_tag("来五道逻辑填空-实词"), "言语理解与表达-逻辑填空-实词填空")
+        self.assertEqual(resolve_tag("来五道逻辑填空-词的辨析"), "言语理解与表达-逻辑填空-词的辨析")
+        self.assertEqual(resolve_tag("来五道逻辑填空-实词填空"), "言语理解与表达-逻辑填空-词的辨析")
+        self.assertEqual(resolve_tag("来五道组合排列"), "判断推理-逻辑判断-组合排列-单题")
+        self.assertEqual(resolve_tag("来五道削弱"), "判断推理-逻辑判断-削弱题型")
 
     def test_registered_child_short_name_survives(self):
         import sqlite3

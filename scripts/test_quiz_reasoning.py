@@ -31,7 +31,7 @@ class ReasoningReview(unittest.TestCase):
         def call(system, prompt, temperature, timeout, *, schema=None):
             if system == quiz_lite.WRITER_SYSTEM:
                 return {'questions': [copy.deepcopy(RAW)]}
-            if system == quiz_reasoning.BLIND:
+            if quiz_reasoning.is_blind_system(system):
                 for field in ('"answer"', '"analysis"', '"declared_difficulty"'):
                     self.assertNotIn(field, prompt)
                 return {'questions': [dict(blind, id='r_01')]}
@@ -39,7 +39,7 @@ class ReasoningReview(unittest.TestCase):
                 self.assertNotIn('"answer"', prompt)
                 self.assertEqual(set(schema['required']), set(json.loads(prompt)))
                 return {k: 'PASS 题干与选项支持该句' for k in json.loads(prompt)}
-            self.assertEqual(system, quiz_reasoning.EXAMINER)
+            self.assertTrue(quiz_reasoning.is_examiner_system(system), system[:40])
             self.assertNotIn('"blind_work"', prompt)
             items = json.loads(prompt.split('\n', 1)[1])['items']
             checks = [dict(claim_index=i, valid=True, reason='取得证书蕴含通过考核，逆否成立')
@@ -158,6 +158,81 @@ class ReasoningReview(unittest.TestCase):
         evidence['results'][0]['examiner'].pop('question_check')
         with self.assertRaisesRegex(ValueError, '独立题面核查缺失'):
             validate_lite_review(self.directory, evidence, ['r_01'])
+
+    FORMAL = {'vars': [{'name': n, 'values': ['bool']} for n in ('考核', '证书', '培训')],
+              'constraints': ['implies(证书, 考核)', 'not 考核'],
+              'options': {'A': 'not 证书', 'B': '考核', 'C': '证书 or 考核', 'D': 'not 培训'},
+              'ask': 'must_true'}
+
+    def formal_model(self, raw, calls):
+        base = self.model(blind_ok(), {**examiner_ok(), 'formal_ok': True, 'formal_reason': '两条约束对应题干，A–D逐项对应'})
+        def model(system, prompt, temperature, timeout, **kwargs):
+            calls.append(system)
+            if system == quiz_lite.WRITER_SYSTEM:
+                return {'questions': [copy.deepcopy(raw)]}
+            if quiz_reasoning.is_examiner_system(system):
+                item = json.loads(prompt.split('\n', 1)[1])['items'][0]
+                self.assertEqual(item['formal_result']['correct'], ['A'])
+                self.assertIn('formal_ok', system)
+            return base(system, prompt, temperature, timeout, **kwargs)
+        return model
+
+    def test_formal_deduction_skips_claim_checker_and_gate_rejudges(self):
+        calls = []
+        with patch.object(quiz_lite, 'call', self.formal_model(dict(RAW, formal=self.FORMAL), calls)):
+            questions, results, log = quiz_lite.build_batch(self.run, 1, 'test')
+        self.assertNotIn(quiz_reasoning.CLAIMS, calls)
+        self.assertEqual(results['r_01']['examiner']['formal_check']['verdict'], 'PASS')
+        self.assertNotIn('question_check', results['r_01']['examiner'])
+        quiz_lite.write_batch(self.run, self.directory, questions, 'test')
+        quiz_lite.sign(self.directory, self.run, results, log)
+        self.assertTrue(verify(self.directory)['ok'])
+        evidence = json.loads((self.directory / 'evidence/lite-review.json').read_text())
+        for change, needle in [({'formal': {**self.FORMAL, 'constraints': ['not 考核']}}, '不一致'),
+                               ({'formal_ok': False}, '未确认形式化')]:
+            broken = copy.deepcopy(evidence)
+            broken['results'][0]['examiner'].update(change)
+            with self.subTest(needle=needle), self.assertRaisesRegex(ValueError, needle):
+                validate_lite_review(self.directory, broken, ['r_01'])
+
+    def test_formal_failure_is_rejected_before_review(self):
+        calls = []
+        loose = {**self.FORMAL, 'options': {**self.FORMAL['options'], 'D': 'not 证书 or 培训'}}
+        with patch.object(quiz_lite, 'call', self.formal_model(dict(RAW, formal=loose), calls)), \
+                self.assertRaisesRegex(RuntimeError, '形式化判定：.*A、D 都满足'):
+            quiz_lite.build_batch(self.run, 1, 'test')
+        self.assertEqual(calls, [quiz_lite.WRITER_SYSTEM])
+
+    def dsh_payload(self, **examiner_extra):
+        question = dict(RAW, formal=self.FORMAL, question_type='single')
+        question.pop('index')
+        claims = lite_necessity_claims({**question, 'category': '判断推理'}, reasoning=True)
+        examiner = {**examiner_ok(), 'necessity_checks': [dict(claim_index=i, valid=True, reason='题干支持')
+                                                         for i in range(len(claims))], **examiner_extra}
+        return {'module': '判断推理', 'auditor': 'dsh-subagent', 'questions': [question],
+                'review': {'blind': {'1': blind_ok()}, 'examiner': {'1': examiner}}}
+
+    def test_dsh_import_accepts_formal_instead_of_independent_checks(self):
+        path = self.directory / 'review.json'
+        path.write_text(json.dumps(self.dsh_payload(formal_ok=True, formal_reason='约束与选项逐条对应')), encoding='utf-8')
+        questions, results, log = quiz_lite.build_dsh_review(self.run, path, 'test')
+        self.assertEqual(results['r_01']['examiner']['formal_check']['verdict'], 'PASS')
+        quiz_lite.write_batch(self.run, self.directory, questions, 'test')
+        quiz_lite.sign(self.directory, self.run, results, log, model_label='dsh-subagent')
+        self.assertTrue(verify(self.directory)['ok'])
+        path.write_text(json.dumps(self.dsh_payload()), encoding='utf-8')
+        with self.assertRaisesRegex(Exception, 'formal_ok'):
+            quiz_lite.build_dsh_review(dict(self.run, batch_id='r'), path, 'test')
+
+    def test_rules_are_sliced_by_family(self):
+        deduction = quiz_reasoning.examiner_system({'deduction'})
+        argument = quiz_reasoning.examiner_system({'argument'})
+        self.assertIn('真假推理须把每人整句话', deduction)
+        self.assertNotIn('必要前提的选项', deduction)
+        self.assertIn('必要前提的选项', argument)
+        self.assertNotIn('formal_result', argument)
+        self.assertEqual(quiz_reasoning.family_of('判断推理-逻辑判断-组合排列-@arr-elim-sub'), 'deduction')
+        self.assertEqual(quiz_reasoning.family_of('判断推理-逻辑判断-削弱题型-@weaken-causal'), 'argument')
 
     def test_structured_writer_uses_native_tool_and_fails_closed(self):
         for rows, valid in [([RAW], True), ('not an array', False), (['not an object'], False)]:

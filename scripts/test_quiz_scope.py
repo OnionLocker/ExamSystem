@@ -104,7 +104,7 @@ class QuizScopeIntegrationTest(unittest.TestCase):
         self.assertEqual({s["tag"] for s in slots}, {EXTREME + "-@" + ident for ident in
                          ["extreme-heding", "extreme-drawer", "extreme-reverse-construct"]})
         self.assertEqual([s["count"] for s in slots], [2, 2, 2])
-        self.assertEqual(resolve_scope_tag("来五道逻辑填空-实词填空"), "言语理解与表达-逻辑填空-实词填空")
+        self.assertEqual(resolve_scope_tag("来五道逻辑填空-实词填空"), "言语理解与表达-逻辑填空-词的辨析")
         with self.assertRaisesRegex(ValueError, "未知完整知识点"):
             scope_slots(ENGINEERING + "-从未登记的施工考法", 3, nodes=nodes)
 

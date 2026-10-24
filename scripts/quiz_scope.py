@@ -92,7 +92,7 @@ def _names(node):
     if node.get("referenceOnly"):
         return {tag}
     names = {tag, title, title.split(" · ")[0]}
-    if title.endswith("问题") and len(title) > 3:
+    if title.endswith(("问题", "题型")) and len(title) > 3:
         names.add(title[:-2])
     if title in {"民法典", "刑法", "宪法"}:
         names.add(title.removesuffix("典"))
@@ -105,7 +105,26 @@ def _names(node):
         if parsed_alias and parsed_alias[3]:
             names.add(parsed_alias[3])
             names.add(f"{parsed_alias[2]}-{parsed_alias[3]}")
+    # 知识树改名后，旧叶子名（如“实词填空”→词的辨析）仍能点名到新节点。
+    for legacy in _legacy_names().get(tag, ()):
+        names.add(legacy)
     return {n for n in names if n and not n.startswith("@")}
+
+
+_LEGACY_NAMES: dict[str, set[str]] | None = None
+
+
+def _legacy_names() -> dict[str, set[str]]:
+    global _LEGACY_NAMES
+    if _LEGACY_NAMES is None:
+        _LEGACY_NAMES = {}
+        for old, new in LEGACY_TO_FENBI.items():
+            parts = old.split("-")
+            if len(parts) >= 3 and old != new and fenbi_l3_of(new) == new:
+                leaf = parts[-1]
+                if len(leaf) >= 3:
+                    _LEGACY_NAMES.setdefault(new, set()).update({leaf, f"{parts[1]}-{leaf}"})
+    return _LEGACY_NAMES
 
 
 def _resolve(text, module, nodes, *, spoken=False):
