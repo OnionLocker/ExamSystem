@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
+import math
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image, ImageDraw
-from render_ziliao_figure import BG, render_bars, render_pie, render_table
+from render_ziliao_figure import BG, INK, render_bars, render_pie, render_table
 
 tmp = Path("/tmp/ziliao-render-test")
 tmp.mkdir(exist_ok=True)
@@ -21,6 +22,64 @@ assert Image.open(table).size[0] > 100
 assert Image.open(bars).size[0] > 200
 assert Image.open(pie).size[0] > 100
 assert Image.open(table).getpixel((2, 2)) == BG
+
+patterned = tmp / "pie-patterns.png"
+render_pie("", [("甲", 40), ("乙", 25), ("丙", 20), ("丁", 15)], patterned, show_values=False)
+pie_img = Image.open(patterned).convert("RGB")
+box, pad_top = 220, 16
+x0, y0 = (pie_img.width - box) // 2, pad_top
+circle_colors = {pie_img.getpixel((x, y)) for y in range(y0, y0 + box) for x in range(x0, x0 + box)}
+assert circle_colors <= {INK, BG}, circle_colors
+cx, cy = x0 + box / 2, y0 + box / 2
+radius = box / 2
+
+
+def wedge_ink(start, sweep):
+    black = []
+    total = 0
+    for y in range(int(y0) + 4, int(y0 + box) - 3):
+        for x in range(int(x0) + 4, int(x0 + box) - 3):
+            dx, dy = x - cx, y - cy
+            dist = math.hypot(dx, dy)
+            if dist > radius - 6 or dist < 10:
+                continue
+            delta = (math.degrees(math.atan2(dy, dx)) - start) % 360
+            if delta < 2 or delta > sweep - 2:
+                continue
+            total += 1
+            if pie_img.getpixel((x, y)) == INK:
+                black.append((x, y))
+    found = set()
+    parts = 0
+    black_set = set(black)
+    for point in black:
+        if point in found:
+            continue
+        parts += 1
+        stack = [point]
+        found.add(point)
+        while stack:
+            px, py = stack.pop()
+            for nxt in ((px + 1, py), (px - 1, py), (px, py + 1), (px, py - 1)):
+                if nxt in black_set and nxt not in found:
+                    found.add(nxt)
+                    stack.append(nxt)
+    return (len(black) / total if total else 0), parts
+
+
+shares = [40, 25, 20, 15]
+densities, parts = [], []
+cursor = -90.0
+for share in shares:
+    sweep = 360.0 * share / 100
+    density, part = wedge_ink(cursor, sweep)
+    densities.append(density)
+    parts.append(part)
+    cursor += sweep
+# 实心、斜线、马赛克、网点：实心最满且连成一块，马赛克比斜线和网点更密，网点比斜线更碎。
+assert densities[0] > 0.85 and parts[0] == 1, (densities, parts)
+assert densities[2] > densities[1] + 0.08 and densities[2] > densities[3] + 0.08, (densities, parts)
+assert parts[3] > parts[1] + 20, (densities, parts)
 
 # Reproduce the long customs-category labels and near-ceiling value from a live batch.
 drawn = []

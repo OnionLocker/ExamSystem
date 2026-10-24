@@ -16,6 +16,8 @@ INK = (0, 0, 0)
 LINE = (0, 0, 0)
 BG = (255, 255, 255)
 BAR_FILLS = [(25, 25, 25), (90, 90, 90), (155, 155, 155), (220, 220, 220), (55, 55, 55), (125, 125, 125)]
+# 饼图用黑白纹样，不用灰阶。相邻扇区以及首尾相接的两块都要能分开。
+PIE_PATTERNS = ("solid", "slash", "mosaic", "dots", "horizontal", "blank")
 
 
 def font(size: int) -> ImageFont.FreeTypeFont:
@@ -253,14 +255,67 @@ def render_bars(
     img.save(out, "PNG")
 
 
+def pattern_image(width: int, height: int, kind: str) -> Image.Image:
+    """Black-and-white fill. Spacing is in pixels so a pie wedge and its legend swatch match."""
+    image = Image.new("RGB", (max(width, 1), max(height, 1)), BG)
+    draw = ImageDraw.Draw(image)
+    if kind == "solid":
+        draw.rectangle((0, 0, width, height), fill=INK)
+    elif kind == "slash":
+        step = 9
+        for offset in range(-height, width + height, step):
+            draw.line((offset, height, offset + height, 0), fill=INK, width=2)
+    elif kind == "horizontal":
+        for y in range(3, height, 8):
+            draw.line((0, y, width, y), fill=INK, width=2)
+    elif kind == "dots":
+        step, radius = 8, 2
+        for row, y in enumerate(range(radius + 1, height, step)):
+            shift = step // 2 if row % 2 else 0
+            for x in range(radius + 1 + shift, width, step):
+                draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=INK)
+    elif kind == "mosaic":
+        cell = 8
+        for y in range(0, height, cell):
+            for x in range(0, width, cell):
+                if ((x // cell) + (y // cell)) % 2 == 0:
+                    draw.rectangle((x, y, min(x + cell, width) - 1, min(y + cell, height) - 1), fill=INK)
+    elif kind != "blank":
+        raise ValueError(f"unknown pie pattern: {kind}")
+    return image
+
+
+def paint_masked(base: Image.Image, mask: Image.Image, kind: str) -> None:
+    base.paste(pattern_image(base.width, base.height, kind), (0, 0), mask)
+
+
+def paint_swatch(base: Image.Image, box: tuple[int, int, int, int], kind: str) -> None:
+    x0, y0, x1, y1 = box
+    swatch = pattern_image(x1 - x0 + 1, y1 - y0 + 1, kind)
+    mask = Image.new("L", base.size, 0)
+    ImageDraw.Draw(mask).rectangle(box, fill=255)
+    layer = Image.new("RGB", base.size, BG)
+    layer.paste(swatch, (x0, y0))
+    base.paste(layer, (0, 0), mask)
+    ImageDraw.Draw(base).rectangle(box, outline=INK)
+
+
+def _sector_mask(size: tuple[int, int], bbox: tuple[int, int, int, int], start: float, sweep: float) -> Image.Image:
+    mask = Image.new("L", size, 0)
+    if sweep > 0:
+        ImageDraw.Draw(mask).pieslice(bbox, start, start + sweep, fill=255)
+    return mask
+
+
 def render_pie(title: str, slices: list[tuple[str, float]], out: Path, show_values: bool = True, unit: str = "") -> None:
     face_title = font(20)
     face = font(15)
     total = sum(val for _, val in slices) or 1
     box = 220
     pad_top, pad_side, legend_h = (48 if title else 16), 20, 22 * max(len(slices), 1) + 16
+    swatch_w, swatch_h, swatch_gap = 22, 14, 8
     probe = ImageDraw.Draw(Image.new("RGB", (10, 10), BG))
-    legend_w = max((measure(probe, f"{name}  {val:g}{unit} (100.0%)" if show_values else name, face)[0] + 22
+    legend_w = max((measure(probe, f"{name}  {val:g}{unit} (100.0%)" if show_values else name, face)[0] + swatch_w + swatch_gap
                     for name, val in slices), default=0)
     width = max(pad_side * 2 + box, pad_side * 2 + legend_w, measure(probe, title, face_title)[0] + 24 if title else 0)
     height = pad_top + box + legend_h
@@ -274,18 +329,28 @@ def render_pie(title: str, slices: list[tuple[str, float]], out: Path, show_valu
     start = -90.0
     for index, (_, val) in enumerate(slices):
         sweep = 360.0 * val / total
-        fill = BAR_FILLS[index % len(BAR_FILLS)]
         if sweep > 0:
-            draw.pieslice(bbox, start, start + sweep, fill=fill, outline=INK)
+            paint_masked(img, _sector_mask(img.size, bbox, start, sweep), PIE_PATTERNS[index % len(PIE_PATTERNS)])
+        start += sweep
+    draw = ImageDraw.Draw(img)
+    cx = (bbox[0] + bbox[2]) / 2
+    cy = (bbox[1] + bbox[3]) / 2
+    radius = (bbox[2] - bbox[0]) / 2
+    start = -90.0
+    for _, val in slices:
+        sweep = 360.0 * val / total
+        if sweep > 0:
+            rad = math.radians(start)
+            draw.line((cx, cy, cx + radius * math.cos(rad), cy + radius * math.sin(rad)), fill=INK, width=2)
         start += sweep
     draw.ellipse(bbox, outline=INK, width=2)
     ly = pad_top + box + 8
     for index, (name, val) in enumerate(slices):
         pct = 100.0 * val / total
-        fill = BAR_FILLS[index % len(BAR_FILLS)]
-        draw.rectangle((pad_side, ly + 4, pad_side + 14, ly + 16), fill=fill, outline=INK)
+        paint_swatch(img, (pad_side, ly + 2, pad_side + swatch_w - 1, ly + 2 + swatch_h - 1),
+                     PIE_PATTERNS[index % len(PIE_PATTERNS)])
         label = f"{name}  {val:g}{unit} ({pct:.1f}%)" if show_values else name
-        draw.text((pad_side + 22, ly), label, fill=INK, font=face)
+        draw.text((pad_side + swatch_w + swatch_gap, ly), label, fill=INK, font=face)
         ly += 22
     img.save(out, "PNG")
 
