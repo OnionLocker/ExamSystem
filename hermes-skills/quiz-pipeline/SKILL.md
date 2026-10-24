@@ -141,7 +141,7 @@ terminal({
 - 用户说“这道真题的考法我们没覆盖，补进去”或“给某知识点补一个考法”时：先 `list` 对照现有变式，确认是新的解题动作或设问结构（场景、数字、难度不同不算）再 `add`；`--example` 只写用户给的或真题库里真实存在的题干，没有就留空，不得编造；返回 `高度相似` 时向用户说明最接近的现有变式，确认后才加 `--force`。新增后下一次特训会优先轮到它，告诉用户即可，不必立刻出题。
 - 资料分析也用同一份清单和账本：10 个出题主标签（比重、比重差、增长率、增长量、基期量、平均、统计术语、混合增长、贡献率、比较）各有 4–10 个细分考法，每个标 `kind`（所属题型，对应整套轮转的 22 种题型）、可选 `types`（适用材料形态：text/table/monthly/years/two_series/pie/line）和 `need`（材料须提供的数据）。
   - 整套（`ziliao_agent_paper.py`）：由整卷蓝图调度器（`scripts/ziliao_blueprint.py`）一次锁定4篇材料形态、题材与20个槽位——题型按广东真题频率并只按已入库卷子轮转，细分考法近期少练/错得多优先，问法（题型+考法+选项形式）不重复，区间式每套1–2道、升降式0–1道、排序/个数/选主体等同一选项形式每套≤2道且每篇非精确选项≤1道，比重/增长率/增长量/基期量各至少1道，“是……的多少倍”问法每套≤2道，并预分配答案字母；综合分析和图表匹配不分配变式。`--plan-only` 打印蓝图及每题分配理由。
-  - 专项（`ziliao_material_pipeline.py --tag`）：题型在该主标签对应的几种题型里轮转，细分考法近期少练/错得多优先并按材料形态过滤。用户只说“增长量出5题”时不写 brief，脚本自动铺开；明确锁定（“只练现期求增长量”）时用 `--brief` 原话传入，脚本按 brief 出、不再分配别的变式。
+  - 专项（`ziliao_material_pipeline.py --tag`）：题型在该主标签对应的几种题型里轮转，细分考法近期少练/错得多优先并按材料形态过滤。用户只说“增长量出5题”时不写 brief，脚本自动铺开。点名某一个考法变式时走 `scripts/quiz_gm.py --variant`，本篇每题都核对该变式并记账；不要只用 `--brief` 写“只练某某”，那会跳过变式分配。
   - 入库后两条通道都记入 `data/kaofa-variant-ledger.jsonl`。
   - 整套默认按近 60 天做题表现加权（`scripts/ziliao_performance.py`，不用遗忘曲线）：错得多的题型和细分考法多出，稳定全对的少出，样本少时不调；`--no-adaptive` 关闭。每套的系数存在批次目录 `adaptive.json`。
   - 每日资料分析整套由 Hermes 定时任务在 04:40 自动出（07:40 补跑，仅前一次失败时重出），入口 `scripts/daily_ziliao_scheduler.py`；当天已入库或上一套一题没做会跳过。用户问“今天资料怎么没出/按什么出”时先看 `python3 scripts/daily_ziliao_scheduler.py --dry-run`。
@@ -277,6 +277,7 @@ python3 /home/ubuntu/ExamSystem/scripts/quiz_lite.py --module '数量关系' \
 | 一套 / 整套 / 20题 / 4篇 / 日练 / 广东省考默认 | `scripts/ziliao_agent_paper.py` |
 | 一篇 / 5题 / 点名材料形态（柱图、表格、文字、饼图、折线） | `scripts/ziliao_material_pipeline.py` |
 | 指定资料考点专项（5题=1篇，10题=2篇） | `scripts/ziliao_material_pipeline.py --tag` |
+| 灵活出题：点名考法变式，或一篇里出 1–10 题（不必是 5/10） | `scripts/quiz_gm.py` |
 
 两个入口共用同一条单篇流水线，每篇的步骤都由脚本完成，Hermes/DSH 不插手：
 
@@ -329,7 +330,8 @@ python3 /home/ubuntu/ExamSystem/scripts/ziliao_material_pipeline.py \
   --tag '资料分析-ABRX类-增长量计算与现期推算' --count 10 --import
 ```
 
-- `--tag` 只用资料分析出题主标签（比重、比重差、增长率、增长量、基期量、平均、统计术语、混合增长、贡献率、比较），不新造标签；题量只能 5（1篇）或 10（2篇，两篇并行后合成一批入库）。
+- `--tag` 只用资料分析出题主标签（比重、比重差、增长率、增长量、基期量、平均、统计术语、混合增长、贡献率、比较），不新造标签；不带 `--one-paper` 时题量只能 5（1篇）或 10（2篇，两篇并行后合成一批入库）。
+- 灵活出题（Hermes 与 DSH 同一条命令，DSH 的技能目录链到本文件）：`python3 scripts/quiz_gm.py --module '资料分析|数量关系|言语理解|逻辑判断' --point '<知识点简称>' --variant '<考法变式，可省略>' --count <题量> --actor hermes|dsh`。省略 `--variant` 时在该知识点已登记的变式里自行分配（少练、错得多的优先）。写了 `--variant` 则这批只出该变式。资料是一篇材料、1–10 题，指定变式后整篇都是它；读数、文字理解默认用文字材料。文字题 Hermes 用 `--actor hermes` 调 `quiz_lite` 写完（1–15 题）；DSH 用 `--actor dsh` 只取槽位，再按 `agent-mode.md` 自己写题。先 `--plan-only` 核对，要入库再加 `--import`。图形推理、科学推理、定义判断、类比推理不走这条。
 - `--format`：text / table / monthly / years / two_series / pie / line，或 chart / 柱图 / 折线 / 饼图 / 表格 / 文字。
 - `--brief '<用户原话>'`：用户对考法的额外要求原话传入（如“只练现期求增长量”）；锁定式要求会让脚本不再分配别的变式。
 - `--difficulty easy|mid|hard`：只有用户明确指定档位才传，默认 mid。

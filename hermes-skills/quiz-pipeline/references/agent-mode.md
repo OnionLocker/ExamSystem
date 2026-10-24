@@ -2,6 +2,15 @@
 
 DSH 上的文字题一律按本文出题：DSH 自己写题、派子 agent 审核，脚本只负责选点与变式分配、形式化判定、预检、闸门和入库；不调用服务器上的出题模型。Hermes 不用本文，走 SKILL.md 第 2 步的脚本入口。适用于文字题：数量 / 言语 / 文字逻辑判断 / 政治 / 常识。图推（程序出图）、资料、申论不走这条，用 SKILL.md 里各自的专用入口。资料分析在 DSH 上同样直接调用流水线脚本：整套 `scripts/ziliao_agent_paper.py`，单篇或指定考点专项 `scripts/ziliao_material_pipeline.py`（参数见 SKILL.md「资料分析」），用 `pwsh` 后台运行等回执即可，不要自己写资料题。
 
+灵活出题（点名知识点、可选考法变式、指定题量）走 `scripts/quiz_gm.py`，Hermes 与 DSH 同一命令，只是 `--actor` 不同。模块只限数量关系、言语理解、逻辑判断、资料分析。
+
+```bash
+python3 scripts/quiz_gm.py --module '逻辑判断' --point '削弱题型' --variant '某变式名' --count 5 --actor dsh --plan-only
+python3 scripts/quiz_gm.py --module '资料分析' --point '统计术语' --variant '直接定位读数' --count 6 --actor dsh --import
+```
+
+文字题先 `--plan-only`（`--actor dsh` 即使不加也只出槽位），按返回的每个 `kaofa_variant_name` 写题，再走本文的审核和入库。资料题不要自己写，`--import` 交给脚本跑完一篇 N 题；指定了变式就必须整篇都是该变式。省略变式则由脚本在该知识点内分配。
+
 参数抽取、目录查询、命名、难度口径与 Hermes 完全相同（见 SKILL.md「一套流程，平台只决定谁写题」），本文只写 DSH 写题与派审的步骤。命令示例统一写成 shell 命令，按本平台的后台方式执行（见 SKILL.md「平台差异」）。
 
 ## 流程

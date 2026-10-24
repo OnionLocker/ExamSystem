@@ -7,7 +7,7 @@ export const quizToolReceipt = (payload) => {
   if (payload?.name !== 'terminal') return null;
   const args = parseObject(payload.args);
   const command = String(args?.command || '');
-  if (!/(?:^|&&\s*)(?:[A-Za-z_]\w*=(?:"[^"]*"|'[^']*'|[^\s;&|]+)\s+)*(?:\S*\/)?python(?:3(?:\.\d+)?)?\s+['"]?(?:[^\s'"]*\/)?(?:quiz_lite|ziliao_material_pipeline|ziliao_agent_paper)\.py(?:['"]?\s|$)/.test(command)
+  if (!/(?:^|&&\s*)(?:[A-Za-z_]\w*=(?:"[^"]*"|'[^']*'|[^\s;&|]+)\s+)*(?:\S*\/)?python(?:3(?:\.\d+)?)?\s+['"]?(?:[^\s'"]*\/)?(?:quiz_gm|quiz_lite|ziliao_material_pipeline|ziliao_agent_paper)\.py(?:['"]?\s|$)/.test(command)
       || /(?:^|\s)--plan-only(?:\s|$)/.test(command)) return null;
   const result = parseObject(payload.result);
   if (!result) return null;

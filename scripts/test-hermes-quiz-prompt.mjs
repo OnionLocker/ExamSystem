@@ -76,4 +76,7 @@ assert.match(defaultZiliao.quizNudge, /scripts\/ziliao_material_pipeline\.py --i
 assert.doesNotMatch(defaultZiliao.quizNudge, /ziliao_parallel_runner/);
 const chartZiliao = buildQuizPrompt({ text: '资料分析柱状图出一篇', projectRoot });
 assert.match(chartZiliao.quizNudge, /ziliao_material_pipeline\.py --format chart --import/);
+const flexible = buildQuizPrompt({ text: '资料分析统计术语直接定位读数出6题', projectRoot });
+assert.match(flexible.quizNudge, /quiz_gm\.py/);
+assert.match(flexible.quizNudge, /1到10/);
 console.log('Hermes quiz prompt: ok');

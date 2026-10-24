@@ -36,7 +36,8 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
         '这是资料分析单篇或指定考点专项请求，走资料分析单篇流水线 scripts/ziliao_material_pipeline.py（材料员→程序核对→材料审核→5题并行出题→程序排选项→篇内审核），不使用 quiz_lite。',
         `不指定考点：只出1篇5题，调用 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_material_pipeline.py${formatArg} --import`,
         "指定资料考点专项：加 --tag '<资料分析出题主标签>' --count 5（1篇）或 10（2篇）；用户对考法的原话用 --brief '<原话>' 传入；用户明确指定难度才加 --difficulty easy|mid|hard；点名柱图/表格/文字/饼图/折线时加 --format。先加 --plan-only 核对各篇题型与考法，再去掉它正式执行。",
-        '题量只提供单篇5题、专项10题或整套20题（整套走 scripts/ziliao_agent_paper.py）；用户要其他题量时说明并请用户选择。',
+        '题量只提供单篇5题、专项10题或整套20题（整套走 scripts/ziliao_agent_paper.py）；用户要其他题量、或点名某一个考法变式时，改走灵活出题 scripts/quiz_gm.py，不要用 --brief 代替 --variant。',
+        `灵活出题：cd ${projectRoot} && python3 scripts/quiz_gm.py --module '资料分析' --point '<知识点简称或全称>' --variant '<考法变式，可省略>' --count <1到10> --actor hermes --import。先加 --plan-only 核对每题 variant 都是指定考法，再去掉它正式跑。一篇材料里的题全部钉在该变式上。`,
         wantsClassic ? '经典计算加练（轨B）暂不提供，告知用户本次按粤考日练出单篇或专项。' : '',
         '正式生成用 terminal 后台运行（background=true、notify_on_complete=true），约2–4分钟（专项10题约3–5分钟）。成功须退出码0、最后JSON passed=true 且 imported>0；只报告真实批次号和入库题数。失败按脚本原文报告，不手写题、不绕过质量门。',
       ].filter(Boolean).join('\n'),
@@ -59,6 +60,7 @@ export function buildQuizPrompt({ text = '', audio = false, projectRoot }) {
     `政治理论/常识判断先运行 python3 ${projectRoot}/scripts/policy_sources.py status，并按 quiz-pipeline/references/politics-common-workflow.md 核验权威原文。缓存正文用该脚本 show <来源ID>，联网读原文及发布栏目用 inspect '<HTTPS地址>'，不要猜缓存路径或研究内部Python函数。update_review_due=true须先读取网页实际内容，再用review-updates登记source_ids/urls/findings/note；findings每个URL包含20–500字连续原文quote及具体finding。只看HTTP200/字节数不算查新。refresh只重抓原文，不代替新发布/修订/替代核验。缺源先add，禁止伪造核验日期或凭记忆出题。可用--sources明确选择相关资料。`,
     '图形推理、空间推理、科学推理去粉笔/已有外采真题，不调用图题生成器或实验模式。',
     `资料分析整套（20题、4篇、“一套/整套”、广东省考/默认难度，不论语音还是文字）必须走 agent-paper 高质量通道，禁止用 parallel runner 或单篇入口拼整套：terminal 后台执行 cd ${projectRoot} && set -a && . ${projectRoot}/.env && . /home/ubuntu/.hermes/.env && set +a && PYTHONUNBUFFERED=1 EXAM_DB=${projectRoot}/data/exam.db python3 scripts/ziliao_agent_paper.py --output-dir ${projectRoot}/data/manual-ziliao-agent-paper --db ${projectRoot}/data/exam.db --import ，成功须 passed=true 且 imported=20。资料单篇5题或指定考点专项（5或10题）用 scripts/ziliao_material_pipeline.py（专项加 --tag/--count/--brief）。`,
+    `灵活出题（数量、言语、逻辑判断、资料；点名考法变式，或资料不是5/10/20题）一律 terminal 后台执行 python3 ${projectRoot}/scripts/quiz_gm.py --module '<模块>' --point '<知识点>' --variant '<考法变式，可省略>' --count <题量> --actor hermes --import。文字题 1–15，资料一篇 1–10 且指定变式后整篇都是该变式。先 --plan-only 核对，再去掉它正式跑。不要只写“只练某某”的 brief。图形推理、科学推理、定义判断、类比推理不走这条。`,
     '正式生成调用 terminal，background=true、notify_on_complete=true，等待后台完成 JSON；第一句“开始出题”不算成功。不要自己写 questions.json，不要手跑 generation_gate/import-batch，不用 ls/search_files/查库寻找入口。',
     '成功只报真实 batch_id 和 imported 数量；失败原样报告脚本 message，不另写题、不绕过审核。工具连续失败两次停止，等待用户指示。',
   ].join('\n');

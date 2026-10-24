@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from ziliao_agent_trial import Trial  # noqa: E402
+from ziliao_agent_trial import Trial, question_number  # noqa: E402
 
 import ziliao_parallel_runner as runner  # noqa: E402
 from generation_gate import verify  # noqa: E402
@@ -169,7 +169,8 @@ def ask(role: str, prompt: str, max_tokens: int = 12000) -> dict:
 # ---------------------------------------------------------------- 材料
 def material_needs(plan: dict) -> str:
     judge = next((s for s in plan["slots"] if s.get("kind") == "judge"), {})
-    extra = f"第5题综合分析的考查组合是：{judge['judge_mix']}材料须提供能支撑这种判断的数据。" if judge.get("judge_mix") else ""
+    extra = (f"第{next(i for i, s in enumerate(plan['slots'], 1) if s.get('kind') == 'judge')}题综合分析的考查组合是："
+             f"{judge['judge_mix']}材料须提供能支撑这种判断的数据。" if judge.get("judge_mix") else "")
     return plan["question_plan"] + extra
 
 
@@ -178,7 +179,7 @@ def material_prompt(plan: dict) -> str:
     return f"""你是资料分析材料员，只写一篇原创统计材料，不出题。
 主题：{plan['theme']}；地区：{plan['region']}；难度：{plan['difficulty']}。
 材料形态：figure.kind必须为「{kind}」（none表示纯文字）。{FIGURE_SHAPE}
-本篇5道题已经分配好，材料必须提供它们要用的数据：{material_needs(plan)}
+本篇{len(plan['slots'])}道题已经分配好，材料必须提供它们要用的数据：{material_needs(plan)}
 {track_material_rules('gd', plan)}
 {ZILIAO_FIGURE_RULES}
 地名用广东省及其地市真实名称，禁止G省、S市、某省等占位；不写“按现价计算”“四舍五入”等附注。
@@ -224,11 +225,12 @@ def make_material_and_drafts(trial: Trial, plan: dict, slots: list[dict], stats:
             candidate, issues = None, [f"{type(exc).__name__}: {exc}"]
         drafts: dict[int, dict] = {}
         if not issues:
-            progress.update(stage="材料审核", detail="材料审核与5题初稿同时进行", progress=25)
+            n = len(slots)
+            progress.update(stage="材料审核", detail=f"材料审核与{n}题初稿同时进行", progress=25)
             with ThreadPoolExecutor(max_workers=2) as pool:
                 review = pool.submit(trial.submit_material, json.loads(json.dumps(candidate)))
                 drafting = pool.submit(ask_many, "questions",
-                                       {i: question_prompt(candidate, slots, i) for i in range(1, 6)})
+                                       {i: question_prompt(candidate, slots, i) for i in range(1, n + 1)})
                 result = review.result()
                 if result.get("ok"):
                     stats.stages["材料"] = round(time.monotonic() - stats.started, 1)
@@ -256,9 +258,10 @@ def precheck_images(out: Path) -> None:
 
 
 def align_answers(trial: Trial, slots: list[dict], raws: dict[int, dict], planned: list[str], stats: Stats) -> None:
-    """让本篇5题的答案字母组合与蓝图一致。先算出每题实际能落到哪些字母（区间要隔开错法、个数按数值排，
+    """让本篇答案字母组合与蓝图一致。先算出每题实际能落到哪些字母（区间要隔开错法、个数按数值排，
     不是每个位置都可行），再找改动最少的分配；纯程序计算，不调模型。"""
-    ids = {i: f"{trial.material_id}-Q{i}" for i in range(1, 6)}
+    n = len(slots)
+    ids = {i: f"{trial.material_id}-Q{i}" for i in range(1, n + 1)}
     current = {i: trial.questions[ids[i]]["answer"] for i in ids}
     if Counter(current.values()) == Counter(planned):
         return
@@ -281,7 +284,7 @@ def align_answers(trial: Trial, slots: list[dict], raws: dict[int, dict], planne
     best: list = [None, (-1, -99)]
 
     def search(i: int, chosen: dict, left: Counter, score: tuple) -> None:
-        if i > 5:
+        if i > n:
             if score > best[1]:
                 best[0], best[1] = dict(chosen), score
             return
@@ -407,10 +410,10 @@ def settle(trial: Trial, slots: list[dict], raws: dict[int, dict], targets, stat
         if built:
             result = trial.put_questions(built, calcs)
             if result.get("ok"):
-                todo -= {int(q["external_id"][-1]) for q in built}
+                todo -= {question_number(q["external_id"]) for q in built}
             else:
                 for item in result.get("issues") or [{"target": "", "message": result.get("error")}]:
-                    match = re.search(r"-Q(\d)$", str(item.get("target") or ""))
+                    match = re.search(r"-Q(\d+)$", str(item.get("target") or ""))
                     failures.setdefault(int(match[1]) if match else 0, []).append(str(item.get("message")))
                 for i in [k for k in failures if k == 0]:
                     for j in todo:
@@ -435,7 +438,7 @@ def gate_failures(trial: Trial, result: dict) -> tuple[dict[int, list[str]], lis
     evidence = result.get("evidence") or {}
     quality = evidence.get("system-quality.json") or {}
     for item in quality.get("results") or []:
-        match = re.search(r"-Q(\d)$", str(item.get("question_id") or ""))
+        match = re.search(r"-Q(\d+)$", str(item.get("question_id") or ""))
         correctness, style = item.get("correctness") or {}, item.get("quality") or {}
         reasons = []
         if correctness.get("verdict") != "PASS":
@@ -447,13 +450,13 @@ def gate_failures(trial: Trial, result: dict) -> tuple[dict[int, list[str]], lis
             per_question.setdefault(int(match[1]), []).extend(r[:400] for r in reasons)
     for issue in ((quality.get("batch_quality") or {}).get("review") or {}).get("issues") or []:
         text = json.dumps(issue, ensure_ascii=False) if isinstance(issue, dict) else str(issue)
-        match = re.search(re.escape(trial.material_id) + r"-Q(\d)", text) or re.search(r"第(\d)题", text)
+        match = re.search(re.escape(trial.material_id) + r"-Q(\d+)", text) or re.search(r"第(\d+)题", text)
         if match:
             per_question.setdefault(int(match[1]), []).append("整篇审核：" + text[:500])
         else:
             other.append("整篇审核：" + text[:500])
     visual = json.dumps(evidence.get("ziliao-visual-quality.json") or {}, ensure_ascii=False)
-    for qid in set(re.findall(re.escape(trial.material_id) + r"-Q(\d)", visual)):
+    for qid in set(re.findall(re.escape(trial.material_id) + r"-Q(\d+)", visual)):
         per_question.setdefault(int(qid), []).append("视觉质检未通过：" + visual[:400])
     if not per_question and not other:
         other.append(str(result.get("gate_error") or result)[-800:])
@@ -469,7 +472,7 @@ def run_gate(trial: Trial, slots: list[dict], raws: dict[int, dict], stats: Stat
         if result.get("issues"):  # 本地整篇清单，不耗审核次数
             failures = {}
             for item in result["issues"]:
-                match = re.search(r"-Q(\d)", str(item.get("message") or ""))
+                match = re.search(r"-Q(\d+)", str(item.get("message") or ""))
                 failures.setdefault(int(match[1]) if match else 0, []).append(str(item.get("message")))
             per_question, other = {k: v for k, v in failures.items() if k}, failures.get(0, [])
         else:
@@ -530,50 +533,90 @@ def material_types_for(fmt: str | None) -> tuple[str, ...]:
 def base_plan(material_id: str, mtype: str, tier: str, theme: str, region: str, slots: list[dict]) -> dict:
     return {"id": material_id, "track": "gd", "difficulty": tier,
             "format": MATERIAL_TYPES[mtype]["format"], "figure_kind": MATERIAL_TYPES[mtype]["figure_kind"],
-            "material_type": mtype, "theme": f"{region}{theme}", "theme_key": theme, "region": region, "count": 5,
+            "material_type": mtype, "theme": f"{region}{theme}", "theme_key": theme, "region": region, "count": len(slots),
             "slots": slots, "question_plan": material_question_plan(mtype, slots),
             "figure_shape": MATERIAL_TYPES[mtype]["figure_shape"],
             "focus": "真实统计公报信息组织，地名用真实广东地名；显示数从高精度底数独立舍入", "chart_tasks": []}
 
 
-def targeted_plans(tag: str, count: int, tier: str, fmt: str | None, brief: str, seed: str,
-                   db: Path) -> tuple[list[dict], list[list[str]]]:
-    """指定考点专项：每篇5题都考该考点，题型在它对应的几种题型里轮转，细分考法按近期少练、错得多优先。"""
-    import kaofa_variants as kv
+def spread_answers(n: int, rng: random.Random) -> list[str]:
+    """一篇 N 题的答案字母：尽量覆盖 A–D，单个字母不超过均匀分布。5 题仍用 ABCD 各一加一个重复。"""
     from kaodian_taxonomy import _abcd_plus_one
+    if n == 5:
+        return _abcd_plus_one(rng)
+    keys = [letter for i in range(n) for letter in ("ABCD"[i % 4],)]
+    rng.shuffle(keys)
+    return keys
+
+
+def targeted_plans(tag: str, count: int, tier: str, fmt: str | None, brief: str, seed: str,
+                   db: Path, *, one_paper: bool = False, variant: str = "") -> tuple[list[dict], list[list[str]]]:
+    """指定考点专项。默认 5 题一篇、10 题两篇。one_paper 时题量就是这一篇的题数（1–10）。
+    variant 点名后，本篇每题都从这些考法里出，不再改成别的变式。"""
+    import kaofa_variants as kv
     from ziliao_agent_paper import REGIONS, THEME_POOL
     from ziliao_blueprint import imported_dirs, non_exact_ok, pick_themes, plan_slot, recent_rotation
     from ziliao_performance import adaptive_plan
     from ziliao_tracks import KIND_SPECS, KIND_TAGS, rotating_slot
-    if count not in (5, 10):
-        raise ValueError("资料分析专项按篇出，每篇5题：题量只能是5或10")
+    if one_paper:
+        if not 1 <= count <= 10:
+            raise ValueError("一篇资料专项的题量是 1–10")
+        sizes = [count]
+    elif count not in (5, 10):
+        raise ValueError("资料分析专项按篇出，每篇5题：题量只能是5或10；一篇里出其他题量请加 --one-paper")
+    else:
+        sizes = [5] * (count // 5)
     kinds = [k for k, t in KIND_TAGS.items() if t == tag]
     if not kinds:
         raise ValueError(f"{tag} 不是资料分析出题主标签；可用：{'、'.join(sorted(set(KIND_TAGS.values())))}")
+    pinned = []
+    if variant:
+        names = [part.strip() for part in variant.split(",") if part.strip()]
+        pinned = kv.resolve_variants(tag, names, kv.variants_for(tag, kv.load_catalog()))
+        kinds = list(dict.fromkeys(item["kind"] for item in pinned))
     rng = random.Random(seed)
     adaptive = adaptive_plan(db)
     _, _, _, recent_themes = recent_rotation(imported_dirs(ROOT / "data" / "manual-ziliao-agent-paper", db, 6))
     themes = pick_themes(THEME_POOL, recent_themes, rng)
+    if one_paper and pinned and not fmt and set(kinds) <= {"detail_lookup", "text_reading"}:
+        fmt = "text"
     plans, keys = [], []
-    for m in range(count // 5):
-        types = [t for t in material_types_for(fmt) if any(t in KIND_SPECS[k]["types"] for k in kinds)]
+    for m, size in enumerate(sizes):
+        allowed_types = []
+        for kind in kinds:
+            spec_types = set(KIND_SPECS[kind]["types"])
+            if pinned:
+                named = [set(item.get("types") or spec_types) for item in pinned if item["kind"] == kind]
+                spec_types = set.intersection(*named) if named else spec_types
+            allowed_types.append(spec_types)
+        usable_types = set.intersection(*allowed_types) if allowed_types else set()
+        types = [t for t in material_types_for(fmt) if t in usable_types]
         if not types:
-            raise ValueError(f"{tag} 没有能用 {fmt} 材料出的题型")
+            raise ValueError(f"{tag} 没有能用 {fmt or '当前'} 材料出的题型")
         mtype = rng.choice(types)
-        usable = [k for k in kinds if mtype in KIND_SPECS[k]["types"]]
+        usable = [k for k in kinds if mtype in KIND_SPECS[k]["types"]
+                  and (not pinned or any(item["kind"] == k and (not item.get("types") or mtype in item["types"]) for item in pinned))]
+        if not usable:
+            raise ValueError(f"{tag} 在材料 {mtype} 上没有可用题型")
         slots = []
-        for q in range(5):
-            slot = rotating_slot(usable[q % len(usable)], mtype, tier, "exact", rng)
+        for q in range(size):
+            chosen = pinned[q % len(pinned)] if pinned else None
+            kind = chosen["kind"] if chosen else usable[q % len(usable)]
+            slot = rotating_slot(kind, mtype, tier, "exact", rng)
+            if chosen:
+                slot["kaofa_variant"] = chosen["id"]
+                if not chosen.get("need") and kind == "detail_lookup":
+                    slot["kaofa_need"] = f"至少{size}个位置不同、可直接读出的数值、分类或排名，每题各用一个"
             if brief:
                 slot["brief"] = f"{slot['brief']}；用户要求：{brief}"
             slots.append(slot)
         slots = kv.assign_ziliao_variants(slots, seed=f"{seed}-{m}", boost=adaptive.get("variant_boost"))
         eligible = [s for s in slots if non_exact_ok(s) and "interval" in KIND_SPECS[s["kind"]]["formats"]]
-        if eligible and rng.random() < 0.5:
+        if eligible and rng.random() < 0.5 and not pinned:
             rng.choice(eligible)["option_format"] = "interval"
         region = "广东省" if m == 0 else rng.choice(REGIONS[1:])
         plans.append(base_plan(f"M{m + 1:02}", mtype, tier, themes[m], region, [plan_slot(s) for s in slots]))
-        keys.append(_abcd_plus_one(rng))
+        keys.append(spread_answers(size, rng))
     return plans, keys
 
 
@@ -597,7 +640,7 @@ def run_set(plans: list[dict], keys: list[list[str]], out: Path, db: Path, do_im
     from ziliao_assembly import assemble, issue_assembly
     out.mkdir(parents=True, exist_ok=False)
     job = Job(out.name, module="资料分析", title=f"资料分析专项·{plans[0]['slots'][0]['tag'].split('-', 1)[1]}",
-              planned=5 * len(plans))
+              planned=sum(len(plan["slots"]) for plan in plans))
     started, runs = time.monotonic(), []
 
     def worker(index: int) -> Path:
@@ -679,21 +722,24 @@ def run_pipeline(plan: dict, keys: list[str], out: Path, db: Path, do_import: bo
     stats.log.unlink(missing_ok=True)
     os.environ["MODEL_CALL_LOG"] = str(stats.log)
     os.environ["EXAM_DB"] = str(db)
+    n = len(plan["slots"])
+    if len(keys) != n:
+        raise ValueError(f"答案字母{len(keys)}个，槽位{n}个")
     trial = Trial(out, db, plan)
     CALL_DIR = out / "calls"
     HEDGES.clear()
     (out / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2))
     slots = [dict(s, answer_key=k) for s, k in zip(plan["slots"], keys)]
     progress = (FileProgress(progress_file, plan["id"]) if progress_file else
-                Job(batch_id, module="资料分析", title=f"资料分析单篇·{plan['theme']}", planned=5))
+                Job(batch_id, module="资料分析", title=f"资料分析单篇·{plan['theme']}", planned=n))
     rng = random.Random(batch_id + plan["id"])
     error, imported = None, 0
     try:
         progress.update(stage="材料", detail="材料员撰写中", progress=5)
         raws = make_material_and_drafts(trial, plan, slots, stats, progress, rng)
         mark = time.monotonic()
-        progress.update(stage="出题", detail="5题初稿已出，本地校验中", progress=45)
-        settle(trial, slots, raws, range(1, 6), stats, progress, "question_check")
+        progress.update(stage="出题", detail=f"{n}题初稿已出，本地校验中", progress=45)
+        settle(trial, slots, raws, range(1, n + 1), stats, progress, "question_check")
         align_answers(trial, slots, raws, keys, stats)
         stats.stages["出题"] = round(time.monotonic() - mark, 1)
         mark = time.monotonic()
@@ -708,8 +754,8 @@ def run_pipeline(plan: dict, keys: list[str], out: Path, db: Path, do_import: bo
     if error:
         progress.finish(status="failed", stage="失败", error=error, detail=error[:160])
     else:
-        progress.finish(status="done", stage="已入库" if imported else "已通过", detail=f"{imported or 5} 题",
-                        passed=5, progress=100)
+        progress.finish(status="done", stage="已入库" if imported else "已通过", detail=f"{imported or n} 题",
+                        passed=n, progress=100)
     summary = {"batch_id": batch_id, "material": plan["id"], "passed": error is None, "imported": imported,
                "error": error, "seconds": round(time.monotonic() - stats.started, 1), "stages": stats.stages,
                "requests": dict(stats.requests()), "hedged": list(HEDGES), "material_reviews": trial.material_reviews,
@@ -729,13 +775,15 @@ def main() -> int:
     parser.add_argument("--db", type=Path, default=ROOT / "data" / "exam.db")
     parser.add_argument("--batch-id")
     parser.add_argument("--tag", help="指定考点专项：资料分析出题主标签，如 资料分析-ABRX类-增长量计算与现期推算")
-    parser.add_argument("--count", type=int, default=5, help="题量：5（1篇）或10（2篇，仅专项）")
+    parser.add_argument("--count", type=int, default=5, help="题量：默认5（1篇）或10（2篇）；--one-paper 时是这一篇的题数（1–10）")
+    parser.add_argument("--one-paper", action="store_true", help="题量就是一篇材料里的题数，10题不再拆成两篇")
+    parser.add_argument("--variant", default="", help="考法变式名称或id，逗号分隔。指定后本篇只出这些考法")
     parser.add_argument("--difficulty", choices=("easy", "mid", "hard"), default="mid")
     parser.add_argument("--format", help="材料形态：text/table/monthly/years/two_series/pie/line，或 chart/柱图/折线/饼图/表格/文字")
     parser.add_argument("--brief", default="", help="用户对本次专项的额外要求，原话写入每题出题要求")
     parser.add_argument("--seed", help="蓝图种子，默认用批次号；复现同一套槽位时指定")
     parser.add_argument("--material", type=int, choices=(1, 2, 3, 4), help="单篇：指定取蓝图第几篇")
-    parser.add_argument("--plan-only", action="store_true", help="只打印本次各篇材料形态与5个槽位，不调模型")
+    parser.add_argument("--plan-only", action="store_true", help="只打印本次各篇材料形态与槽位，不调模型")
     parser.add_argument("--import", dest="import_batch", action="store_true")
     parser.add_argument("--plan", type=Path, help="worker 模式：整卷流程冻结好的单篇计划")
     parser.add_argument("--keys", help="worker 模式：本篇5题的预分配答案字母，如 ABCDA")
@@ -744,9 +792,11 @@ def main() -> int:
     args = parser.parse_args()
     db = args.db.resolve()
     if args.plan:
-        if not (args.keys and args.out) or len(args.keys) != 5:
-            parser.error("worker 模式须同时给 --plan、--keys（5个字母）与 --out")
-        summary = run_pipeline(json.loads(args.plan.read_text()), list(args.keys), args.out.resolve(), db, False,
+        plan = json.loads(args.plan.read_text(encoding="utf-8"))
+        width = len(plan.get("slots") or [])
+        if not (args.keys and args.out) or len(args.keys) != width:
+            parser.error(f"worker 模式须同时给 --plan、--keys（{width}个字母）与 --out")
+        summary = run_pipeline(plan, list(args.keys), args.out.resolve(), db, False,
                                args.progress)
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         return 0 if summary["passed"] else 1
@@ -756,7 +806,10 @@ def main() -> int:
     seed = args.seed or batch_id
     try:
         if args.tag:
-            plans, keys = targeted_plans(args.tag, args.count, args.difficulty, args.format, args.brief, seed, db)
+            plans, keys = targeted_plans(args.tag, args.count, args.difficulty, args.format, args.brief, seed, db,
+                                         one_paper=args.one_paper, variant=args.variant)
+        elif args.one_paper or args.variant:
+            parser.error("一篇灵活题量或指定考法必须同时给出 --tag")
         elif args.count != 5:
             parser.error("不指定考点时只出1篇5题；20题整套用 ziliao_agent_paper.py，10题须指定考点")
         elif args.material:

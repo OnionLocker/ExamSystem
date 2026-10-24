@@ -25,6 +25,14 @@ from ziliao_checklist import VERSION, rounding_issues, material_text_issues, pap
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ("materials.json", "questions.json", "calculations.json", "manifest.json", ".gate.json")
+PAPER_MAX = 10
+
+
+def question_number(qid: str) -> int:
+    match = re.search(r"-Q(\d+)$", str(qid or ""))
+    if not match:
+        raise ValueError(f"题号无法解析：{qid}")
+    return int(match.group(1))
 
 
 def write(path, data):
@@ -40,19 +48,23 @@ class Trial:
         self.questions, self.calculations = {}, {}
         slots = plan["slots"]
         run = {"module": "资料分析", "slots": slots}
+        n = len(slots)
         self.plan = {**plan,
-                     "count": 5, "slots": [
+                     "count": n, "slots": [
                          dict(s, definition=runner.run_canon_card(run, s["tag"])) for s in slots]}
-        if not re.fullmatch(r"M0[1-4]", self.plan["id"]) or len(slots) != 5:
-            raise ValueError("每个worker须有M01—M04编号及五个槽位")
+        if not re.fullmatch(r"M0[1-4]", self.plan["id"]) or not 1 <= n <= PAPER_MAX:
+            raise ValueError(f"每个worker须有M01—M04编号及1—{PAPER_MAX}个槽位")
         self.material_id = f"{out.name}-{self.plan['id']}"
         self.tier = str(self.plan.get("difficulty") or "mid")
         self.frame = {"track": "gd", "difficulty": self.tier, "materials": [self.plan]}
-        constraints = {"all_original": True, "question_count": 5, "difficulty_tier": self.tier,
+        # 5题整篇沿用原来的字母上限，避免把已有单篇收紧。超过5题的专项按均匀分布收口。
+        max_per = 5 if n <= 5 else max(2, -(-n // 4))
+        constraints = {"all_original": True, "question_count": n, "difficulty_tier": self.tier,
                        "answer_distribution": "unconstrained", "targeted_drill": True,
                        "slot_plan": slots, "track": "gd", "track_label": "粤考日练",
-                       "chart_match": runner.CHART_MATCH_HOOK, "answer_max_per_letter": 5,
-                       "answer_min_letters": 1, "tag_counts": dict(Counter(s["tag"] for s in slots))}
+                       "chart_match": runner.CHART_MATCH_HOOK, "answer_max_per_letter": max_per,
+                       "answer_min_letters": 1 if n <= 5 else min(4, n),
+                       "tag_counts": dict(Counter(s["tag"] for s in slots))}
         today = dt.date.today()
         out.mkdir(parents=True, exist_ok=False)
         (out / "images").mkdir()
@@ -72,8 +84,9 @@ class Trial:
 
     def save(self):
         write(self.out / "materials.json", [self.material] if self.material else [])
-        write(self.out / "questions.json", [self.questions[k] for k in sorted(self.questions)])
-        write(self.out / "calculations.json", {"questions": [self.calculations[k] for k in sorted(self.calculations)]})
+        order = sorted(self.questions, key=question_number)
+        write(self.out / "questions.json", [self.questions[k] for k in order])
+        write(self.out / "calculations.json", {"questions": [self.calculations[k] for k in order if k in self.calculations]})
 
     def submit_material(self, material):
         if self.material_reviews >= 6:
@@ -125,19 +138,20 @@ class Trial:
     def put_questions(self, questions, calculations):
         if not self.material:
             raise ValueError("先提交并通过材料审核")
-        if not isinstance(questions, list) or not 1 <= len(questions) <= 5 or not isinstance(calculations, list):
-            raise ValueError("提交1—5道题及对应验算；可局部替换，其他题保留")
+        n = len(self.plan["slots"])
+        if not isinstance(questions, list) or not 1 <= len(questions) <= n or not isinstance(calculations, list):
+            raise ValueError(f"提交1—{n}道题及对应验算；可局部替换，其他题保留")
         qs, cs = copy.deepcopy(self.questions), copy.deepcopy(self.calculations)
         ids = [q.get("external_id") for q in questions]
         calc = {c.get("question_id"): c for c in calculations}
-        allowed = {f"{self.material_id}-Q{i}" for i in range(1, 6)}
+        allowed = {f"{self.material_id}-Q{i}" for i in range(1, n + 1)}
         if len(set(ids)) != len(ids) or not set(ids) <= allowed or set(calc) != set(ids) or len(calc) != len(calculations):
-            raise ValueError("题号须为本篇Q1—Q5，且与验算一一对应")
+            raise ValueError(f"题号须为本篇Q1—Q{n}，且与验算一一对应")
         fields = {"external_id", "category", "question_type", "material_id", "stem", "options",
                   "answer", "explanation", "tags", "difficulty", "family"}
         for q in questions:
             qid = q["external_id"]
-            slot = self.plan["slots"][int(qid[-1]) - 1]
+            slot = self.plan["slots"][question_number(qid) - 1]
             if slot.get("kind") == "chart_match":
                 q = self.render_option_figures(q)
             elif any(o.get("figure") or o.get("images") for o in q.get("options", [])):
@@ -148,7 +162,7 @@ class Trial:
                        if k in {"question_id", "correct", "options", "tolerance", "ranges", "target"}}
         errors = {}
         for qid, q in qs.items():
-            slot = self.plan["slots"][int(qid[-1]) - 1]
+            slot = self.plan["slots"][question_number(qid) - 1]
             issues = runner.question_errors(q, cs[qid], self.material, self.plan, qid, slot,
                                             [s for k, s in qs.items() if k != qid])
             if q.get("family") != slot["family"]:
@@ -177,11 +191,11 @@ class Trial:
         return question
 
     def review(self):
-        if len(self.questions) != 5:
-            raise ValueError("先保存完整五题")
+        if len(self.questions) != len(self.plan["slots"]):
+            raise ValueError(f"先保存完整{len(self.plan['slots'])}题")
         if self.gate_attempts >= 6:
             raise ValueError("整篇审核预算已用完，停止并报告失败")
-        local = paper_issues([self.material], [self.questions[k] for k in sorted(self.questions)], self.plan["slots"])
+        local = paper_issues([self.material], [self.questions[k] for k in sorted(self.questions, key=question_number)], self.plan["slots"])
         if local:
             return {"ok": False, "issues": [{"rule": "paper_checklist", "message": m,
                     "repair": "按提示局部put_questions；不消耗整篇审核次数"} for m in local]}

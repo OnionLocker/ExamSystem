@@ -32,6 +32,18 @@ class TargetedPlanTest(unittest.TestCase):
         self.assertEqual(plans[0]["material_type"], "pie")
         self.assertTrue(all("用户要求：只练现期比重" in s["brief"] for s in plans[0]["slots"]))
 
+    def test_one_paper_can_pin_one_variant(self):
+        from kaodian_taxonomy import ZILIAO_QI
+        plans, keys = pipe.targeted_plans(
+            ZILIAO_QI, 6, "mid", None, "", "lookup-6", DB, one_paper=True, variant="直接定位读数")
+        self.assertEqual(len(plans), 1)
+        self.assertEqual(len(plans[0]["slots"]), 6)
+        self.assertEqual(plans[0]["material_type"], "text")
+        self.assertTrue(all(s.get("kaofa_variant_name") == "直接定位读数" for s in plans[0]["slots"]))
+        self.assertEqual(len(keys[0]), 6)
+        self.assertEqual(set(keys[0]), set("ABCD"))
+        self.assertLessEqual(max(Counter(keys[0]).values()), 2)
+
     def test_invalid_requests_are_refused(self):
         for tag, count in (("资料分析-不存在", 5), (ZILIAO_DELTA, 7), (ZILIAO_DELTA, 20)):
             with self.subTest(tag=tag, count=count), self.assertRaises(ValueError):
