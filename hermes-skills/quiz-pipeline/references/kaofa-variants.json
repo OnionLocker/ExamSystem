@@ -7087,6 +7087,48 @@
    }
   ]
  },
+ "判断推理-逻辑判断-组合排列-单题-@arr-cond": {
+  "title": "命题约束型排列",
+  "variants": [
+   {
+    "id": "conditional-stem-puzzle",
+    "name": "假言约束排列",
+    "ask": "题干给出多条“如果A则B”的假言并声明预测完全正确；先翻译假言找矛盾或蕴含，再穷举满足全部约束的合法排列，求“一定正确/必然推出”或“可能”。",
+    "example": "粤2025：象棋比赛，如果甲、丙、戊至少1人获奖则丁、己均不获奖……预测完全正确，一定获奖的是",
+    "weight": 4,
+    "typical": true,
+    "level": 3
+   },
+   {
+    "id": "exclusive-choice-puzzle",
+    "name": "选言量约束排列",
+    "ask": "题干含“至多安排一人”“至少其一”“要么…要么…”等量词/选言约束，再结合排列位置；逐条列出“至多/至少”限制，确定可入选或必然排除的对象。",
+    "example": "粤2026：甲、丁至多安排一人发言，丙、戊至少安排其一则安排甲……安排4名代表发言",
+    "weight": 4,
+    "typical": false,
+    "level": 3
+   },
+   {
+    "id": "conditional-order-chain",
+    "name": "顺序假言与数量上限",
+    "ask": "约束含“丁在乙之后丙之前”类顺序假言并叠加数量上限（每季度最多/至少几次），先定顺序再按上限约束反推时间或分组安排。",
+    "example": "粤2025：科研季度安排8次会议，丁辛在第二季度，丁在乙后丙前，每季度最多3次",
+    "weight": 3,
+    "typical": false,
+    "level": 3
+   },
+   {
+    "id": "multi-constraint-must",
+    "name": "多约束必要推论",
+    "ask": "假言、选言、至多至少等约束同现，求“一定正确/不可能/可能”；所有合法排列共同成立为必然，违反任一条为不可能。",
+    "example": "粤2026：双打组队，若韩参加羽毛球则宋参加网球、若王参加乒乓球则吴……以下哪项一定正确",
+    "weight": 3,
+    "typical": false,
+    "level": 3
+   }
+  ]
+ },
+
  "数量关系-数学运算-概率问题-@geometric": {
   "title": "几何概型",
   "variants": [
@@ -7203,6 +7245,7 @@
     "weight": 4,
     "typical": true,
     "kind": "share",
+    "family": "share",
     "level": 1
    },
    {
@@ -7213,6 +7256,7 @@
     "weight": 4,
     "typical": false,
     "kind": "share",
+    "family": "share",
     "types": [
      "table",
      "two_series",
@@ -7231,6 +7275,7 @@
     "weight": 3,
     "typical": false,
     "kind": "share",
+    "family": "share",
     "need": "部分与整体的现期值及各自同比增速",
     "level": 2
    },
@@ -7242,6 +7287,7 @@
     "weight": 3,
     "typical": false,
     "kind": "share",
+    "family": "share",
     "need": "两级占比，或下级部分、中级部分与总体",
     "level": 2
    },
@@ -7253,6 +7299,7 @@
     "weight": 2,
     "typical": false,
     "kind": "share",
+    "family": "share",
     "need": "整体量与部分占比",
     "level": 1
    }
@@ -7269,6 +7316,7 @@
     "weight": 4,
     "typical": true,
     "kind": "share_change",
+    "family": "share",
     "level": 1
    },
    {
@@ -7279,6 +7327,7 @@
     "weight": 4,
     "typical": false,
     "kind": "share_change",
+    "family": "share",
     "level": 2
    },
    {
@@ -7289,6 +7338,7 @@
     "weight": 3,
     "typical": false,
     "kind": "share_change",
+    "family": "share",
     "need": "两组各自的部分与整体",
     "level": 2
    },
@@ -7300,6 +7350,7 @@
     "weight": 3,
     "typical": false,
     "kind": "share_change",
+    "family": "share",
     "types": [
      "years",
      "line",
@@ -7317,6 +7368,7 @@
     "weight": 2,
     "typical": false,
     "kind": "share_change",
+    "family": "share",
     "types": [
      "years",
      "line",
@@ -7339,6 +7391,7 @@
     "weight": 4,
     "typical": true,
     "kind": "growth_rate",
+    "family": "growth_rate",
     "level": 1
    },
    {
@@ -7349,6 +7402,7 @@
     "weight": 4,
     "typical": false,
     "kind": "growth_rate",
+    "family": "growth_rate",
     "level": 2
    },
    {
@@ -7359,6 +7413,7 @@
     "weight": 3,
     "typical": false,
     "kind": "growth_rate",
+    "family": "growth_rate",
     "types": [
      "years",
      "line",
@@ -7376,6 +7431,7 @@
     "weight": 3,
     "typical": false,
     "kind": "growth_rate",
+    "family": "growth_rate",
     "need": "被调整部分的数值或可还原的减免额",
     "level": 3
    },
@@ -7387,6 +7443,7 @@
     "weight": 2,
     "typical": false,
     "kind": "growth_rate",
+    "family": "growth_rate",
     "types": [
      "monthly",
      "table",
@@ -7403,6 +7460,7 @@
     "weight": 3,
     "typical": false,
     "kind": "percentage_point",
+    "family": "growth_rate",
     "level": 1
    },
    {
@@ -7413,6 +7471,7 @@
     "weight": 2,
     "typical": false,
     "kind": "percentage_point",
+    "family": "growth_rate",
     "need": "同一指标两期增速",
     "level": 1
    },
@@ -7424,6 +7483,7 @@
     "weight": 2,
     "typical": false,
     "kind": "interval_growth",
+    "family": "growth_rate",
     "level": 2
    },
    {
@@ -7434,6 +7494,7 @@
     "weight": 3,
     "typical": false,
     "kind": "diff_growth",
+    "family": "growth_rate",
     "level": 3
    },
    {
@@ -7444,6 +7505,7 @@
     "weight": 2,
     "typical": false,
     "kind": "diff_growth",
+    "family": "growth_rate",
     "types": [
      "table",
      "two_series",
@@ -7465,6 +7527,7 @@
     "weight": 4,
     "typical": true,
     "kind": "growth_amount",
+    "family": "growth_amount",
     "level": 1
    },
    {
@@ -7475,6 +7538,7 @@
     "weight": 4,
     "typical": false,
     "kind": "growth_amount",
+    "family": "growth_amount",
     "level": 2
    },
    {
@@ -7485,6 +7549,7 @@
     "weight": 3,
     "typical": false,
     "kind": "growth_amount",
+    "family": "growth_amount",
     "level": 1
    },
    {
@@ -7495,6 +7560,7 @@
     "weight": 2,
     "typical": false,
     "kind": "growth_amount",
+    "family": "multiple",
     "need": "两个指标的两期值或现期与增速",
     "level": 2
    },
@@ -7506,6 +7572,7 @@
     "weight": 3,
     "typical": false,
     "kind": "projection",
+    "family": "projection",
     "types": [
      "years",
      "line",
@@ -7523,6 +7590,7 @@
     "weight": 2,
     "typical": false,
     "kind": "projection",
+    "family": "projection",
     "types": [
      "monthly",
      "text"
@@ -7538,6 +7606,7 @@
     "weight": 2,
     "typical": false,
     "kind": "projection",
+    "family": "multiple",
     "types": [
      "years",
      "line",
@@ -7555,6 +7624,7 @@
     "weight": 2,
     "typical": false,
     "kind": "projection",
+    "family": "projection",
     "need": "可组成计算公式的多个参数",
     "level": 3
    }
@@ -7571,6 +7641,7 @@
     "weight": 4,
     "typical": true,
     "kind": "base_value",
+    "family": "base",
     "level": 1
    },
    {
@@ -7581,6 +7652,7 @@
     "weight": 3,
     "typical": false,
     "kind": "base_value",
+    "family": "base",
     "need": "多个主体的现期值与增速",
     "level": 2
    },
@@ -7592,6 +7664,7 @@
     "weight": 2,
     "typical": false,
     "kind": "base_value",
+    "family": "base",
     "level": 1
    },
    {
@@ -7602,6 +7675,7 @@
     "weight": 3,
     "typical": false,
     "kind": "cumulative",
+    "family": "cumulative",
     "types": [
      "monthly"
     ],
@@ -7616,6 +7690,7 @@
     "weight": 2,
     "typical": false,
     "kind": "cumulative",
+    "family": "cumulative",
     "types": [
      "monthly",
      "text"
@@ -7636,6 +7711,7 @@
     "weight": 4,
     "typical": true,
     "kind": "average",
+    "family": "average",
     "level": 1
    },
    {
@@ -7646,6 +7722,7 @@
     "weight": 3,
     "typical": false,
     "kind": "average",
+    "family": "average",
     "level": 2
    },
    {
@@ -7656,6 +7733,7 @@
     "weight": 3,
     "typical": false,
     "kind": "average",
+    "family": "average",
     "need": "总量与个数的现期值及增速",
     "level": 2
    },
@@ -7667,6 +7745,7 @@
     "weight": 2,
     "typical": false,
     "kind": "average",
+    "family": "multiple",
     "need": "两个主体的总量与个数",
     "level": 2
    },
@@ -7678,6 +7757,7 @@
     "weight": 3,
     "typical": false,
     "kind": "average_diff",
+    "family": "average",
     "level": 2
    },
    {
@@ -7688,6 +7768,7 @@
     "weight": 2,
     "typical": false,
     "kind": "average_diff",
+    "family": "average",
     "need": "两期总量与个数",
     "level": 3
    },
@@ -7699,6 +7780,7 @@
     "weight": 4,
     "typical": false,
     "kind": "annual_growth",
+    "family": "average",
     "types": [
      "years",
      "line",
@@ -7715,6 +7797,7 @@
     "weight": 4,
     "typical": false,
     "kind": "annual_growth",
+    "family": "average",
     "types": [
      "years",
      "line",
@@ -7736,6 +7819,7 @@
     "weight": 4,
     "typical": true,
     "kind": "multiple",
+    "family": "multiple",
     "level": 1
    },
    {
@@ -7746,6 +7830,7 @@
     "weight": 3,
     "typical": false,
     "kind": "multiple",
+    "family": "multiple",
     "types": [
      "table",
      "two_series",
@@ -7764,6 +7849,7 @@
     "weight": 2,
     "typical": false,
     "kind": "multiple",
+    "family": "multiple",
     "need": "两个主体的现期值与增速",
     "level": 2
    },
@@ -7775,6 +7861,7 @@
     "weight": 2,
     "typical": false,
     "kind": "multiple",
+    "family": "multiple",
     "level": 2
    },
    {
@@ -7785,6 +7872,7 @@
     "weight": 2,
     "typical": false,
     "kind": "multiple",
+    "family": "multiple",
     "need": "能反推两主体数量的总量与人均",
     "level": 3
    },
@@ -7796,6 +7884,7 @@
     "weight": 3,
     "typical": false,
     "kind": "detail_lookup",
+    "family": "lookup",
     "level": 1
    },
    {
@@ -7806,6 +7895,7 @@
     "weight": 2,
     "typical": false,
     "kind": "detail_lookup",
+    "family": "lookup",
     "types": [
      "years",
      "line",
@@ -7822,6 +7912,7 @@
     "weight": 3,
     "typical": false,
     "kind": "text_reading",
+    "family": "lookup",
     "types": [
      "text"
     ],
@@ -7836,6 +7927,7 @@
     "weight": 3,
     "typical": false,
     "kind": "text_reading",
+    "family": "lookup",
     "types": [
      "text"
     ],
@@ -7855,6 +7947,7 @@
     "weight": 4,
     "typical": true,
     "kind": "mixed_growth",
+    "family": "mixed",
     "level": 2
    },
    {
@@ -7865,6 +7958,7 @@
     "weight": 3,
     "typical": false,
     "kind": "mixed_growth",
+    "family": "mixed",
     "need": "各段现期值与增速",
     "level": 3
    },
@@ -7876,6 +7970,7 @@
     "weight": 2,
     "typical": false,
     "kind": "mixed_growth",
+    "family": "mixed",
     "need": "整体与一部分的现期值及增速",
     "level": 3
    },
@@ -7887,6 +7982,7 @@
     "weight": 2,
     "typical": false,
     "kind": "mixed_growth",
+    "family": "mixed",
     "level": 1
    }
   ]
@@ -7902,6 +7998,7 @@
     "weight": 4,
     "typical": true,
     "kind": "delta_share",
+    "family": "pull",
     "level": 2
    },
    {
@@ -7912,6 +8009,7 @@
     "weight": 3,
     "typical": false,
     "kind": "delta_share",
+    "family": "pull",
     "level": 2
    },
    {
@@ -7922,6 +8020,7 @@
     "weight": 2,
     "typical": false,
     "kind": "delta_share",
+    "family": "pull",
     "need": "部分与整体的现期值及增速",
     "level": 2
    },
@@ -7933,6 +8032,7 @@
     "weight": 2,
     "typical": false,
     "kind": "delta_share",
+    "family": "pull",
     "level": 3
    }
   ]
@@ -7948,6 +8048,7 @@
     "weight": 4,
     "typical": true,
     "kind": "count",
+    "family": "sort",
     "level": 1
    },
    {
@@ -7958,6 +8059,7 @@
     "weight": 3,
     "typical": false,
     "kind": "count",
+    "family": "sort",
     "level": 2
    },
    {
@@ -7968,6 +8070,7 @@
     "weight": 3,
     "typical": false,
     "kind": "count",
+    "family": "sort",
     "types": [
      "years",
      "line",
@@ -7985,6 +8088,7 @@
     "weight": 2,
     "typical": false,
     "kind": "count",
+    "family": "sort",
     "level": 3
    },
    {
@@ -7995,6 +8099,7 @@
     "weight": 3,
     "typical": false,
     "kind": "sort",
+    "family": "sort",
     "level": 1
    },
    {
@@ -8005,6 +8110,7 @@
     "weight": 3,
     "typical": false,
     "kind": "sort",
+    "family": "sort",
     "level": 2
    },
    {
@@ -8015,6 +8121,7 @@
     "weight": 3,
     "typical": false,
     "kind": "sort",
+    "family": "sort",
     "level": 2
    },
    {
@@ -8025,6 +8132,7 @@
     "weight": 2,
     "typical": false,
     "kind": "sort",
+    "family": "sort",
     "types": [
      "years",
      "line",
@@ -8042,6 +8150,7 @@
     "weight": 2,
     "typical": false,
     "kind": "sort",
+    "family": "sort",
     "types": [
      "years",
      "line",

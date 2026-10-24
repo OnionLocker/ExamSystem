@@ -218,6 +218,12 @@ def violations(slots: list[dict], level: dict) -> list[str]:
     ratio = [i for i, s in enumerate(slots) if asks_ratio(s)]
     if len(ratio) > RATIO_CAP or max(Counter(i // 5 for i in ratio).values(), default=0) > 1:
         problems.append("“是……的多少倍”问法过多")
+    # 硬闸门：非综合题中“倍”问法族（family=multiple）整套至多 1 道。
+    # “A 是 B 的多少倍/多几倍/达几倍”问法雷同，真题不会在一套里重复出现。
+    mult_family = [i for i, s in enumerate(slots)
+                   if s.get("kind") != "judge" and s.get("kaofa_family") == "multiple"]
+    if len(mult_family) > 1:
+        problems.append("“倍”问法族多于 1 道")
     typical = sum(1 for s in slots if s.get("variant_reason") == "典型考法保底" or s.get("kaofa_variant_typical"))
     if typical < level["typical"]:
         problems.append(f"典型考法 {typical} 道")

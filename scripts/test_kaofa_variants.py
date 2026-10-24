@@ -136,6 +136,11 @@ class VariantTest(unittest.TestCase):
         self.assertEqual({s["kaofa_variant"] for s in out[:2]}, {"current", "two-period"})
         locked = [{"tag": share, "count": 1, "brief": "只练现期比重"}]
         self.assertEqual(kv.assign_ziliao_variants(locked, targeted=True, catalog=catalog), locked)
+        pinned = [{"tag": share, "kind": "share", "material_type": "years", "kaofa_variant": "current", "brief": "比重"}
+                  for _ in range(3)]
+        with tempfile.TemporaryDirectory() as pin_dir:
+            out = kv.assign_ziliao_variants(pinned, seed="pin", catalog=catalog, ledger=Path(pin_dir, "l.jsonl"))
+        self.assertEqual([s["kaofa_variant"] for s in out], ["current", "current", "current"])
 
     def test_cli_ziliao_requires_kind(self):
         from unittest.mock import patch

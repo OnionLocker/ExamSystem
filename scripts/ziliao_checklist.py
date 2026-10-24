@@ -45,7 +45,7 @@ growth槽可问营业收入/利润额等绝对指标的同比增长率，不可�
 综合分析每题解析至少两处写出算式；百分点/累计/缺数据三类文字陷阱每篇至多一句、全卷至多两篇使用。
 解析中明确列出的纯数字算式须与写出的结果在展示精度内一致。按舍入后的增速反推基期，
 结果可能与图表直接给的上年数略有不同；不得把图表旧数伪写成反推算式的计算结果。
-选项图只用于槽位kind=chart_match的图表匹配题：四个选项都给figure数据，图中不标数值，正确图须与材料算出的值一致，干扰图凭形状可区分。
+选项图只用于槽位kind=chart_match的图表匹配题：四个选项都给figure数据，图中不标数值，正确图须与材料算出的值一致，干扰图凭形状可区分。饼图每一块都必须为正数且占比不低于8%，不得把某一块写成0。
 区间式、升降+程度式选项按槽位option_format出，calculation写ranges；计数题选项为个数，排序题选项为四种排列。"""
 
 
@@ -336,11 +336,12 @@ def paper_issues(materials, questions, slots=None):
         figure = material.get("figure") or {}
         figure_only = {v for v in _figure_values(figure) - _decimals(material.get("content") or "")
                        if v >= 10 or v != v.to_integral_value()}
-        if figure.get("kind") in {"bars", "table"} and own:
+        calculators = [q for q in own
+                        if (q.get("family") or slot_by_id.get(q.get("external_id"), {}).get("family")) != "detail"]
+        if figure.get("kind") in {"bars", "table"} and calculators:
             used = set()
-            for question in own:
-                if (question.get("family") or slot_by_id.get(question.get("external_id"), {}).get("family")) != "detail":
-                    used |= figure_only & _decimals(question.get("explanation") or "")
+            for question in calculators:
+                used |= figure_only & _decimals(question.get("explanation") or "")
             if len(used) < 2:
                 errors.append(f"{mid}: 图表独有数据只有{len(used)}个写进解析算式；至少两个图表数据须进入题目计算")
         for question in own:

@@ -216,29 +216,40 @@ def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool 
     catalog = load_catalog() if catalog is None else catalog
     used = usage(ledger, today)
     rng = random.Random(seed or None)
-    taken_by_tag: dict[str, Counter] = {}
+    # 全局账本（跨知识点）：同套内先铺开不同变式，避免不同知识点下的同类变式重复撞车。
+    taken: Counter = Counter()
+    used_family: set[str] = set()
     result = []
     for slot in slots:
         slot = dict(slot)
         variants = variants_for(slot.get("tag"), catalog)
+        wanted = slot.get("kaofa_variant")
         if (not variants or slot.get("kind") in ZILIAO_SKIP_KINDS or slot.get("quick")
-                or LOCKING_BRIEF.search(str(slot.get("brief") or ""))):
+                or (LOCKING_BRIEF.search(str(slot.get("brief") or "")) and not wanted)):
             result.append(slot)
             continue
         pool = [v for v in variants
                 if (targeted or v.get("kind") == slot.get("kind")) and _fits_material(v, slot)]
+        if wanted:
+            pool = [v for v in resolve_variants(str(slot.get("tag")), wanted, variants)
+                    if v in pool or not pool]
+            pool = [v for v in pool if _fits_material(v, slot) and (targeted or v.get("kind") == slot.get("kind"))]
+            if not pool:
+                raise ValueError(f"{slot.get('tag')} 的考法「{wanted}」不能用在题型 {slot.get('kind')} / 材料 {slot.get('material_type') or slot.get('material_format') or '未定'}")
         if not pool:
             result.append(slot)
             continue
-        if slot.get("difficulty") in ("easy", "hard"):
+        if not wanted and slot.get("difficulty") in ("easy", "hard"):
             # 资料默认 mid 不筛，保持原有题型与考法轮转；只有整篇/单题调成易或难才按层级缩小范围。
             pool = level_pool(pool, slot["difficulty"])
         tag = str(slot["tag"])
-        taken = taken_by_tag.setdefault(tag, Counter())
-        variant = _ziliao_pick(tag, pool, used, taken, rng, boost)
+        variant = _ziliao_pick(tag, pool, used, taken, used_family, rng, boost, force=bool(wanted))
         taken[variant["id"]] += 1
+        if not wanted and variant.get("family"):
+            used_family.add(variant["family"])
         brief = str(slot.get("brief") or "").strip()
         slot.update({"kaofa_variant": variant["id"], "kaofa_variant_name": variant["name"],
+                     "kaofa_family": variant.get("family"),
                      "brief": (brief + "；" if brief else "") + variant_brief(variant)})
         if variant.get("need"):
             slot["kaofa_need"] = variant["need"]
@@ -249,11 +260,17 @@ def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool 
 ZILIAO_RECENT_DECAY = 0.7
 
 
-def _ziliao_pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random,
-                 boost: dict | None = None) -> dict:
-    """资料分析按真题权重抽取：同批先不重复，近期每练一次权重乘 0.7，常考考法仍更常出现；
-    boost 为学员表现系数（错得多的细分考法 >1）。"""
+def _ziliao_pick(tag: str, variants: list[dict], used: Counter, taken: Counter, used_family: set[str],
+                 rng: random.Random, boost: dict | None = None, force: bool = False) -> dict:
+    """资料分析按真题权重抽取：优先铺开不同问法族（family），同批先不重复，近期每练一次权重乘 0.7；
+    force=True（点名变式）时忽略问法族去重。"""
     boost = boost or {}
+    # 1) 优先选尚未用过的问法族，让整套设问尽量多样（同名“倍”等雷问法族整套不重复）
+    if not force:
+        fresh = [v for v in variants if v.get("family") and v["family"] not in used_family]
+        if fresh:
+            variants = fresh
+    # 2) 同批先不重复
     least = min(taken[v["id"]] for v in variants)
     pool = [v for v in variants if taken[v["id"]] == least]
     weights = [max(1, int(v.get("weight") or 1)) * ZILIAO_RECENT_DECAY ** used[(tag, v["id"])]
