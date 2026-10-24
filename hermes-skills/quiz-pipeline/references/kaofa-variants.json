@@ -8,7 +8,8 @@
     "ask": "各项约分后分子交替变化，将异形项反约分为同一分子，使分母形成连续或等差数列，再求缺项并约简。",
     "example": "知识点页：2/3，1/2，2/5，1/3，（ ）",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "dual-arithmetic-chains",
@@ -16,7 +17,8 @@
     "ask": "将被约分项和整数同倍扩大，还原后分子、分母分别为两条等差链，按各自步长推出缺项。",
     "example": "知识点页：1/2，1，5/4，7/5，（ ），11/7",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "integer-as-fraction",
@@ -24,7 +26,8 @@
     "ask": "数列夹有整数1或2，先依据相邻分母规律将其改写为k/k或2k/k，再核验分子链并求未知分数。",
     "example": "知识点页：看到整数1，待前后分母确定后改写为k/k",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "mixed-expand-factors",
@@ -32,7 +35,8 @@
     "ask": "不同项分别被约去2倍、3倍等公因数，选择未约分大数作锚点，逐项用不同倍数扩回，使两条整数链单调。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "power-denominator-fraction",
@@ -40,7 +44,8 @@
     "ask": "反约分后分母为n³+1或n²+1，分子另成多级等差，分子分母分开求。",
     "example": "苏2025A第54题：1/2，2/3，23/28，58/65，13/14，（ ）；苏2025B第54题：0，2/5，1/2，9/17，1/2，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -53,7 +58,8 @@
     "ask": "原数列平缓单调，相邻作差后得到等差、连续奇数或连续偶数，推出下一差值再加回原末项。",
     "example": "粤2021乡：3，9，18，30，45，（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "second-diff-arithmetic",
@@ -61,7 +67,8 @@
     "ask": "一层差仍无直接规律，继续作第二层差得到等差链，由右下角开始逐层相加反推原数列缺项。",
     "example": "知识点页：1，4，11，24，45，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "diff-square-sequence",
@@ -69,7 +76,8 @@
     "ask": "相邻差值对应1²、2²、3²等连续平方数，识别平方差链后取下一平方并加回。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "diff-prime-sequence",
@@ -77,7 +85,8 @@
     "ask": "一层差依次为2、3、5、7、11等连续质数，续写下一质数作为增量并还原所求项。",
     "example": "知识点页：底层差可为2，3，5，7，11",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "decreasing-negative-diff",
@@ -85,7 +94,8 @@
     "ask": "原数列单调递减，坚持后项减前项保留负号，负差的绝对值呈等差或二级等差，再加负增量求项。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "diff-geometric-negative",
@@ -93,7 +103,8 @@
     "ask": "数列正负摆动，作一次差后得公比为负数的等比数列，按公比外推差值再还原。",
     "example": "浙2025A第53题：5，2，8，-4，20，-28，（ ）（差-3,6,-12,24,-48）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -106,7 +117,8 @@
     "ask": "相邻项作商得到2、3、4、5等递增整数，推出下一商并乘原末项。",
     "example": "知识点页：1，2，6，24，120，（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "constant-ratio",
@@ -114,7 +126,8 @@
     "ask": "相邻项作商均为同一常数，按固定公比求下一项；可含递增、递减或分数公比。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "half-step-ratios",
@@ -122,7 +135,8 @@
     "ask": "作商得到1.5、2、2.5、3等以0.5递增的商数列，先续商再反乘。",
     "example": "知识点页：2，3，6，15，45，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "decreasing-ratios",
@@ -130,7 +144,8 @@
     "ask": "原数列快速递减，后项除前项得到1/2、1/3、1/4等递变商，续写分数商求下一项。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "alternating-ratios",
@@ -138,7 +153,8 @@
     "ask": "相邻商本身按奇偶位形成两条常数或等差链，先拆商数列，再用目标位对应的商反推原项。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -151,7 +167,8 @@
     "ask": "七项以上长数列按奇数位、偶数位拆成两列，两列分别为等差、等比或递推，只计算括号所在子列。",
     "example": "粤2021乡：23，24，22，25，21，26，（ ），（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "double-blanks-split",
@@ -159,7 +176,8 @@
     "ask": "末尾连续两个括号分别落在奇、偶子列，拆列后各续写一项，按原位次依序合并答案。",
     "example": "粤2022县：22，42，44，84，88，168，（ ），（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "pair-constant-relation",
@@ -167,7 +185,8 @@
     "ask": "奇偶拆列无果时按相邻两项成组，检查每组内和、差或倍数恒定，据目标组已知项反求另一项。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "pair-evolving-relation",
@@ -175,7 +194,8 @@
     "ask": "每两项一组，后一项由前一项乘递增倍数或加递增修正得到，同时各组首项另成规律。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "three-term-groups",
@@ -183,7 +203,8 @@
     "ask": "项数呈3的倍数且每三项为一组，第三项由前两项和、积或倍数关系得到，用目标组三项局部运算求空。",
     "example": "粤2026：3，5，20，4，6，30，7，9，72，12，14，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-multiple-alternati-1",
@@ -191,7 +212,8 @@
     "ask": "长数列本身不便拆成独立奇偶列时，先作相邻差，识别若干个差值按固定顺序循环，再续目标差值。",
     "example": "粤2022县：1，0，1，5，4，5，9，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-multiple-alternati-2",
@@ -199,7 +221,8 @@
     "ask": "把奇数位视为主链，相邻两个奇数位之差恰为夹在中间的偶数位，即后奇数项=前奇数项+前一偶数项。",
     "example": "粤2023乡：10，3，13，1，14，2，16，5，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -212,7 +235,8 @@
     "ask": "各项紧邻连续平方数，统一写成n²加或减同一常数，按下一平方数施加同样修正。",
     "example": "知识点页：0，3，8，15，24，（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "cube-constant-offset",
@@ -220,7 +244,8 @@
     "ask": "大数项靠近连续立方数，将各项拆为n³±c，固定修正后求下一项。",
     "example": "知识点页：2，9，28，65，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "power-linear-offset",
@@ -228,7 +253,8 @@
     "ask": "基准为连续平方或立方，修正项不是常数而是连续整数、奇数或等差数列，两行对齐后分别续写。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "alternating-power-offset",
@@ -236,7 +262,8 @@
     "ask": "连续幂次分别交替加减同一数或递增数，判断目标位正负方向后计算。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "standard-variable-powers",
@@ -244,7 +271,8 @@
     "ask": "各项可写成连续底数的递增指数幂，如1¹、2¹、3²、4³、5⁴，直接延续底数与指数对应关系。",
     "example": "粤2021县：1，2，9，64，625，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-power-modified-1",
@@ -252,7 +280,8 @@
     "ask": "各项先提取同一公因数，商依次还原为1²、2²、3²等连续平方，再用公因数乘下一平方求项。",
     "example": "粤2021乡：11，44，99，176，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -265,7 +294,8 @@
     "ask": "三四位大数整体作差无序，逐项计算各位数字和，所得小数列为等差、等比或常数，据选项数位和筛选。",
     "example": "知识点页：214，323，415，255，（ ）",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "outer-digits-middle",
@@ -273,7 +303,8 @@
     "ask": "逐项拆位，检查首位与末位的和、差、积是否等于中间位，用同一局部等式识别选项。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "digit-column-chains",
@@ -281,7 +312,8 @@
     "ask": "百位、十位、个位分别纵向观察，各列独立按等差、循环或递增变化，组合目标位三列数字。",
     "example": "粤2022乡：123，465，987，（ ），456，897，231，645，789",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cyclic-digit-rotation",
@@ -289,7 +321,8 @@
     "ask": "同一组数字按固定方向循环移位或轮换位置，识别移位周期后写出下一排列。",
     "example": "粤2026：1231，2311，3112，1123，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "split-and-concatenate",
@@ -297,7 +330,8 @@
     "ask": "将三四位数拆成前后两段或若干数位，段间满足加减乘关系，先求目标段再按原格式拼接。",
     "example": "粤2021乡：389，569，479，587，299，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "self-digit-sum-recur",
@@ -305,7 +339,8 @@
     "ask": "相邻项差不规则但都较小，检验后项=前项+前项各位数字之和。",
     "example": "苏2025B第52题：515，526，539，556，572，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -318,7 +353,8 @@
     "ask": "从末端大数锁定固定倍数k，验证每步均为前项×k±同一常数，再求下一项。",
     "example": "知识点页：2，5，11，23，47，（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "fixed-multiple-linear-fix",
@@ -326,7 +362,8 @@
     "ask": "主体倍数固定，修正项依次为0、±1、±2等等差链，续写修正项后完成乘加。",
     "example": "知识点页：1，3，8，22，63，（ ）",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "increasing-multipliers",
@@ -334,7 +371,8 @@
     "ask": "每一步乘数按1、2、3、4递增，修正项固定或为0，先确定目标乘数再计算。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multiplier-and-fix-linked",
@@ -342,7 +380,8 @@
     "ask": "乘数递增且加减项也按同序号变化，如×2+1、×3+2、×4+3，拆成两条链续写。",
     "example": "粤2025：3，7，17，43，113，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "signed-multiple-recur",
@@ -350,7 +389,8 @@
     "ask": "数列正负交替且绝对值快速放大，用前项乘负倍数再加减递增修正，锁定末端两项倒推验证。",
     "example": "粤2024：5，-7，16，-50，202，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-multiple-modify-1",
@@ -358,7 +398,8 @@
     "ask": "后项均为前项乘固定倍数，再加按等比扩张的修正项；分别续固定乘数和修正项等比链。",
     "example": "粤2025：3，7，17，43，113，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -371,7 +412,8 @@
     "ask": "从第三项起等于前两项之和，连续核验两组后用末两项相加求下一项。",
     "example": "粤2020县：23，34，58，93，152，（ ）",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "sum-plus-offset",
@@ -379,7 +421,8 @@
     "ask": "第三项等于前两项之和再加减固定数或递增修正，先列出差额链再续写。",
     "example": "粤2022乡：6，12，19，32，52，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "sum-times-factor",
@@ -387,7 +430,8 @@
     "ask": "后项等于前两项之和乘固定倍数，逐组三项核验后对末两项执行同样运算。",
     "example": "知识点页：2，3，10，26，72，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "three-term-sum",
@@ -395,7 +439,8 @@
     "ask": "从第四项开始由前三项求和或和后修正得到，使用末三项而非末两项计算目标。",
     "example": "粤2025：12，13，25，37，49，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "two-term-product-offset",
@@ -403,7 +448,8 @@
     "ask": "后项由前两项乘积再加减常数得到，先用小项验证固定修正，再计算末端大数。",
     "example": "知识点页：2，3，5，14，69，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "self-square-recur",
@@ -411,7 +457,8 @@
     "ask": "每个后项由紧邻前项平方后加减常数产生，不使用两项合成，锁定平方修正后续写。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-sum-product-recur-1",
@@ -419,7 +466,8 @@
     "ask": "从第三项起先取前两项之和，再按两个固定修正量交替加减；核验交替周期后用于下一项。",
     "example": "粤2026：82，68，142，208，342，548，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "linear-coef-recur",
@@ -427,7 +475,8 @@
     "ask": "后项=x·前前项+y·前项且x≠y（可含负系数），先用大数定桩试系数，再整列验证。",
     "example": "浙2025A第54题：7/9，-2/3，1，0，3，6，21，（ ）（an=3an-2+2an-1）；浙2025A第53题：5，2，8，-4，20，-28，（ ）（an=2an-2-an-1）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -440,7 +489,8 @@
     "ask": "列ax+by=c，利用c与一项系数的公约数推出另一未知数必须为某倍数，缩小候选后代回。",
     "example": "粤2020县：153份文件装入每袋24份或15份，问大文件袋数量",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "last-digit-anchor",
@@ -448,7 +498,8 @@
     "ask": "方程含5或10倍项，用其末位只能为0或5反推另一项末位，结合正整数范围锁定解。",
     "example": "知识点页：5x+4y=62，问小盒最多有多少个",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "parity-prime-anchor",
@@ -456,7 +507,8 @@
     "ask": "总和奇偶性与系数奇偶性联动；若未知数限定为质数，利用唯一偶质数2锁定一项再求另一项。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "small-modulus",
@@ -464,7 +516,8 @@
     "ask": "系数无明显5或公约数时，全式模较小系数，解单变量同余首解，再代回求另一未知数。",
     "example": "知识点页：7x+11y=236，且y<x<2y",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "integer-extreme",
@@ -472,7 +525,8 @@
     "ask": "在ax+by=c及正整数约束下求某项或总件数最大最小，从另一项最小候选开始并用整除条件校正。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "solution-chain-range",
@@ -480,7 +534,8 @@
     "ask": "先得一组整数特解，再按x每次增b、y每次减a列解链，用大小关系或区间约束筛出合法组。",
     "example": "知识点页：由(29,3)按步长推到(18,10)并检验y<x<2y",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -493,7 +548,8 @@
     "ask": "两个方程含三个单价未知数，设问为三者总和；给自由变量赋0降为二元方程，再代入目标式。",
     "example": "知识点页：两种采购方案已知，问A、B、C各一件总价",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "coefficient-linear-combo",
@@ -501,7 +557,8 @@
     "ask": "目标采购组合恰为两条已知方程的倍数和或差，直接寻找配系数并组合等式，无需求各单价。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "count-and-value-three-types",
@@ -509,7 +566,8 @@
     "ask": "三类商品给总件数、总金额及正整数限制，消去一元后化成二元不定方程，用整除和范围求某类数量。",
     "example": "国2024副省：三种农产品共240包、总销售额6000元，甲是乙2倍",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "eliminate-to-binary",
@@ -517,7 +575,8 @@
     "ask": "两个三元方程的设问是单个未知数，先相减或倍乘消去一元，再把剩余关系作为二元不定方程筛整数解。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "target-invariant-check",
@@ -525,7 +584,8 @@
     "ask": "先检验目标线性式能否由两方程线性组合得到；能则直接组合，不能则必须结合整数、正数或范围条件求解。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-score-extreme",
@@ -533,7 +593,8 @@
     "ask": "两类题目对、错、不答计分不同，给总分与题数及附加不等式，设多个整数变量，用整数性和不等式求某项至少或至多。",
     "example": "国2024副省：20道选择题和20道判断题，答对3分不答1分，总分82分，问判断题至少答对几道",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -546,7 +607,8 @@
     "ask": "不规则阴影由扇形、三角形或矩形交叠构成，通过平移旋转补成规则图形，或用大图形减空白求面积。",
     "example": "国2025副省：矩形与直角梯形交叠，问阴影涉密区域面积",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "thirty-sixty-triangle",
@@ -554,7 +616,8 @@
     "ask": "图中含30°、60°直角三角形，直接用1:√3:2边比求边长、高或面积。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "fortyfive-right-triangle",
@@ -562,7 +625,8 @@
     "ask": "识别45°等腰直角三角形，用1:1:√2边比或拆成两个全等直角三角形求长度面积。",
     "example": "",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "obtuse-135-external-altitude",
@@ -570,7 +634,8 @@
     "ask": "已知135°及带√2邻边，延长底边并以带根号边为斜边作外高，化为等腰直角与勾股数组合。",
     "example": "知识点页：出现135°且邻边带√2，向底边延长线作外高",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "k-shape-three-right-angles",
@@ -578,7 +643,8 @@
     "ask": "同一直线有两垂足且中间顶角90°、两斜边相等，用K字型全等交换两直角边，再勾股求端点距离。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "right-trapezoid-diagonals",
@@ -586,7 +652,8 @@
     "ask": "直角梯形上下底已知且两对角线垂直，套h²=ab求高，再求面积或相关边长。",
     "example": "知识点页：直角梯形对角线互相垂直时h=√ab",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-plane-cut-special--1",
@@ -594,7 +661,8 @@
     "ask": "规则图形由若干同边长方格拼成，先数外露边段，用总周长反求单格边长，再乘方格数求组合面积。",
     "example": "粤2022乡：8块相同正方形草皮围成草坪，外圈小石子带总长48米",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -607,7 +675,8 @@
     "ask": "相似图形线性尺寸扩大或缩小k倍，面积按k²变化；已知面积增量反求原面积或比例。",
     "example": "知识点页：外围周长增加后，面积按平方比变化",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "cone-depth-volume-cube",
@@ -615,7 +684,8 @@
     "ask": "倒圆锥中水体与容器相似，水深比转为体积立方比，用已知阶段体积求新增量或剩余容量。",
     "example": "国2025副省：倒立圆锥水深6厘米后继续注水，问容器总高",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multi-stage-square-difference",
@@ -623,7 +693,8 @@
     "ask": "多期扩建边长成整数比，先写各期面积平方份数，再按设问做相邻期或初末期份数差。",
     "example": "知识点页：面积比100:144:225，新增取225-144",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "equal-width-annuli",
@@ -631,7 +702,8 @@
     "ask": "圆形区域连续向外等宽扩建，半径形成等差链，利用相邻半径平方差比较各圈环形面积。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "trapezoid-butterfly",
@@ -639,7 +711,8 @@
     "ask": "梯形对角线交点分成四三角形，利用上下两块平方比、两翼等积或对角面积积相等求未知面积。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "rectangle-diagonal-area-law",
@@ -647,7 +720,8 @@
     "ask": "矩形内点连顶点时用对角三角形面积和各为总面积一半；作十字平行线时改用对角矩形面积积相等。",
     "example": "粤2026：四边形沿对角线分四区域，利用交叉对角面积性质",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-scaling-similarity-1",
@@ -655,7 +729,8 @@
     "ask": "同一人向灯移动前后形成两组相似三角形，用影长变化与移动距离建立比例，消去未知水平距离并求灯高。",
     "example": "粤2022县：影长3.2米，前进1米后影长1.6米，身高1.6米",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-scaling-similarity-2",
@@ -663,7 +738,8 @@
     "ask": "容器下锥上柱且底面相同，先用锥内水深立方比换算装满锥体的时间，再由剩余注水时间反求柱高。",
     "example": "国2025副：下部为高12厘米倒圆锥，上部为圆柱，1分钟液面高6厘米",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-scaling-similarity-3",
@@ -671,7 +747,8 @@
     "ask": "任意四边形两条对角线交于一点时，利用四个小三角形的对角面积乘积相等，结合面积差与比例列式。",
     "example": "粤2026：不规则四边形沿对角线分四区，青菜比毛豆多40%",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -684,7 +761,8 @@
     "ask": "矩形总周长或铁丝长度固定，长宽相等时面积最大；若限定四边形直接构造正方形。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "wall-budget-max-area",
@@ -692,7 +770,8 @@
     "ask": "矩形一边靠墙、其余三边单价可不同，总预算形成ax+by=C，令两部分预算各占一半求最大面积。",
     "example": "知识点页：固定预算采购不同单价围栏，问最大容纳面积",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "fixed-area-min-cost",
@@ -700,7 +779,8 @@
     "ask": "矩形面积xy固定、两方向围栏单价不同，把两边花费乘积化为常数，取两项相等时总造价最低。",
     "example": "知识点页：货场面积900平方米，四面围栏单价不同，求最低造价",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "sector-perimeter-max-area",
@@ -708,7 +788,8 @@
     "ask": "护栏总长C围成扇形，约束2r+l=C、面积lr/2，令两半径总长与弧长各占C/2求最大值。",
     "example": "知识点页：用固定长度护栏围建扇形苗圃，求最大面积",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "shape-isoperimetric-compare",
@@ -716,7 +797,8 @@
     "ask": "多个规则图形周长相同，按越接近圆面积越大比较；反向在面积固定时比较谁周长最小。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -729,7 +811,8 @@
     "ask": "长方体、棱柱或圆柱给底面尺寸和高，按V=Sh求容积，也可由容量反求高或底面半径。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cone-pyramid-volume",
@@ -737,7 +820,8 @@
     "ask": "圆锥或棱锥给底面积和高，强制使用V=Sh/3；可由切除前后体积反求尺寸。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "single-cut-surface-increase",
@@ -745,7 +829,8 @@
     "ask": "立体被一刀完全切成两块，表面积增量等于两个切口截面面积，根据切割方向确定截面形状。",
     "example": "知识点页：6×4×3长方体平行底面切开，表面积增加48",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "multiple-parallel-cuts",
@@ -753,7 +838,8 @@
     "ask": "若干平行切口把立体切成多段，每个切口贡献两个截面，按切口数而非块数累计新增面积。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cut-into-max-cubes",
@@ -761,7 +847,8 @@
     "ask": "长方体无废料切相同正方体，先用长宽高最大公约数定棱长和块数，再比较总表面积与原表面积。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cuboid-surface-shortest",
@@ -769,7 +856,8 @@
     "ask": "两点位于长方体不同表面，列出可能展开方式，把相邻面铺成矩形后用勾股求直线并取最短。",
     "example": "知识点页：蚂蚁从正方体表面一点爬到另一点的最短路程",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -782,7 +870,8 @@
     "ask": "给球半径或直径，直接求表面积4πR²或体积4πR³/3，也可由面积、体积反求半径。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "single-cross-section",
@@ -790,7 +879,8 @@
     "ask": "给球半径、球心到截面距离或截面面积中的两个量，用r²+d²=R²求第三量。",
     "example": "知识点页：截面面积给出πr²，结合球心距求球半径",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "parallel-sections-same-side",
@@ -798,7 +888,8 @@
     "ask": "两个平行截面位于球心同侧，截面半径平方差除以平面间距得到两球心距之和，再求R。",
     "example": "知识点页：截面面积9π和16π、间距1，求球表面积",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 3
    },
    {
     "id": "parallel-sections-opposite",
@@ -806,7 +897,8 @@
     "ask": "两平行截面分居球心两侧，平面间距等于两球心距之和，联立两个截面勾股式求球半径。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "submerged-sphere-displacement",
@@ -814,7 +906,8 @@
     "ask": "球完全浸入柱体容器，令球体积等于底面积乘水面升高量，反求球半径或液面变化。",
     "example": "知识点页：铁球放入圆柱杯，水面上升",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cube-inscribed-circumsphere",
@@ -822,7 +915,8 @@
     "ask": "正方体内切球直径等于棱长，外接球直径等于体对角线，据此求球半径、面积或体积比。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -835,7 +929,8 @@
     "ask": "给实际总量且跨过一个临界点，第一档按上限打满，超出量按第二档单价计算后相加。",
     "example": "知识点页：120度以内0.6元，超出部分0.9元",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "three-tier-forward",
@@ -843,7 +938,8 @@
     "ask": "总量落入第三档，前两档分别按各自区间宽度满额计费，仅末档用总量减第二临界点。",
     "example": "知识点页：240度按三段阶梯电价计费",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "base-price-excess",
@@ -851,7 +947,8 @@
     "ask": "起步价已包含基础里程或重量，先保留起步价，再只对超出基础量的部分按后续单价收费。",
     "example": "知识点页：出租车起步价包含3公里",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "free-tier-then-charge",
@@ -859,7 +956,8 @@
     "ask": "前若干天或额度免费，先扣除免收费段，再按后续阶梯的区间宽度和单价累计费用。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "rounded-billing-quantity",
@@ -867,7 +965,8 @@
     "ask": "题干规定不足1单位按1单位、按整天或整公里计费，先将实际量进位成计费量，再按阶梯分段。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -880,7 +979,8 @@
     "ask": "已知实付费，先与第一档满额费比较判档，扣除保底费后除第二档单价，最后加回临界用量。",
     "example": "知识点页：缴电费117元，反求实际用电量",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "three-tier-reverse",
@@ -888,7 +988,8 @@
     "ask": "先计算前两档累计保底费判定进入第三档，再扣前两档费用、除末档单价并加回第二临界点。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "taxi-fare-reverse",
@@ -896,7 +997,8 @@
     "ask": "总车费含起步价及一到两段里程费，逐段扣除起步与满档费用，反求末段里程并加回基础里程。",
     "example": "知识点页：乘出租车花费42元，问行驶多少公里",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "uniform-surcharge-reverse",
@@ -904,7 +1006,8 @@
     "ask": "除阶梯基本价外，每单位还统一收附加费；把附加单价并入各档有效单价后再倒扣反求总量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "boundary-fee-bracket",
@@ -912,7 +1015,8 @@
     "ask": "费用接近档位临界值，先列各临界累计费用区间，避免把总费直接除最高档单价，再执行对应档逆算。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -925,7 +1029,8 @@
     "ask": "递增阶梯下两主体合并结算，找原本各自享受低价、合并后被挤入高价的重叠量，乘高低单价差。",
     "example": "知识点页：14吨与28吨合并水表，比单独计费多交多少",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "merge-discount-saving",
@@ -933,7 +1038,8 @@
     "ask": "用量越大单价越低的阶梯优惠中，找合并后从高价转入低价的跨档量，乘单价差求节省额。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "shared-quota-offset",
@@ -941,7 +1047,8 @@
     "ask": "两个主体各有低价配额，一方未用完、一方超额；合并共享后以两者较小的可转移量乘单价差。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "three-tier-merge",
@@ -949,7 +1056,8 @@
     "ask": "合并前后跨越两个临界点，把移动用量按分别跨一档或跨两档拆段，各段乘对应单价差后相加。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "infer-overlap-from-difference",
@@ -957,7 +1065,8 @@
     "ask": "已知合并与分开计费的费用差，用差额除高低档单价差反求跨档量，再结合配额缺口求某主体用量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -970,7 +1079,8 @@
     "ask": "给甲乙最简比及总和或差额，先用份数和或份数差求一份，再求目标主体或总量。",
     "example": "知识点页：男女人数比5:7，差16人，求总人数",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "divisibility-options",
@@ -978,7 +1088,8 @@
     "ask": "离散人数或件数按最简比给出，设问所求量必为对应份数的倍数，优先用整除性筛选选项。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "fraction-percent-to-ratio",
@@ -986,7 +1097,8 @@
     "ask": "把占总数分数、百分比或“多几成”化为最简整数比，再用已知总差归一份数。",
     "example": "粤2026：甲占总数24%，乙比丙多50%",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "chain-ratio-common-term",
@@ -994,7 +1106,8 @@
     "ask": "给A:B与B:C两组比，取公共主体份数最小公倍数拼成A:B:C，再按总和或差额求实数。",
     "example": "知识点页：文史:科技=4:3，科技:经管=2:5",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "multi-part-static-allocation",
@@ -1002,7 +1115,8 @@
     "ask": "三个以上主体已给统一连比及总量，按总份数求每份后分别计算；设问可为某两项和差或占比。",
     "example": "粤2021乡：三类工程设备共120台，推土机和挖掘机分别为吊机3倍、4倍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "gap-static-ratio-multi-1",
@@ -1010,7 +1124,8 @@
     "ask": "两主体既给总体人数比，又给其中某子集人数比，并给各自总体与子集的差额；统一两组份数后联立求总体差。",
     "example": "粤2021乡：甲、乙两镇参赛人数之比4∶3，未参赛8人、24人，总人数之比5∶6",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "cross-table-whole-diff",
@@ -1018,7 +1133,8 @@
     "ask": "两种分类交叉（品种×有效/无效），求两格之差时用整体量相减，不解单格。",
     "example": "浙2025A第56题：其中36份为有效样本。已知乙品种采集样本30份，那么甲品种的有效样本比乙品种的无效样本",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "self-excluded-ratio",
@@ -1026,7 +1142,8 @@
     "ask": "两人分别看到“除自己外”某类占比，按自己属不属于该类，分子差1、分母都是N-1，联立求N。",
     "example": "川2025第53题：一位演员看到贴红色背贴的演员是除自己之外所有演员的1/5",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1039,7 +1156,8 @@
     "ask": "甲向乙转移固定量导致比例变化，总数不变；统一两期总份数，用甲或乙份数变化对应转移量。",
     "example": "知识点页：甲书架向乙转30本，比例由3:1变3:2",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "equal-increase-difference",
@@ -1047,7 +1165,8 @@
     "ask": "两主体同时增加或减少相同数量，绝对差不变；统一两期份数差，再由单方份数增量求原量。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "one-side-unchanged",
@@ -1055,7 +1174,8 @@
     "ask": "只有甲增减、乙不变，通分使乙两期份数一致，用甲的份数差对应实际变动量。",
     "example": "知识点页：甲组调出后占比由60%降为40%，乙组不变",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "multi-stage-changing-anchor",
@@ -1063,7 +1183,8 @@
     "ask": "连续两次比例变化中，每阶段不变量可能不同，逐段分别拉平未变主体，串联求初始量。",
     "example": "粤2021县：先招聘本科生，再引入研究生，比例连续变化",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "two-hypothetical-transfers",
@@ -1071,7 +1192,8 @@
     "ask": "题干给两种互斥调配方案及各自新比例，总和均与原始总数相同，分别写份数变化关系求初始两量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-ratio-invariant-co-1",
@@ -1079,7 +1201,8 @@
     "ask": "给前后两期构成比及总量增长率，先按增长率拉平两期总份数，再用某一部分的实际增量定每份。",
     "example": "粤2023乡：去年党员与非党员1∶3，今年总人数提高20%且比例变为1∶2",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1092,7 +1215,8 @@
     "ask": "给总个数和总重量、腿数或载重，假设全为一种，用实际与假设总量之差除单位差求另一种数量。",
     "example": "知识点页：14辆大小货车满载100吨，载重分别8吨和5吨",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "positive-score-mix",
@@ -1100,7 +1224,8 @@
     "ask": "总题数固定，两类题均为正得分但分值不同，假设全按高分或低分计，用总分差反求题数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "negative-score-unanswered",
@@ -1108,7 +1233,8 @@
     "ask": "答对得正分、答错扣分且未答数已知，先扣除未答题再假设其余全对，单位损失按正分减负分。",
     "example": "知识点页：20题，对一题5分、错一题扣2分，最终72分",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "damage-compensation",
@@ -1116,7 +1242,8 @@
     "ask": "完好品收运费、破损品不收且倒赔，假设全部完好；每破损一件损失为运费加赔偿额。",
     "example": "粤2021县：每件运费20元，破损还赔30元，问破损件数",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "three-types-reduced",
@@ -1124,7 +1251,8 @@
     "ask": "三种单价或效率混合，但其中两类数量有倍数关系，先捆成复合单位，再按两类假设置换。",
     "example": "国2024副省：三种农产品共240包，甲销售量是乙2倍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "before-after-conversion",
@@ -1132,7 +1260,8 @@
     "ask": "总人数不变，部分低效率者转为高效率者，产量增量除单人效率差得到转化人数，再求新结构。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -1145,7 +1274,8 @@
     "ask": "两次每份分配量不同，一次有余、一次不足；余量与缺量相加后除每份差，求主体数并回代总量。",
     "example": "粤2021乡：每宿舍住6人缺7床，住8人空3床",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "both-surplus",
@@ -1153,7 +1283,8 @@
     "ask": "两种分配标准下都剩余，用两次余量之差除每份分配量之差求主体数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "both-deficit",
@@ -1161,7 +1292,8 @@
     "ask": "两种方案均不够分，用两次缺额之差除每份标准之差，再回代求总对象数。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "empty-or-partial-container",
@@ -1169,7 +1301,8 @@
     "ask": "出现空车、空房或最后一份未装满，先按该方案标准容量折算成等价缺额，再套总盈亏差公式。",
     "example": "知识点页：每车50人时空1辆，折算为缺50人",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "schedule-advance-delay",
@@ -1177,7 +1310,8 @@
     "ask": "按较低日产量会逾期、较高日产量会提前，把多做或少做的天数折算为工作量盈亏，求计划天数和总量。",
     "example": "知识点页：每天生产40件逾期3天，50件提前2天",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1190,7 +1324,8 @@
     "ask": "给全集、A人数、B人数和两项都不满足人数，用N-都不=A+B-交集求两项都满足。",
     "example": "粤2022乡：80人中40人有基层经历、46人有证书，10人两者皆无",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "only-one-crescent",
@@ -1198,7 +1333,8 @@
     "ask": "已知某集合总数及交集，用集合总数减交集求该月牙；或用全集减另一集合整体和圈外。",
     "example": "知识点页：45人至少参加一项，书法组28人，求只参加棋艺组",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "reverse-total-or-union",
@@ -1206,7 +1342,8 @@
     "ask": "给A、B、交集及都不人数或其占比，先算并集，再与圈外合并反求全集。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "crescent-ratio-equation",
@@ -1214,7 +1351,8 @@
     "ask": "只A、只B、交集或都不之间给倍数和差关系，画四块互斥区域并以全集总和列一元方程。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "both-versus-neither",
@@ -1222,7 +1360,8 @@
     "ask": "A、B以人数或百分比给出，交集比都不多或少固定量，代入两集合容斥式反求总人数。",
     "example": "国2025副省：60%参与A、45%参与B，都参与比都不参与多2人",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -1235,7 +1374,8 @@
     "ask": "给三个集合总数、三组两两交集及全集圈外，按A+B+C-S2+三者交集求中心或全集。",
     "example": "知识点页：100人中80、70、60人通过三科，两两交集50、40、35",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "exactly-two-nonstandard",
@@ -1243,7 +1383,8 @@
     "ask": "给恰好满足两项总人数而非两两交集和，用A+B+C-R2-2z计算并求三项全满足人数。",
     "example": "知识点页：恰好通过两科40人，问三科全过人数",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "center-neither-relation",
@@ -1251,7 +1392,8 @@
     "ask": "三者都满足与三者都不满足有倍数或差值关系，将圈内并集写成N-圈外，代标准或非标公式联立。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "pair-sum-bridge",
@@ -1259,7 +1401,8 @@
     "ask": "同时出现恰好两项和具体两两交集，先求中心z，再用S2=R2+3z求两两交集和并补缺项。",
     "example": "知识点页：用S2=R2+3z求第三个两两交集",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "exactly-one-macro",
@@ -1267,7 +1410,8 @@
     "ask": "先用公式求恰好两项和三项全满足，再以并集减去这两部分，整体求只满足一项人数。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1280,7 +1424,8 @@
     "ask": "题干直接给“A和B但不含C”等纯花瓣，从中心向外依次填三片花瓣，再汇总其余区域。",
     "example": "知识点页：三片纯花瓣为3、4、2，中心为5",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "inclusive-pairs-minus-center",
@@ -1288,7 +1433,8 @@
     "ask": "给“同时参加A和B”这类含中心的两两交集，先减三项都满足人数后再填纯花瓣。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "set-total-backfill-single",
@@ -1296,7 +1442,8 @@
     "ask": "中心和两片花瓣已知时，用某集合总人数扣除圈内已填区域，反求该集合纯单项月牙。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "complement-slice",
@@ -1304,7 +1451,8 @@
     "ask": "给未参加A、仅参加B等补集条件，把涉及的若干互斥单间打包列局部等式，不必求全图所有区域。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "asymmetric-local-equations",
@@ -1312,7 +1460,8 @@
     "ask": "碎片条件含多个只参加、差值或倍数关系，画七个独立单间，从中心向外填数并对局部区域列方程。",
     "example": "国2025执法：65人三项认证，给仅丙、三项都有，求仅甲乙",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1325,7 +1474,8 @@
     "ask": "给三项以上各集合达标人数，先求各项不达标数并相加，用N扣除其和，结果小于0时取0。",
     "example": "知识点页：100人参加4项测试，通过数90、85、80、75",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "all-pass-maximum",
@@ -1333,7 +1483,8 @@
     "ask": "只给各集合规模时，要使公共交集最大就让小集合完全包含于大集合，最大值取最小集合人数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "max-min-range",
@@ -1341,7 +1492,8 @@
     "ask": "分别用最小集合求交集最大值、反向不达标和求最小值，再按设问计算两极值之差。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mixed-pass-fail-inputs",
@@ -1349,7 +1501,8 @@
     "ask": "条件有的给达标人数、有的直接给未达标人数或达标率，先统一成未达标人数后再反向倒扣。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "zero-floor-case",
@@ -1357,7 +1510,8 @@
     "ask": "各项不满足人数之和超过总人数时，说明可让不满足者覆盖全体，公共交集理论下界必须截为0。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -1370,7 +1524,8 @@
     "ask": "给两人或多人的单独完工时间，赋总量为时间最小公倍数，求各效率和后反求合作时间。",
     "example": "粤2021县：甲单独200天、乙300天，合作后分段完成",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "pairwise-times-three-workers",
@@ -1378,7 +1533,8 @@
     "ask": "给甲乙、乙丙、甲丙三组合作时间，赋总量后求三组效率和，相加除2得到三人总效率。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "efficiency-ratio",
@@ -1386,7 +1542,8 @@
     "ask": "给甲乙效率比及某单人或组合的工期，赋效率为最简整数比，先求总量再求目标组合时间。",
     "example": "知识点页：甲乙效率比4:3，乙单独20天，问合作时间",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "machine-equivalence",
@@ -1394,7 +1551,8 @@
     "ask": "给若干A设备效率等于若干B设备，统一折算为同一种设备效率，再比较不同设备组合的工期。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "workers-and-skill-levels",
@@ -1402,7 +1560,8 @@
     "ask": "两类工人人数比和单人效率倍数均已知，把总效率写成人数×单兵效率之和，比较单类与混合工期。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "time-sum-ratio-solve",
@@ -1410,7 +1569,8 @@
     "ask": "给“单独完成天数之和是合作天数的k倍”，列(x+y)²=kxy解效率比，再结合分段施工求时间。",
     "example": "浙2025A第59题：甲、乙分别单独完成的天数之和是合作完成天数的4.5倍",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1423,7 +1583,8 @@
     "ask": "甲乙按各1个时间单位交替，打包两步净工作量做带余除法，余量按下一出场者单独完成。",
     "example": "知识点页：甲先1天、乙再1天交替施工",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "unequal-turn-lengths",
@@ -1431,7 +1592,8 @@
     "ask": "甲工作1小时、乙工作2小时等不等时长循环，周期量按效率乘各自时长求和，余量逐段模拟。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "three-worker-cycle",
@@ -1439,7 +1601,8 @@
     "ask": "甲乙丙依次各作业固定时长，三步打包为一周期，完整周期后按甲乙丙顺序扣除尾量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "positive-negative-cycle",
@@ -1447,7 +1610,8 @@
     "ask": "白天注入、夜间排出或施工后回退，周期取净增长，但最后一次正增长达到目标后不再扣夜间损失。",
     "example": "知识点页：白天注水、夜间渗漏，首次装满时停止",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "exact-time-versus-day",
@@ -1455,7 +1619,8 @@
     "ask": "尾量不足一个工作单位时按当前主体效率算分数时长；若问第几天完工则对实际时长进一取整。",
     "example": "知识点页：13.25天完成，若问第几天则为第14天",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -1468,7 +1633,8 @@
     "ask": "同一工程给甲乙两种施工天数组合且都完工，令两方案工作量相等，移项求效率比再赋值。",
     "example": "知识点页：甲4天乙6天，与甲2天乙9天均完工",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "worker-leaves-midway",
@@ -1476,7 +1642,8 @@
     "ask": "先合作若干天，随后一人离开、另一人独做，按阶段效率乘时间累加；设问总工作时注意包含前段。",
     "example": "知识点页：甲乙合作6天后甲调走，问乙共工作多少天",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "replacement-worker",
@@ -1484,7 +1651,8 @@
     "ask": "前段由原组合施工，后段某队被另一队替换，利用总量守恒求替换队效率或单独完工时间。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "staff-count-change",
@@ -1492,7 +1660,8 @@
     "ask": "单兵效率不变但中途增减人数，画时间轴分段，以各阶段人数×单兵效率×时间之和等于总量。",
     "example": "粤2021乡：前4天20人完成五分之一，再用10天完成需增多少人",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "changing-daily-output",
@@ -1500,7 +1669,8 @@
     "ask": "实际每天工作量按等差递增或递减，与原方案固定日产量完成同一总量，比较两套总量方程求工期。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-multischeme-equati-1",
@@ -1508,7 +1678,8 @@
     "ask": "多个同效率主体先后开工，给两个时点的累计工作量倍数、差额和最终总量，先换算各自工时再倒推开工时刻。",
     "example": "国2025副：3台收割机效率相同，12时给面积倍数和差，16时共收割50亩",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1521,7 +1692,8 @@
     "ask": "多项大数相近，选整十整百为基准，只求各项正负偏差和，除样本数后修正基准。",
     "example": "知识点页：892、895、903、898等相近大数求均值",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "remove-high-low",
@@ -1529,7 +1701,8 @@
     "ask": "去掉最高或最低值后均值变化，用剩余人数乘均值跳变量求极值偏离原均值的距离。",
     "example": "知识点页：7人均分88，去最高后6人均分86",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "add-remove-members",
@@ -1537,7 +1710,8 @@
     "ask": "原组调出已知成员并调入若干新人，新均值已知；以新均值为基准做偏差对冲，求新人总和或个值。",
     "example": "知识点页：8人均龄36，调出48岁并调入2人后均龄34",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "member-linked-to-overall",
@@ -1545,7 +1719,8 @@
     "ask": "某人成绩比未知全员均值高或低c，设全员均值x，把该人成绩写成x±c，用总分守恒解x。",
     "example": "知识点页：第9名比10人全员均分高5分",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "swap-between-groups",
@@ -1553,7 +1728,8 @@
     "ask": "两组各换一人后均值相等，先求全员总均值，再用单组人数乘均值变化量求换出换入者差额。",
     "example": "知识点页：6人均86与4人均76，对调后两组均值相等",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "new-members-sum-ratio",
@@ -1561,7 +1737,8 @@
     "ask": "加入若干样本后总体均值改变，先由前后总量差求新增样本和，再结合比值或差值拆出各自数值。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-average-baseline-s-1",
@@ -1569,7 +1746,8 @@
     "ask": "一人从甲组单向调入乙组且两组均值均变化，先由接收组总量变化求调入者数值，再回代调出组求新均值。",
     "example": "国2026副：甲乙办公室各4人，甲调1人到乙后，两办公室平均年龄都增加2岁",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1582,7 +1760,8 @@
     "ask": "给两组均值和总体均值，十字交叉作差，按距离反比得到两组人数比。",
     "example": "知识点页：男均85、女均80、全员均82",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "count-difference-to-total",
@@ -1590,7 +1769,8 @@
     "ask": "先由三个均值求人数最简比，再把两组实际人数差对应份数差，求总人数或某组人数。",
     "example": "知识点页：男比女少12人，问参加考核总人数",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "reverse-subgroup-mean",
@@ -1598,7 +1778,8 @@
     "ask": "已知两组人数比、总体均值和一组均值，利用人数与均值距离反比，反求另一组均值。",
     "example": "知识点页：技术与行政人数比3:2，总均薪9000，行政7500",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "weighted-rate-mixture",
@@ -1606,7 +1787,8 @@
     "ask": "两群体各有通过率、增长率或浓度，总体率位于两率之间，用十字交叉求基期数量权重。",
     "example": "粤2025：蜜柚增40%、柠檬降20%，总销量增4%",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "nested-two-classifications",
@@ -1614,7 +1796,8 @@
     "ask": "同一总体按两种分类各给组均值，先用第一分类求总人数或比例，再用第二分类的十字比求目标组人数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-weighted-average-c-1",
@@ -1622,7 +1805,8 @@
     "ask": "两组分别给人数比和总金额比，先按两组总人数、总金额拆出目标组人数与金额，再相除求该组平均值。",
     "example": "粤2026：周六客户数是周日1.5倍、金额是周日80%，两日共40家720万元",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1635,7 +1819,8 @@
     "ask": "给过去与未来两个时点的年龄倍数，统一两期份数差，用同一人份数变化对应跨年总长度。",
     "example": "知识点页：今年父亲4倍，20年后2倍",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "current-future-ratio",
@@ -1643,7 +1828,8 @@
     "ask": "给今年年龄比和若干年后新比，年龄差守恒；拉平份数差后求一份岁数及今年年龄。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "three-time-ratios",
@@ -1651,7 +1837,8 @@
     "ask": "过去、现在、未来给三组倍数关系，先用任意两期定年龄差与单位份数，再用第三期校验或求时间。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "find-year-of-ratio",
@@ -1659,7 +1846,8 @@
     "ask": "已知当前两人年龄或当前比，设经过t年后达到目标倍数，用年龄差不变或份数差反推t。",
     "example": "知识点页：今年甲是乙3倍，若干年后变2倍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "ratio-to-age-sum",
@@ -1667,7 +1855,8 @@
     "ask": "先用两期比例和跨年时间求每份年龄，再按目标时点两人总份数求年龄和，而非只求某个人。",
     "example": "粤2025：兄弟工龄与年龄和关系，求年龄差",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-age-difference-1",
@@ -1675,7 +1864,8 @@
     "ask": "把兄弟年龄差与参加工作先后差放在同一时间轴，用入职年龄、当前年龄及工龄和的倍数关系列式求年龄差。",
     "example": "粤2025：小王参加工作时的年龄和弟弟现在年龄相同，工龄和与年龄和成倍数",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1688,7 +1878,8 @@
     "ask": "“我像你这么大时你才a岁；你到我这么大时我已b岁”，将a、幼者今龄、长者今龄、b排成四项等差。",
     "example": "知识点页：弟弟过去5岁，哥哥未来29岁",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "future-sum-endpoint",
@@ -1696,7 +1887,8 @@
     "ask": "第二句不给长者未来年龄而给未来两人年龄和，先用等差步长表示未来两龄，再由其和求公差。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "ask-current-sum-or-one",
@@ -1704,7 +1896,8 @@
     "ask": "由四项等差求出中间两项后，按设问返回长者今龄、幼者今龄或两人当前年龄和。",
     "example": "知识点页：问哥哥和弟弟今年各多少岁",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "timeline-then-target-ratio",
@@ -1712,7 +1905,8 @@
     "ask": "先用绕口令时间轴求当前两龄，再求若干年后达到指定倍数或年龄和时的年份。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1725,7 +1919,8 @@
     "ask": "三口之家给今年与N年前年龄和，实际减少量小于3N，差额反映孩子N年前尚未出生，据此求孩子现龄。",
     "example": "知识点页：一家三口今年68岁，6年前52岁",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "four-person-one-interval",
@@ -1733,7 +1928,8 @@
     "ask": "四口之家跨年年龄和增量不足4N，结合兄妹年龄差判断一名或多名子女当时未出生，再分配缺口。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "two-historical-checkpoints",
@@ -1741,7 +1937,8 @@
     "ask": "给今年及两个过去时点的家庭年龄和，比较各时段斜率变化，判断新成员在哪一时段出生并求各子女年龄。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "detect-whether-unborn",
@@ -1749,7 +1946,8 @@
     "ask": "先比较实际年龄和变化与人数×年数；相等则全员已出生，不等才按少扣岁数反推未出生年限。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "child-then-parent-ages",
@@ -1757,7 +1955,8 @@
     "ask": "先由未出生缺口求孩子现龄，再用家庭总年龄扣孩子，并结合父母年龄差求父亲、母亲或生育年龄。",
     "example": "知识点页：算出孩子岁数后，再结合父母年龄差求解",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-ratio-average",
@@ -1765,7 +1964,8 @@
     "ask": "三人年龄成比例，结合若干年后和的倍数关系及多人平均年龄联立求解，再判断未来年龄条件。",
     "example": "国2024副省：甲乙丙年龄之比3：4：5，8年后甲乙之和是丙的1.5倍，且四人平均43岁",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "future-sum-integer-extreme",
@@ -1773,7 +1973,8 @@
     "ask": "给某年多人年龄和等于另一人若干年后年龄，再加年龄差大小关系，化为整数不等式求某人年龄最小值。",
     "example": "国2025副省：2024年三人年龄和与2034年甲的年龄相同，甲乙之差大于乙丙之差，求甲最小年龄",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1786,7 +1987,8 @@
     "ask": "某人必须在中间、只能在某几位或不能站两端，先安排受限者可选位置，再排列其余元素。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "adjacent-bundle",
@@ -1794,7 +1996,8 @@
     "ask": "要求若干人相邻，把他们视为一个整体与其他人排列，并乘被捆绑者内部全排列。",
     "example": "知识点页：甲乙必须相邻，丙不能在排头排尾",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "nonadjacent-gaps",
@@ -1802,7 +2005,8 @@
     "ask": "先排列无限制普通元素形成含两端的空位，再从不同空位选择或排列受限元素，保证互不相邻。",
     "example": "粤2026：一周选3天活动，每次至少间隔1天",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "endpoint-inclusion-exclusion",
@@ -1810,7 +2014,8 @@
     "ask": "甲不在首位且乙不在末位，从全排列减两类违规，再加回同时违规的交集。",
     "example": "知识点页：全集-甲在首-乙在末+两者同时成立",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "fixed-relative-order",
@@ -1818,7 +2023,8 @@
     "ask": "若干指定元素前后相对顺序固定但不要求相邻，先算全排列，再除以这些元素内部顺序数m!。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mixed-adjacent-nonadjacent",
@@ -1826,7 +2032,8 @@
     "ask": "同时有一组必须相邻、另一组不得相邻，先捆绑并处理内部顺序，再对禁邻元素用插空或反面扣除。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1839,7 +2046,8 @@
     "ask": "n个完全相同名额分给m个不同对象且每个至少1个，在n-1个间隙选m-1个隔板。",
     "example": "知识点页：10个相同名额分给3校，每校至少1个",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "zero-allowed-borrow",
@@ -1847,7 +2055,8 @@
     "ask": "对象可分得0个，向每个对象虚拟借1个，把非负整数解转为正整数隔板，使用C(n+m-1,m-1)。",
     "example": "知识点页：10个名额允许学校分不到，共C(12,2)种",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "uniform-lower-bound",
@@ -1855,7 +2064,8 @@
     "ask": "每个对象至少k个，先给每人预发k-1个以转成至少1个，再对剩余总数做标准隔板。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mixed-lower-bounds",
@@ -1863,7 +2073,8 @@
     "ask": "各对象下限不同，先分别扣除各自最低配额，使新变量均允许为0，再用借球或非负隔板计数。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "upper-cap-inclusion",
@@ -1871,7 +2082,8 @@
     "ask": "完成下限平移后，先算无限上限的全部方案，再用容斥扣除某对象超过上限的方案。",
     "example": "粤2022县：3单位共订12份，每个不少于3份且不超过5份",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "relative-size-restriction",
@@ -1879,7 +2091,8 @@
     "ask": "标准隔板外还要求甲少于乙、某对象最多等相对约束，利用对称配对、分类或枚举合法整数解计数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1892,7 +2105,8 @@
     "ask": "不同人员均分成若干无名称小组，求分组数；连续选人后除以同容量小组数的阶乘消除组序。",
     "example": "知识点页：6名调研员平均分成3个无名小组，求分组方法数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "partial-equal-groups",
@@ -1900,7 +2114,8 @@
     "ask": "不同人员按不完全相等的规模分成无名组，求分组数；只对规模相同的若干组除以阶乘。",
     "example": "知识点页：6人分成4-1-1三组，两个1人组需除以2!",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "labeled-destination-allocation",
@@ -1908,7 +2123,8 @@
     "ask": "将不同人员按固定名额派往有名称的地点或岗位，求方案数；按地点依次选人，不再消序。",
     "example": "知识点页：6名调研员分别派往甲乙丙三镇，每镇2人",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "capacity-pattern-enumeration",
@@ -1916,7 +2132,8 @@
     "ask": "只给组数、总人数和每组上下限，先枚举合法人数拆分，再分别按同规模组消序并求和。",
     "example": "国2026地市：7人分两组，甲市人数超过一半且两人均到乙市",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "restricted-group-members",
@@ -1924,7 +2141,8 @@
     "ask": "均分或分堆时指定若干人同组、不同组或固定去向，先锁定关系或用总数减违规分组。",
     "example": "粤2021县：6支队伍均分两组，甲乙不能在同一组",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-grouping-order-red-1",
@@ -1932,7 +2150,8 @@
     "ask": "人员先分到有名课题且各组人数有上下限，再从每组成员中选负责人，并排除负责人为组内特定序位者的方案。",
     "example": "国2024副省：6个团队参与甲、乙课题，每课题至少2队，并各选1个非最小编号团队负责",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-grouping-order-red-2",
@@ -1940,7 +2159,8 @@
     "ask": "人员能力标签有重叠，分派到多个有名团队，要求每队分别达到各类能力人数下限；按双能力者去向分类计数。",
     "example": "粤2025：7名员工分派甲乙客户，每队正好2人能软件支持、2人能硬件支持",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-grouping-order-red-3",
@@ -1948,7 +2168,8 @@
     "ask": "不同批次分配到若干有名地点，每地至少一批，另有若干批次禁止去某地；用全映射计数叠加禁配条件。",
     "example": "国2024执法：5批培训分到甲乙丙且每地至少1批，第一、二批不去甲地",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -1961,7 +2182,8 @@
     "ask": "n个不同对象一一对应n个位置，要求无人回到原位置，直接调用错排数或递推计算。",
     "example": "知识点页：装错信封或每人均未分到原岗位",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "restricted-derangement",
@@ -1969,7 +2191,8 @@
     "ask": "全员不能回原位，另有某人不能去某位置；在全错排基础上对额外禁配分类或容斥。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "circular-table-arrangement",
@@ -1977,7 +2200,8 @@
     "ask": "不同人员围圆桌就座且旋转视为相同，固定一人破环成线；若有限制再用捆绑或插空。",
     "example": "知识点页：n个不同元素围绕圆桌无限制就坐",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cycle-proper-coloring",
@@ -1985,7 +2209,8 @@
     "ask": "环上n个节点用m种颜色且相邻不同，首尾也相邻，按闭环染色公式计算。",
     "example": "知识点页：5元环用3种颜色，相邻节点颜色不同",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "grid-path-obstacle",
@@ -1993,7 +2218,8 @@
     "ask": "网格只准向两个固定方向走最短路，设禁行点；用总路径减去经禁点的两段路径乘积。",
     "example": "知识点页：4×3街道网格中避开路口(2,1)",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "catalan-prefix-constraint",
@@ -2001,7 +2227,8 @@
     "ask": "出入栈、找零或路径要求任一前缀均不越界，将合法序列识别为卡特兰数。",
     "example": "国2025副省：答完每题时当前得分都不低于1分",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2014,7 +2241,8 @@
     "ask": "奇数个等差项给总和，先用总和除以项数求中项，再按公差推最大、最小或指定项。",
     "example": "知识点页：7个连续工号之和为371，求最大工号",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "even-count-middle-pair",
@@ -2022,7 +2250,8 @@
     "ask": "偶数个等差项给总和，求中间两项和；再结合公差用和差法反推目标项或局部和。",
     "example": "知识点页：10个连续自然数和为175，求前3个数之和",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "symmetric-index-pairs",
@@ -2030,7 +2259,8 @@
     "ask": "给若干下标和相同的项或局部关系，利用等距项两两和相等，替换求未知项和。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "front-back-block-sums",
@@ -2038,7 +2268,8 @@
     "ask": "已知前k项和与后k项和，先相加除以k得首尾和，再乘总项数的一半求全数列和。",
     "example": "知识点页：前4月投入500，后4月1220，求10个月总投入",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "layered-arithmetic-stack",
@@ -2046,7 +2277,8 @@
     "ask": "按层递增排列，移走若干层且各剩余层同步减少，利用移走量和剩余量的等差和建立关系。",
     "example": "粤2022县：搬走99根后少3层且每层少3根，刚好剩10层",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "consecutive-sum-count",
@@ -2054,7 +2286,8 @@
     "ask": "总数S拆成若干连续自然数之和，用2S=n(2a+n-1)枚举n与奇偶性，数方案。",
     "example": "苏2025B第59题：将42盆某品种的菊花摆放成若干排……每一排的菊花盆数都比前一排多1盆，则摆放的方案有",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2067,7 +2300,8 @@
     "ask": "给首项、末项和公差，按跨度除以公差再加1反求项数，继而求和或目标位置。",
     "example": "知识点页：100、94、88直至4，先反求共有多少组",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "progressive-daily-total",
@@ -2075,7 +2309,8 @@
     "ask": "每天产量按等差递增或递减，给累计总量，求天数或至少几天；列求和式并用选项代入临界。",
     "example": "知识点页：首日20件、每日多4件，累计350件求天数",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "alternating-sign-pairs",
@@ -2083,7 +2318,8 @@
     "ask": "数列正负交替且相邻两项净差固定，按两项一组求组数，奇数项时另加末尾余项。",
     "example": "知识点页：100-97+94-91+…+4-1",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "odd-even-subsequence-split",
@@ -2091,7 +2327,8 @@
     "ask": "奇数位与偶数位分别成等差或递推数列，拆成两列分别求项、求和或判断首次越界。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "paired-recurring-balance",
@@ -2099,7 +2336,8 @@
     "ask": "奇数期增加、偶数期减少且各自等差变化，成对计算每周期净额，再处理单独末期或首次超阈值。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-sequence-general-r-1",
@@ -2107,7 +2345,8 @@
     "ask": "两个等差数列增减方向不同，给同一日项值相等及一段累计和之比，联立通项与求和式反求首项比。",
     "example": "国2024副省：甲日产量日增m、乙日减2m，第5天相同且前5天乙累计为甲2倍",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-sequence-general-r-2",
@@ -2115,7 +2354,8 @@
     "ask": "月度量成等差数列，给前若干项和分别占目标总量的比例，先消去目标量，再求全年实际和与目标量之差。",
     "example": "国2026副省：一季度完成全年目标18%，上半年完成48%，求全年实际额比目标高多少",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2128,7 +2368,8 @@
     "ask": "按固定人数或做A休B循环排班，给当前状态，求同一人或同一状态最早多少天后再现。",
     "example": "粤2023乡：8名安保每天2人轮值，队员3几天后再值班",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "multiple-shift-overlap",
@@ -2136,7 +2377,8 @@
     "ask": "多人的工作休息周期不同，给基准日各自状态，列休息日序列或用最小公倍数找首次共同状态。",
     "example": "知识点页：甲做3休2、乙做5休2，求某星期共同休息",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "fixed-week-vs-rotation",
@@ -2144,7 +2386,8 @@
     "ask": "一人按自然周工作，另一人按非7天周期轮休，求整段共同在岗或同休日；先算完整大周期再补余日。",
     "example": "知识点页：常规双休与做3休1，求61天共同在岗日",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 3
    },
    {
     "id": "specified-weekday-overlap",
@@ -2152,7 +2395,8 @@
     "ask": "要求两人再次在指定星期同时休息，先把星期位移转为模7条件，再检验双方排班余数。",
     "example": "知识点页：从星期三起，至少几天后在星期二同时休息",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "monthly-attendance-extreme",
@@ -2160,7 +2404,8 @@
     "ask": "给30或31天月份及轮休规则，求最多或最少出勤、周末上班数；按完整周期并比较不同起始相位。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2173,7 +2418,8 @@
     "ask": "多类别抽取，求至少抽多少才能保证某类达到n个；构造每个正常类别n-1个后加1。",
     "example": "粤2025：五种颜色小球各20个，保证10个同色至少取多少",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "incomplete-drawer-types",
@@ -2181,7 +2427,8 @@
     "ask": "部分类别总数不足目标n，最坏情况下先把这些残缺类别全部取尽，再让正常类别各停在n-1。",
     "example": "知识点页：54张扑克牌含大小王，保证4张同花色",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "every-category-present",
@@ -2189,7 +2436,8 @@
     "ask": "求至少抽多少才能保证所有类别均出现；让目标中数量最少的一类最后出现，先取尽其他类再加1。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "attribute-combination-drawer",
@@ -2197,7 +2445,8 @@
     "ask": "个体按若干属性选择形成类型，先用组合或乘法求类型数M，再按M×(k-1)+1保证k人同型。",
     "example": "知识点页：从4项活动中任选2项，保证若干人选择完全相同",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "logical-capacity-drawer",
@@ -2205,7 +2454,8 @@
     "ask": "先由分数、答题或人际约束确定每个抽屉可容纳的极限，再用反证构造求保证值或最多值。",
     "example": "粤2024：10道题至少2人答对，求3人都答对最多几道",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2218,7 +2468,8 @@
     "ask": "给总人数及各项达标人数，求全部达标至少多少；将各项未达标人数相加后从总数倒扣并截零。",
     "example": "知识点页：100人四项技能分别合格，求四项全合格至少人数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "percentage-intersection-min",
@@ -2226,7 +2477,8 @@
     "ask": "各集合规模用百分比给出，先换成未达标人数或比例，再反向相加求全达标下限。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "at-least-r-sets-min",
@@ -2234,7 +2486,8 @@
     "ask": "给多项达标总人次，求至少达标r项的人数下限；让其余人尽量承担r-1项以吸收人次，再倒推。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "zero-lower-bound-check",
@@ -2242,7 +2495,8 @@
     "ask": "未达标人次总和超过总人数时，不能直接得负数；构造未达标错开覆盖全集，判断最小值能否取0。",
     "example": "知识点页：50人三科及格35、30、25人，求三科全及格至少数",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multi-group-guaranteed-overlap",
@@ -2250,7 +2504,8 @@
     "ask": "给若干集合的规模或比例，问必有多少人重复属于多个集合；用总人次减去每人可单占的容量。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2263,7 +2518,8 @@
     "ask": "总和固定且各项互不相同，求第k名最大或最小；目标前后分别紧贴连续整数并压到边界。",
     "example": "知识点页：100人分5部门且人数互异，求第3名最多人数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "ties-allowed-rank-extreme",
@@ -2271,7 +2527,8 @@
     "ask": "总和固定但未要求互异，求第k名极值；允许目标同侧多项与其相等，不能机械加减1。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "tied-vote-ranking",
@@ -2279,7 +2536,8 @@
     "ask": "总票数固定，给第一名、末名及若干并列名次，求某并列名次票数极值；按严格名次差和并列相等构造。",
     "example": "粤2021县：80票选6人，B、C并列第2，求其票数最多",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "average-score-rank-bound",
@@ -2287,7 +2545,8 @@
     "ask": "分数为互异整数，给某分数段平均分和目标分数，求目标最低排名；固定总分后极端构造高分人数。",
     "example": "国2026副省：高于90分者均分93.8，小姜92分，求最低排名",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "bounded-values-extreme",
@@ -2295,7 +2554,8 @@
     "ask": "固定总和且各项有最小值、最大值或非负限制，求目标项极值；先让非目标项触及合法边界再取整。",
     "example": "知识点页：每部门至少10人，求人数第3名最多多少",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multidimensional-sum-constraints",
@@ -2303,7 +2563,8 @@
     "ask": "对象同时受总数、分类总量、名次或比例等多维约束，先消元得到目标维度总和，再在可行域内极端构造。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2316,7 +2577,8 @@
     "ask": "有限等可能样本中直接计算总结果数与有利结果数，两者保持相同计数口径后作比。",
     "example": "粤2022乡：5人中随机选2人，求2人都来自人事部的概率",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "complement-at-least-once",
@@ -2324,7 +2586,8 @@
     "ask": "求至少一次发生或至少一个满足，先算一次也不发生或一个也没有，再用1减。",
     "example": "知识点页：骰子独立投两次，至少一次出现6",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "exactly-only-event",
@@ -2332,7 +2595,8 @@
     "ask": "设问有且仅有一个对象、题目或类别满足指定状态，分类锁定唯一者，并排除零个与多个同时满足。",
     "example": "粤2025：3人各抽2题，有且仅有1道题未被任何人抽到",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mixed-types-both-present",
@@ -2340,7 +2604,8 @@
     "ask": "随机抽取若干对象，求两类都出现；可分类计数，也可用总数减全为甲类和全为乙类。",
     "example": "粤2022县：抽3个社区，既有通过又有不通过的概率",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "reverse-total-from-probability",
@@ -2348,7 +2613,8 @@
     "ask": "总人数或参数未知，给两事件概率之比或某事件概率，先写组合数比并约分，再反解整数参数。",
     "example": "国2026地市：仅1人入选概率是2人均入选概率的30倍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "total-probability-weighted",
@@ -2356,7 +2622,8 @@
     "ask": "总体分为互斥情形，给各情形发生率及条件概率，按情形概率加权求目标事件平均概率。",
     "example": "粤2026：暴雨率30%，分暴雨与其余时间求道路拥堵平均概率",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "conditional-sample-space",
@@ -2364,7 +2631,8 @@
     "ask": "已知某事件已经发生后再问另一事件，缩小样本空间或用联合概率除以条件事件概率。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-classical-1",
@@ -2372,7 +2640,8 @@
     "ask": "给两个独立事件同时发生的概率，并给其中一个事件概率或两事件概率的倍数关系，用乘法公式反求单事件概率。",
     "example": "国2026地市：乙胜甲概率0.6，乙胜丙与丙胜丁有倍数关系，且乙连胜两人的概率0.18",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -2385,7 +2654,8 @@
     "ask": "N人均分且每组k人，固定甲后乙落入同组剩余k-1个位置，概率为(k-1)/(N-1)。",
     "example": "知识点页：10人均分两组，每组5人，甲乙同组",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "two-specified-different-groups",
@@ -2393,7 +2663,8 @@
     "ask": "均等分组中求甲乙不同组，用同组概率的对立事件，或数甲组外的N-k个位置。",
     "example": "知识点页：10人均分两组，问甲乙不同组",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "same-group-plus-role",
@@ -2401,7 +2672,8 @@
     "ask": "先算指定两人同组，再乘组内随机选组长、代表等角色满足恰有一人或指定一人当选的条件概率。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "restricted-equal-grouping",
@@ -2409,7 +2681,8 @@
     "ask": "均分后要求若干指定人同组或不同组，固定一人位置，连续计算其余人在同组内外位置的概率。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2422,7 +2695,8 @@
     "ask": "各组容量固定但不相等，求指定两人同组；用各组可容纳位置对之和除以全部位置对。",
     "example": "知识点页：12人坐满3、4、5人三辆车，甲乙同车",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "pair-different-unequal-groups",
@@ -2430,7 +2704,8 @@
     "ask": "不均等分组中求指定两人不同组，用1减同组位置对概率，或直接数跨组位置对。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "conditioned-known-group",
@@ -2438,7 +2713,8 @@
     "ask": "已知甲进入某个特定容量组后，更新剩余位置，求乙同组或异组的条件概率。",
     "example": "知识点页：已知甲在3人车上，乙与甲同车的概率",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "derive-capacities-first",
@@ -2446,7 +2722,8 @@
     "ask": "组容量由总数、倍数或差值条件间接给出，先解出各组人数，再套不均等位置对公式。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2459,7 +2736,8 @@
     "ask": "N人均分为每组k人，固定第一人，第二、第三人连续跟入同组位置，概率连乘。",
     "example": "知识点页：10人均分两组，指定甲乙丙同组",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "three-same-unequal-groups",
@@ -2467,7 +2745,8 @@
     "ask": "组容量不等，求指定三人同组；各组内部三人组合数求和，再除以全体三人组合数。",
     "example": "知识点页：12人分3、4、5人三车，甲乙丙同车",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "r-people-same-group",
@@ -2475,7 +2754,8 @@
     "ask": "推广到指定r人全部同组，用各组C(ni,r)之和除以C(N,r)，容量不足r的组贡献为0。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "at-least-two-of-three",
@@ -2483,7 +2763,8 @@
     "ask": "指定三人中至少两人同组，按恰好两人同组与三人全同组分类，注意避免三对重复计数。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2496,7 +2777,8 @@
     "ask": "N人随机直线排列，求指定两人相邻；数N-1对相邻位置除以全部位置对，或捆绑计数。",
     "example": "知识点页：5人直排，甲乙相邻的概率",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "pair-adjacent-circle",
@@ -2504,7 +2786,8 @@
     "ask": "N人随机围桌，固定甲后乙可坐左右两个相邻座，概率为2/(N-1)。",
     "example": "知识点页：5人围桌，甲乙相邻的概率",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "adjacent-under-position-condition",
@@ -2512,7 +2795,8 @@
     "ask": "已知甲位于奇数位、端点或某一区间，先更新甲位置分布，再按各位置相邻座数加权。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "adjacent-complement",
@@ -2520,7 +2804,8 @@
     "ask": "设问指定两人不相邻，或至少一对相邻，用相邻概率的对立事件；多对时检查事件重叠。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-adjacent-1",
@@ -2528,7 +2813,8 @@
     "ask": "若干任务各占连续多日，在全部合法排期中随机选择，求剩余空日两两不相邻；先压缩连续任务块，再对空位插空计数。",
     "example": "国2025副省：7天安排两门各连学2天的课程，求3个不用学习日均不相邻的概率",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2541,7 +2827,8 @@
     "ask": "固定进行n局且各局独立、胜率恒为p，求恰胜k局，使用二项分布组合数乘概率幂。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "best-of-score-ending",
@@ -2549,7 +2836,8 @@
     "ask": "先胜m局即结束，求以m比r获胜；最后一局必须胜，前面各局只安排其余胜负。",
     "example": "知识点页：五局三胜中甲以3∶1获胜",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "match-ends-at-round",
@@ -2557,7 +2845,8 @@
     "ask": "不指定赢家，只问比赛恰在第t局结束，分别计算双方在前t-1局差一胜且末局获胜后相加。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "eventual-series-winner",
@@ -2565,7 +2854,8 @@
     "ask": "求先胜制最终夺冠概率，按可能终局比分分成互斥事件求和，或按当前比分递推。",
     "example": "知识点页：五局三胜中求甲最终获胜概率",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "conditional-current-score",
@@ -2573,7 +2863,8 @@
     "ask": "已知前若干局比分或胜负结构，忽略已发生路径，从当前还需的胜局数重新列终局分支。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -2586,7 +2877,8 @@
     "ask": "不放回抽签且尚未知前人结果，问第k人中奖概率；利用随机排列对称性，边际概率均为K/N。",
     "example": "知识点页：10张签3张中奖，第二人抽签前中奖概率",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "known-previous-result",
@@ -2594,7 +2886,8 @@
     "ask": "已知前一人中奖或未中，扣除相应签数和总签数，求后一人的条件概率。",
     "example": "知识点页：已知第一人中奖，第二人中奖概率",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "ordered-without-replacement",
@@ -2602,7 +2895,8 @@
     "ask": "依次抽取且要求颜色或结果按指定顺序出现，每一步按剩余数量更新分子分母后连乘。",
     "example": "粤2020县：依次不放回取出黑、红、白球的概率",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "transfer-then-draw",
@@ -2610,7 +2904,8 @@
     "ask": "先从一箱随机转移若干对象到另一箱，再从后者抽取；按转移构成分类并用全概率求和。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "conditioned-multiple-later-draws",
@@ -2618,7 +2913,8 @@
     "ask": "已知前若干人中恰有若干中奖，先确定剩余奖签和人数，再求后面指定多人恰有若干中奖。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2631,7 +2927,8 @@
     "ask": "原溶液只加入清水，溶质质量不变；由前后浓度反比求总质量变化、加水量或原浓度。",
     "example": "知识点页：30%药液加400克水后降为20%",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "evaporate-water-concentrate",
@@ -2639,7 +2936,8 @@
     "ask": "只蒸发水且溶质无损，前后总质量乘浓度相等，求蒸发水量、末浓度或初始质量。",
     "example": "知识点页：30%药液蒸发水分升至40%",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "add-pure-solute",
@@ -2647,7 +2945,8 @@
     "ask": "向溶液加入纯盐或纯糖，水量守恒；可将纯溶质视作100%溶液做十字交叉。",
     "example": "知识点页：400克15%盐水加纯盐升至20%",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "combined-dilute-concentrate",
@@ -2655,7 +2954,8 @@
     "ask": "分别给加水后的低浓度和蒸发后的高浓度，两条状态共享初始溶质量，联立反求初始状态。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-step-additions",
@@ -2663,7 +2963,8 @@
     "ask": "先加水再加纯溶质或多次加水，逐段辨认不变量，用每段终态作为下一段初态更新。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -2676,7 +2977,8 @@
     "ask": "两种已知浓度溶液混成目标浓度，用十字交叉求两液质量比，再按总量或差量分配。",
     "example": "知识点页：12%与28%盐酸配成600克16%溶液",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "ratio-plus-mass-difference",
@@ -2684,7 +2986,8 @@
     "ask": "先由三种浓度求质量比，再结合两液质量差或某液用量反求各自质量和混合总量。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "weighted-average-concentration",
@@ -2692,7 +2995,8 @@
     "ask": "给两液质量和浓度，求混合浓度；计算溶质总量除以总质量，或用杠杆平衡反求中间值。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "changed-dose-two-mixtures",
@@ -2700,7 +3004,8 @@
     "ask": "两次混合中一种溶液用量不变、另一种增减，分别写溶质守恒式，联立反求首次总量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2713,7 +3018,8 @@
     "ask": "每次倒出相同体积混合液并加水至原容量，求末浓度；初浓度乘单次留存率的操作次数次方。",
     "example": "知识点页：100升酒精每次倒20升加水，操作2次",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "varying-volume-replacements",
@@ -2721,7 +3027,8 @@
     "ask": "每轮倒出量不同但均加满到原容量，逐轮计算不同留存率并连乘，求末浓度或残留溶质。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "reverse-replacement-count",
@@ -2729,7 +3036,8 @@
     "ask": "给初末浓度和容器容量，利用衰减等式反求重复次数或每次倒出比例，并检验整数轮次。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "two-vessel-transfer-back",
@@ -2737,7 +3045,8 @@
     "ask": "从甲倒入乙混匀，再从乙倒回等量；跟踪每一步带走和带回的溶质，不能套固定容量指数公式。",
     "example": "知识点页：甲乙各10升，甲倒2升入乙后再倒回2升",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2750,7 +3059,8 @@
     "ask": "资源有初始存量且匀速增长，给两组消耗主体和耗尽时间，先求增长率与存量，再求第三组时间。",
     "example": "知识点页：27头牛吃6天、23头牛吃9天，求21头牛天数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "constant-inflow-pumping",
@@ -2758,7 +3068,8 @@
     "ask": "水库持续匀速来水，多台同效抽水机抽至目标水位；由两组机数时间反求来水与待抽存量。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "heterogeneous-consumers",
@@ -2766,7 +3077,8 @@
     "ask": "牛、羊或不同设备单位消耗不同，先统一折算为同一种标准消耗主体，再套生长型公式。",
     "example": "粤2023县：牛耗草量是羊2倍，反求30只羊可吃多少天",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "changed-consumption-efficiency",
@@ -2774,7 +3086,8 @@
     "ask": "先由旧条件求增长率和存量，再按节水、提效等百分比换算新主体的等效数量，求可维持时间。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "minimum-machines-by-deadline",
@@ -2782,7 +3095,8 @@
     "ask": "已知持续补给下的存量与补给率，要求在规定时间内耗尽，反求主体数量并向上取整。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -2795,7 +3109,8 @@
     "ask": "草每天匀速枯萎，人工与自然同向消耗；给两组牛数和天数，按(N+x)T反求第三组。",
     "example": "知识点页：20头牛吃5天、15头牛吃6天，求10头牛天数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "leak-plus-pumping",
@@ -2803,7 +3118,8 @@
     "ask": "水池自身匀速渗漏，同时抽水机排水；用机组效率与漏速相加，联立两组条件求存量和漏速。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "maximum-consumers-duration",
@@ -2811,7 +3127,8 @@
     "ask": "资源自然减少，要求至少维持指定天数，反求最多可安排多少牛或设备，结果按可行整数向下取整。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "staged-device-adjustment",
@@ -2819,7 +3136,8 @@
     "ask": "先以一组设备运行若干时间，再要求余下期限耗尽；先扣除首段人工与自然消耗，再反求后段设备数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2832,7 +3150,8 @@
     "ask": "开门前有初始队伍且之后匀速来人，给两组窗口数和清空时间，反求来人率与初始量，再求限时窗口数。",
     "example": "粤2020县：5窗需60分、6窗需40分，20分内需开几窗",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "staged-window-increase",
@@ -2840,7 +3159,8 @@
     "ask": "先开若干窗口办理一段时间，再要求余下时间清空；计算首段后剩余队伍并考虑期间新增人数。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "heterogeneous-window-efficiency",
@@ -2848,7 +3168,8 @@
     "ask": "普通与快速通道效率不同，先折算为标准窗口数，用两组组合条件求来人率，再配置最少通道。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "reverse-initial-queue",
@@ -2856,7 +3177,8 @@
     "ask": "给窗口效率、来人速度和清空时间，直接用净服务率乘时间反求开门前队伍人数。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "critical-no-clear-window",
@@ -2864,7 +3186,8 @@
     "ask": "问至少开多少窗口可使队伍不继续增长或最终能清空，比较总服务率与持续到达率并取临界整数。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -2877,7 +3200,8 @@
     "ask": "只给加价率和折扣、求利润率，赋单件成本100，顺次算定价、售价及利润率。",
     "example": "知识点页：按成本加价40%定价，再打八折求利润率",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "reverse-cost-from-profit",
@@ -2885,7 +3209,8 @@
     "ask": "给售价、销量变化及总利润不变等关系，按利润等于售价减成本列式反求单件成本。",
     "example": "国2026地市：售价降10%、销量增25%且日利润不变，求成本",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "two-products-combined-profit",
@@ -2893,7 +3218,8 @@
     "ask": "两商品成本成比例且加价折扣不同，赋较小成本特值，分别算利润与总成本后求综合利润率。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "subsidy-or-coupon-stack",
@@ -2901,7 +3227,8 @@
     "ask": "原价先乘折扣，再减固定券或按折后价补贴，明确计算顺序后反求原价、实付或优惠额。",
     "example": "粤2022县：七折后每本再减5元，5本实付48.5元",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "profit-rate-base-distinction",
@@ -2909,7 +3236,8 @@
     "ask": "比较利润率、毛利率、优惠率等不同分母，先写定义式，再由售价、成本或定价关系求目标比例。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-profit-special-val-1",
@@ -2917,7 +3245,8 @@
     "ask": "给实际支付额及相对市场价的优惠率，先用折后价除以折扣率还原原价，再求原价与实付的差额。",
     "example": "粤2024：服务价格低于市场价20%，业主支付4000元，求比市场价优惠多少",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -2930,7 +3259,8 @@
     "ask": "前一比例按原价、剩余打折，给整体利润率，赋总件数和成本后用总收入等式反求折扣。",
     "example": "知识点页：先售80%，余货打折，整体利润率41%",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "three-stage-sales",
@@ -2938,7 +3268,8 @@
     "ask": "同批商品分三段按原价、折扣价和清仓价销售，按各段数量乘售价之和等于目标总收入。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "reverse-full-price-share",
@@ -2946,7 +3277,8 @@
     "ask": "给清仓折扣和最终综合利润率，设原价销售比例为x，按加权平均售价反求x。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "known-batch-count-total",
@@ -2954,7 +3286,8 @@
     "ask": "给某批售出件数、各段售价和总利润，设总件数并列总销售收入减总成本的方程。",
     "example": "粤2021县：苹果分段售价，扣成本运费后总收益2.5万元",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "progressive-daily-sales",
@@ -2962,7 +3295,8 @@
     "ask": "打折后每日销量按等差数列变化，先求该阶段总销量，再比较打折前后总利润反求成本比例。",
     "example": "国2025副省：打八折后每日多卖10件，比较两阶段利润总额",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "piecewise-graph-select",
@@ -2970,7 +3304,8 @@
     "ask": "分段计价或分段效率的过程，问两个量之间的关系走势；选项用文字描述各段增长快慢与拐点位置（不出图），需算出每段斜率大小、拐点和终点再比对。",
     "example": "国2025地市第68题：前60千克打2折……最能准确反映该试剂销量和销售收入之间关系的是；浙2025A第58题：甲先用机器生产任务总量的一半……最能准确反映……生产用时和产量之间关系的是",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -2983,7 +3318,8 @@
     "ask": "售价每降固定金额销量增加固定量，建立(单件利润-x)(原销量+kx)，用二次函数对称轴求最优价。",
     "example": "知识点页：苹果每降0.5元多卖25公斤，求最大利润售价",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "price-rise-max-profit",
@@ -2991,7 +3327,8 @@
     "ask": "售价每提高固定金额销量减少固定量，建立利润乘积模型并在合法价格、非负销量范围求最大值。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "target-profit-find-price",
@@ -2999,7 +3336,8 @@
     "ask": "给目标总利润，售价与销量线性联动，列一元二次方程或代入选项，注意可能有两个可行售价。",
     "example": "粤2020县：成本15元，日利润200元，反求整数售价",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "unchanged-profit-find-cost",
@@ -3007,7 +3345,8 @@
     "ask": "降价或涨价后销量按比例变化且总利润不变，令调价前后单件利润乘销量相等，反求成本。",
     "example": "国2026执法：降价10%后销量增25%，单日利润不变",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "integer-bounded-optimum",
@@ -3015,7 +3354,8 @@
     "ask": "售价必须为整数且有上下限，先求连续最优点，再比较相邻整数及边界的利润。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3028,7 +3368,8 @@
     "ask": "买若干瓶并可能有库存空瓶，每n个空瓶换1瓶且不可借，求最多喝多少；按离散公式或逐轮带余。",
     "example": "知识点页：库存18个空瓶并购买66瓶，每4空瓶换1瓶",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "reverse-minimum-purchase",
@@ -3036,7 +3377,8 @@
     "ask": "给目标饮用瓶数和兑换规则，估算购买下限后代入可兑换量核验，若不足则进一。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "inventory-plus-reverse-target",
@@ -3044,7 +3386,8 @@
     "ask": "目标总瓶数给定且已有空瓶库存，将购买产生的空瓶与库存合并，反求最少购买并检查末轮启动条件。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "cap-and-bottle-dual-exchange",
@@ -3052,7 +3395,8 @@
     "ask": "瓶盖和空瓶均可兑换且新饮料同时产生两种凭证，按轮次记录两列余数，循环到均不足兑换。",
     "example": "知识点页：3盖换1瓶、5空瓶换1瓶，买15瓶最多喝多少",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "purchase-gift-exchange-combo",
@@ -3060,7 +3404,8 @@
     "ask": "购买阶段先按买赠规则得到饮料和空瓶，再进入空瓶兑换循环，求总瓶数或最低花费。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3073,7 +3418,8 @@
     "ask": "单窗口多人耗时不同，求办理及等待总时间最少；按耗时升序，权重从人数递减到1。",
     "example": "",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "single-window-wait-only",
@@ -3081,7 +3427,8 @@
     "ask": "单窗口求所有人的等待总时间，不含自身办理；仍按短作业优先，末位权重为0。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "parallel-multiple-windows",
@@ -3089,7 +3436,8 @@
     "ask": "多个同效窗口并行服务，将耗时排序后按每m人一档分配到各窗口相同位置，分档乘权重。",
     "example": "知识点页：6人耗时2、3、4、6、7、9分钟，开2个窗口",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "priority-position-constraint",
@@ -3097,7 +3445,8 @@
     "ask": "某人必须在前K位或某窗口，先把其放在限制区内权重最小的位置，再由短任务填高权重坑位。",
     "example": "知识点页：5分钟人员必须排前两位，求最少等待时间",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "compare-original-optimal-order",
@@ -3105,7 +3454,8 @@
     "ask": "给原叫号顺序，先按倒序权重算原总等待，再按耗时升序算最优值，求减少量。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3118,7 +3468,8 @@
     "ask": "直线上各点货量不同，求集中到哪个现有点运费最低；从一端累加，首次达到总重一半处为最优。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "equal-cost-adjacent-sites",
@@ -3126,7 +3477,8 @@
     "ask": "已知集中到相邻两站费用相等，令分界两侧总货量相等，反求未知货量，再计算运费。",
     "example": "知识点页：集中到乙或丙运费相同，反求丙仓吨位",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "minimum-transport-cost",
@@ -3134,7 +3486,8 @@
     "ask": "先用重量中位数确定集中点，再逐点以货量乘距离求吨公里，最后乘单位运价。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "classic-bridge-crossing",
@@ -3142,7 +3495,8 @@
     "ask": "多人速度不同、两人同行按慢者且需送灯，比较两种运送最慢两人的策略，递推求最短总时间。",
     "example": "知识点页：5人过桥时间1、2、4、7、10分钟",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 3
    },
    {
     "id": "bridge-capacity-or-return-change",
@@ -3150,7 +3504,8 @@
     "ask": "桥的载客数、回灯人员或同行限制变化，按每次过桥与返程合法性枚举关键调度并比较总耗时。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3163,7 +3518,8 @@
     "ask": "两人从两端同时或先后相向，路程和等于速度和乘共同运动时间；处理迟出发者的先行路程。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "same-direction-chase",
@@ -3171,7 +3527,8 @@
     "ask": "快者追慢者，初始距离或先行路程等于速度差乘追及时间，求追上时间、地点或速度。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "equal-distance-roundtrip-average",
@@ -3179,7 +3536,8 @@
     "ask": "同一路段去返速度不同，路程相等，求全程平均速度；直接用两速度的调和平均。",
     "example": "国2026地市：去程速度为返程40%，给往返均速求距离",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "equal-time-average-speed",
@@ -3187,7 +3545,8 @@
     "ask": "前后两段行驶时间相等而速度不同，求平均速度；按路程总和除总时间，等时可取算术平均。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "turnback-meeting-ratio",
@@ -3195,7 +3554,8 @@
     "ask": "两人同起点或两端出发，一人到终点立即折返与另一人相遇，用同一时段路程比等于速度比定位相遇点。",
     "example": "粤2025：父亲跑到百米终点折返，求与儿子相遇位置",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-basic-encounter-av-1",
@@ -3203,7 +3563,8 @@
     "ask": "同一路段往返，给去返采用两种方式的混合总时长及全用其中一种方式的总时长，反推全用另一方式的总时长。",
     "example": "粤2022乡：去时乘车回时步行共45分，往返都乘车30分，求往返都步行时长",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-basic-encounter-av-2",
@@ -3211,7 +3572,8 @@
     "ask": "同一路线去返速度不同，给去程到某地标、返程到同一地标及地标至端点的时长或距离，利用分段路程比例反求全程。",
     "example": "粤2024：上山1小时到凉亭，再走500米到半程；下山1小时到凉亭、半小时到山脚",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3224,7 +3586,8 @@
     "ask": "两端往返、到端即折返，给第一和第二次相遇点，利用第二次累计路程是首次的3倍求全程。",
     "example": "知识点页：首次距A60公里，第二次距B40公里，求全长",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "linear-nth-meeting",
@@ -3232,7 +3595,8 @@
     "ask": "直线两端反复折返，第n次相遇时两人累计合走(2n-1)个全程，结合折返点判断位置。",
     "example": "粤2021县：3公里绿道往返，第7次相遇距出发点多远",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "circle-opposite-meeting",
@@ -3240,7 +3604,8 @@
     "ask": "环形跑道反向运动，每次相遇合走一圈；用速度和乘时间等于整数个周长。",
     "example": "国2024地市：环形跑道两点反向出发，结合多段时间求返回",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "circle-same-direction-lap",
@@ -3248,7 +3613,8 @@
     "ask": "同向运动快者每追上一圈比慢者多走一个周长，用速度差求首次或第n次追上时间。",
     "example": "国2026副省：三车环行，反求乙首次追上甲时间",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "speed-change-after-meeting",
@@ -3256,7 +3622,8 @@
     "ask": "环形首次相遇后某人变速，先由首次相遇确定周长或速度关系，再以新相对速度求第二次相遇。",
     "example": "国2025副省：反向首次相遇后乙加速半圈，再与甲相遇",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-multi-encounter-ci-1",
@@ -3264,7 +3631,8 @@
     "ask": "两人在不同长度的相邻区间内往返，给同一时刻各自第若干次到达端点，用累计路程倍数比反求速度比。",
     "example": "国2026副省：王第5次到乙地时，张正好第4次到乙地，求张王速度比",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-multi-encounter-ci-2",
@@ -3272,7 +3640,8 @@
     "ask": "两人从直线同一端同向出发、速度不同并在两端不停折返，求快者第若干次追上慢者的位置；用展开轨迹或分段相对运动。",
     "example": "粤2026：200米跑道同端出发往返，甲140米/分、乙100米/分，求甲第二次追上乙位置",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3285,7 +3654,8 @@
     "ask": "同一路程给顺水、逆水速度或时间，用顺逆速度和差求船静水速度与水速，再求目标时间。",
     "example": "知识点页：顺流4小时、逆流6小时，求木筏漂流时间",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "boat-chase-after-turn",
@@ -3293,7 +3663,8 @@
     "ask": "两船顺逆流相向，一船到港停留后折返追另一船，分阶段用水速加减和相对速度列路程。",
     "example": "粤2020县：甲船到港停1小时后返航，6小时后追上乙船",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "escalator-total-steps",
@@ -3301,7 +3672,8 @@
     "ask": "人在运行扶梯上以不同步速同向或逆向行走，联立人走级数与扶梯位移，求总级数或扶梯速度。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "train-bridge-tunnel",
@@ -3309,7 +3681,8 @@
     "ask": "区分完全通过与完全在桥隧内；前者路程为车长加桥长，后者为桥长减车长。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "train-crossing-or-convoy",
@@ -3317,7 +3690,8 @@
     "ask": "两列车相向错车用车长和与速度和；传令兵前后折返分别按追及差速和相遇和速。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3330,7 +3704,8 @@
     "ask": "全程速度提高固定比例并提前若干时间，路程不变使时间比为速度比倒数，用份数差求原用时。",
     "example": "粤2023乡：20千米时准时、24千米时早5分，求距离",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "speedup-after-fixed-distance",
@@ -3338,7 +3713,8 @@
     "ask": "先按原速走固定路程再提速，给提前量；时间差只来自提速段，据此求该段原时长与全程。",
     "example": "知识点页：先原速120公里再提速25%，比原计划早40分钟",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "delay-then-speedup",
@@ -3346,7 +3722,8 @@
     "ask": "途中停留造成耽搁，后段提速并准时或晚到；用提速节省时间抵扣停留时间，反求路程。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "compare-two-speedup-points",
@@ -3354,7 +3731,8 @@
     "ask": "分别在两个里程点后按同一比例提速，给两种提前量；两方案差只来自两点间路段，用差量求原速。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "piecewise-time-or-distance",
@@ -3362,7 +3740,8 @@
     "ask": "若干段按不同速度、等时或等程行驶并可能休息，逐段算路程或时间后汇总，避免误用单一平均速度。",
     "example": "粤2023县：蛙跳、游泳、竞走三段且首尾两段路程相同",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-speed-change-ratio-1",
@@ -3370,7 +3749,8 @@
     "ask": "总时间、总路程已知，两段速度成固定倍数；按两段路程大小条件建立时间不等式，判断基础速度的必然范围。",
     "example": "粤2021县：3小时先上坡后以2倍速度下坡，共60千米，判断路程大小对应的时速范围",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-speed-change-ratio-2",
@@ -3378,7 +3758,8 @@
     "ask": "往返途中首次经过内点时变速，给再次经过该点的时刻；按变速前后分段用时列式，反求内点分割的路程比。",
     "example": "国2025执法：8:30首次到C点时加速30%，9:00第二次到C点，求AC与BC之比",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "uniform-accel-average",
@@ -3386,7 +3767,8 @@
     "ask": "从静止匀加速到v，路程=v/2×时间，再与匀速段联立。",
     "example": "浙2025A第61题：从静止开始匀加速行驶10分钟后，再匀速行驶20分钟",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3399,7 +3781,8 @@
     "ask": "人数或件数按最简比给出，利用各部分、总数或差额必须含对应整数因子，快速筛选选项。",
     "example": "知识点页：男员工占45%，原总人数必须是20的倍数",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "digit-divisibility-rule",
@@ -3407,7 +3790,8 @@
     "ask": "未知整数受2、3、4、5、8、9等整除约束，利用末位、末两三位或数字和规则确定数位。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "same-remainder-congruence",
@@ -3415,7 +3799,8 @@
     "ask": "同一总数除以多个除数余数相同，写成这些除数最小公倍数的倍数加共同余数，再结合范围。",
     "example": "粤2023乡：每组3人余2、每组4人也余2",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "same-sum-or-difference",
@@ -3423,7 +3808,8 @@
     "ask": "多个除余条件的除数加余数相同或除数减余数相同，分别用公倍数加和或减差写通式。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "nonstandard-congruence-range",
@@ -3431,7 +3817,8 @@
     "ask": "余数、和、差均无统一特征，从最大除数的余数序列起步，逐项检验其余条件后套大周期和范围。",
     "example": "知识点页：除以7余3、5余2、3余1且总数在100至200",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "percentage-integer-coupling",
@@ -3439,7 +3826,8 @@
     "ask": "多个占比、增幅或组数均要求人数为整数，提取各自分母的整除因子，与总数范围或方程联合求解。",
     "example": "国2026执法：甲占总数24%，乙比丙多50%，总人数100多",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3452,7 +3840,8 @@
     "ask": "直线上等距设点，按两端都设、只设一端或两端都不设，将点数分别取间隔数加1、不变或减1。",
     "example": "",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "closed-loop-planting",
@@ -3460,7 +3849,8 @@
     "ask": "沿圆形或多边形闭合周长等距设点，首尾重合，点数等于周长除以间距；顶点约束用公约数。",
     "example": "粤2025：直角三角形三边每隔4米栽树，求周边总棵数",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "double-side-layout",
@@ -3468,7 +3858,8 @@
     "ask": "先按单侧端点条件求点数，再乘2；若两侧起止条件不同则分别计算后相加。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "derived-interval-models",
@@ -3476,7 +3867,8 @@
     "ask": "楼层数、木段数或敲钟次数转为实际间隔数时减1，再按单间隔耗时求总时间或反求次数。",
     "example": "知识点页：从1楼到4楼48秒，求从4楼到8楼还需多久",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "spacing-change-fixed-points",
@@ -3484,7 +3876,8 @@
     "ask": "原间距改为新间距，位置不变点按两间距最小公倍数出现，结合端点条件求不动点数。",
     "example": "知识点页：1200米道路间距30改40，求不移动路灯",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "move-remove-or-buy-count",
@@ -3492,7 +3885,8 @@
     "ask": "改间距后分别求需移动、需拆除或需新购数量；先算原总数、新总数和重合点，再按问法作差。",
     "example": "粤2024：每4米与每6米障碍重合处不设甲障碍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-tree-planting-inte-1",
@@ -3500,7 +3894,8 @@
     "ask": "多段折线的端点和转角都必须布点且全程间距相同，先取各段长度最大公约数作最大间距，再对各段间隔数去重计点。",
     "example": "粤2020县：L形围墙AB为750米、BC为1350米，ABC都装摄像头且间距相同",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-tree-planting-inte-2",
@@ -3508,7 +3903,8 @@
     "ask": "多边形各顶点必须布点、相邻点距离至少为d，求最多布点数；逐边取可分出的最大间隔数，再扣除重复顶点。",
     "example": "粤2022县：10米×8米花坛四角有木桩，每两根至少3米，求四周最多木桩数",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3521,7 +3917,8 @@
     "ask": "实心正方阵总人数为边长平方，给总数求边长或利用完全平方数特征筛选。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "outer-ring-count",
@@ -3529,7 +3926,8 @@
     "ask": "正方阵外圈用4n-4，长方阵外圈用2(m+n)-4；注意四角不能重复计数。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "hollow-square-layer-sum",
@@ -3537,7 +3935,8 @@
     "ask": "空心方阵相邻圈人数差8，已知层数与外层或内层人数，用等差数列求总人数。",
     "example": "知识点页：4层空心方阵，最外层每边16人",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "add-row-column-shortage",
@@ -3545,7 +3944,8 @@
     "ask": "现排方阵多a人，每边增加1人则缺b人，用相邻平方差2n+1=a+b反求边长和总人数。",
     "example": "知识点页：排方阵多12人，每边加1人缺15人",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "rearrange-hollow-to-solid",
@@ -3553,7 +3953,8 @@
     "ask": "先由空心层数、内外圈比或扩层增量求总人数，再根据重排实心方阵的多余与缺少条件求目标。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3566,7 +3967,8 @@
     "ask": "在某整点后一小时内求重合，计算整点初始夹角，用分针相对时针每分钟5.5度追完。",
     "example": "知识点页：4点到5点之间两针何时重合",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "hands-right-angle",
@@ -3574,7 +3976,8 @@
     "ask": "求某小时内两针垂直，分别考虑分针追平前落后90度和反超后领先90度，判断一次或两次。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "hands-straight-line",
@@ -3582,7 +3985,8 @@
     "ask": "求两针反向成一直线，根据整点时针方位确定分针需追赶到领先或落后180度的位置。",
     "example": "知识点页：2点到3点之间两针何时反向成一直线",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cross-hour-angle-interval",
@@ -3590,7 +3994,8 @@
     "ask": "给起止时刻均满足某夹角，分别求分钟分数；跨整点相减时若分子倒挂，借60分钟统一计算。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "count-angle-occurrences",
@@ -3598,7 +4003,8 @@
     "ask": "统计若干小时内重合、直角或平角出现次数，按相对运动周期计数，并去除跨小时边界重复。",
     "example": "知识点页：12小时两针成直角共22次",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3611,7 +4017,8 @@
     "ask": "给每小时或每天快慢量和真实经过时长，用坏钟与标准钟走时比正向换算坏钟经过量及显示时刻。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "display-to-real-time",
@@ -3619,7 +4026,8 @@
     "ask": "校准后给坏钟显示时刻，先算坏钟走过量，再乘坏标速度比的倒数还原真实时长。",
     "example": "知识点页：慢钟从7:00走到13:20，反求标准时刻",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "set-alarm-by-faulty-clock",
@@ -3627,7 +4035,8 @@
     "ask": "由活动时间倒推真实起床时刻，再将从校准点到该时刻的标准时长换算成坏钟显示，确定闹铃刻度。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "dial-realign-cycle",
@@ -3635,7 +4044,8 @@
     "ask": "普通12小时表累计快或慢720分钟时再次显示正确，用720除以每日偏差并推算日期时刻。",
     "example": "知识点页：每天慢15分钟，求下一次显示准确的日期",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "average-daily-error",
@@ -3643,7 +4053,8 @@
     "ask": "给若干天后的总快慢误差，统一换算为秒或分钟后除以天数，求平均每天误差。",
     "example": "粤2022乡：60天后时钟慢5分钟，求平均每天慢多少秒",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -3656,7 +4067,8 @@
     "ask": "前文铺陈旧观点或常见认识，后文用“但、然而”转向作者主张，设问“意在强调”，选择转折后观点的同义概括。",
     "example": "粤2020县：通过这段文字，作者意在强调",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "implicit-turn-main-point",
@@ -3664,7 +4076,8 @@
     "ask": "文段以“其实、事实上、殊不知”等弱转折纠正前文认识，设问“主要说明”，抓纠偏后的核心判断而非转折前背景。",
     "example": "粤2025：经验可以让人少走弯路，但一味迷信、生搬硬套经验",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "contrast-without-marker",
@@ -3672,7 +4085,8 @@
     "ask": "文段不设明显转折词，而以“并非A、更要B”或新旧做法对照，要求概括作者真正肯定的B面。",
     "example": "粤2020县：衡量一座城市的治理水平，往往不在于建了多少高楼大厦",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "turn-then-countermeasure",
@@ -3680,7 +4094,8 @@
     "ask": "转折后先分析新情况，再在尾句提出“必须、唯有”等对策；重点随行文推进到尾句，选择针对性行动。",
     "example": "粤2023县：不同地域、不同类型的历史文化，只有精准施策，才能保护好",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "turn-author-agrees",
@@ -3688,7 +4103,8 @@
     "ask": "文段先否定旧做法再提出新立场，设问“作者最有可能认同”，将转折后立场改写成可判断的观点选项。",
     "example": "粤2024：根据这段文字，作者最有可能认同",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3701,7 +4117,8 @@
     "ask": "前半段集中说明问题及危害，尾部用“应、需要、亟须”提出靶向方案，设问意图或主旨，直接概括对策。",
     "example": "粤2022乡：只有完善配套基础设施，才能留住游客、发展回头客",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "problem-infer-solution",
@@ -3709,7 +4126,8 @@
     "ask": "全文只呈现短板、危害或现实困境，没有明示办法；依据症结从选项反推能直接消除该问题的对策。",
     "example": "粤2022乡：国内外农业灾害史研究还未能建立一个全面记录历史时期世界各地自然灾害",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "root-cause-measure",
@@ -3717,7 +4135,8 @@
     "ask": "文段列出多层问题并追到机制性根因，设问“最根本的举措”，选择作用于根因而非缓解表象的方案。",
     "example": "粤2023县：如何优化收入结构、提升消费能力",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-problem-multi-solution",
@@ -3725,7 +4144,8 @@
     "ask": "文段并列两个以上短板，并逐项给出措施；答案须覆盖各症结与对应动作，排除只解决其中一点的选项。",
     "example": "粤2024：既要创新传播形式、拓展传播平台、细分国际受众",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "negative-proof-solution",
@@ -3733,7 +4153,8 @@
     "ask": "以“如果不……就会”“否则”等反面条件说明后果，未直接号召；将否定条件正向改写为作者主张。",
     "example": "粤2020县：但越是如此，越要关注最需关注的人",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "policy-author-agrees",
@@ -3741,7 +4162,8 @@
     "ask": "文段围绕现实问题提出政策方向，设问“作者最有可能认同”；选项需保持措施对象、力度与边界一致。",
     "example": "粤2026：根据这段文字，作者最有可能认同",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3754,7 +4176,8 @@
     "ask": "前文列事实、原理或数据作原因，尾句以“因此、可见”推出结论；设问主旨时概括结果句，排除以因代果。",
     "example": "粤2026：以科技创新为核心，培育和发展新质生产力",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "conclusion-first-explanation",
@@ -3762,7 +4185,8 @@
     "ask": "首句先给观点或现象，后文用“之所以、因为”解释成因；主旨仍是首句结论，原因只作支撑。",
     "example": "粤2025：完善城乡融合发展体制机制是补上农业农村短板、建设农业强国的必然选择",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mechanism-to-implication",
@@ -3770,7 +4194,8 @@
     "ask": "文段逐层介绍技术或自然机理，末尾用“这意味着”推导能力、影响或应用，选择该推论而非机理细节。",
     "example": "粤2026：科技进步对文化创新的驱动作用日益显著",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multiple-causes-shared-result",
@@ -3778,7 +4203,8 @@
     "ask": "并列多个原因、条件或历史阶段，未必出现显性因果词；提炼它们共同促成的结果，避免只取单一原因。",
     "example": "粤2021县：发展门类齐全的产业，靠的就是艰苦奋斗",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "causes-to-countermeasure",
@@ -3786,7 +4212,8 @@
     "ask": "前文说明问题成因或作用链，结尾据此推出治理、改进方向；答案落在由因而生的对策而非原因本身。",
     "example": "粤2023乡：用信息化手段更好地了解社会态势、畅通沟通渠道",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3799,7 +4226,8 @@
     "ask": "以“一方面……另一方面”“既……又……”展开两个同等分论点，答案必须同时涵盖两面，不能以偏概全。",
     "example": "粤2024：也要积极拓宽素材的维度与视野，加强国际化叙事表达",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "implicit-list-common-core",
@@ -3807,7 +4235,8 @@
     "ask": "若干句或分号段落并列列举不同表现，缺少总括句；提取共同主体与共同作用，求各部分最大公约数。",
     "example": "粤2025：此外，通过洒水给街道降温应考虑空气热容量的影响",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "general-first-examples",
@@ -3815,7 +4244,8 @@
     "ask": "首句提出总观点，后文用“例如、比如”或多个事例说明；选择首句同义概括，屏蔽例子中的局部对象。",
     "example": "粤2023乡：比如，在烈士纪念设施的展板和展柜上设置二维码",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "examples-then-summary",
@@ -3823,7 +4253,8 @@
     "ask": "前文罗列案例、阶段或表现，尾句用“可见、这些、总之”总括；以后置总句统摄全部材料。",
     "example": "粤2026：为文化繁荣发展提供了新的载体和机遇",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "general-parallel-subpoints",
@@ -3831,7 +4262,8 @@
     "ask": "开头总领，后文按供需、内外、物质与精神等维度并列展开；答案应复现总领关系并覆盖各分论点。",
     "example": "粤2024：全面推动各领域消费绿色转型升级",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "parallel-ask-specific-aspect",
@@ -3839,7 +4271,8 @@
     "ask": "文段多面并列，设问限定“主要分析了什么关系、作用或内涵”；先服从限定角度，再综合各并列部分。",
     "example": "粤2021乡：这段文字主要分析了",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-parallel-general-s-1",
@@ -3847,7 +4280,8 @@
     "ask": "设问某个事例、引语或诗文“是为了说明什么”，回到该论据前后的观点句，判断它具体证明的对象与结论，不概括全文。",
     "example": "国2026执：大自然的诸种变化都有科学解释，诗人却将理性的科学事实化作了感性的诗句",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "passage-as-example",
@@ -3855,7 +4289,8 @@
     "ask": "整段是一个具体事例，问“最可能用来例证”，选和事例层级匹配的论点，不拔高到普遍规律、不缩到局部细节。",
     "example": "苏2025A第33题：这段文字最有可能用来例证",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "categorize-select-non",
@@ -3863,7 +4298,8 @@
     "ask": "多条并列材料（留言、首先其次），把每条概括成一个维度，选“不包括”的维度。",
     "example": "浙2025A第40题：从这些留言中可以概括出年轻人选择“断亲”的原因不包括；浙2025A第41题：这段文字思考了人工智能在战争中的困境，不包括",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3876,7 +4312,8 @@
     "ask": "文段围绕问题提出鲜明主张或对策，标题须同时含核心对象与观点，可适度凝练生动，不选只写背景或局部的题目。",
     "example": "粤2020县：广东：打通复工复产堵点",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "news-progress-title",
@@ -3884,7 +4321,8 @@
     "ask": "文段报道某主体的新进展、成果或事件，标题用“主体+核心进展”，突出新闻点，不扩成泛泛宏观成就。",
     "example": "粤2024：粤港澳大湾区科技设施集群加速成型",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "science-mechanism-title",
@@ -3892,7 +4330,8 @@
     "ask": "说明文解释现象、概念及形成机理，标题应点出现象并概括关键机制，可用准确比喻但不得只截取一个环节。",
     "example": "国2026副省：被摇成“液体”的砂土",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "problem-solution-title",
@@ -3900,7 +4339,8 @@
     "ask": "文段先呈现现实困境再给破解路径，标题应突出“以何种办法解决何问题”，排除仅描述困境的标题。",
     "example": "国2026地市：变“治理”为“智理”，提升城市智治水平",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "article-opening-title",
@@ -3908,7 +4348,8 @@
     "ask": "题干说明文段是文章开头或引言，标题需能统摄后续可能展开的全文，范围可略宽于本段但不能脱离已定主题。",
     "example": "国2025副省：这段文字是一篇文章的开头，最适合做文章标题的是",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "metaphor-question-title",
@@ -3916,7 +4357,8 @@
     "ask": "主旨明确且选项含比喻、设问或引语，先核对信息完整性，再在同样准确的标题中选择更具吸引力者。",
     "example": "粤2026：以发展之钥，启人权之门",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -3929,7 +4371,8 @@
     "ask": "原文分别说明A、B的属性或功能，选项把A的性质安到B上；回文逐一核对主语、谓语和修饰对象。",
     "example": "粤2023乡：农业农村现代化的重心在深化户籍制度改革",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "concept-scope-expansion",
@@ -3937,7 +4380,8 @@
     "ask": "原文限定某地区、群体、环节或特定技术，选项扩大为整体、全部行业，或反向缩小范围；重点比对限定语。",
     "example": "粤2024：公园必须满足全市居民的日常生活和工作需求",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "fabricated-comparison",
@@ -3945,7 +4389,8 @@
     "ask": "原文只并列A与B或分别描述，选项凭空加入“高于、优于、主要、替代”等比较或排序关系。",
     "example": "粤2024：10月份一般是最热的月份",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "common-sense-not-mentioned",
@@ -3953,7 +4398,8 @@
     "ask": "选项本身符合常识或逻辑，却没有文段依据；按“能否由原文得出”判断，不以外部知识补足。",
     "example": "粤2026：村字头的文体活动是乡村公共文化服务的典型代表",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "action-object-swap",
@@ -3961,7 +4407,8 @@
     "ask": "原文的措施作用于特定对象、阶段或问题，选项保留动作却替换治理对象或目标，需核对动宾关系。",
     "example": "粤2023县：系统和应用数字化不属于企业数字化转型的要求",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-concept-misplaceme-1",
@@ -3969,7 +4416,8 @@
     "ask": "设问“未对哪一现象作出解释”，逐项区分仅出现现象名称与真正交代成因、机理；选择虽被提及但没有解释链的一项。",
     "example": "国2024副：硫化物经过一系列化学反应形成硫酸盐气溶胶；文段未对哪一现象作出解释？",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-concept-misplaceme-2",
@@ -3977,7 +4425,8 @@
     "ask": "原文明确肯定某价值、存在或作用，选项改为否定、丧失或不存在，或反向偷换；核对谓语极性而非只看主体和范围。",
     "example": "粤2025：促使学界重新认识传统伦理的恒久价值；“传统伦理已丧失其价值”",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "question-options-explain",
@@ -3985,7 +4434,8 @@
     "ask": "选项是“为何/如何……”的问题，逐个到原文找有没有对应的因果或机理句，排除未提及和只提及未解释的。",
     "example": "国2025地市第56题：这段文字能够解释下列哪一问题？；国2025地市第64题：这段文字解释了下列哪一问题？",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -3998,7 +4448,8 @@
     "ask": "原文使用“可能、有望、往往”等审慎词，选项改成“必然、一定、均会”；比较情态强度并识别拔高。",
     "example": "粤2024：大大增加了出现破纪录高温的可能性",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "partial-to-universal",
@@ -4006,7 +4457,8 @@
     "ask": "原文仅涉及部分对象、某些情形或局部效果，选项改为所有、任何、全面覆盖；核对量词和适用范围。",
     "example": "粤2023乡：实现全体农业人口市民化",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "helpful-to-decisive",
@@ -4014,7 +4466,8 @@
     "ask": "原文说某因素“有助于、促进、提供条件”，选项提升为“决定、唯一关键、根本保证”，判断因果力度失当。",
     "example": "粤2024：公众参与公园建设有助于提升公园建设效率",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "degree-overstatement",
@@ -4022,7 +4475,8 @@
     "ask": "原文只是改善、降低或较为显著，选项改成彻底消除、完全取代、极大提高；精确比较程度副词。",
     "example": "粤2023乡：公共服务城乡均等能极大提高农业人口素质",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "negative-inference-absolute",
@@ -4030,7 +4484,8 @@
     "ask": "设问“不能得出、无法得出”，多个选项中绝对化表述可能为答案；仍须回文确认原文是否确有同等强度。",
     "example": "粤2025：根据上述文段，无法得出的是",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4043,7 +4498,8 @@
     "ask": "原文“只有A才B”只说明A是必要条件，选项改为“只要A就B”；用条件箭头核验能否反推。",
     "example": "粤2023县：只有落脚到业务上，企业才能真正实现数字化转型",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "cause-effect-reversal",
@@ -4051,7 +4507,8 @@
     "ask": "原文明确A导致B，选项改成B导致A；圈出因果词并核对事件方向，不能因两者相关而互换。",
     "example": "粤2025：“大数据杀熟”影响了消费者的比价成本",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "correlation-to-causation",
@@ -4059,7 +4516,8 @@
     "ask": "原文只是并列、共现或先后发生，选项添加“因为、导致、取决于”；查找原文是否提供真实因果机制。",
     "example": "粤2024：全球气温的反复变化是极端天气气候事件的主要原因",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "single-cause-overreach",
@@ -4067,7 +4525,8 @@
     "ask": "原文给出多个条件共同作用或仅称某因素之一，选项说成唯一原因、直接决定；同时检查因果与范围。",
     "example": "粤2024：厄尔尼诺现象呈现出频发、强发、广发的特征",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "condition-negative-question",
@@ -4075,7 +4534,8 @@
     "ask": "在“不能得出”问法中，比较各选项的充分、必要及因果链；找出反推、倒置或越级推导的一项。",
     "example": "粤2025：根据上述文段，不能得出的是",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4088,7 +4548,8 @@
     "ask": "原文为“将、预计、有望”实现，选项改成“已经实现、现已普及”；圈出时间副词核对进度。",
     "example": "粤2024：厄尔尼诺现象将至少持续至明年4月",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "pilot-to-wide-adoption",
@@ -4096,7 +4557,8 @@
     "ask": "原文处于实验、试点、小规模验证阶段，选项说成商业化、规模化或全面应用；判断发展阶段是否跨级。",
     "example": "粤2025：随着进一步全面深化改革的推进，我们将遇到更多难啃的“硬骨头”",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "some-to-all-quantity",
@@ -4104,7 +4566,8 @@
     "ask": "原文数量是“部分、少数、过半、若干”，选项改为全部、绝大多数或各地；逐项比对数量范围。",
     "example": "粤2024：部分城市中心城区公共充电基础设施服务半径已与加油站相当",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "ongoing-to-solved",
@@ -4112,7 +4575,8 @@
     "ask": "原文表明仍有短板、正在研制或尚未完成，选项称问题已解决、技术已成熟；关注“仍、尚、正在”。",
     "example": "粤2025：随着进一步全面深化改革的推进，我们将遇到更多难啃的“硬骨头”",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "historical-stage-shift",
@@ -4120,7 +4584,8 @@
     "ask": "文段对不同时期分别描述状态，选项把早期特征移到当前或把当前成果提前；建立时间轴后核对。",
     "example": "粤2025：新中国成立75年来，全省干部群众持续奋斗",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4133,7 +4598,8 @@
     "ask": "设问引号内比喻词，紧扣其前后解释句还原本体、动作与效果，选择完整直白的同义表述。",
     "example": "国2026副省：这种适应策略可能是植物长期适应荒漠降水和温度胁迫生境",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "pronoun-reference",
@@ -4141,7 +4607,8 @@
     "ask": "询问“这、其、这种做法”等指代内容，从代词前最近且语义完整的信息中锁定对象，必要时概括并列内容。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "sentence-context-meaning",
@@ -4149,7 +4616,8 @@
     "ask": "询问画线句或关键句含义，结合上下文论证关系转述其观点，避免逐字解释或只释一个词。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "quoted-concept-definition",
@@ -4157,7 +4625,8 @@
     "ask": "文段先提出带引号的新概念，再分述特征、对象和机制；答案需同时覆盖概念边界与核心特征。",
     "example": "国2026执法：这种一年两次的休眠循环机制",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "word-effect-implication",
@@ -4165,7 +4634,8 @@
     "ask": "关键词不是直接定义，而由后文说明其功能、后果或目的；整合因果链解释该词在文中的具体意义。",
     "example": "国2026执法：有助于它们在极端环境下的维持和繁衍",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "contrast-defined-phrase",
@@ -4173,7 +4643,8 @@
     "ask": "文段用“不是……而是……”排除表面含义并给出真正内涵；释义应保留否定边界与肯定内容。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4186,7 +4657,8 @@
     "ask": "尾句提出明确困难、障碍或未解问题，下文最自然转向解决路径；排除重复前文成因或已述价值的选项。",
     "example": "国2024副省：获取功能医学影像大数据在临床上也极其困难",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "tail-new-concept-explain",
@@ -4194,7 +4666,8 @@
     "ask": "尾句首次引入新概念、技术或对象但未展开，下文应解释其内涵、构成或工作方式。",
     "example": "国2026地市：伦理关系从“人与人”“人与动物”“人与自然”扩展到“人与人工智能”",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "tail-challenge-elaboration",
@@ -4202,7 +4675,8 @@
     "ask": "尾句概括“仍面临诸多障碍、挑战”，下文应逐项说明这些困境，不能越过分析直接谈无关成果。",
     "example": "国2024地市：全媒体时代新闻作品版权保护仍面临着诸多障碍",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "principle-to-practice",
@@ -4210,7 +4684,8 @@
     "ask": "文段已讲清制度、规则或技术的意义，尾句落在某应用对象；下文接具体案例、实施方式或实践成效。",
     "example": "国2025执法：知识产权参考案例指导司法审判的具体实践",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "mechanism-to-intervention",
@@ -4218,7 +4693,8 @@
     "ask": "前文完整说明某机制如何造成后果，尾句落在关键链条；下文自然介绍阻断、调控或利用该链条的方法。",
     "example": "国2026副省：阻断病理性α-突触核蛋白传播的手段",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "prospect-to-obstacle",
@@ -4226,7 +4702,8 @@
     "ask": "文段已介绍新事物及市场前景，下文不再重复优势，而转向落地条件、推广瓶颈或保障措施。",
     "example": "国2025副省：电动垂直起降航空器的推广难点",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap--------------------1",
@@ -4234,7 +4711,8 @@
     "ask": "尾句已把既有议题扩展到新对象或新关系，下文应继续分析这一扩展带来的影响、挑战或规范问题，排除重复定义和回讲旧对象。",
     "example": "国2026市：伦理关系从“人与人”等扩展到“人与人工智能”，接下来最可能介绍什么",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "continuation-negative",
@@ -4242,7 +4720,8 @@
     "ask": "问“接下来不会重点谈论”，先按尾句定可能话题，再选与尾句话题断开或回到前文的选项。",
     "example": "浙2025A第35题：接下来应该不会重点谈论",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4255,7 +4734,8 @@
     "ask": "横线位于段首，后文为解释、举例或分述；所填句须概括全部后文的共同主体与观点，不能只罩住一例。",
     "example": "粤2026：在中华文明滋养的神州大地上，____",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "middle-transition",
@@ -4263,7 +4743,8 @@
     "ask": "横线位于中部，上文提出背景或问题，下文展开分类、办法或例证；答案须既承接上文又引出下文。",
     "example": "国2026副省：行政决策要遵循科学、民主和依法的原则，但____",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "ending-summary-conclusion",
@@ -4271,7 +4752,8 @@
     "ask": "横线位于段尾，前文已完整说明原理、事实或问题；填入能归纳全段、推出结论或对策的句子。",
     "example": "粤2026：____，服务群众才会更加精准、更有实效",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "quote-principle-insertion",
@@ -4279,7 +4761,8 @@
     "ask": "横线要求填名言、诗句或领导论述；先概括上下文主题与逻辑，再选语义精准对应而非仅同话题的引语。",
     "example": "粤2021县：知屋漏者在宇下，知政失者在草野",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "sentence-pattern-cohesion",
@@ -4287,7 +4770,8 @@
     "ask": "横线邻近“不仅、但、因此、只有”等关联词或排比句，除语义外还须补全搭配、主语和句式对称。",
     "example": "国2026地市：不仅____，还能让这些功能像积木一样精准搭配",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "article-position-insertion",
@@ -4295,7 +4779,8 @@
     "ask": "给出完整句子并问最适合放在文章①②③④何处；依据指代、话题推进与前后句衔接确定位置。",
     "example": "国2024副省：下面这段文字最适合填入文中哪个位置",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4308,7 +4793,8 @@
     "ask": "句中出现“这、其、该、这种”等指代词，先找明确先行句并形成紧邻组合，再用选项验证首尾。",
     "example": "粤2026：这两大主张契合大多数国家和各国民众的普遍诉求",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "conjunction-pair-binding",
@@ -4316,7 +4802,8 @@
     "ask": "利用“虽然—但是、不仅—而且、与此同时、为此”等关联关系锁定相邻句与先后顺序。",
     "example": "粤2024：与此同时，网络也给未成年人保护带来一些隐患",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "chronological-evolution",
@@ -4324,7 +4811,8 @@
     "ask": "句群含年代、阶段或“随后、如今”等时间标记，按事件发生与发展顺序排列，并处理阶段总结句。",
     "example": "粤2025：隶书与小篆同时产生于秦始皇时期",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "problem-analysis-solution",
@@ -4332,7 +4820,8 @@
     "ask": "句群构成“背景/问题—危害或原因—对策—效果”，先确定逻辑链，再用指代与关联词细化位置。",
     "example": "粤2022县：种种乱象对青少年心理、观念、行为和健康成长容易产生消极影响",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "general-specific-structure",
@@ -4340,7 +4829,8 @@
     "ask": "找概念总起句、分述例证和总结评价句，按总—分—总或总—分排列，排除具体例句作首句。",
     "example": "粤2024：工业文化资源，既包括历史上人类工业活动产生的艺术品和手工艺品",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "concept-mechanism-result",
@@ -4348,7 +4838,8 @@
     "ask": "科普句群依次提出旧认识或现象、引入新概念、解释机制、得出影响；按认知推进而非表面词序排列。",
     "example": "粤2025：汉字在发展演变的历程中共形成了五种字体",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4361,7 +4852,8 @@
     "ask": "一个空格、四个成语近义干扰，结合前后解释、感情色彩和搭配对象选出最贴合语境者。",
     "example": "粤2026：既不____，也不妄自尊大",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "double-blank-idioms",
@@ -4369,7 +4861,8 @@
     "ask": "两个空均为成语，先用线索更强的一空排除，再检验另一空的语义、程度与对象是否同时成立。",
     "example": "粤2026：再到和世界领先的全球导航系统____，一代代科研人员",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "idiom-content-word-mix",
@@ -4377,7 +4870,8 @@
     "ask": "多空选项混合成语与实词，分别核验成语整体含义和实词搭配，利用各空相互锁定唯一组合。",
     "example": "粤2026：每一个角落都____着高科技的较量",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "three-blank-semantic-chain",
@@ -4385,7 +4879,8 @@
     "ask": "三个空按并列、递进或因果形成语义链，先确定关联结构，再逐空检查词义与整体逻辑。",
     "example": "粤2025：从繁杂问题中把握事物的____、从苗头问题中发现事物的____",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "association-and-idiom",
@@ -4393,7 +4888,8 @@
     "ask": "题干既考关联词结构又考成语或实词，先判定转折、并列、递进关系，再选择符合该关系的词组。",
     "example": "粤2025：反对餐饮浪费行为，并不是反对正常的、健康的餐饮消费",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "distant-context-clue",
@@ -4401,7 +4897,8 @@
     "ask": "空格附近线索弱，答案由后句的具体解释、结果或评价提示；通读全段后用远端语义反推词语。",
     "example": "粤2025：做决策、抓发展、促改革就会错位偏离，甚至会____",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4414,7 +4911,8 @@
     "ask": "横线为动词、后接明确宾语，比较哪个词能自然支配该对象；优先使用固定搭配与动作方向排除。",
     "example": "粤2022乡：在此____真理的力量",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "subject-predicate-collocation",
@@ -4422,7 +4920,8 @@
     "ask": "横线作谓语或状态词，主语为抽象事物、人物或物理对象；核对词语通常由哪类主体发出或呈现。",
     "example": "粤2024：一场场深入群众的宣传宣讲，一个个扎根基层的思政课堂，都在____着",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "modifier-head-collocation",
@@ -4430,7 +4929,8 @@
     "ask": "横线作定语或状语修饰“危机、氛围、路径”等中心词，比对惯用修饰关系及词性。",
     "example": "粤2026：为全球南方国家____发展鸿沟",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multi-blank-object-chain",
@@ -4438,7 +4938,8 @@
     "ask": "两到三空分别支配不同宾语，逐一建立“动词—对象”配对，用最专属的一组搭配反向锁定整项。",
     "example": "粤2022乡：不断____产业链、____供应链、____价值链",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "policy-fixed-collocation",
@@ -4446,7 +4947,8 @@
     "ask": "题干使用政策、公文语体，选项词义相近但只有一个符合惯用表达；结合宾语和语体规范判断。",
     "example": "粤2021县：不断____共同思想政治基础",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4459,7 +4961,8 @@
     "ask": "上下文给出危害、变化或成就的强弱程度，比较近义词的语义量级，排除过重或过轻者。",
     "example": "粤2024：是一个____又____的创造性破坏过程",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "positive-negative-color",
@@ -4467,7 +4970,8 @@
     "ask": "根据作者赞扬、批评或中立态度给横线标注褒贬色彩，排除词义接近但感情色彩冲突者。",
     "example": "粤2026：既不____，也不妄自尊大",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "tone-intensity",
@@ -4475,7 +4979,8 @@
     "ask": "文段用“略有、严重、彻底”等信号控制语气，选择强度与上下文一致的词，不因表达响亮而拔高。",
     "example": "粤2025：含义却____",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "neutral-versus-evaluative",
@@ -4483,7 +4988,8 @@
     "ask": "选项含中性描述词与带赞许或谴责的评价词，判断题干是在客观叙述还是表达明确态度。",
     "example": "粤2024：让唱衰中国的歪理邪说____",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "multi-blank-degree-gradient",
@@ -4491,7 +4997,8 @@
     "ask": "多空之间构成由浅入深、由一般到严重的梯度，既检查每词分寸，也检查整组递进顺序。",
     "example": "粤2025：做不了____的大事，或做些____的小事",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4504,7 +5011,8 @@
     "ask": "选项词语共享一个语素，仅一字不同；拆解相异字的动作或状态含义，与题干落脚点对位。",
     "example": "粤2022乡：在此____真理的力量",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "near-form-word-choice",
@@ -4512,7 +5020,8 @@
     "ask": "比较读音或字形相近的词，不能凭语感混用；依据不同语素的本义、词性和固定对象选择。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "action-stage-emphasis",
@@ -4520,7 +5029,8 @@
     "ask": "近义动词分别侧重开始、过程、完成或结果，结合上下文所处动作阶段选择，不只看大致词义。",
     "example": "粤2021乡：以红色精神____红色基因",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "abstract-scope-emphasis",
@@ -4528,7 +5038,8 @@
     "ask": "近义词均可搭配抽象对象，但分别强调巩固、扩展、深化等不同维度；以文段真正变化方向定位。",
     "example": "粤2026：理念内涵不断____，落实机制不断健全",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "double-blank-cross-morpheme",
@@ -4536,7 +5047,8 @@
     "ask": "两空各有一组同素近义词，分别拆字辨析，再用两空的语义配合交叉验证，避免只凭一空定项。",
     "example": "粤2021乡：打通农业人才服务基层的____，____基层农业人才的发展空间",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4549,7 +5061,8 @@
     "ask": "横线前有“但、然而、却”等转折词，提取转折前已知特征，所填词须在同一维度上反向对应。",
     "example": "粤2025：浪费与消费一字之差，含义却____",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "turn-marker-after-blank",
@@ -4557,7 +5070,8 @@
     "ask": "横线后才出现转折和明确语义，先读后半句确定方向，再反推横线应填的相反状态或态度。",
     "example": "粤2022乡：历朝历代面临的生态问题不同，____保护环境的治理理念不变",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "not-but-contrast",
@@ -4565,7 +5079,8 @@
     "ask": "句式为“并非/不是A，而是B”，横线与另一端构成明确否定或替换关系，按同一比较维度选择。",
     "example": "粤2025：反对餐饮浪费行为，并不是反对正常的、健康的餐饮消费",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "surface-essence-contrast",
@@ -4573,7 +5088,8 @@
     "ask": "上下文以“看似、表面上—实则、实际上”制造认知反转，横线应体现深层含义而非表面印象。",
     "example": "粤2026：二者看似矛盾，实则统一于高质量发展的实践逻辑中",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "double-blank-antonym-pair",
@@ -4581,7 +5097,8 @@
     "ask": "两个空分处正反两端或两种对象，先确定对照维度，再选择能够成对呼应且色彩一致的词组。",
     "example": "粤2025：做不了____的大事，或做些____的小事",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4594,7 +5111,8 @@
     "ask": "横线后用冒号列举表现或机理，提炼冒号后共同含义，选择能浓缩全部解释内容的词语。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "dash-following-explanation",
@@ -4602,7 +5120,8 @@
     "ask": "破折号后对横线词作具体展开，圈出解释句的动作、对象与结果，做严格同义替换。",
     "example": "粤2026：“立说立行”强调机遇____的紧迫感",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "signal-word-paraphrase",
@@ -4610,7 +5129,8 @@
     "ask": "出现“即、也就是说、换言之、可以说”等提示词，横线与提示后的句子语义等值，直接据后文反推。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "preceding-explanation-summary",
@@ -4618,7 +5138,8 @@
     "ask": "前文先描述具体现象、动作或后果，横线在后作概括；提炼前文核心再匹配词语，避免只看邻词。",
     "example": "粤2024：这些实实在在的进步，让每一个中国人都倍感荣光，让唱衰中国的歪理邪说____",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "unmarked-example-explanation",
@@ -4626,7 +5147,8 @@
     "ask": "没有冒号或提示词，横线前后以多个事实、例子或效果暗示含义；综合分述内容选同义概括。",
     "example": "粤2026：一代代科研人员自立自强、自主创新、拼搏超越",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 3
    },
    {
     "id": "gap-explanation-relati-1",
@@ -4634,7 +5156,8 @@
     "ask": "横线要求填入比喻性名词或表达，先提炼本体的核心功能，再在选项中寻找功能、作用方式一致的喻体，而非仅做字面同义替换。",
     "example": "国2024市：环境影响评价是控制环境风险的“____”，也是守住绿水青山的第一道防线",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4647,7 +5170,8 @@
     "ask": "横线与已知词由“和、与、及、顿号”连接，二者应词性一致、褒贬同向且语义互补。",
     "example": "粤2023乡：干群关系更加____、党心民心更加____",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "parallel-clause-correspondence",
@@ -4655,7 +5179,8 @@
     "ask": "两个结构相同的分句分别设空，根据另一分句的动宾结构、语义层级和节奏确定对应词。",
     "example": "粤2022县：每一寸鲜血浸染的红色热土，每一段感人至深的红色往事，都____着",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "not-only-but-also-progress",
@@ -4663,7 +5188,8 @@
     "ask": "由“不仅……而且/更……”连接两层意思，后项在范围、力度或深度上须高于前项，不能平级倒置。",
     "example": "粤2021县：“讲故事”____能阐释观念、触发思考，____能感染受众、拉近距离",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "even-more-escalation",
@@ -4671,7 +5197,8 @@
     "ask": "横线邻近“甚至、更、进而”等递进词，比较候选词程度，确保后项比前项更深或影响更远。",
     "example": "粤2025：就会错位偏离，甚至会____",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "triple-parallel-sequence",
@@ -4679,7 +5206,8 @@
     "ask": "三个空由重复句式或阶段词串联，既要分别搭配，又要满足并列或先后推进的整体顺序。",
     "example": "粤2022乡：不断____产业链、____供应链、____价值链",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4692,7 +5220,8 @@
     "ask": "题干由A与B相关推出A导致B；选项指出其实是B导致A，要求选最能削弱或反驳项。",
     "example": "粤2022县：增加语文学习时长能够培养兴趣，进而提高成绩",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "alternative-cause",
@@ -4700,7 +5229,8 @@
     "ask": "题干把结果B归因于A；选项给出第三变量C足以导致B，且C与A同时变化，削弱A的解释力。",
     "example": "国2025执法：小果占比过大是由于套袋较早造成的",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cause-without-effect",
@@ -4708,7 +5238,8 @@
     "ask": "题干断定A会导致B；选项给出存在A但B未发生或发生率未提高的对照事实，直接反驳因果。",
     "example": "粤2023县：有观众有助于运动员取得更好的成绩",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "effect-without-cause",
@@ -4716,7 +5247,8 @@
     "ask": "题干断定B主要由A造成；选项指出没有A时B仍普遍发生，说明A不是必要或主要原因。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "except-causal-weaken",
@@ -4724,7 +5256,8 @@
     "ask": "给出因果结论，设问“除哪项外均能削弱”；逐项检验倒置、他因、反例，找不能削弱项。",
     "example": "国2026副省：以下除哪项外，均能削弱上述观点？",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-weaken-causal-1",
@@ -4732,7 +5265,8 @@
     "ask": "题干以事实前提A启动多段因果链并推出结论；选项直接证明A不成立或方向相反，使后续因果链失去起点。",
     "example": "粤2020县：春季出生的孩子年纪更大一些，而年纪大的孩子往往更成熟",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4745,7 +5279,8 @@
     "ask": "实验组与对照组干预后结果不同；指出两组实验前核心指标或对象条件已不一致，差异未必由干预造成。",
     "example": "知识点页：甲组原本只是轻度失眠，乙组均为重度慢性失眠",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "extra-intervention",
@@ -4753,7 +5288,8 @@
     "ask": "两组名义上仅干预不同；指出实验过程中某组还接受额外处理或处于不同环境，破坏单一变量原则。",
     "example": "知识点页：甲组听白噪音时还被要求晚上十点前放下手机",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "biased-assignment",
@@ -4761,7 +5297,8 @@
     "ask": "题干以分组实验结果推广结论；指出未随机分组、自愿参加或样本流失，使两组具有系统性选择偏差。",
     "example": "国2024副省：实验组小鼠夜间接受蓝光，对照组白天接受蓝光",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "invalid-outcome-measure",
@@ -4769,7 +5306,8 @@
     "ask": "实验用代理测试或短期指标代表目标效果；指出该指标不能可靠测量目标，或测试受训练效应干扰。",
     "example": "国2026副省：随堂成绩提高，但期末考试成绩反而降低",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "except-experiment-weaken",
@@ -4777,7 +5315,8 @@
     "ask": "对照实验后设问“除哪项外均能削弱”；核查基准、控变、测量和外推，找不构成实验漏洞的一项。",
     "example": "国2024市地：以下除哪项外，均能削弱研究者的观点？",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4790,7 +5329,8 @@
     "ask": "论据是购买量、用时或泡沫等指标，论点变成阅读量、质量或功效；指出两概念不能等同。",
     "example": "粤2025：泡沫最多，故其产品除菌去残留效果更好",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "lab-to-real-gap",
@@ -4798,7 +5338,8 @@
     "ask": "论据来自理想实验环境，论点推广至复杂真实场景；指出现实中的关键条件会使实验结果失效。",
     "example": "知识点页：实验室吸附率高，推至治理城市黑臭水体",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "animal-to-human-gap",
@@ -4806,7 +5347,8 @@
     "ask": "论据为动物实验，论点直接推至人体；指出物种在代谢、行为或作用机制上的关键差异。",
     "example": "国2024副省：小鼠夜间蓝光实验推至人们抑郁风险",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "sample-to-population-gap",
@@ -4814,7 +5356,8 @@
     "ask": "论据来自特定地区、群体或时段，论点推广到另一地区或总体；指出二者关键条件不具可比性。",
     "example": "粤2020县：北方部分城市热销，推定南方也受欢迎",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "intermediate-to-final-gap",
@@ -4822,7 +5365,8 @@
     "ask": "论据只证明中间环节改善，论点却断定最终目标实现；指出中间指标与最终结果之间缺少必要联系。",
     "example": "粤2023县：完成原定任务，故四天工作制大大提高效率",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4835,7 +5379,8 @@
     "ask": "题干提出措施A解决问题B；选项说明关键瓶颈未被触及，即使实施A，B仍存在或更严重。",
     "example": "国2024执法：添加良性漏洞将减少危险漏洞攻击",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "measure-infeasible",
@@ -4843,7 +5388,8 @@
     "ask": "题干建议推广某方案；选项指出受技术、资源、法规或容量限制，方案无法实际实施。",
     "example": "国2025副省：把黑匣子升级为实时交互的“云匣子”",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "measure-backfires",
@@ -4851,7 +5397,8 @@
     "ask": "措施可能改善局部指标，但会诱发替代行为或更大副作用，使总体目标受损，构成得不偿失。",
     "example": "知识点页：增设车道使车辆更快汇聚至桥梁瓶颈",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "actors-circumvent",
@@ -4859,7 +5406,8 @@
     "ask": "措施依赖行为对象按预期响应；选项指出对象可绕过规则、转移路径或改变策略，故效果落空。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "capacity-bottleneck",
@@ -4867,7 +5415,8 @@
     "ask": "题干认为降价、扩容等措施可占领市场；选项指出生产、供应或服务能力不足，无法承接预期需求。",
     "example": "粤2022县：降价至与竞争对手持平就会迅速占领市场",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "dismiss-worry",
@@ -4875,7 +5424,8 @@
     "ask": "有人担心某措施带来负面后果，选项要说明这个后果不会发生（资源足够、对象不重合等）。",
     "example": "川2025第78题：最能说明上述家长的担心是不必要的；苏2025A第98题：最能说明上述患者的担心是不必要的",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4888,7 +5438,8 @@
     "ask": "论据概念A与论点概念B不同；补充A正是B的可靠表征或核心组成，使两端能够等同。",
     "example": "国2026地市：愈合的尾综骨是这些动物属于鸟类的依据",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "causal-link-bridge",
@@ -4896,7 +5447,8 @@
     "ask": "论据给出中间结果A，论点声称最终结果B；补充A会通过明确机制促进B。",
     "example": "粤2023县：推进农户组织化，让农民实现增产增收",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "means-goal-bridge",
@@ -4904,7 +5456,8 @@
     "ask": "题干由采取手段A推出目标B；补充A能覆盖目标的关键障碍，或B的实现依赖A。",
     "example": "粤2024：拓宽投诉渠道，故直播带货违法现象将减少",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "attribute-category-bridge",
@@ -4912,7 +5465,8 @@
     "ask": "论据列举对象特征，论点判断其类别；补充这些特征是该类别独有或判定所必需的标准。",
     "example": "国2026地市：这些动物具有愈合的尾综骨，故一定属于鸟类",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "except-bridge-support",
@@ -4920,7 +5474,8 @@
     "ask": "给出存在概念跳跃的结论，设问“除哪项外均能支持”；找未连接论据与论点或仅谈一端的选项。",
     "example": "国2025执法：以下各项如果为真，除哪项外均能支持上述观点？",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "choose-between-plans",
@@ -4928,7 +5483,8 @@
     "ask": "给出两个方案，问哪项理由支持选某一方案；该理由要正好对应这个方案独有的优势或另一方案的短板。",
     "example": "国2025地市第103题：以下理由中，能够支持企业选择第二方案的是",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -4941,7 +5497,8 @@
     "ask": "设问明确“要使推理成立，必须补充”；否定候选项后检验结论是否必然崩塌。",
     "example": "粤2023县：要使该建议成立，必须补充的前提是",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "implicit-assumption",
@@ -4949,7 +5506,8 @@
     "ask": "设问问“暗含前提/基于的假设”；找作者默认成立但未明说、且不可缺少的底座条件。",
     "example": "粤2024：以下属于这一推论暗含前提的是",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "exclude-defeater-premise",
@@ -4957,7 +5515,8 @@
     "ask": "相关或对比事实推出因果；前提需排除因果倒置、初始差异或关键他因，否定后原结论失守。",
     "example": "粤2021县：练习打击乐能够有效刺激甚至改变大脑结构",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "plan-compliance-premise",
@@ -4965,7 +5524,8 @@
     "ask": "由政策或措施推出预期效果；补充对象会配合、措施可覆盖目标人群且不会被替代行为抵消。",
     "example": "粤2020县：设置集中营业区就能缓解占道拥堵",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "supply-demand-premise",
@@ -4973,7 +5533,8 @@
     "ask": "由供给增减推出价格变化；补充需求、替代品或其他供给没有足以抵消该变化的重大改变。",
     "example": "粤2021乡：花椒严重减产，故价格将显著上涨",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -4986,7 +5547,8 @@
     "ask": "题干由A与B相关推出A导致B；选项说明A通过具体生理、技术或社会路径促成B。",
     "example": "粤2026：中空管状结构是恐龙用于调节体温的特殊结构",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "no-cause-no-effect",
@@ -4994,7 +5556,8 @@
     "ask": "提供对照：没有A时B不发生或发生率明显降低，以反事实对照加固A对B的因果作用。",
     "example": "知识点页：中断高纤维饮食后，结肠癌发病率迅速回升",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cause-before-effect",
@@ -5002,7 +5565,8 @@
     "ask": "证明A发生在B之前且变化先于B，排除B导致A的倒因可能，增强顺向因果。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "exclude-confounders",
@@ -5010,7 +5574,8 @@
     "ask": "说明A组与非A组在其他可能影响B的因素上无显著差异，使A成为主要差异来源。",
     "example": "知识点页：两组在吸烟率、遗传基因及运动量上无显著差异",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "dose-response-support",
@@ -5018,7 +5583,8 @@
     "ask": "给出A强度或持续时间越大，B随之有方向一致的梯度变化，用剂量反应支持因果关系。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "except-causal-support",
@@ -5026,7 +5592,8 @@
     "ask": "设问“最不能支持/除哪项外均能支持”；区分机制、对照、排他因与无关或反向信息。",
     "example": "粤2026：以下选项如果为真，最不能支持这一结论的是",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5039,7 +5606,8 @@
     "ask": "两组干预后表现不同；证明实验前核心指标、对象构成和基础条件无显著差异。",
     "example": "知识点页：同批种子随机平分，两块田外部环境一致",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "single-variable-control",
@@ -5047,7 +5615,8 @@
     "ask": "证明实验期间除目标干预外，两组环境、训练、用药或管理完全一致，排除额外处理。",
     "example": "知识点页：除菌肥外施肥打药频次完全相同",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "random-representative-sample",
@@ -5055,7 +5624,8 @@
     "ask": "说明受试者随机抽取并随机分组、样本规模和流失情况合理，降低选择偏差。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "valid-blind-measure",
@@ -5063,7 +5633,8 @@
     "ask": "说明采用盲法、安慰剂或客观指标，排除心理暗示、实验者偏见和测量误差。",
     "example": "知识点页：受试对象未因意识到被测试而产生心理暗示",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "replication-support",
@@ -5071,7 +5642,8 @@
     "ask": "在不同样本、地点或批次重复同一控制实验并得到同向结果，增强结论稳定性。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "except-experiment-support",
@@ -5079,7 +5651,8 @@
     "ask": "设问“最不能支持”；从基准、控变、样本与测量中识别无关信息或实际削弱项。",
     "example": "粤2024：低钠盐组中风率更低，问最不能支持结论的是",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5092,7 +5665,8 @@
     "ask": "题干给出工具、服务或条件改善，但目标结果反而变差；找能让两事实同时成立的新增变量。",
     "example": "粤2022：新收割机有助减少损失，总损失率反而上升",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "high-praise-low-demand",
@@ -5100,7 +5674,8 @@
     "ask": "产品或服务评价、价格和质量良好，实际购买或使用却少；解释可及性、需求错配或选择成本。",
     "example": "粤2023县：长者食堂物美价廉，每天就餐老人却不多",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "efficiency-rebound",
@@ -5108,7 +5683,8 @@
     "ask": "引入提效工具或减少限制后，工作量、拥堵等反而增加；以需求增长或任务扩张解释反弹效应。",
     "example": "粤2023县：安装自动排版软件后，店内员工反而更忙",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "disappear-reappear",
@@ -5116,7 +5692,8 @@
     "ask": "对象因灾害或条件破坏而消失，却突然恢复且规模更大；找人为恢复、种源输入或条件重建。",
     "example": "粤2026：水毛茛大面积消失后重新出现且规模远超以往",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "policy-unexpected-result",
@@ -5124,7 +5701,8 @@
     "ask": "政策按常理应改善问题，实施后却无改善或出现相反结果；找配套缺失、行为替代或外部冲击。",
     "example": "粤2024：网上预约限量后，景区许多时段依然拥挤",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cannot-explain-except",
@@ -5132,7 +5710,8 @@
     "ask": "给出反常现象，设问“最不能解释”；前三项须同时兼容矛盾两端，选择无关或加剧矛盾项。",
     "example": "粤2023县：以下各项如果为真，最不能解释这一现象的是",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-lp-explain-phenome-1",
@@ -5140,7 +5719,8 @@
     "ask": "服务或设施推出时需求旺盛，数月后使用骤降；寻找考试、活动、季节等限时需求已结束，使前后表现同时成立。",
     "example": "粤2024：通宵学习室受到欢迎，4个月后因使用人数大幅减少而关闭",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5153,7 +5733,8 @@
     "ask": "两机构或两群体表面可比却结果悬殊；指出对象难度、风险或成员构成存在系统差异。",
     "example": "知识点页：三甲医院收治危重患者，社区医院只收轻症",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "ratio-base-difference",
@@ -5161,7 +5742,8 @@
     "ask": "一方比例更高但绝对数量更低，或反之；用总体基数差异化解表面冲突。",
     "example": "粤2021县：甲品牌女性占八成，乙品牌女性购买量却第一",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "aggregate-composition-shift",
@@ -5169,7 +5751,8 @@
     "ask": "总体指标方向与分项表现不一致；指出高权重类别占比变化或新增群体改变了加权结果。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "revenue-cost-metric-gap",
@@ -5177,7 +5760,8 @@
     "ask": "销量、收入、成本、利润呈相反变化；用单价、成本或产品结构变化解释不同财务指标。",
     "example": "粤2025：提供免费运费险增加退费成本，网店仍未关闭服务",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "substitute-market-difference",
@@ -5185,7 +5769,8 @@
     "ask": "条件相似的地区或时期表现不同；指出替代品、竞争供给或消费偏好这一非对称市场变量。",
     "example": "粤2021县：肉兔易养殖且受关注，当地市场销路却不理想",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5198,7 +5783,8 @@
     "ask": "科普或调查材料给出若干事实，问“由此可以推出”；选择不扩大范围、与原文同义的改述。",
     "example": "知识点页：深度睡眠时段是短期记忆向长期记忆固化的关键窗口",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "weak-possibility-infer",
@@ -5206,7 +5792,8 @@
     "ask": "材料只支持相关、趋势或机制线索；选择带“可能、部分、有助于”的有限结论，排除必然化。",
     "example": "知识点页：高质量深度睡眠可能有助于提升记忆巩固效果",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "combine-explicit-facts",
@@ -5214,7 +5801,8 @@
     "ask": "结论需合并材料中两句明确事实才能推出，不添加新因果、比较或价值判断。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "bounded-scope-infer",
@@ -5222,7 +5810,8 @@
     "ask": "材料结论仅针对特定样本、时段或条件；正确项保留这些限定，不从局部扩展至全部。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5235,7 +5824,8 @@
     "ask": "设问“不能推出”；原文只并列A、B或说明相关，错误项擅自写成A导致B。",
     "example": "知识点页：远程办公比例与研发交付量同时增长，不能推出前者是根本动力",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "cannot-infer-scope",
@@ -5243,7 +5833,8 @@
     "ask": "原文只涉及部分对象或特定条件，错误项扩大为所有对象、任何情况或普遍规律。",
     "example": "",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cannot-infer-concept",
@@ -5251,7 +5842,8 @@
     "ask": "原文说明效率、数量或知名度，错误项换成收入、质量或满意度等不同属性。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cannot-infer-absolute",
@@ -5259,7 +5851,8 @@
     "ask": "原文使用可能、通常或有助于，错误项改成必然、唯一、最有效，选择这一过度绝对项。",
     "example": "知识点页：长期剥夺深度睡眠必然导致永久性失忆",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cannot-infer-comparison",
@@ -5267,7 +5860,8 @@
     "ask": "原文分别陈述A和B但未比较，错误项推出A优于B、增速更快或程度更高。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5280,7 +5874,8 @@
     "ask": "多人陈述且限定仅一真或仅一假；先找P与非P的直接矛盾，扣除名额后判断其余陈述。",
     "example": "国2025副省：四人中只有一人说真话",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "all-vs-some-not",
@@ -5288,7 +5883,8 @@
     "ask": "陈述含“所有S是P”与“有的S不是P”；利用必一真一假的矛盾关系看圈外陈述。",
     "example": "知识点页：所有人都优秀与有人没评上优秀",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "conditional-contradiction",
@@ -5296,7 +5892,8 @@
     "ask": "一人说P推出Q，另一陈述P且非Q；锁定两句一真一假，再用真假名额判其余。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "conjunction-contradiction",
@@ -5304,7 +5901,8 @@
     "ask": "陈述出现P且Q及其否定“非P或非Q”；识别完整矛盾而非只否定一个支命题。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "exclusive-or-contradiction",
@@ -5312,7 +5910,44 @@
     "ask": "“要么P要么Q”与“二者同真或同假”构成矛盾；结合唯一真假的限额确定事实。",
     "example": "粤2022：两件作品都获奖、只有一件获奖等四项猜测",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
+   },
+   {
+    "id": "disguised-conditional",
+    "name": "变形假言矛盾",
+    "ask": "矛盾一方用“只有…才”“除非…否则”“不…就不”等表述，须先等价转换成P→Q，才能与“P但非Q”认出矛盾；题面不得直接并列“如果…那么”与“但没有”。",
+    "example": "",
+    "weight": 4,
+    "typical": false,
+    "level": 3
+   },
+   {
+    "id": "compound-outside-pair",
+    "name": "圈外复合命题取反",
+    "ask": "矛盾对在简单命题中，圈外至少一句是假言或选言；判为假话后须用“P且非Q”或“非P且非Q”取反得出事实，再结合其余条件锁定答案。",
+    "example": "",
+    "weight": 4,
+    "typical": false,
+    "level": 3
+   },
+   {
+    "id": "conditional-chain-truth",
+    "name": "假言连锁真假",
+    "ask": "陈述中含A→B、B→C式假言链，需结合真假名额判定哪些成立，再用连锁推理与逆否命题推出结论；不能只靠找一对矛盾直接出解。",
+    "example": "",
+    "weight": 3,
+    "typical": false,
+    "level": 3
+   },
+   {
+    "id": "disjunction-contradiction",
+    "name": "选言命题矛盾",
+    "ask": "一人说“P或Q”，另一人说“既不P也不Q”，二者构成矛盾必一真一假；扣除真假名额后看其余陈述推事实。题面不得同时出现“P且Q与非P或非Q”的德摩根对。",
+    "example": "",
+    "weight": 4,
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5325,7 +5960,8 @@
     "ask": "题干仅一假，出现“所有S是P”与“所有S不是P”；假话必在二者中，圈外陈述均真。",
     "example": "知识点页：所有同学都及格与所有同学都没及格",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "lower-opposition-one-true",
@@ -5333,7 +5969,8 @@
     "ask": "题干仅一真，出现“有的S是P”与“有的S不是P”；真话必在二者中，圈外陈述均假。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "assume-speaker-truth",
@@ -5341,7 +5978,8 @@
     "ask": "无明显矛盾或反对关系时，假设某人说真话，推导其余并与规定的真假数量核对。",
     "example": "粤2023县：三名专家中只有一名预测正确",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "two-round-guesses",
@@ -5349,7 +5987,8 @@
     "ask": "每人各说两句，给出全对、一对一错、全错的人数；枚举对象并统计每人的命中数。",
     "example": "粤2021县：一人两次都对，一人对一次，一人完全猜错",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "mixed-truth-count",
@@ -5357,7 +5996,8 @@
     "ask": "限定两真两假等非唯一配额；对候选事实逐一代入，统计四句真值并排除不合配额者。",
     "example": "国2025副省：四人中只有一人说真话并判断方位",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5370,7 +6010,8 @@
     "ask": "选项完整列出所有主体与属性；按确定条件逐句扫描，违反任一条件即排除。",
     "example": "粤2023县：以下人选符合年级和科目各不相同要求的是",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "candidate-set-screening",
@@ -5378,7 +6019,8 @@
     "ask": "题干给人数、类别和互斥条件，选项为候选名单；逐项核查人数、类别及条件是否同时满足。",
     "example": "粤2022：哪组青年教师人选能够满足条件",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "possible-option-substitution",
@@ -5386,7 +6028,8 @@
     "ask": "设问哪项可能；将选项作为新增事实代入全部约束，唯一不产生冲突者即答案。",
     "example": "国2024副省：下列哪项是可能的先后依次结对城市名单",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "impossible-option-substitution",
@@ -5394,7 +6037,8 @@
     "ask": "设问哪项不可能；逐项代入构造，三项能完成合法安排，找必与条件冲突的一项。",
     "example": "国2024执法：以下哪项是不可能的",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "half-true-statement-substitute",
@@ -5402,7 +6046,8 @@
     "ask": "每人陈述两部分且只对一半，或真假状态不确定；代入选项统计每句真假并检验。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5415,7 +6060,8 @@
     "ask": "条件反复提到同一主体；汇总该主体的全部限制先锁定其位置或属性，再带出其余关系。",
     "example": "粤2021县：三人专业与驻点村庄匹配",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "extreme-boundary-clue",
@@ -5423,7 +6069,8 @@
     "ask": "抓第一、最后、最高、最低或中间等唯一边界条件，先确定极值主体再展开排序。",
     "example": "粤2025：四人排名前四且无人并列",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "adjacency-block-clue",
@@ -5431,7 +6078,8 @@
     "ask": "条件含紧邻、间隔一位或同组；先把相关主体视为整体模块，结合边界压缩位置。",
     "example": "粤2026：财政局在人社局右边并与之相邻",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "conditional-stem-breakthrough",
@@ -5439,7 +6087,8 @@
     "ask": "题干基础条件解不唯一，设问追加“若X”；先代入X形成确定桩，再判断必然或可能项。",
     "example": "国2025副省：如果第二季度只安排2次会议",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "must-true-from-pivot",
@@ -5447,7 +6096,8 @@
     "ask": "选项只问一个局部结论；围绕信息量最大的主体或属性收拢条件，找所有合法排列共同成立项。",
     "example": "粤2024：根据上述条件，下列选项必然正确的是",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "rule-count-reverse",
@@ -5455,7 +6105,8 @@
     "ask": "给出游戏规则和最终累计量（手指数、得分），先反推每局可能组合，再判断哪种过程不可能。",
     "example": "浙2025A第104题：小李一共出了9个手指，小王一共出了5个手指。问以下哪个选项不可能发生",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5468,7 +6119,8 @@
     "ask": "人物与职业、专业或地点一一对应，条件多为否定；画二维矩阵打叉并用唯一性收网。",
     "example": "粤2021县：三名干部、三个专业、三个驻点村庄匹配",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "three-dimension-grid",
@@ -5476,7 +6128,8 @@
     "ask": "人物同时对应地点与职业等三类要素；分别建表，以已确定的跨维关系互相传递。",
     "example": "知识点页：三人分别对应医生、教师、律师及年龄关系",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-select-incidence-grid",
@@ -5484,7 +6137,8 @@
     "ask": "每人对应多个项目，且每项目人数固定；用0/1表记录，会演奏或参加的总行列配额共同收敛。",
     "example": "粤2024：四人每人会两种乐器，每种乐器恰有两人会",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "time-person-place-grid",
@@ -5492,7 +6146,8 @@
     "ask": "多个人在多时段分别对应地点，要求同月不重复；按月份建表并利用行列唯一性排除。",
     "example": "国2024执法：四人1至4月到四个城市调研",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "ranking-identity-grid",
@@ -5500,7 +6155,8 @@
     "ask": "人物、身份与名次同时匹配；将大小关系转成格中排除，再以唯一名次和身份联动。",
     "example": "粤2026：四村分别获四个奖项并比较经济收入",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5513,7 +6169,8 @@
     "ask": "把“如果/只要P就Q”翻译为P→Q，依据肯前肯后或否后否前判断可推出项。",
     "example": "粤2024：不禁止繁衍季捕鱼，鱼类资源就会枯竭",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "necessary-only-if",
@@ -5521,7 +6178,8 @@
     "ask": "把“只有P才Q”“P是Q必要条件”翻译为Q→P，避免把箭头写反。",
     "example": "国2025副省：只有形成完备市场体系与规则，才能提供市场根基",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "unless-otherwise",
@@ -5529,7 +6187,8 @@
     "ask": "识别“除非P否则不Q”为Q→P，“除非P否则Q”为非Q→P，再作逆否推理。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "contrapositive-inference",
@@ -5537,7 +6196,8 @@
     "ask": "已知P→Q并给出非Q，推出非P；区分有效逆否与无效的否前、肯后。",
     "example": "粤2022：喜欢羽毛球且来自体育学院则喜欢登山",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "necessary-conjunction",
@@ -5545,7 +6205,8 @@
     "ask": "Q成立要求P且R；由Q推出P、R均真，由任一必要条件不成立可推出Q不成立。",
     "example": "国2026市地：只有完善投入保障并优化资源配置，才能完善融合机制",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "statement-combination-count",
@@ -5553,7 +6214,8 @@
     "ask": "给出①②③④多项结论，逐项按假言规则判断，最后选择正确陈述的组合或数量。",
     "example": "粤2022：根据以上论述，判断①②③④哪些必然正确",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5566,7 +6228,8 @@
     "ask": "已知A或B为真，再知非A或非B，推出另一支为真；不可由A真推出B假。",
     "example": "粤2021县：购买绿萝、罗汉松中的一种并结合其他购买条件",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "negate-conjunction",
@@ -5574,7 +6237,8 @@
     "ask": "把“并非A且B”按摩根律改写为非A或非B，只能推出至少一个不成立。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "negate-disjunction",
@@ -5582,7 +6246,8 @@
     "ask": "把“并非A或B”改写为非A且非B，据此可同时确定两个支命题均假。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "exclusive-or",
@@ -5590,7 +6255,8 @@
     "ask": "题干为不相容选言“要么A要么B”，利用只能一真一假，结合一支真值确定另一支。",
     "example": "粤2020县：要么紫薯面积最大，要么南瓜面积最大",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "at-least-k-selection",
@@ -5598,7 +6264,8 @@
     "ask": "条件含“至少一个/至少两个”，把它转成选言或组合约束，与假言条件联立推出必选项。",
     "example": "粤2025：戊、己、庚至少有2人获奖",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5611,7 +6278,8 @@
     "ask": "把多个条件接成A→B→C→D，由已知A连续肯前，推出链尾必然成立。",
     "example": "粤2022：名不正则言不顺，言不顺则事不成",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "reverse-contrapositive-chain",
@@ -5619,7 +6287,8 @@
     "ask": "对A→B→C整体取逆否，已知非C时依次推出非B、非A。",
     "example": "国2026地市：城乡融合多层必要条件联锁",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "positive-negative-converge",
@@ -5627,7 +6296,8 @@
     "ask": "题干同时给A→B与非A→B，利用排中律推出无论A真假，B都必然为真。",
     "example": "知识点页：算法突破与否都必须追加算力投资",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "same-cause-contradiction",
@@ -5635,7 +6305,8 @@
     "ask": "题干给A→B与A→非B；若A成立会矛盾，因此推出A必假。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "branch-convergence",
@@ -5643,7 +6314,8 @@
     "ask": "已知A或B，且A→C、B→C；分别走两条分支均到C，推出C必真。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "chain-statements-check",
@@ -5651,7 +6323,8 @@
     "ask": "长链后给①②③④多个结论，分别检验顺推、逆否和无效推理，选正确组合。",
     "example": "粤2022：根据孔子论述，下列推断必然正确的是",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "add-premise-derive",
@@ -5659,7 +6332,8 @@
     "ask": "已给多条假言、选言，问增加哪项作前提可推出指定结论；从结论倒推缺哪一环，逐项代入验证。",
     "example": "苏2025B第102题：增加以下哪项作为前提，可以推出“小李是计算机专业的”；苏2025A第103题：增加以下哪个选项作为前提，可以推出小吴练游泳",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -5672,7 +6346,8 @@
     "ask": "两处标记句一处为事实、数据或实验依据，另一处为作者最终主张；分别判断支持关系。",
     "example": "知识点页：第一处为实验论据，第二处为医学专家的核心主张",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "opponent-view-role",
@@ -5680,7 +6355,8 @@
     "ask": "标记句是文段先引入的传统看法或对方主张，后文提供反例或证据加以反驳。",
     "example": "知识点页：传统观点认为吃辣会导致胃溃疡加重",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "concession-background-role",
@@ -5688,7 +6364,8 @@
     "ask": "标记句承认不利事实或交代背景，随后以“但/然而”转向作者立场；判断其非核心论据。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "intermediate-conclusion",
@@ -5696,7 +6373,8 @@
     "ask": "标记句由前文证据推出，同时又被后文用于支持最终结论；判断其双重角色。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "two-marked-role-pair",
@@ -5704,7 +6382,8 @@
     "ask": "设问两处黑体或划线句分别扮演何种角色；先判立场，再判论据、分论点或总论点。",
     "example": "知识点页：第一处黑体与第二处黑体的作用分别是",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5717,7 +6396,8 @@
     "ask": "题干为所有A是B、所有B是C，所以所有A是C；匹配量词、词项位置和结论方向一致项。",
     "example": "粤2022：每一名战士都是英雄，英雄都值得被纪念",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "affirm-consequent-parallel",
@@ -5725,7 +6405,8 @@
     "ask": "题干为A→B、B成立，所以A成立；选择同样犯肯定后件错误的选项。",
     "example": "国2026副省：强降雨，故出现冷暖气流交汇",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "deny-antecedent-parallel",
@@ -5733,7 +6414,8 @@
     "ask": "题干为A→B、非A，所以非B；选择命题极性和箭头位置完全相同的错误结构。",
     "example": "粤2024：人不是水火，所以人不是无情的",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "modus-tollens-parallel",
@@ -5741,7 +6423,8 @@
     "ask": "题干为A→B、非B，所以非A；选择同样是否后否前的有效推理。",
     "example": "国2025副省：公共场所禁烟；吸烟不违法则非公共场所",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "disjunctive-syllogism-parallel",
@@ -5749,7 +6432,8 @@
     "ask": "题干为A或B、非A，所以B；匹配相容选言及否定肯定式结构。",
     "example": "粤2026：未购买碳配额，故需自主开发减排项目",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "necessary-conjunction-parallel",
@@ -5757,7 +6441,8 @@
     "ask": "题干说成为A必须同时具备B和C，某对象缺C，故不是A；匹配必要条件联言结构。",
     "example": "粤2023县：不承担社会责任者一定不是优秀企业家",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-structure-parallel-1",
@@ -5765,7 +6450,8 @@
     "ask": "题干为A促进或导致B、B促进或导致C，因此A促进或导致C；抽象三段因果传递链，匹配中间项位置和方向相同的选项。",
     "example": "粤2021县：产业结构转型创造职业流动机会，职业流动有利于获得报酬",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "gap-structure-parallel-2",
@@ -5773,7 +6459,8 @@
     "ask": "题干用某类本来就不会出现目标结果的特殊对象，论证某因素对总体没有影响；匹配同样以无效特殊反例否定总体作用的选项。",
     "example": "粤2021县：性格内向的人即使停止网络社交也不会增加面对面交流时间",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-structure-parallel-3",
@@ -5781,7 +6468,8 @@
     "ask": "题干分别证明互斥且穷尽的各类对象都具有同一属性，再推出总体均有该属性；匹配同样按完整分组归纳总体的选项。",
     "example": "粤2024：成年人读书有好处，儿童读书也有好处，所以任何人读书都有好处",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-structure-parallel-4",
@@ -5789,7 +6477,8 @@
     "ask": "题干为成为或实现A必须具备B，已知要成为或实现A，因此推出必须具备B；匹配P→Q、P、所以Q的有效肯前式。",
     "example": "粤2022县：我国要建设世界科技强国，因此必须注重国际人才的吸引与使用",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-structure-parallel-5",
@@ -5797,7 +6486,8 @@
     "ask": "题干给出一个推理骨架，设问改为“与上述论证逻辑不一致”；逐项符号化，找唯一在量词、项位置或传递方向上不同者。",
     "example": "粤2020县：没有游子不思乡，思乡之人皆惆怅；问论证逻辑不一致的是",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "rebuttal-dialogue-parallel",
@@ -5805,7 +6495,8 @@
     "ask": "甲提出论点，乙用另一指标反驳（增速对占比等），选反驳方式相同的对话。",
     "example": "苏2025A第92题：以下哪项与上述对话方式最为相似？",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5818,7 +6509,8 @@
     "ask": "论据与论点使用字面相近但内涵不同的概念；指出作者把A不当等同于B。",
     "example": "知识点页：把商业销售热度等同于临床医学疗效",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "indicator-attribute-switch",
@@ -5826,7 +6518,8 @@
     "ask": "论据是销量、评分、知名度等指标，结论换成质量、疗效或能力，识别指标不能代表目标属性。",
     "example": "粤2025：清洗泡沫最多，故除菌去残留效果更好",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "part-whole-switch",
@@ -5834,7 +6527,8 @@
     "ask": "论据只说明组成部分或局部群体，结论转为整体属性，或反向把整体特征强加给部分。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "means-goal-switch",
@@ -5842,7 +6536,8 @@
     "ask": "论据证明某手段或中间环节有效，结论却改称最终目标已实现，指出二者不是同一论题。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "ad-hominem-topic-shift",
@@ -5850,7 +6545,8 @@
     "ask": "本应回应对方主张，却攻击其身份、动机或品格；指出未反驳原论点而转移了话题。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -5863,7 +6559,8 @@
     "ask": "题干仅给A、B统计相关或同步变化，却断定A导致B；选择指出混淆相关与因果的项。",
     "example": "粤2022县：学习时长更长者兴趣和成绩更高，故增加时长会提高成绩",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "post-hoc-causation",
@@ -5871,7 +6568,8 @@
     "ask": "仅因A发生在B之前便认定A导致B；指出时间先后不足以建立因果。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "reverse-cause-flaw",
@@ -5879,7 +6577,8 @@
     "ask": "由A与B伴随断言A→B，却未排除B→A；设问要求指出主要逻辑漏洞。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "biased-sample-generalization",
@@ -5887,7 +6586,8 @@
     "ask": "从特殊渠道或自选样本推出总体规律；指出样本结构不具代表性而以偏概全。",
     "example": "国2024副省：近万名受访者调查推出H地区冰雪旅游需求较高",
     "weight": 5,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "small-sample-generalization",
@@ -5895,7 +6595,8 @@
     "ask": "依据少数个案或单一地区经验推出普遍结论；指出样本量和覆盖范围不足。",
     "example": "知识点页：调查高档健身房会员后推断现代城市居民",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "gap-flaw-causal-1",
@@ -5903,7 +6604,8 @@
     "ask": "题干由A会导致B，错误推出没有A就不会B；指出其把A当成B的唯一原因，忽略其他因素也能导致B。",
     "example": "粤2020县：不含酒精，因此不会对手部皮肤产生损害",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -5916,7 +6618,8 @@
     "ask": "剥除措辞后，论据只是论点的同义句或逆否等价句，没有提供独立证据。",
     "example": "知识点页：正义行为有利福祉，因为不利福祉的行为不正义",
     "weight": 5,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "premise-depends-on-conclusion",
@@ -5924,7 +6627,8 @@
     "ask": "用于证明结论的前提，只有先接受该结论才成立；指出论证预设了待证命题。",
     "example": "",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "no-proof-therefore-false",
@@ -5932,7 +6636,8 @@
     "ask": "题干以没有证据证明P为真，就断定P必假；识别缺乏证据不等于反面证据。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "no-disproof-therefore-true",
@@ -5940,7 +6645,8 @@
     "ask": "题干以尚无人证明P为假，就断定P必真；选择指出诉诸无知的项。",
     "example": "知识点页：无法证明外星人不存在，便断定外星人必然存在",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -5953,7 +6659,8 @@
     "ask": "已知某日星期，求跨月或跨年另一日星期；只累加天数模7余数，大月余3、小月余2，核查是否跨过闰年2月29日及首尾端点。",
     "example": "知识点页：2023年5月1日是星期一，推算未来或过去指定日期的星期",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "five-weekday-month",
@@ -5961,7 +6668,8 @@
     "ask": "某月某个星期几出现5次（或某星期活动共5天），由月长决定前几天各出现5次，反推当月或下月1日星期。",
     "example": "粤2024：只有在星期六才去图书馆，3月一共去了5天，则4月1日可能是",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "duration-end-date",
@@ -5969,7 +6677,8 @@
     "ask": "给起始日期与持续天数（明确当天是否算第1天），逐月扣减天数求结束日的公历日期，再由余数求星期。",
     "example": "知识点页：1月18日启动，持续78天，当天算第1天",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "weekday-workload-reverse",
@@ -5977,7 +6686,8 @@
     "ask": "只在每周固定几天行动，给两种日进度分别完成的截止日，用两截止日间的有效天数与总量关系反推开始日期。",
     "example": "粤2021县：周一至周五读书，每晚20页到7月28日读完、30页到7月20日读完，7月1日周三",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "monthly-count-reverse",
@@ -5985,7 +6695,8 @@
     "ask": "按固定星期规律活动，给某两个月的活动次数，反推月初星期与月长，再求另一月次数或全年最后一次活动日期。",
     "example": "国2024副省：每周二、五、日骑行，9月、10月分别13次和14次，求当年最后一次活动日",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "weekday-date-coincide",
@@ -5993,7 +6704,8 @@
     "ask": "一类事件按星期几重复、另一类按每月固定日期发生，给两月内重合次数，枚举月初星期反推某月1日星期。",
     "example": "国2026副省：每周一例会，每月10日、20日接访，8月与9月共2次在同一天，问9月1日是",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "weekday-weighted-total",
@@ -6001,7 +6713,8 @@
     "ask": "工作日与周末的日值不同，给某连续日期段的总量，按周数与零头天的星期组成反推某日是星期几。",
     "example": "国2025执法：周一至周五日营业额1万元、周末2万元，某月1-16日共22万元，问8日为",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -6014,7 +6727,8 @@
     "ask": "题干或选项含“并非所有/并非有的”，先换成等价命题（并非所有S是P＝有的S不是P），再判断哪项一定为真。",
     "example": "粤2023县：并非所有的博士都是统计学专业毕业的；所有的男性都是统计学专业毕业的",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "premise-fact-combine",
@@ -6022,7 +6736,8 @@
     "ask": "给“有的S不是P”（或其否定形式）与“所有M是P”，由逆否得非P则非M，推出有的S不是M。",
     "example": "粤2023县：多名干部是博士，并非所有博士是统计学专业，所有男性是统计学专业，由此可以推断",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "majority-set-chain",
@@ -6030,7 +6745,8 @@
     "ask": "给“大多数A是B”“所有C是D”等多组集合关系，大多数只当“有的”用，从“有的”项出发顺箭头推必然为真的选项。",
     "example": "粤2020县：选了化学的大多数选了物理，选了政治的都选了历史，断定必然为真的是",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "conversion-trap",
@@ -6038,7 +6754,8 @@
     "ask": "选项把“所有S是P”换成“所有P是S”或把“有的S是P”当成“有的S不是P”；按换位规则逐项排除，只有有的、全称否定可换位。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "universal-to-particular",
@@ -6046,7 +6763,8 @@
     "ask": "由“所有S是P”或“大多数S是P”判断选项中哪项一定为真，只认“有的S是P”，排除由有的推所有和反向推导。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -6059,7 +6777,8 @@
     "ask": "把小数当整体相邻作差，差值恒定或成简单数列，按差值续下一项。",
     "example": "粤2023：92.46，84.42，76.38，68.34，（ ）",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "int-decimal-split",
@@ -6067,7 +6786,8 @@
     "ask": "把小数点前后拆成整数列与小数列，两列分别成等差、递推等规律后再合成。",
     "example": "粤2020县：9.19，4.27，5.35，2.43，（ ）",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "decimal-concat-ops",
@@ -6075,7 +6795,8 @@
     "ask": "小数部分由整数部分的倍数、平方等运算结果拼接而成，位数随之变化，按拼接拆位后续写。",
     "example": "粤2023乡：1.24，2.48，3.612，4.816，（ ）",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "int-decimal-cross",
@@ -6083,7 +6804,8 @@
     "ask": "整数部分与小数部分之间或相邻项的整数、小数之间存在加减关系，需交叉验证后续写。",
     "example": "粤2024：21.98，18.77，17.49，14.55，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "radical-split",
@@ -6091,7 +6813,8 @@
     "ask": "a+√b形式，整数项先改写成a+√k²，整数部分与根号内部分别成列（如质数列、合数列）。",
     "example": "苏2025A第55题：5+√6，7+2√2，14，13+√10，17+2√3，（ ）",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6104,7 +6827,8 @@
     "ask": "两类点按不同间隔布置，重合处只保留一类，用最小公倍数求重合点数，再按植树公式去重计数。",
     "example": "粤2024：100米跑道每隔4米甲障碍、每隔6米乙障碍，重合点不布置甲障碍",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "interval-overlap-segments",
@@ -6112,7 +6836,8 @@
     "ask": "两种颜色从同端或两端按不同长度周期涂色，画数轴标出区间，数重叠段数或总长度。",
     "example": "粤2021乡：20厘米纸带左端每隔4厘米涂红、右端每隔5厘米涂绿，问重叠几段",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "three-period-inclusion",
@@ -6120,7 +6845,8 @@
     "ask": "三类点按不同间隔出现，两两重合与三者重合分别用最小公倍数计算，再用三集合容斥求至少一类或恰好一类的点数。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -6133,7 +6859,8 @@
     "ask": "两点在直线同侧，作一点的对称点后连线，用勾股定理求对称点到另一点距离即最小值。",
     "example": "国2024执：两联络站相距10千米，与平行道路垂距12千米，求工作站距两站距离和最小值",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "opposite-side-direct",
@@ -6141,7 +6868,8 @@
     "ask": "两点在直线两侧，直接连线与直线的交点即所求，最小值为两点间距离。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "angle-two-reflections",
@@ -6149,7 +6877,8 @@
     "ask": "角内一点到角两边各取一点，求三点构成的三角形周长最小，作两次对称后连线求长度。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -6162,7 +6891,8 @@
     "ask": "两种产品总量固定，另有成本或工时上限，代入总量后求高利润产品的数量边界，再求利润最大值。",
     "example": "粤2020县：A、B文件夹共9000个，生产成本不高于15000元，求利润最大时A款产量",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "quota-balance",
@@ -6170,7 +6900,8 @@
     "ask": "一种产品消耗配额、另一种增加配额，配额总量不低于零，结合总产量上限联立边界求最大利润。",
     "example": "粤2026：服务器扣4单位碳配额、终端加1单位，共不超过2000台，求每月最大利润",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "two-resource-vertex",
@@ -6178,7 +6909,8 @@
     "ask": "两种资源各有上限，分别列两条约束边界，求交点与坐标轴端点，逐个代入目标比较取最优。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "integer-boundary-adjust",
@@ -6186,7 +6918,8 @@
     "ask": "约束交点不是整数时，在边界附近取可行整数组合，代入比较得到最优方案。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "supply-demand-transport",
@@ -6194,7 +6927,8 @@
     "ask": "两产地两销地，设一个调运量x，其余用供需平衡表示，总成本为x的一次函数，取端点求最高和最低。",
     "example": "川2025第52题：从丙、丁两地分别调集100吨和60吨……每吨运价之比为7：4：6：5",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -6207,7 +6941,8 @@
     "ask": "若干不可拆任务分给两台设备，以总时长一半为下限，找两组时长最接近的分法，求最短完工时间。",
     "example": "粤2023乡：4片果园施肥分别需1.2、1.3、2、2.5小时，用2台无人机至少需要多少小时",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "comparative-advantage",
@@ -6215,7 +6950,8 @@
     "ask": "两车间生产两种配套部件效率不同，按相对效率分工，各自先产优势部件，最后合作补齐所需数量。",
     "example": "国2025副省：机械由3个A和2个B组成，甲日产6A或3B、乙日产1A或2B，生产40台至少几天",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "multi-project-teams",
@@ -6223,7 +6959,8 @@
     "ask": "两队完成多个工程，各工程单独用时不同，按效率比分配工程并安排最后合作，比较方案求最短总工期。",
     "example": "国2026副省：甲、乙两队完成A、B、C三个工程，问两队合作至少需要多少天",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "splittable-cooperate-finish",
@@ -6231,7 +6968,8 @@
     "ask": "任务可拆分且可合作时，先各自做效率高的部分，剩余部分合作完成，求最短总时间。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6244,7 +6982,8 @@
     "ask": "优惠、亏损、利润都用营业额百分比表示，净百分比对应已知金额，反求营业额。",
     "example": "国2024地市：营业额2%税收优惠，原亏损营业额0.8%，享受优惠后盈利300万元，求营业额",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "segment-yoy-multiple",
@@ -6252,7 +6991,8 @@
     "ask": "一部分利润不变、另一部分由亏转盈，给两年总利润倍数关系，列方程反求不变部分利润。",
     "example": "国2026副省：海外业务亏损m元次年盈利2m元，国内利润不变，总利润为上年1.2倍",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "break-even-subsidy",
@@ -6260,7 +7000,8 @@
     "ask": "已知收入与成本的比例关系及补贴规则，求补贴后恰好不亏或达到目标利润所需的营业额或补贴比例。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6273,7 +7014,8 @@
     "ask": "前后分句是“必须具备”还是“具备就行”，区分只有才与只要就，多空需成对呼应。",
     "example": "粤2022县：____真诚回报社会、切实履行社会责任的企业家，____能真正得到社会认可",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "concession-turn",
@@ -6281,7 +7023,8 @@
     "ask": "前句承认事实或假设让步，后句转折，辨析虽然但是、尽管仍然、即使也的使用条件。",
     "example": "",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 1
    },
    {
     "id": "cause-inference",
@@ -6289,7 +7032,8 @@
     "ask": "区分陈述因果的因为所以与由已知推结论的既然就，结合语境判断是解释原因还是推出结论。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "choice-preference",
@@ -6297,7 +7041,8 @@
     "ask": "前后两种做法比较取舍，辨析与其不如、宁可也不、不是而是的语义倾向。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 1
    }
   ]
  },
@@ -6310,7 +7055,8 @@
     "ask": "给三组两人得分之和的大小关系，任取两式相加消去公共项，推出谁最高或最低。",
     "example": "粤2024：四人得分之和三组不等式，推出四个人中得分最低的是",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 2
    },
    {
     "id": "difference-ordering",
@@ -6318,7 +7064,8 @@
     "ask": "给若干“甲比乙多（少）”及差值大小关系，转化为不等式链，推出完整排序。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "inequality-plus-value",
@@ -6326,7 +7073,8 @@
     "ask": "部分人给出具体数值、其余只给和差大小关系，结合数值代入不等式确定名次。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "error-restore-consistent",
@@ -6334,7 +7082,8 @@
     "ask": "多人给出数值和若干误差，把误差逐个分配回去，使还原后的值一致，剩下的就是异常者。",
     "example": "苏2025A第99题：四人给出的结果分别是：9472、9496、9480、9502张……还有一人仅粗略估计出一个票数",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 3
    }
   ]
  },
@@ -6347,7 +7096,8 @@
     "ask": "一点随机落在平面图形内，有利区域为其中某子图形，概率=子图形面积÷总面积，常结合割补求面积。",
     "example": "",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "two-points-distance-square",
@@ -6355,7 +7105,8 @@
     "ask": "两人各自随机位于同一线段上，问距离不超过 d 的概率，画 L×L 正方形，概率=1−(L−d)²/L²。",
     "example": "浙2025A第65题：100米长的直线队伍……如果小明距离她不超过25米，就能听到",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "concentric-ring",
@@ -6363,7 +7114,8 @@
     "ask": "靶纸由等差直径的同心圆组成，求命中某环或某环以上的概率，用直径平方差÷最大直径平方，选项为区间时估算。",
     "example": "苏2025A第57题：最大圆的直径为45.5mm，相邻两个圆的直径均相差5mm……命中6环到6.9环的概率；苏2025B第57题：命中6环及以上的概率",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "circle-semicircle-side",
@@ -6371,7 +7123,8 @@
     "ask": "n 个点随机出现在圆形区域，问能否用过圆心的直线把它们分在同一侧，概率=n÷2ⁿ⁻¹。",
     "example": "浙2025A第70题：四朵荷花随机出现在一个圆形池塘的任意位置，可以用一根过池塘圆心的笔直竹竿将四朵荷花都划分在同一边的概率",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6384,7 +7137,8 @@
     "ask": "给带权连线图，要求全部地点连通且总长最短，按边长从小到大选、跳过成圈的边，选满 n−1 条求和。",
     "example": "苏2025A第70题：铺设电缆联通A、B、C、D、E、F六栋办公楼……每条边上的数字表示两栋楼之间线路的长度（单位：10米），则铺设电缆的总长度最短是",
     "weight": 4,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "must-include-edge",
@@ -6392,7 +7146,8 @@
     "ask": "题目规定某条线路必须铺设或某两点已经连通，先把它算进去，再按从小到大补齐其余连线。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    },
    {
     "id": "cost-weighted-edges",
@@ -6400,7 +7155,8 @@
     "ask": "边上给的是单价×长度或分段费用，先算出每条边的实际费用再选边，求连通的最低总费用。",
     "example": "",
     "weight": 2,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6413,7 +7169,8 @@
     "ask": "大矩形裁小矩形，分别按横放、竖放计算两个方向的块数并相乘，取较大值。",
     "example": "",
     "weight": 3,
-    "typical": true
+    "typical": true,
+    "level": 1
    },
    {
     "id": "mixed-orientation",
@@ -6421,7 +7178,8 @@
     "ask": "单一方向排布在短边上有浪费时，把短边分成横放行和竖放行组合凑满，求最多块数。",
     "example": "川2025第48题：在700×115厘米的钢板上裁剪若干大小为70×40厘米的钢片，且在裁剪时，每块钢片之间还应保留至少5厘米的间隔。问最多能裁剪出多少块",
     "weight": 4,
-    "typical": false
+    "typical": false,
+    "level": 3
    },
    {
     "id": "gap-constraint",
@@ -6429,7 +7187,8 @@
     "ask": "块与块之间须留至少 k 的间隔（边缘不留），n 块占长 n·c+(n−1)·k，据此求每个方向最多块数。",
     "example": "川2025第48题：每块钢片之间还应保留至少5厘米的间隔",
     "weight": 3,
-    "typical": false
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -6443,7 +7202,8 @@
     "example": "粤2025：2023年，G省城镇社会消费品零售额约占社会消费品零售额的（ ）",
     "weight": 4,
     "typical": true,
-    "kind": "share"
+    "kind": "share",
+    "level": 1
    },
    {
     "id": "multi-part-share",
@@ -6460,7 +7220,8 @@
      "text",
      "monthly"
     ],
-    "need": "至少4个可加总的分项与合计"
+    "need": "至少4个可加总的分项与合计",
+    "level": 2
    },
    {
     "id": "base-period-share",
@@ -6470,7 +7231,8 @@
     "weight": 3,
     "typical": false,
     "kind": "share",
-    "need": "部分与整体的现期值及各自同比增速"
+    "need": "部分与整体的现期值及各自同比增速",
+    "level": 2
    },
    {
     "id": "nested-share",
@@ -6480,7 +7242,8 @@
     "weight": 3,
     "typical": false,
     "kind": "share",
-    "need": "两级占比，或下级部分、中级部分与总体"
+    "need": "两级占比，或下级部分、中级部分与总体",
+    "level": 2
    },
    {
     "id": "share-to-part",
@@ -6490,7 +7253,8 @@
     "weight": 2,
     "typical": false,
     "kind": "share",
-    "need": "整体量与部分占比"
+    "need": "整体量与部分占比",
+    "level": 1
    }
   ]
  },
@@ -6504,7 +7268,8 @@
     "example": "粤2024：与2021年相比，2022年中国对外直接投资流量在全球中的占比（ ）",
     "weight": 4,
     "typical": true,
-    "kind": "share_change"
+    "kind": "share_change",
+    "level": 1
    },
    {
     "id": "share-change-points",
@@ -6513,7 +7278,8 @@
     "example": "国2026地市：2024年上半年，中药提取物出口额占医药保健品出口总额的比重比上年同期",
     "weight": 4,
     "typical": false,
-    "kind": "share_change"
+    "kind": "share_change",
+    "level": 2
    },
    {
     "id": "same-period-two-shares",
@@ -6523,7 +7289,8 @@
     "weight": 3,
     "typical": false,
     "kind": "share_change",
-    "need": "两组各自的部分与整体"
+    "need": "两组各自的部分与整体",
+    "level": 2
    },
    {
     "id": "multi-year-share-trend",
@@ -6539,7 +7306,8 @@
      "table",
      "monthly"
     ],
-    "need": "同一部分与整体连续3年以上的数值"
+    "need": "同一部分与整体连续3年以上的数值",
+    "level": 3
    },
    {
     "id": "ratio-trend",
@@ -6555,7 +7323,8 @@
      "table",
      "monthly"
     ],
-    "need": "两个指标连续多期数值"
+    "need": "两个指标连续多期数值",
+    "level": 3
    }
   ]
  },
@@ -6569,7 +7338,8 @@
     "example": "粤2025：2023年，G省博物馆数量同比增长约（ ）",
     "weight": 4,
     "typical": true,
-    "kind": "growth_rate"
+    "kind": "growth_rate",
+    "level": 1
    },
    {
     "id": "max-rate-subject",
@@ -6578,7 +7348,8 @@
     "example": "粤2023乡：2021年，以下经济区域财政科学技术支出同比增长率最高的是",
     "weight": 4,
     "typical": false,
-    "kind": "growth_rate"
+    "kind": "growth_rate",
+    "level": 2
    },
    {
     "id": "max-rate-year",
@@ -6594,7 +7365,8 @@
      "table",
      "monthly"
     ],
-    "need": "同一指标连续4年以上数值"
+    "need": "同一指标连续4年以上数值",
+    "level": 2
    },
    {
     "id": "counterfactual-rate",
@@ -6604,7 +7376,8 @@
     "weight": 3,
     "typical": false,
     "kind": "growth_rate",
-    "need": "被调整部分的数值或可还原的减免额"
+    "need": "被调整部分的数值或可还原的减免额",
+    "level": 3
    },
    {
     "id": "mom-rate",
@@ -6619,7 +7392,8 @@
      "table",
      "line"
     ],
-    "need": "连续月度或季度数值"
+    "need": "连续月度或季度数值",
+    "level": 2
    },
    {
     "id": "rate-points-gap",
@@ -6628,7 +7402,8 @@
     "example": "粤2022乡：相比第1次森林资源清查，第9次森林资源清查时，我国森林覆盖率提高了约（ ）个百分点",
     "weight": 3,
     "typical": false,
-    "kind": "percentage_point"
+    "kind": "percentage_point",
+    "level": 1
    },
    {
     "id": "rate-change-points",
@@ -6638,7 +7413,8 @@
     "weight": 2,
     "typical": false,
     "kind": "percentage_point",
-    "need": "同一指标两期增速"
+    "need": "同一指标两期增速",
+    "level": 1
    },
    {
     "id": "interval-rate",
@@ -6647,7 +7423,8 @@
     "example": "苏2025A：以2018年末为基期，2023年末全国人均公共图书馆藏量的增长率",
     "weight": 2,
     "typical": false,
-    "kind": "interval_growth"
+    "kind": "interval_growth",
+    "level": 2
    },
    {
     "id": "diff-indicator-rate",
@@ -6656,7 +7433,8 @@
     "example": "粤2023县：2022年，全国居民人均收支盈余比上一年（ ）（注：收支盈余=收入-消费支出）",
     "weight": 3,
     "typical": false,
-    "kind": "diff_growth"
+    "kind": "diff_growth",
+    "level": 3
    },
    {
     "id": "surplus-deficit-sign",
@@ -6671,7 +7449,8 @@
      "two_series",
      "text"
     ],
-    "need": "至少4个主体的两项对应指标"
+    "need": "至少4个主体的两项对应指标",
+    "level": 1
    }
   ]
  },
@@ -6685,7 +7464,8 @@
     "example": "粤2021乡：2020年上半年，我国水、海产品出口额同比减少约（ ）亿美元",
     "weight": 4,
     "typical": true,
-    "kind": "growth_amount"
+    "kind": "growth_amount",
+    "level": 1
    },
    {
     "id": "max-delta",
@@ -6694,7 +7474,8 @@
     "example": "粤2025：2017~2023年间，G省国有博物馆同比增加数量最多的是（ ）",
     "weight": 4,
     "typical": false,
-    "kind": "growth_amount"
+    "kind": "growth_amount",
+    "level": 2
    },
    {
     "id": "two-period-delta",
@@ -6703,7 +7484,8 @@
     "example": "粤2026：2024年，广东省体育场地数量增加约（ ）万个",
     "weight": 3,
     "typical": false,
-    "kind": "growth_amount"
+    "kind": "growth_amount",
+    "level": 1
    },
    {
     "id": "delta-multiple",
@@ -6713,7 +7495,8 @@
     "weight": 2,
     "typical": false,
     "kind": "growth_amount",
-    "need": "两个指标的两期值或现期与增速"
+    "need": "两个指标的两期值或现期与增速",
+    "level": 2
    },
    {
     "id": "keep-delta-breakthrough",
@@ -6729,7 +7512,8 @@
      "table",
      "monthly"
     ],
-    "need": "连续多期数值"
+    "need": "连续多期数值",
+    "level": 3
    },
    {
     "id": "monthly-average-full-year",
@@ -6743,7 +7527,8 @@
      "monthly",
      "text"
     ],
-    "need": "前几个月累计值与上年全年值"
+    "need": "前几个月累计值与上年全年值",
+    "level": 2
    },
    {
     "id": "rate-to-target-multiple",
@@ -6759,7 +7544,8 @@
      "table",
      "monthly"
     ],
-    "need": "多个指标的当前值、基准值和增速"
+    "need": "多个指标的当前值、基准值和增速",
+    "level": 3
    },
    {
     "id": "assumption-recompute",
@@ -6769,7 +7555,8 @@
     "weight": 2,
     "typical": false,
     "kind": "projection",
-    "need": "可组成计算公式的多个参数"
+    "need": "可组成计算公式的多个参数",
+    "level": 3
    }
   ]
  },
@@ -6783,7 +7570,8 @@
     "example": "粤2023县：2020年，广东省省本级财政科学技术支出为（ ）亿元",
     "weight": 4,
     "typical": true,
-    "kind": "base_value"
+    "kind": "base_value",
+    "level": 1
    },
    {
     "id": "base-compare",
@@ -6793,7 +7581,8 @@
     "weight": 3,
     "typical": false,
     "kind": "base_value",
-    "need": "多个主体的现期值与增速"
+    "need": "多个主体的现期值与增速",
+    "level": 2
    },
    {
     "id": "base-from-delta",
@@ -6802,7 +7591,8 @@
     "example": "",
     "weight": 2,
     "typical": false,
-    "kind": "base_value"
+    "kind": "base_value",
+    "level": 1
    },
    {
     "id": "cumulative-current",
@@ -6815,7 +7605,8 @@
     "types": [
      "monthly"
     ],
-    "need": "1—N月逐月累计或当月值"
+    "need": "1—N月逐月累计或当月值",
+    "level": 2
    },
    {
     "id": "monthly-daily-average",
@@ -6829,7 +7620,8 @@
      "monthly",
      "text"
     ],
-    "need": "累计值与对应月份"
+    "need": "累计值与对应月份",
+    "level": 1
    }
   ]
  },
@@ -6843,7 +7635,8 @@
     "example": "粤2021乡：2019年G省平均每个农业科研和科技开发机构的高级职称人数最接近（ ）",
     "weight": 4,
     "typical": true,
-    "kind": "average"
+    "kind": "average",
+    "level": 1
    },
    {
     "id": "max-average-subject",
@@ -6852,7 +7645,8 @@
     "example": "粤2021县：2020年前三季度，G省下列行业中，平均每个企业产值最高的是（ ）",
     "weight": 3,
     "typical": false,
-    "kind": "average"
+    "kind": "average",
+    "level": 2
    },
    {
     "id": "average-growth-rate",
@@ -6862,7 +7656,8 @@
     "weight": 3,
     "typical": false,
     "kind": "average",
-    "need": "总量与个数的现期值及增速"
+    "need": "总量与个数的现期值及增速",
+    "level": 2
    },
    {
     "id": "average-ratio",
@@ -6872,7 +7667,8 @@
     "weight": 2,
     "typical": false,
     "kind": "average",
-    "need": "两个主体的总量与个数"
+    "need": "两个主体的总量与个数",
+    "level": 2
    },
    {
     "id": "average-diff",
@@ -6881,7 +7677,8 @@
     "example": "粤2022乡：2020年，全国社区卫生服务中心平均每名医师全年担负诊疗人次比全国农村乡镇卫生院的约多（ ）人次",
     "weight": 3,
     "typical": false,
-    "kind": "average_diff"
+    "kind": "average_diff",
+    "level": 2
    },
    {
     "id": "average-delta",
@@ -6891,7 +7688,8 @@
     "weight": 2,
     "typical": false,
     "kind": "average_diff",
-    "need": "两期总量与个数"
+    "need": "两期总量与个数",
+    "level": 3
    },
    {
     "id": "annual-delta",
@@ -6906,7 +7704,8 @@
      "line",
      "table",
      "monthly"
-    ]
+    ],
+    "level": 1
    },
    {
     "id": "annual-rate",
@@ -6921,7 +7720,8 @@
      "line",
      "table",
      "monthly"
-    ]
+    ],
+    "level": 2
    }
   ]
  },
@@ -6935,7 +7735,8 @@
     "example": "粤2023乡：2021年广东农林牧渔业总产值约为9年前的（ ）倍",
     "weight": 4,
     "typical": true,
-    "kind": "multiple"
+    "kind": "multiple",
+    "level": 1
    },
    {
     "id": "sum-multiple",
@@ -6952,7 +7753,8 @@
      "text",
      "monthly"
     ],
-    "need": "至少6个可分组加总的分项"
+    "need": "至少6个可分组加总的分项",
+    "level": 2
    },
    {
     "id": "base-multiple",
@@ -6962,7 +7764,8 @@
     "weight": 2,
     "typical": false,
     "kind": "multiple",
-    "need": "两个主体的现期值与增速"
+    "need": "两个主体的现期值与增速",
+    "level": 2
    },
    {
     "id": "chain-multiple",
@@ -6971,7 +7774,8 @@
     "example": "国2025副省：如果第15届CMC参赛人数是首届的10.85倍，问第10届CMC参赛人数是首届参赛人数的多少倍",
     "weight": 2,
     "typical": false,
-    "kind": "multiple"
+    "kind": "multiple",
+    "level": 2
    },
    {
     "id": "nearest-ratio",
@@ -6981,7 +7785,8 @@
     "weight": 2,
     "typical": false,
     "kind": "multiple",
-    "need": "能反推两主体数量的总量与人均"
+    "need": "能反推两主体数量的总量与人均",
+    "level": 3
    },
    {
     "id": "direct-lookup",
@@ -6990,7 +7795,8 @@
     "example": "粤2026：根据计量溯源性、准确度和用途等，国家标准物质目前分为（ ）类",
     "weight": 3,
     "typical": false,
-    "kind": "detail_lookup"
+    "kind": "detail_lookup",
+    "level": 1
    },
    {
     "id": "extreme-year-lookup",
@@ -7005,7 +7811,8 @@
      "line",
      "table",
      "monthly"
-    ]
+    ],
+    "level": 1
    },
    {
     "id": "text-theme",
@@ -7018,7 +7825,8 @@
     "types": [
      "text"
     ],
-    "need": "成段的政策举措或主题表述"
+    "need": "成段的政策举措或主题表述",
+    "level": 1
    },
    {
     "id": "text-not-mentioned",
@@ -7031,7 +7839,8 @@
     "types": [
      "text"
     ],
-    "need": "成段的原因或举措表述"
+    "need": "成段的原因或举措表述",
+    "level": 2
    }
   ]
  },
@@ -7045,7 +7854,8 @@
     "example": "粤2021乡：2020年上半年，我国农产品进出口额同比增长约",
     "weight": 4,
     "typical": true,
-    "kind": "mixed_growth"
+    "kind": "mixed_growth",
+    "level": 2
    },
    {
     "id": "multi-segment-rate",
@@ -7055,7 +7865,8 @@
     "weight": 3,
     "typical": false,
     "kind": "mixed_growth",
-    "need": "各段现期值与增速"
+    "need": "各段现期值与增速",
+    "level": 3
    },
    {
     "id": "total-part-other-rate",
@@ -7065,7 +7876,8 @@
     "weight": 2,
     "typical": false,
     "kind": "mixed_growth",
-    "need": "整体与一部分的现期值及增速"
+    "need": "整体与一部分的现期值及增速",
+    "level": 3
    },
    {
     "id": "mixed-rate-range",
@@ -7074,7 +7886,8 @@
     "example": "国2026副省：2024年，我国对最不发达国家进出口总值同比增速约为",
     "weight": 2,
     "typical": false,
-    "kind": "mixed_growth"
+    "kind": "mixed_growth",
+    "level": 1
    }
   ]
  },
@@ -7088,7 +7901,8 @@
     "example": "粤2023县：2021-2022年间，我国新兴业务收入增加值约占我国电信业务收入增加值的（ ）",
     "weight": 4,
     "typical": true,
-    "kind": "delta_share"
+    "kind": "delta_share",
+    "level": 2
    },
    {
     "id": "contribution-rate",
@@ -7097,7 +7911,8 @@
     "example": "苏2025B：2023年M市东北片区接待过夜游客人次增长对全市接待过夜游客增长的贡献率为",
     "weight": 3,
     "typical": false,
-    "kind": "delta_share"
+    "kind": "delta_share",
+    "level": 2
    },
    {
     "id": "pull-growth",
@@ -7107,7 +7922,8 @@
     "weight": 2,
     "typical": false,
     "kind": "delta_share",
-    "need": "部分与整体的现期值及增速"
+    "need": "部分与整体的现期值及增速",
+    "level": 2
    },
    {
     "id": "capacity-contribution",
@@ -7116,7 +7932,8 @@
     "example": "国2024副省：如全国中型灌区新增粮食生产能力均得到充分利用，则中部六省中型灌区新增粮食生产能力对全国粮食增产的贡献占比为",
     "weight": 2,
     "typical": false,
-    "kind": "delta_share"
+    "kind": "delta_share",
+    "level": 3
    }
   ]
  },
@@ -7130,7 +7947,8 @@
     "example": "粤2024：2022年，中国国民经济的18个行业大类中有（ ）个行业的对外直接投资流量同比有所增加",
     "weight": 4,
     "typical": true,
-    "kind": "count"
+    "kind": "count",
+    "level": 1
    },
    {
     "id": "count-share-threshold",
@@ -7139,7 +7957,8 @@
     "example": "国2025副省：资料所列厨房小家电品类当中，2023年零售额超过全品类零售总额10%的有几类",
     "weight": 3,
     "typical": false,
-    "kind": "count"
+    "kind": "count",
+    "level": 2
    },
    {
     "id": "count-rate-faster",
@@ -7155,7 +7974,8 @@
      "table",
      "monthly"
     ],
-    "need": "各主体连续三期数值或两期增速"
+    "need": "各主体连续三期数值或两期增速",
+    "level": 2
    },
    {
     "id": "count-derivable",
@@ -7164,7 +7984,8 @@
     "example": "国2024副省：在以下信息中，能够从上述资料中推出的有几项",
     "weight": 2,
     "typical": false,
-    "kind": "count"
+    "kind": "count",
+    "level": 3
    },
    {
     "id": "sort-current",
@@ -7173,7 +7994,8 @@
     "example": "粤2024：2021年，中国下列行业的对外直接投资流量，从大到小排序正确的是（ ）",
     "weight": 3,
     "typical": false,
-    "kind": "sort"
+    "kind": "sort",
+    "level": 1
    },
    {
     "id": "sort-delta",
@@ -7182,7 +8004,8 @@
     "example": "浙2025A：将我国民航、公路、铁路和水路四种运输方式按2023年一季度旅客运输量同比增量从高到低排序",
     "weight": 3,
     "typical": false,
-    "kind": "sort"
+    "kind": "sort",
+    "level": 2
    },
    {
     "id": "sort-rate",
@@ -7191,7 +8014,8 @@
     "example": "粤2026：与1978年末相比，2023年末我国各类型城镇数量增幅排序正确的是（ ）",
     "weight": 3,
     "typical": false,
-    "kind": "sort"
+    "kind": "sort",
+    "level": 2
    },
    {
     "id": "cross-indicator-rank",
@@ -7207,7 +8031,8 @@
      "table",
      "monthly"
     ],
-    "need": "两个指标的连续多年数值"
+    "need": "两个指标的连续多年数值",
+    "level": 3
    },
    {
     "id": "median",
@@ -7223,7 +8048,8 @@
      "table",
      "monthly"
     ],
-    "need": "同一指标连续7年以上数值"
+    "need": "同一指标连续7年以上数值",
+    "level": 1
    }
   ]
  }

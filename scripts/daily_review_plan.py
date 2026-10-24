@@ -34,7 +34,7 @@ POLICIES = {
         "scope": "数量关系-数学运算",
         "count": 20,
         "points": (6, 10),
-        "per_point": (1, 4),
+        "per_point": (1, 3),
         "target_seconds": 90,
         "must": 3,
     },

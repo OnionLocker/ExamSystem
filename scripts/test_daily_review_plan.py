@@ -106,7 +106,7 @@ plan = build_plan(conn, "数量关系", TODAY, leaves_loader=leaves)
 points = {p["title"]: p for p in plan["points"]}
 assert plan["count"] == 20 == len(plan["slots"]) == sum(p["count"] for p in plan["points"]), plan["count"]
 assert 6 <= len(plan["points"]) <= 10, len(plan["points"])
-assert all(1 <= p["count"] <= 4 for p in plan["points"])
+assert all(1 <= p["count"] <= 3 for p in plan["points"])
 assert "计数模型问题" not in points and all(o["title"] != "计数模型问题" for o in plan["others"])  # 只有秒翻的空题
 ranked = sorted(plan["points"] + plan["others"], key=lambda p: -p["priority"])
 assert [p["title"] for p in plan["points"] if p.get("must")] == [p["title"] for p in ranked[:3]]
@@ -136,8 +136,11 @@ assert all(slot["count"] == 1 and slot["difficulty"] in {"auto", "hard"} for slo
 again = build_plan(conn, "数量关系", TODAY, leaves_loader=leaves)
 assert again["slots"] == plan["slots"]
 top = ranked[0]["priority"]
+due_points = [p for p in plan["points"] if p.get("must") or p["priority"] >= 0.5 * top]
 for point in plan["points"]:
-    assert point.get("must") or point["priority"] >= 0.5 * top or len(plan["points"]) == 6, point["title"]
+    # 不到期的点只在到期点按单点上限装不下整卷时补进来
+    assert (point in due_points or len(plan["points"]) == 6
+            or sum(p["cap"] for p in due_points) < plan["count"]), point["title"]
 
 # 昨天刚练过的点哪怕又弱又有债、排进前三，也只放 1 题
 conn3 = make_db()

@@ -43,23 +43,56 @@ def ledger_path(path: Path | None = None) -> Path:
     return Path(path) if path else Path(os.environ.get("KAOFA_LEDGER") or LEDGER)
 
 
-def usage(ledger: Path | None = None, today: dt.date | None = None) -> Counter:
-    """近 30 天每次记 1，30–120 天记 0.5。"""
+UNANSWERED_SHARE = 0.5
+
+
+def answered_questions(question_ids: list[str], db: Path | None = None) -> set[str]:
+    """账本题号里有作答记录的（按题库 external_id 查）；查不到库就当全部没做。"""
+    import sqlite3
+    db = Path(db or os.environ.get("EXAM_DB") or ROOT / "data" / "exam.db")
+    if not question_ids or not db.is_file():
+        return set()
+    done: set[str] = set()
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=10)
+    except sqlite3.Error:
+        return done
+    try:
+        for start in range(0, len(question_ids), 500):
+            chunk = question_ids[start:start + 500]
+            marks = ",".join("?" * len(chunk))
+            done.update(str(external) for (external,) in conn.execute(
+                f"""SELECT DISTINCT q.external_id FROM practice_answers pa JOIN questions q ON q.id = pa.question_id
+                     WHERE q.external_id IN ({marks})""", chunk))
+    except sqlite3.Error:
+        return set()
+    finally:
+        conn.close()
+    return done
+
+
+def usage(ledger: Path | None = None, today: dt.date | None = None, db: Path | None = None) -> Counter:
+    """近 30 天每次记 1，30–120 天记 0.5；带题号但一次没做过的题只算一半（出了没练不算真练过）。"""
     today = today or dt.date.today()
     ledger = ledger_path(ledger)
     used: Counter = Counter()
     if not ledger.is_file():
         return used
+    rows = []
     for line in ledger.read_text(encoding="utf-8").splitlines():
         try:
             row = json.loads(line)
             age = (today - dt.date.fromisoformat(row["date"])).days
         except (ValueError, KeyError, TypeError):
             continue
-        if age <= RECENT_DAYS:
-            used[(row["tag"], row["variant"])] += 1
-        elif age <= HISTORY_DAYS:
-            used[(row["tag"], row["variant"])] += 0.5
+        if age <= HISTORY_DAYS:
+            rows.append((row, age))
+    done = answered_questions([str(r["question_id"]) for r, _ in rows if r.get("question_id")], db)
+    for row, age in rows:
+        weight = 1 if age <= RECENT_DAYS else 0.5
+        if row.get("question_id") and str(row["question_id"]) not in done:
+            weight *= UNANSWERED_SHARE
+        used[(row["tag"], row["variant"])] += weight
     return used
 
 
@@ -67,8 +100,20 @@ WEAK_EXTRA_SHARE = 1.4   # 表现系数达到此值的变式，同批可占两�
 WEAK_FOCUS = 1.15        # kaofa_focus=weak 时入选的最低表现系数
 
 
+LEVEL_POOLS = {"easy": {1}, "mid": {1, 2}, "hard": {2, 3}}
+TOP_LEVEL_BONUS = 2      # hard 档里层级 3 的变式权重倍数
+
+
+def level_pool(variants: list[dict], tier: str | None) -> list[dict]:
+    """easy/mid/hard 按变式层级筛选；未标层级的变式各档都可用，筛空则退回全部。"""
+    allowed = LEVEL_POOLS.get(str(tier or ""))
+    if not allowed:
+        return variants
+    return [v for v in variants if v.get("level") in allowed or "level" not in v] or variants
+
+
 def pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: random.Random,
-         boost: dict | None = None) -> dict:
+         boost: dict | None = None, tier: str | None = None) -> dict:
     """同批先铺开不重复；错得多的变式（boost 高）权重放大、同批可占两份；近期练得多的降权。"""
     boost = boost or {}
 
@@ -77,6 +122,8 @@ def pick(tag: str, variants: list[dict], used: Counter, taken: Counter, rng: ran
         if v.get("typical"):
             # 典型考法按真实频率降权，但保留权重排序：高频典型仍优先于低频非典型。
             w = max(1, int(round(w * TYPICAL_DISCOUNT)))
+        if tier == "hard" and v.get("level") == 3:
+            w *= TOP_LEVEL_BONUS
         b = boost.get((tag, v["id"]), 1.0)
         share = 2 if b >= WEAK_EXTRA_SHARE else 1
         load = used[(tag, v["id"])]
@@ -112,10 +159,11 @@ def resolve_variants(tag: str, wanted, variants: list[dict]) -> list[dict]:
 
 def assign_variants(module: str, slots: list[dict], *, seed: str = "", catalog: dict | None = None,
                     ledger: Path | None = None, today: dt.date | None = None,
-                    boost: dict | None = None) -> list[dict]:
+                    boost: dict | None = None, difficulty: str | None = None) -> list[dict]:
     """把有变式清单的槽位拆成每题一个，并写入变式要求。
 
     - 默认：在该考点全部变式里轮转，近期少练、错得多（boost）的优先，错得多的同批可占两份。
+    - 槽位 difficulty（缺省用 difficulty 参数）为 easy/mid/hard 时按变式 level 筛选，见 level_pool。
     - 槽位 kaofa_variant：点名一个或几个变式（id/名称），只在这些里出，可重复。
     - 槽位 kaofa_focus="weak"：只在表现系数偏高（错得多）的变式里出；没有足够做题数据时退回全部变式。
     - brief 锁定考法（同构、只练某种）且未点名变式时保持原样；其余倾向性要求与变式叠加。
@@ -137,16 +185,19 @@ def assign_variants(module: str, slots: list[dict], *, seed: str = "", catalog: 
             result.append(slot)
             continue
         tag = str(slot["tag"])
+        tier = slot.get("difficulty") or difficulty
         pool = variants
         if wanted:
             pool = resolve_variants(tag, wanted, variants)
-        elif slot.get("kaofa_focus") == "weak":
-            weak = [v for v in variants if boost.get((tag, v["id"]), 1.0) >= WEAK_FOCUS]
-            pool = weak or variants
+        else:
+            if slot.get("kaofa_focus") == "weak":
+                weak = [v for v in variants if boost.get((tag, v["id"]), 1.0) >= WEAK_FOCUS]
+                pool = weak or variants
+            pool = level_pool(pool, tier)
         taken = taken_by_tag.setdefault(tag, Counter())
         base = {k: v for k, v in slot.items() if k not in ("kaofa_variant", "kaofa_focus")}
         for _ in range(int(slot["count"])):
-            variant = pick(tag, pool, used, taken, rng, boost)
+            variant = pick(tag, pool, used, taken, rng, boost, tier)
             taken[variant["id"]] += 1
             brief = variant_brief(variant) + (f"另需满足用户要求：{user_brief}" if user_brief else "")
             result.append({**base, "count": 1, "kaofa_variant": variant["id"],
@@ -179,6 +230,9 @@ def assign_ziliao_variants(slots: list[dict], *, seed: str = "", targeted: bool 
         if not pool:
             result.append(slot)
             continue
+        if slot.get("difficulty") in ("easy", "hard"):
+            # 资料默认 mid 不筛，保持原有题型与考法轮转；只有整篇/单题调成易或难才按层级缩小范围。
+            pool = level_pool(pool, slot["difficulty"])
         tag = str(slot["tag"])
         taken = taken_by_tag.setdefault(tag, Counter())
         variant = _ziliao_pick(tag, pool, used, taken, rng, boost)
@@ -375,6 +429,8 @@ def entry_issues(entry: dict) -> list[str]:
             issues.append(f"ask 须为 1–120 字：{v.get('id')}")
         if int(v.get("weight") or 0) not in range(1, 6):
             issues.append(f"weight 须为 1–5：{v.get('id')}")
+        if "level" in v and v["level"] not in (1, 2, 3):
+            issues.append(f"level 须为 1（入门）/2（进阶）/3（真题难点）：{v.get('id')}")
         if len(variant_brief(v)) > 600:
             issues.append(f"变式要求超过 600 字：{v.get('id')}")
     return issues
@@ -445,6 +501,7 @@ def cli(argv: list[str] | None = None) -> dict:
     p.add_argument("--example", default="", help="真题出处与题干片段，如“粤2025：……”；没有就留空，不得编造")
     p.add_argument("--weight", type=int, default=2)
     p.add_argument("--id", dest="vid")
+    p.add_argument("--level", type=int, choices=[1, 2, 3], help="难度层级：1 入门 / 2 进阶 / 3 真题难点；easy/mid/hard 出题按层级挑变式")
     p.add_argument("--force", action="store_true", help="与现有变式相似度高时仍然新增")
     ziliao_help = ("资料分析专用：kind 为所属题型（见 ziliao_tracks.KIND_SPECS），types 为适用材料形态（逗号分隔，留空不限），"
                    "need 为材料须提供的数据")
@@ -456,6 +513,7 @@ def cli(argv: list[str] | None = None) -> dict:
     for field in ("name", "ask", "example", "kind", "types", "need"):
         p.add_argument(f"--{field}")
     p.add_argument("--weight", type=int)
+    p.add_argument("--level", type=int, choices=[0, 1, 2, 3], help="难度层级 1/2/3；0 表示清除层级")
     p.add_argument("--typical", action="store_true", help="设为本知识点的典型默认考法")
     p = sub.add_parser("remove", help="删除变式")
     p.add_argument("tag")
@@ -499,6 +557,8 @@ def cli(argv: list[str] | None = None) -> dict:
             vid += "-x"
         variant = {"id": vid, "name": args.name.strip(), "ask": args.ask.strip(), "example": args.example.strip(),
                    "weight": args.weight, "typical": not entry["variants"]}
+        if args.level:
+            variant["level"] = args.level
         _apply_ziliao_fields(variant, args)
         candidate = {**entry, "variants": entry["variants"] + [variant]}
         issues = [i for i in entry_issues(candidate) if not (i.startswith("每个知识点至少") and len(candidate["variants"]) < 3)]
@@ -522,6 +582,11 @@ def cli(argv: list[str] | None = None) -> dict:
                 updated[field] = getattr(args, field).strip()
         if args.weight is not None:
             updated["weight"] = args.weight
+        if args.level is not None:
+            if args.level:
+                updated["level"] = args.level
+            else:
+                updated.pop("level", None)
         _apply_ziliao_fields(updated, args)
         variants = [updated if v["id"] == args.id else dict(v) for v in entry["variants"]]
         if args.typical:

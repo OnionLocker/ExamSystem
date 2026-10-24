@@ -209,6 +209,24 @@ class VariantTest(unittest.TestCase):
             self.assertGreater(kv.variant_boosts(stats)[(TAG, "vote")], 1.4)
             self.assertNotIn((TAG, "repeat"), kv.variant_boosts(stats))
 
+    def test_unanswered_questions_count_half(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory() as tmp:
+            ledger, db = Path(tmp, "l.jsonl"), Path(tmp, "exam.db")
+            slots = [{"tag": TAG, "count": 1, "kaofa_variant": v} for v in ("vote", "repeat")]
+            kv.record_variants("b", slots, ledger, question_ids=["b_01", "b_02"])
+            kv.record_variants("old", [{"tag": TAG, "count": 1, "kaofa_variant": "average"}], ledger)
+            with sqlite3.connect(db) as conn:
+                conn.executescript("""CREATE TABLE questions(id INTEGER PRIMARY KEY, external_id TEXT);
+                    CREATE TABLE practice_answers(id INTEGER PRIMARY KEY, question_id INTEGER, user_answer TEXT,
+                                                  is_correct INTEGER, time_spent_sec INTEGER, answered_at TEXT);""")
+                conn.executemany("INSERT INTO questions VALUES (?,?)", [(1, "b_01"), (2, "b_02")])
+                conn.execute("INSERT INTO practice_answers(question_id,user_answer,is_correct) VALUES (1,'A',1)")
+            used = kv.usage(ledger, db=db)
+        self.assertEqual(used[(TAG, "vote")], 1)
+        self.assertEqual(used[(TAG, "repeat")], 0.5)
+        self.assertEqual(used[(TAG, "average")], 1)
+
     def test_shipped_catalog_is_well_formed(self):
         catalog = kv.load_catalog()
         for tag, entry in catalog.items():
