@@ -470,19 +470,28 @@ class RotationTest(unittest.TestCase):
     def test_chart_match_checks_target_and_distinguishable_shapes(self):
         cats = ["同城", "异地", "国际", "其他"]
         good = {"answer": "B", "options": [
-            {"key": "A", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [40, 40, 10, 10]}},
-            {"key": "B", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [19, 59, 15, 7]}},
-            {"key": "C", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [59, 19, 15, 7]}},
-            {"key": "D", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [19, 45, 29, 7]}},
+            {"key": "A", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [36, 28, 22, 14]}},
+            {"key": "B", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [20, 52, 16, 12]}},
+            {"key": "C", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [52, 20, 16, 12]}},
+            {"key": "D", "text": "", "figure": {"kind": "pie", "categories": cats, "values": [20, 40, 28, 12]}},
         ]}
-        calc = {"target": ["58.3", "182.6", "46.9", "21.4"]}
+        calc = {"target": ["20", "52", "16", "12"]}
         self.assertEqual(tracks.chart_match_issues(good, calc), [])
         close = json.loads(json.dumps(good))
-        close["options"][3]["figure"]["values"] = [20, 57, 16, 7]
+        close["options"][3]["figure"]["values"] = [21, 51, 16, 12]
         self.assertTrue(any("无法区分" in i for i in tracks.chart_match_issues(close, calc)))
         wrong = json.loads(json.dumps(good))
         wrong["answer"] = "A"
         self.assertTrue(any("target" in i for i in tracks.chart_match_issues(wrong, calc)))
+        zero = json.loads(json.dumps(good))
+        zero["options"][1]["figure"]["values"] = [20, 52, 16, 0]
+        self.assertTrue(any("正数" in i and "B项" in i for i in tracks.chart_match_issues(zero, calc)))
+        tiny = json.loads(json.dumps(good))
+        tiny["options"][0]["figure"]["values"] = [46, 30, 17, 7]
+        self.assertTrue(any("扇区过小" in i and "A项" in i for i in tracks.chart_match_issues(tiny, calc)))
+        _, brief = tracks.chart_match_brief("text")
+        self.assertNotIn("遗漏", brief)
+        self.assertIn("8%", brief)
         years = ["2021", "2022", "2023", "2024"]
         trend = {"answer": "A", "options": [
             {"key": k, "text": "", "figure": {"kind": "line", "categories": years, "values": v}}

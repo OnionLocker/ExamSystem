@@ -499,7 +499,9 @@ def chart_match_brief(material_type: str) -> tuple[str, str]:
                              "且仅凭各点升降走势或高低次序即可与正确图区分")
     return ZILIAO_SHARE, ("图表匹配：题干问“下列饼图中最能准确反映……各组成部分占比关系的是”，并写明各部分名称；"
                           "四个选项各为一幅饼图（figure.kind=pie，categories为3—5个部分名称，values为各部分占比或数值），图中不标数值；"
-                          "正确图与材料算出的占比一致，三个干扰图各对应一种真实错误（如用上年数据、两个部分对调、遗漏“其他”项），"
+                          "每一块都必须为正数，且占该图比重不低于8%，保证扇区画得出来；"
+                          "正确图与材料算出的占比一致，三个干扰图各对应一种真实错误（如用上年数据、两个部分对调、把某一块放大并相应缩小另一块），"
+                          "不得把任一块写成0或从类别里删掉；"
                           "且仅凭各块相对大小即可与正确图区分（至少一块占比相差5个百分点以上或大小次序不同）")
 
 
@@ -687,8 +689,9 @@ def material_question_plan(material_type: str, slots: list[dict]) -> str:
             need = slot.get("kaofa_need") or KIND_SPECS.get(kind, {}).get("need") or ""
         if need:
             needs.append(f"Q{index}{slot_label(slot)}需{need}")
+    heading = "五题题型依次为：" if len(slots) == 5 else f"{len(slots)}题题型依次为："
     return (MATERIAL_TYPES[material_type]["plan"]
-            + "五题题型依次为：" + "、".join(slot_label(s) for s in slots) + "。"
+            + heading + "、".join(slot_label(s) for s in slots) + "。"
             + ("各题所需数据：" + "；".join(needs) + "。" if needs else ""))
 
 
@@ -1166,6 +1169,21 @@ def range_calculation_issues(target: float, ranges: dict, answer: str, keys: set
     return issues
 
 
+PIE_MIN_SHARE = 8.0
+
+
+def _pie_slice_issues(key: str, categories: list[str], values: list[float]) -> list[str]:
+    """Option pies are unlabeled, so a missing or hairline wedge cannot be told from a three-slice chart."""
+    if sum(values) <= 0 or any(value <= 0 for value in values):
+        missing = [categories[i] for i, value in enumerate(values) if value <= 0]
+        return [f"{key}项饼图每一块都必须为正数（{'、'.join(missing) or '合计为0'}）"]
+    small = [f"{name}{value / sum(values) * 100:.1f}%"
+             for name, value in zip(categories, values) if value / sum(values) * 100 < PIE_MIN_SHARE]
+    if small:
+        return [f"{key}项饼图扇区过小（{'、'.join(small)}），每一块占比须≥{PIE_MIN_SHARE:g}%"]
+    return []
+
+
 def _shape_signature(kind: str, values: list[float]) -> tuple:
     if kind == "pie":
         total = sum(values) or 1
@@ -1198,6 +1216,9 @@ def chart_match_issues(question: dict, calculation: dict) -> list[str]:
     answer = str(question.get("answer") or "")
     if kind == "pie" and len(categories) < 3:
         issues.append("饼图至少3个部分")
+    if kind == "pie":
+        for key, values in series.items():
+            issues.extend(_pie_slice_issues(key, categories, values))
     if kind != "pie" and len(categories) < 4:
         issues.append("走势图至少4个期次")
     correct = series.get(answer) or []
