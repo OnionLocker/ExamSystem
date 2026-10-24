@@ -1610,6 +1610,8 @@ def archive_dsh_residue(output_dir: Path, path: Path) -> Path:
 
 
 def import_batch(batch_dir: Path, db_path: Path) -> int:
+    batch_dir = Path(batch_dir).resolve()
+    db_path = Path(db_path).resolve()  # 绝对路径，避免校验子进程在 scripts/ cwd 下解析错
     env = {**os.environ, "EXAM_DB": str(db_path)}
     result = subprocess.run(
         [service_node(), str(ROOT / "scripts" / "import-batch.mjs"), str(batch_dir)],
@@ -1868,6 +1870,9 @@ def main() -> int:
         write_batch(run, stage_dir, questions, source)
         sign(stage_dir, run, results, log,
              model_label=run.get('dsh_auditor') if args.dsh_import else None)
+        if run['module'] == '判断推理':
+            from quiz_reasoning import commit_theme_picks
+            commit_theme_picks()
         from generation_gate import verify
         tick(stage="闸门", detail="正在核验收据", passed=len(questions), progress=95, status="running")
         verify(stage_dir)

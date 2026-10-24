@@ -5,6 +5,7 @@
 """
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 from logic_model import ASKS, family_of
@@ -13,13 +14,85 @@ from logic_model import ASKS, family_of
 CORPUS_PER_GROUP = 2
 
 
-def logic_corpus_refs(offset: int = 0) -> str:
-    """从 data/manual-logic-corpus/ 读取最近科研/调查语料摘要，返回可注入参考段落。
+_THEME_PICKS: list[str] = []
 
-    只读最新一份 corpus.json，抽取 authority>=3 且含实质内容的条目；按 offset 轮换取 2 条，
-    并行的各命题组拿到不同条目，避免同批多题挤到同一个热门题材。
-    无素材或读取失败时返回空字符串（调用方静默跳过，不影响原有出题）。
+
+def commit_theme_picks() -> None:
+    """把本轮 writer_prompt 选中并实际出题使用的题材登记为今天已用。
+
+    只读性的 logic_corpus_refs 不会写文件；只有真实出题入库流程（quiz_lite 主流程）
+    在生成成功后才调用本函数落盘，避免测试或其他预览路径污染生产题材登记表。
     """
+    global _THEME_PICKS
+    if not _THEME_PICKS:
+        return
+    registry_path = Path(__file__).resolve().parents[1] / 'data' / 'manual-logic-theme-registry.json'
+    try:
+        if registry_path.is_file():
+            reg = json.loads(registry_path.read_text(encoding='utf-8'))
+            today = date.today().strftime('%Y-%m-%d')
+            titles = set(_THEME_PICKS)
+            changed = False
+            for t in reg.get('themes') or []:
+                if (t.get('title') or '').strip() in titles and t.get('last_used_at') != today:
+                    t['last_used_at'] = today
+                    changed = True
+            if changed:
+                reg['updated_at'] = today
+                registry_path.write_text(json.dumps(reg, ensure_ascii=False, indent=2), encoding='utf-8')
+    except Exception:
+        pass
+    finally:
+        _THEME_PICKS = []
+
+
+def logic_corpus_refs(offset: int = 0) -> str:
+    """从 data/manual-logic-theme-registry.json 按轮换取 2 条题材参考，返回可注入段落。
+
+    优先读题材登记表：按 last_used_at（null 最优先）+ 学科均衡选 2 条，只读不落盘，
+    选中的题材记录到 _THEME_PICKS，由 quiz_lite 真实出题成功后调用 commit_theme_picks 登记。
+    保证逻辑判断全模块共用一份题材池、不短期重复；多学科均衡轮换。
+    登记表不可用或题材不足时，回退到旧逻辑：从 data/manual-logic-corpus/ 最新 corpus.json
+    按 offset 轮换取 2 条。无素材或读取失败时返回空字符串（调用方静默跳过）。
+    """
+    registry_path = Path(__file__).resolve().parents[1] / 'data' / 'manual-logic-theme-registry.json'
+    try:
+        if registry_path.is_file():
+            reg = json.loads(registry_path.read_text(encoding='utf-8'))
+            themes = [t for t in (reg.get('themes') or []) if (t.get('title') or '').strip()]
+            if len(themes) >= 2:
+                # 未用过的（null）最优先；再按学科尽量分散
+                def sort_key(t):
+                    used = t.get('last_used_at') or ''
+                    return (0 if not used else 1, used)
+                themes.sort(key=sort_key)
+                picked, used_disc = [], set()
+                # 优先不同学科各取一条
+                for t in themes:
+                    if len(picked) >= 2:
+                        break
+                    disc = t.get('discipline') or ''
+                    if disc and disc in used_disc:
+                        continue
+                    picked.append(t)
+                    if disc:
+                        used_disc.add(disc)
+                # 不同学科不足 2 条时，再补同学科
+                if len(picked) < 2:
+                    for t in themes:
+                        if len(picked) >= 2:
+                            break
+                        if t not in picked:
+                            picked.append(t)
+                if len(picked) >= 2:
+                    global _THEME_PICKS
+                    _THEME_PICKS = [t['title'].strip() for t in picked]
+                    lines = [f"- [{t.get('discipline') or ''}] {t['title'].strip()}：{(t.get('summary') or '').strip()[:200]}" for t in picked]
+                    return ('真实科研/调查语料题材参考（仅作情境与题材来源，可基于其场景构造题干，不得照抄原文或编造具体数据结论；'
+                            '本组每题题材互不相同，也不要与 already_kept 同题材）：\n' + '\n'.join(lines))
+    except Exception:
+        pass
+    # 回退：旧 offset 轮换
     try:
         base = Path(__file__).resolve().parents[1] / 'data' / 'manual-logic-corpus'
         days = sorted(base.iterdir(), reverse=True) if base.is_dir() else []
@@ -160,6 +233,16 @@ DEDUCTION_DEPTH = """演绎题参照广东真题的推理量：
 """
 
 ARGUMENT_DEPTH = """论证题参照广东真题：题干是有具体机制或数据的科研、调查、政策论证，论据与结论之间有可识别但不直白的缺口（概念偷换、样本外推、指标替代、措施与目的错位、类比不当等）。正确项精准对准缺口；至少一个干扰项与正确项同话题、只在方向、对象或力度上差一点（半对项）。设问在“最能支持/削弱”之外，也要用“需要补充的前提”“暗含前提”“最不能支持”“最能反驳”。结构相似题四个选项结构各异，至少一项只差量词或推理方向。
+解析描述加强/削弱力度时禁用“切断因果/证明/保证/必然/彻底/根本”等绝对断言，改说“有力削弱/强化了归因概率/使推论更可信”等留有余地的表述；解析不得把“有助于削弱”夸大成“彻底否定”，也不得把“多数有效”夸大成“唯一机制”。
+"""
+
+DAILY_DEPTH = """日常结论题参照广东真题：题干是带背景与机制的科研、调查或随访陈述（随访年限、样本构成、检出率差异、机制检测等），通过长句和术语制造真实阅读负荷，但不考专业背景，只考“能推出/不能推出”。
+设问按考法变式：正向归纳（@daily-infer）用“由此可以推出的是”，选非找茬（@daily-flaw）用“由此不能推出的是”，不得混用。
+正向归纳时，正确项用“可能/部分/一定程度上/往往”等从弱词收拢机制，干扰项设“绝对化因果断言、无端比较、调查主体跨界、把伴随当因果”等坑；
+选非找茬时，干扰项（即正解）设“强加因果、局部偷换整体、属性概念偷换、可能偷换必然、无依据添加比较”中的一种，其余三项须为可推出的从弱事实。
+"""
+
+HIDE_TRAPS = """正确项禁止照抄题干原句，须同义转述、逆向概括或机制收拢；极端绝对化词（必然/唯一/所有/绝对/决定了等）干扰项每道最多 1 个，其余干扰项须做成“看似符合生活常识、实则因果跃迁、主体偷换、范围跨界或概念偷换”的隐蔽坑，禁止靠绝对词一眼暴露。
 """
 
 FORMAL_EXAMINER = """item 带 formal 时，程序已按 formal 穷举判定（formal_result）。你只需核对 formal 是否忠实于题面：
@@ -254,10 +337,13 @@ def writer_prompt(run, asks, kept, cards):
     extra = []
     if diffs - {'easy'}:
         extra.append(REAL_LEVEL)
+        extra.append(HIDE_TRAPS)
         if 'deduction' in families:
             extra.append(DEDUCTION_DEPTH)
-        if families & {'argument', 'structure', 'daily'}:
+        if families & {'argument', 'structure'}:
             extra.append(ARGUMENT_DEPTH)
+        if 'daily' in families:
+            extra.append(DAILY_DEPTH)
     if diffs & {'auto', 'mid', 'hard'}:
         extra.append(
             '要求接近省考真题火候：论证结构更隐蔽，不能靠标志词直接秒杀；'
