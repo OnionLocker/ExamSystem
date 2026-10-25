@@ -196,6 +196,7 @@ ARGUMENT_RULES = """加强/削弱按对论点的支持力度比较，不要求�
 
 STRUCTURE_RULES = """论证结构比较推理关系、方向和量词，不靠主题词相似度。
 论证结构先将题干与四项统一翻译成同一种蕴含方向再比较。“只有P才Q，非P故非Q”是Q→P的逆否，与“如果A则B，非B故非A”同构，不能仅因一个用只有、另一个用如果而排除；若两项归一后同构须重写错项。
+载体与情景自由多样（日常生活、商业运营、社会新闻、职场协作、健康运动等均可，不一律“某单位/某部门+管理制度”套话），结构比较只重推理关系与方向，载体和主题词不影响判定，答案唯一性由逐项审核兜底。
 """
 
 FAMILY_RULES = {'deduction': DEDUCTION_RULES, 'daily': DAILY_RULES, 'argument': ARGUMENT_RULES, 'structure': STRUCTURE_RULES}
