@@ -1,0 +1,634 @@
+[
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q01",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M01",
+    "stem": "2024年，G省珠三角九市与粤东西北地区快递业务量相差约（  ）亿件。",
+    "options": [
+      {
+        "key": "A",
+        "text": "224.43亿件"
+      },
+      {
+        "key": "B",
+        "text": "270.06亿件"
+      },
+      {
+        "key": "C",
+        "text": "276.52亿件"
+      },
+      {
+        "key": "D",
+        "text": "328.61亿件"
+      }
+    ],
+    "answer": "A",
+    "explanation": "【定型找数】读数比较。珠三角九市276.52亿件、粤东西北52.09亿件（第三段）。\n【列式】276.52−52.09=224.43（亿件）。\n干扰项：误相加、只取珠三角、错取异地与同城之差。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-基础知识-统计术语与常考概念"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q02",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M01",
+    "stem": "2023年，G省快递业务量约为（  ）亿件。",
+    "options": [
+      {
+        "key": "A",
+        "text": "266.37亿件"
+      },
+      {
+        "key": "B",
+        "text": "276.28亿件"
+      },
+      {
+        "key": "C",
+        "text": "287.57亿件"
+      },
+      {
+        "key": "D",
+        "text": "390.85亿件"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】求基期量。现期328.61亿件、同比增长18.94%（第一段）。\n【列式】基期=现期/(1+r)=328.61/1.1894≈276.28（亿件）。\n干扰项：现期×(1−r)、错套收入增速、方向反。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-ABRX类-基期量计算与比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q03",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M01",
+    "stem": "2024年，G省珠三角九市快递业务量占全省快递业务量的比重约为（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "15.85%"
+      },
+      {
+        "key": "B",
+        "text": "84.15%"
+      },
+      {
+        "key": "C",
+        "text": "88.38%"
+      },
+      {
+        "key": "D",
+        "text": "94.87%"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】现期比重=部分/整体。珠三角九市276.52亿件、全省328.61亿件。\n【列式】276.52/328.61≈84.15%。\n干扰项：取错分子、以异地量作分母、分母漏计国际件。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比重类-现期、基期与隔级比重"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q04",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M01",
+    "stem": "2024年，G省快递业务量同比增速比快递业务收入同比增速约高（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "4.67个百分点"
+      },
+      {
+        "key": "B",
+        "text": "11.07个百分点"
+      },
+      {
+        "key": "C",
+        "text": "32.73个百分点"
+      },
+      {
+        "key": "D",
+        "text": "33.21个百分点"
+      }
+    ],
+    "answer": "A",
+    "explanation": "【定型找数】两增速作差得百分点。业务量增速18.94%、业务收入增速14.27%。\n【列式】18.94−14.27=4.67（个百分点）。\n干扰项：误相加、误算相对差、错取粤东西北增速。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比较类-双线法与增量比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q05",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M01",
+    "stem": "根据资料，以下说法可以判断属实的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "2024年，G省快递业务收入的同比增速高于快递业务量的同比增速"
+      },
+      {
+        "key": "B",
+        "text": "2024年，G省国际及港澳台快递业务量占全省快递业务量的比重超过一成"
+      },
+      {
+        "key": "C",
+        "text": "2023年，G省粤东西北地区快递业务量高于珠三角九市"
+      },
+      {
+        "key": "D",
+        "text": "2024年，珠三角九市快递业务量的同比增速低于全省快递业务量的整体增速"
+      }
+    ],
+    "answer": "D",
+    "explanation": "【逐项】A：收入增速14.27%<业务量增速18.94%，错。\nB：15.73/328.61≈4.79%<10%，错。\nC：52.09<276.52且均为正增长，基期同样更低，错。\nD：珠三角增速17.83%<全省18.94%，跨段可判，属实。故选D。",
+    "difficulty": 3,
+    "tags": [
+      "资料分析-比重类-比重趋势、比重差与比值差"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q06",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M02",
+    "stem": "2024年，G省文化制造业营业收入比文化服务业营业收入约多（  ）亿元。",
+    "options": [
+      {
+        "key": "A",
+        "text": "921.5亿元"
+      },
+      {
+        "key": "B",
+        "text": "5792.2亿元"
+      },
+      {
+        "key": "C",
+        "text": "6713.7亿元"
+      },
+      {
+        "key": "D",
+        "text": "18746.9亿元"
+      }
+    ],
+    "answer": "A",
+    "explanation": "【定型找数】读表比较。文化制造业9834.2亿元、文化服务业8912.7亿元（见表）。\n【列式】9834.2−8912.7=921.5（亿元）。\n干扰项：误相加、错取批零业、错取行。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-基础知识-统计术语与常考概念"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q07",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M02",
+    "stem": "2024年，G省文化服务业营业收入比上年约增加（  ）亿元。",
+    "options": [
+      {
+        "key": "A",
+        "text": "618.4亿元"
+      },
+      {
+        "key": "B",
+        "text": "782.9亿元"
+      },
+      {
+        "key": "C",
+        "text": "1044.9亿元"
+      },
+      {
+        "key": "D",
+        "text": "1183.6亿元"
+      }
+    ],
+    "answer": "C",
+    "explanation": "【定型找数】求增长量。文化服务业现期8912.7亿元、增速13.28%（见表）。\n【列式】增长量=现期×r/(1+r)=8912.7×0.1328/1.1328≈1044.8（亿元）。\n干扰项：现期×r、错套整体增速、错取制造业。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-ABRX类-增长量计算与现期推算"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q08",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M02",
+    "stem": "2024年，G省文化服务业营业收入占规模以上文化及相关产业营业收入的比重约为（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "14.27%"
+      },
+      {
+        "key": "B",
+        "text": "40.76%"
+      },
+      {
+        "key": "C",
+        "text": "44.97%"
+      },
+      {
+        "key": "D",
+        "text": "47.54%"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】现期比重=部分/整体。文化服务业8912.7亿元、合计21867.4亿元（见表）。\n【列式】8912.7/21867.4≈40.76%。\n干扰项：取错分子、分母漏计批零业。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比重类-现期、基期与隔级比重"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q09",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M02",
+    "stem": "2024年，G省文化制造业、文化批发和零售业、文化服务业三个领域中，营业收入同比增速最高的领域，其增速约为（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "6.71%"
+      },
+      {
+        "key": "B",
+        "text": "8.44%"
+      },
+      {
+        "key": "C",
+        "text": "9.63%"
+      },
+      {
+        "key": "D",
+        "text": "13.28%"
+      }
+    ],
+    "answer": "D",
+    "explanation": "【定型找数】三领域增速比较（见表增速列）。制造业6.71%、批零8.44%、服务业13.28%。\n【结论】最高为文化服务业13.28%。\n干扰项：取次高、取最低、错取整体增速。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比较类-双线法与增量比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q10",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M02",
+    "stem": "根据资料，以下说法可以判断属实的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "2024年，G省文化新业态16个行业小类营业收入增速低于规上文化企业整体增速"
+      },
+      {
+        "key": "B",
+        "text": "2024年，G省文化制造业营业收入占规上文化企业营业收入的比重超过五成"
+      },
+      {
+        "key": "C",
+        "text": "2024年，G省规上文化企业利润总额增速高于其营业收入增速"
+      },
+      {
+        "key": "D",
+        "text": "2024年，G省文化服务业营业收入占规上文化企业营业收入的比重较上年有所提高"
+      }
+    ],
+    "answer": "D",
+    "explanation": "【逐项】A：新业态增速18.52%>整体9.63%，错。\nB：9834.2/21867.4≈44.97%<50%，错。\nC：利润增速7.05%<营收增速9.63%，错。\nD：服务业增速13.28%>整体9.63%，部分快于整体则比重上升，跨段可判，属实。故选D。",
+    "difficulty": 3,
+    "tags": [
+      "资料分析-比重类-比重趋势、比重差与比值差"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q11",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M03",
+    "stem": "2024年，全国货物贸易顺差约为（  ）亿元。",
+    "options": [
+      {
+        "key": "A",
+        "text": "67637亿元"
+      },
+      {
+        "key": "B",
+        "text": "185660亿元"
+      },
+      {
+        "key": "C",
+        "text": "253297亿元"
+      },
+      {
+        "key": "D",
+        "text": "438957亿元"
+      }
+    ],
+    "answer": "A",
+    "explanation": "【定型找数】顺差=出口−进口（读柱图）。出口253297亿元、进口185660亿元。\n【列式】253297−185660=67637（亿元）。\n干扰项：误相加、错取进口/出口额。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-基础知识-统计术语与常考概念"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q12",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M03",
+    "stem": "2023年，全国货物贸易进出口总额约为（  ）亿元。",
+    "options": [
+      {
+        "key": "A",
+        "text": "410010亿元"
+      },
+      {
+        "key": "B",
+        "text": "416482亿元"
+      },
+      {
+        "key": "C",
+        "text": "417577亿元"
+      },
+      {
+        "key": "D",
+        "text": "461432亿元"
+      }
+    ],
+    "answer": "C",
+    "explanation": "【定型找数】求基期。现期总额438957亿元（正文）、增长5.12%。\n【列式】基期=438957/1.0512≈417575（亿元）。\n干扰项：现期×(1−r)、错套出口增速、方向反。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-ABRX类-基期量计算与比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q13",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M03",
+    "stem": "2024年，全国机电产品出口额占出口总额的比重约为（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "34.03%"
+      },
+      {
+        "key": "B",
+        "text": "58.97%"
+      },
+      {
+        "key": "C",
+        "text": "80.45%"
+      },
+      {
+        "key": "D",
+        "text": "96.63%"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】现期比重=部分/整体（读柱图）。机电出口149371亿元、出口总额253297亿元。\n【列式】149371/253297≈58.97%。\n干扰项：分母错用进出口总额/进口额、分子取民营额。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比重类-现期、基期与隔级比重"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q14",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M03",
+    "stem": "2024年，全国出口额同比增速比进口额同比增速约高（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "1.94个百分点"
+      },
+      {
+        "key": "B",
+        "text": "2.54个百分点"
+      },
+      {
+        "key": "C",
+        "text": "4.48个百分点"
+      },
+      {
+        "key": "D",
+        "text": "9.64个百分点"
+      }
+    ],
+    "answer": "C",
+    "explanation": "【定型找数】两增速作差得百分点（正文）。出口增速7.06%、进口增速2.58%。\n【列式】7.06−2.58=4.48（个百分点）。\n干扰项：误相加、错取出口/进口与总额的增速差。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比较类-双线法与增量比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q15",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M03",
+    "stem": "根据资料，以下说法可以判断属实的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "2024年，全国进口额同比增速快于出口额同比增速"
+      },
+      {
+        "key": "B",
+        "text": "2024年，全国机电产品出口额占出口总额的比重不足五成"
+      },
+      {
+        "key": "C",
+        "text": "2023年，全国货物贸易表现为逆差"
+      },
+      {
+        "key": "D",
+        "text": "2024年，全国民营企业进出口额占货物贸易进出口总额的比重较上年有所上升"
+      }
+    ],
+    "answer": "D",
+    "explanation": "【逐项】A：进口增速2.58%<出口增速7.06%，错。\nB：149371/253297≈58.97%>50%，错。\nC：两年出口均大于进口（基期出口≈236595>进口≈180991），为顺差，错。\nD：民营进出口增速8.83%>总额增速5.12%，占比较上年上升，跨段可判，属实。故选D。",
+    "difficulty": 3,
+    "tags": [
+      "资料分析-比重类-比重趋势、比重差与比值差"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q16",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M04",
+    "stem": "下列柱状图能正确反映2024年G省城镇居民人均可支配收入、农村居民人均可支配收入和全体居民人均消费支出的是（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "",
+        "images": [
+          "images/q16_correct.png"
+        ]
+      },
+      {
+        "key": "B",
+        "text": "",
+        "images": [
+          "images/q16_swap.png"
+        ]
+      },
+      {
+        "key": "C",
+        "text": "",
+        "images": [
+          "images/q16_consume_per.png"
+        ]
+      },
+      {
+        "key": "D",
+        "text": "",
+        "images": [
+          "images/q16_urban_per.png"
+        ]
+      }
+    ],
+    "answer": "A",
+    "explanation": "【定型找数】识图核对三项数值（见材料表）：城镇63847元、农村26418元、人均消费34926元。\nA 柱图三项与表一致，正确。\nB 城乡数值对调；C 人均消费错标为全体可支配收入51789元；D 城镇错标为全体可支配收入51789元。故选A。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-基础知识-统计术语与常考概念"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q17",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M04",
+    "stem": "2023年，G省农村居民人均可支配收入约为（  ）元。",
+    "options": [
+      {
+        "key": "A",
+        "text": "24740元"
+      },
+      {
+        "key": "B",
+        "text": "24841元"
+      },
+      {
+        "key": "C",
+        "text": "25373元"
+      },
+      {
+        "key": "D",
+        "text": "28096元"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】求基期。农村现期26418元、名义增长6.35%（见表）。\n【列式】基期=26418/1.0635≈24840（元）。\n干扰项：现期×(1−r)、错套城镇增速、方向反。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-ABRX类-基期量计算与比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q18",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M04",
+    "stem": "2024年，G省全体居民人均消费支出占人均可支配收入的比重约为（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "54.70%"
+      },
+      {
+        "key": "B",
+        "text": "67.44%"
+      },
+      {
+        "key": "C",
+        "text": "132.21%"
+      },
+      {
+        "key": "D",
+        "text": "148.28%"
+      }
+    ],
+    "answer": "B",
+    "explanation": "【定型找数】消费率=人均消费支出/人均可支配收入（见表）。消费34926元、收入51789元。\n【列式】34926/51789≈67.44%。\n干扰项：分子分母颠倒、分母错用城镇/农村收入。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比重类-现期、基期与隔级比重"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q19",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M04",
+    "stem": "2024年，G省农村居民人均可支配收入名义增速比城镇居民约高（  ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "1.16个百分点"
+      },
+      {
+        "key": "B",
+        "text": "1.62个百分点"
+      },
+      {
+        "key": "C",
+        "text": "2.23个百分点"
+      },
+      {
+        "key": "D",
+        "text": "10.47个百分点"
+      }
+    ],
+    "answer": "C",
+    "explanation": "【定型找数】两增速作差得百分点（见表增长列）。农村6.35%、城镇4.12%。\n【列式】6.35−4.12=2.23（个百分点）。\n干扰项：误相加、错取全体/消费增速。",
+    "difficulty": 2,
+    "tags": [
+      "资料分析-比较类-双线法与增量比较"
+    ]
+  },
+  {
+    "external_id": "gd-ziliao-sample-2026tune-Q20",
+    "category": "资料分析",
+    "question_type": "single",
+    "material_id": "gd-ziliao-sample-2026tune-M04",
+    "stem": "根据资料，以下说法可以判断属实的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "2024年，G省城镇居民与农村居民人均可支配收入之比较上年有所缩小"
+      },
+      {
+        "key": "B",
+        "text": "2024年，G省农村居民人均可支配收入名义增速低于城镇居民"
+      },
+      {
+        "key": "C",
+        "text": "2024年，G省全体居民人均可支配收入名义增速高于人均消费支出名义增速"
+      },
+      {
+        "key": "D",
+        "text": "2024年，G省全体居民人均消费支出占人均可支配收入的比重超过七成"
+      }
+    ],
+    "answer": "A",
+    "explanation": "【逐项】A：农村增速6.35%>城镇增速4.12%，城乡收入比(城/农)较上年缩小，跨段可判，属实。\nB：农村6.35%>城镇4.12%，错。\nC：收入增速4.73%<消费增速5.28%，错。\nD：34926/51789≈67.44%<70%，错。故选A。",
+    "difficulty": 3,
+    "tags": [
+      "资料分析-平均类-一般平均值与年均增速/增量"
+    ]
+  }
+]
