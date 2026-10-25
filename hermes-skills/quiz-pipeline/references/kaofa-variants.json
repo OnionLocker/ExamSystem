@@ -6337,56 +6337,6 @@
    }
   ]
  },
- "判断推理-逻辑判断-论证结构-@structure-role": {
-  "title": "论述成分与角色分析",
-  "variants": [
-   {
-    "id": "evidence-and-final-claim",
-    "name": "论据与最终论点",
-    "ask": "两处标记句一处为事实、数据或实验依据，另一处为作者最终主张；分别判断支持关系。",
-    "example": "知识点页：第一处为实验论据，第二处为医学专家的核心主张",
-    "weight": 5,
-    "typical": true,
-    "level": 1
-   },
-   {
-    "id": "opponent-view-role",
-    "name": "被反驳观点",
-    "ask": "标记句是文段先引入的传统看法或对方主张，后文提供反例或证据加以反驳。",
-    "example": "知识点页：传统观点认为吃辣会导致胃溃疡加重",
-    "weight": 4,
-    "typical": false,
-    "level": 1
-   },
-   {
-    "id": "concession-background-role",
-    "name": "让步与背景铺垫",
-    "ask": "标记句承认不利事实或交代背景，随后以“但/然而”转向作者立场；判断其非核心论据。",
-    "example": "",
-    "weight": 3,
-    "typical": false,
-    "level": 2
-   },
-   {
-    "id": "intermediate-conclusion",
-    "name": "中间结论兼论据",
-    "ask": "标记句由前文证据推出，同时又被后文用于支持最终结论；判断其双重角色。",
-    "example": "",
-    "weight": 3,
-    "typical": false,
-    "level": 3
-   },
-   {
-    "id": "two-marked-role-pair",
-    "name": "双标记角色配对",
-    "ask": "设问两处黑体或划线句分别扮演何种角色；先判立场，再判论据、分论点或总论点。",
-    "example": "知识点页：第一处黑体与第二处黑体的作用分别是",
-    "weight": 4,
-    "typical": false,
-    "level": 2
-   }
-  ]
- },
  "判断推理-逻辑判断-论证结构-@structure-parallel": {
   "title": "平行结构与推理形式相似",
   "variants": [
