@@ -5721,6 +5721,33 @@
     "weight": 2,
     "typical": false,
     "level": 2
+   },
+   {
+    "id": "tradeoff-behavior-explain",
+    "name": "行为决策权衡",
+    "ask": "个体或企业做出表面反常的经营决策（产量下降仍扩种、成本上升仍坚持提供）；用总量收益仍更大、损失可被其他收益覆盖等权衡解释其合理性。",
+    "example": "粤2021县：有机农业产量下降，农户仍转向有机农业并添置设备",
+    "weight": 4,
+    "typical": false,
+    "level": 2
+   },
+   {
+    "id": "efficiency-gain-explain",
+    "name": "效率反升解释",
+    "ask": "业务量大幅增长而人手或投入未增，运转效率反而更高；用技术升级、流程优化或自动化等解释效率提升的来源。",
+    "example": "粤2022县：中欧班列货运量大增、工作人员未增，通关效率反而更高",
+    "weight": 3,
+    "typical": false,
+    "level": 2
+   },
+   {
+    "id": "price-demand-inelastic-explain",
+    "name": "涨价需求不降",
+    "ask": "价格大幅上涨而需求量未下降甚至反升；用需求刚性、价格弹性低、替代品更贵或套餐锁定等解释价格与需求的背离。",
+    "example": "粤2025：共享单车第二时段收费涨幅100%，月均使用人次未减",
+    "weight": 3,
+    "typical": false,
+    "level": 2
    }
   ]
  },
@@ -7078,7 +7105,6 @@
    }
   ]
  },
-
  "数量关系-数学运算-概率问题-@geometric": {
   "title": "几何概型",
   "variants": [
