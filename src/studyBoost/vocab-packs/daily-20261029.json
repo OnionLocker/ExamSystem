@@ -1,0 +1,414 @@
+{
+  "pack_id": "daily-20261029",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-29",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261029:接诉即办",
+      "word": "接诉即办",
+      "wordType": "collocation",
+      "explanation": "接到市民诉求后立即办理的治理机制；北京12345实践强调响应速度与办结实效，解决率与满意率超97%。",
+      "usage": "基层治理／数字政府／人民城市论述；常与未诉先办对举。",
+      "examples": [
+        "乡镇开通统一热线后，接诉即办让群众少跑腿，干部少推诿。"
+      ],
+      "rivals": [
+        "只接不办",
+        "推诿转圈",
+        "事后应付"
+      ],
+      "cloze": [
+        "在北京遇到烦心事怎么办？连老外都知道：拨打12345，____！"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:未诉先办",
+      "word": "未诉先办",
+      "wordType": "collocation",
+      "explanation": "在群众尚未集中投诉前，依靠数据分析预判并主动处置；由被动接诉升维为主动治理。",
+      "usage": "数智治理／风险预警对策；常与接诉即办、一片善治连用。",
+      "examples": [
+        "对反复出现的积水路段，部门应未诉先办，汛前完成整治。"
+      ],
+      "rivals": [
+        "等投诉再应付",
+        "被动接诉",
+        "事后补救"
+      ],
+      "cloze": [
+        "大数据分析推动从接诉即办到____、从被动处置到主动治理。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:城市治理总客服",
+      "word": "城市治理总客服",
+      "wordType": "collocation",
+      "explanation": "喻12345作为统一入口承接大小诉求、统筹分派落实的角色；方便群众一号通达。",
+      "usage": "热线／政务服务论述；强调统一入口而非替代职能部门履职。",
+      "examples": [
+        "把政务热线做成城市治理总客服，关键是接得住、分得准、办得实。"
+      ],
+      "rivals": [
+        "多头热线互踢皮球",
+        "替代部门履职",
+        "只接听不闭环"
+      ],
+      "cloze": [
+        "人们把12345热线亲切称为“____”。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:治理绣花针",
+      "word": "治理绣花针",
+      "wordType": "collocation",
+      "explanation": "以绣花般精细功夫串起民生诉求的形象说法；强调精细化治理落到犄角旮旯与烟火日常。",
+      "usage": "精细化治理／民生服务金句；常与民生千条线对举。",
+      "examples": [
+        "城中村改造要用好治理绣花针，把停车、绿化、网格服务一针一线缝实。"
+      ],
+      "rivals": [
+        "粗放摊大饼",
+        "只抓面子工程",
+        "忽视系统治理"
+      ],
+      "cloze": [
+        "北京某区领导形象比喻：以____，串起民生千条线。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:智慧中枢",
+      "word": "智慧中枢",
+      "wordType": "collocation",
+      "explanation": "热线与大数据、人工智能结合后，联结多方资源、分派任务并分析研判的中枢功能；相对单纯接收端口。",
+      "usage": "数字政府／智慧城市对策；强调资源联结与主动治理。",
+      "examples": [
+        "县级融平台若只做展示屏，成不了真正联结部门与网格的智慧中枢。"
+      ],
+      "rivals": [
+        "单纯呼叫中心",
+        "信息孤岛",
+        "只接收不调度"
+      ],
+      "cloze": [
+        "12345由市民诉求接收端口向联结多方资源的____转变。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:一片善治",
+      "word": "一片善治",
+      "wordType": "collocation",
+      "explanation": "由解决单个诉求升维到片区或系统层面的良好治理状态；治理跃升的目标表述。",
+      "usage": "基层治理成效／系统治理；对举“解决一个诉求”。",
+      "examples": [
+        "整治一条黑臭河涌，目标应是沿岸片区一片善治，而非办结单件投诉。"
+      ],
+      "rivals": [
+        "办结个案即止",
+        "头痛医头",
+        "单点应付"
+      ],
+      "cloze": [
+        "从解决一个诉求到实现____的跃升。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:安全韧性",
+      "word": "安全韧性",
+      "wordType": "collocation",
+      "explanation": "城市抵御、适应并快速从风险冲击中恢复的能力；文中强调热线赋能风险研判与预警。",
+      "usage": "超大城市治理／防灾减灾；常与系上安全带、萌芽状态连用。",
+      "examples": [
+        "沿海县城提升安全韧性，要把热线诉求与气象水文数据打通研判。"
+      ],
+      "rivals": [
+        "只靠事后抢险",
+        "忽视预警",
+        "硬抗不适应"
+      ],
+      "cloze": [
+        "提高____水平，是城市发展繁荣、百姓安居乐业的基石。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:百姓烟火",
+      "word": "百姓烟火",
+      "wordType": "collocation",
+      "explanation": "喻群众日常获得感与生活温度；强调治理答卷最终要落在民生体感而非指标报表。",
+      "usage": "以人民为中心／反对形式主义；与指标报表对举。",
+      "examples": [
+        "旧改验收不能只看图纸分数，要看百姓烟火是否更旺、出行是否更顺。"
+      ],
+      "rivals": [
+        "指标报表主义",
+        "面子工程",
+        "数字美化"
+      ],
+      "cloze": [
+        "治理成效不是指标报表，____才是最终答卷。"
+      ],
+      "source": "每日读报 2026-10-29：一根热线，串起治理新路",
+      "publicSources": [
+        {
+          "title": "一根热线，串起治理新路（人民时评）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/29/content_30188340.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:技术先手棋",
+      "word": "技术先手棋",
+      "wordType": "collocation",
+      "explanation": "以企业为主导抢占技术制高点、掌握产业主动权的形象说法；支撑制造向创造跃升。",
+      "usage": "企业创新主体／产业升级对策；常与产业主动权连用。",
+      "examples": [
+        "专精特新企业把核心零部件做成技术先手棋，才能在链上有议价权。"
+      ],
+      "rivals": [
+        "盲目铺摊子",
+        "跟风模仿",
+        "放弃技术投入"
+      ],
+      "cloze": [
+        "坚持以企业为主导，下好____、掌握产业主动权。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:一小时产业圈",
+      "word": "一小时产业圈",
+      "wordType": "collocation",
+      "explanation": "零部件就近配套、快速响应的产业协同半径；如东莞一部智能手机九成零部件可就近配齐。",
+      "usage": "制造业当家／产业集群论据；强调配套密度与协同效率。",
+      "examples": [
+        "县域若能嵌入珠三角一小时产业圈，订单响应会快过远距离外协。"
+      ],
+      "rivals": [
+        "单纯生活通勤圈",
+        "配套空白",
+        "远距离散乱外协"
+      ],
+      "cloze": [
+        "在东莞，一部智能手机九成零部件可就近配齐，“____”彰显配套协同效率。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:产业底盘",
+      "word": "产业底盘",
+      "wordType": "collocation",
+      "explanation": "先进制造业集群与规上工业规模构成的硬核支撑；新质生产力加速培育的根基。",
+      "usage": "广东制造／新质生产力总论；常与积厚成势连用。",
+      "examples": [
+        "没有厚实的产业底盘，空谈新赛道很容易变成概念园区。"
+      ],
+      "rivals": [
+        "单个冠军产品",
+        "概念泡沫",
+        "空心园区"
+      ],
+      "cloze": [
+        "厚实的____之上，新质生产力加速培育、积厚成势。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:积厚成势",
+      "word": "积厚成势",
+      "wordType": "idiom",
+      "explanation": "长期厚积形成发展势能；文中指新质生产力在产业底盘上加速成型、勾勒高质量发展图景。",
+      "usage": "发展态势／新质生产力收束；强调厚积而非短期炒作。",
+      "examples": [
+        "县域特色产业集群要积厚成势，关键看三年五年的配套与人才沉淀。"
+      ],
+      "rivals": [
+        "短期炒概念",
+        "一哄而起",
+        "虚火式造势"
+      ],
+      "cloze": [
+        "新质生产力加速培育、____，不断勾勒出高质量发展新图景。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:产业链创新链",
+      "word": "产业链创新链",
+      "wordType": "collocation",
+      "explanation": "产品背后配套企业与创新协同的整套体系；海外客户看重的不只是单品，更是生态优势。",
+      "usage": "产业集群／开放合作论据；强调生态而非孤立出口。",
+      "examples": [
+        "招引链主企业时，要同步补齐产业链创新链，避免单点落地难成势。"
+      ],
+      "rivals": [
+        "孤立产品出口",
+        "单点落地",
+        "有链无创新"
+      ],
+      "cloze": [
+        "海外客户看中的不只是产品，更是背后一整套____。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:制造向创造",
+      "word": "制造向创造",
+      "wordType": "collocation",
+      "explanation": "从代工组装升维到自主创新与标准、品牌输出；企业主导下技术先手棋汇聚的动能方向。",
+      "usage": "产业升级／创新驱动过渡句；强调升维而非丢掉制造。",
+      "examples": [
+        "广深企业正汇聚制造向创造的动能，把“广东制造”做成“广东创造”。"
+      ],
+      "rivals": [
+        "丢掉制造空谈创造",
+        "锁定低端代工",
+        "只贴牌不研发"
+      ],
+      "cloze": [
+        "汇聚起“____”的强大动能。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261029:进出两旺",
+      "word": "进出两旺",
+      "wordType": "collocation",
+      "explanation": "先进制造业关键零部件进口与出口同步活跃；产供链深度合作、与全球走深走实的表现。",
+      "usage": "开放型经济／产供链合作论据；强调双向而非单边。",
+      "examples": [
+        "关键零部件进出两旺，说明中国既是供应方也是合作市场。"
+      ],
+      "rivals": [
+        "只出不进",
+        "只进不出",
+        "产供链脱钩"
+      ],
+      "cloze": [
+        "电子元件、电脑零部件、航空器零部件等先进制造业关键零部件____。"
+      ],
+      "source": "每日读报 2026-10-29：智造“链”亚太 共赢向未来",
+      "publicSources": [
+        {
+          "title": "智造“链”亚太 共赢向未来",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/28/content_10184576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
