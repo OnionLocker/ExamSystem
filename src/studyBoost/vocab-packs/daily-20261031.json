@@ -1,0 +1,387 @@
+{
+  "pack_id": "daily-20261031",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-10-31",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261031:中国气派",
+      "word": "中国气派",
+      "wordType": "collocation",
+      "explanation": "透过广交会所见的产业根骨、人民城市初心与文明气度所彰显的自信开放格局。",
+      "usage": "高水平开放／中国式现代化／广交会论述开篇或收束。",
+      "examples": [
+        "办好广交会，既要促成订单，也要让世界看见中国气派。"
+      ],
+      "rivals": [
+        "虚张声势",
+        "排外封闭",
+        "只拼低价"
+      ],
+      "cloze": [
+        "透过这扇窗，观察产业之变、城市之兴、文明之光，读懂何为世界情怀与____。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:根骨",
+      "word": "根骨",
+      "wordType": "word",
+      "explanation": "文中喻产业与现代化产业体系作为经济与现代化国家的物质技术根基。",
+      "usage": "实体经济／制造业当家／产业体系论述。",
+      "examples": [
+        "县域再忙招商，也不能丢掉制造业这个根骨。"
+      ],
+      "rivals": [
+        "空心化",
+        "脱实向虚",
+        "只看流量"
+      ],
+      "cloze": [
+        "产业是经济____，现代化产业体系是现代化国家的物质技术基础。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:创牌超越代工",
+      "word": "创牌超越代工",
+      "wordType": "collocation",
+      "explanation": "以自主品牌与附加值提升取代单纯代工生产、依赖低价接单的路径。",
+      "usage": "产业升级／品牌建设／外贸转型对策。",
+      "examples": [
+        "从接单代工到创牌超越代工，镇里的灯具厂才有议价权。"
+      ],
+      "rivals": [
+        "低价代工",
+        "贴牌依赖",
+        "放弃制造空谈品牌"
+      ],
+      "cloze": [
+        "以“____”超越“代工”，以“价值创新”代替“低价竞争”。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:价值创新",
+      "word": "价值创新",
+      "wordType": "collocation",
+      "explanation": "以设计、技术、标准、服务等提升产品附加值，相对单纯低价竞争。",
+      "usage": "新质生产力／制造业高质量发展。",
+      "examples": [
+        "与其拼底价，不如靠价值创新把解决方案卖出去。"
+      ],
+      "rivals": [
+        "低价竞争",
+        "概念炒作",
+        "简单提价"
+      ],
+      "cloze": [
+        "以“创牌”超越“代工”，以“____”代替“低价竞争”。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:全产业链供给能力",
+      "word": "全产业链供给能力",
+      "wordType": "collocation",
+      "explanation": "展品背后贯通芯片、算法、制造、运维等环节的体系化供给能力。",
+      "usage": "现代化产业体系／制造业当家。",
+      "examples": [
+        "客商要的不只是样机，更是全产业链供给能力。"
+      ],
+      "rivals": [
+        "单品摆样",
+        "环节断裂",
+        "只会组装"
+      ],
+      "cloze": [
+        "如今的展台，展示的已不只是一种产品，而是____。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:立己达人",
+      "word": "立己达人",
+      "wordType": "idiom",
+      "explanation": "自己站得住也帮助别人成就；文中指中国产业向新向绿造福世界、赋能全球。",
+      "usage": "开放共赢／产业出海／中国式现代化收束。",
+      "examples": [
+        "新能源装备出海帮助伙伴建本地工业，正是立己达人。"
+      ],
+      "rivals": [
+        "零和博弈",
+        "以邻为壑",
+        "独善其身不顾他人"
+      ],
+      "cloze": [
+        "以创新之脉，壮产业之骨，中国式现代化____。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:湾区会客厅",
+      "word": "湾区会客厅",
+      "wordType": "collocation",
+      "explanation": "广交会由交易撮合场升维为服务大湾区、配置高端要素的开放平台。",
+      "usage": "大湾区／高水平开放／会展枢纽。",
+      "examples": [
+        "把园区展馆打造成对接全球客商的湾区会客厅。"
+      ],
+      "rivals": [
+        "普通摊位",
+        "封闭大院",
+        "一次性展销"
+      ],
+      "cloze": [
+        "如今，广交会不仅是“交易撮合场”，更是“____”。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:和合共生",
+      "word": "和合共生",
+      "wordType": "idiom",
+      "explanation": "相互包容、共同生存发展；文中指会展矩阵传递的互利共赢文明理念。",
+      "usage": "开放／文明交流／国际合作收束。",
+      "examples": [
+        "面对保护主义抬头，更要坚持和合共生、互利共赢。"
+      ],
+      "rivals": [
+        "零和对抗",
+        "以邻为壑",
+        "关门主义"
+      ],
+      "cloze": [
+        "中国国家级“会展矩阵”传递的，正是____、同舟共济、互利共赢的价值追求。"
+      ],
+      "source": "每日读报 2026-10-31：从广交会看中国气派",
+      "publicSources": [
+        {
+          "title": "从广交会看中国气派（人民观点）",
+          "url": "https://paper.people.com.cn/rmrb/pc/content/202610/30/content_30188493.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:三重奏",
+      "word": "三重奏",
+      "wordType": "word",
+      "explanation": "喻广货行天下、广交会利交天下、APEC天下货行广东三项开放实践协同发声。",
+      "usage": "广东开放／外贸／大湾区标题或总领。",
+      "examples": [
+        "产业、平台、规则一起上，才谈得上开放的三重奏。"
+      ],
+      "rivals": [
+        "三件孤立事",
+        "单点冒进",
+        "彼此脱节"
+      ],
+      "cloze": [
+        "广货、广交会、APEC一起奏响了广东联通世界“____”。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:广货行天下",
+      "word": "广货行天下",
+      "wordType": "collocation",
+      "explanation": "推动广东优质产品及产业链、标准、服务整体出海的行动与态势。",
+      "usage": "外贸大省／制造业当家／开放论述。",
+      "examples": [
+        "广货行天下，靠的是创新优势而不是一味压价。"
+      ],
+      "rivals": [
+        "只卖低价货",
+        "有货无链",
+        "闭门造车"
+      ],
+      "cloze": [
+        "____，夯实了产业根基，解答了“我们拿什么与世界合作”的问题。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:利交天下",
+      "word": "利交天下",
+      "wordType": "collocation",
+      "explanation": "广交会以交易、交友、交心促进互利合作的枢纽功能。",
+      "usage": "会展／商贸枢纽／互利共赢。",
+      "examples": [
+        "展会要利交天下，不能只求人头数字好看。"
+      ],
+      "rivals": [
+        "单向推销",
+        "只交不往",
+        "一次性买卖"
+      ],
+      "cloze": [
+        "广交会____，架起了商贸枢纽，解答了“我们在哪里做成生意”的问题。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:天下货行广东",
+      "word": "天下货行广东",
+      "wordType": "collocation",
+      "explanation": "亚太等商品顺畅进入广东、充实供给并倒逼产业升级的双向开放态势。",
+      "usage": "双向开放／供给优化／APEC合作。",
+      "examples": [
+        "天下货行广东，丰富了餐桌，也倒逼本地农业提质。"
+      ],
+      "rivals": [
+        "只出不进",
+        "只进不出",
+        "贸易壁垒高筑"
+      ],
+      "cloze": [
+        "APEC____，拓展了制度通道，解答了“我们如何持续更好地合作”的问题。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:换了赛道、变了气质",
+      "word": "换了赛道、变了气质",
+      "wordType": "collocation",
+      "explanation": "广货由价格与批量优势转向创新、智能、绿色、品牌优势的升级表述。",
+      "usage": "产业转型／新质生产力／广货升级。",
+      "examples": [
+        "传统玩具厂换了赛道、变了气质，靠智能硬件重新出海。"
+      ],
+      "rivals": [
+        "原地踏步",
+        "只换包装",
+        "放弃制造"
+      ],
+      "cloze": [
+        "今天的广货已经____——正从单纯价格优势向创新优势、智能优势、绿色优势、品牌优势全面升级。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261031:环环相扣",
+      "word": "环环相扣",
+      "wordType": "idiom",
+      "explanation": "一环接一环紧密连接；文中指广货、广交会、APEC层层递进、互为支撑。",
+      "usage": "系统协同／对策链条／开放格局。",
+      "examples": [
+        "招商、落地、融资、人才要环环相扣，不能断档。"
+      ],
+      "rivals": [
+        "彼此脱节",
+        "单点冒进",
+        "各自为战"
+      ],
+      "cloze": [
+        "三者不是孤立的三件事，而是____、紧密协同、相互赋能的开放实践。"
+      ],
+      "source": "每日读报 2026-10-31：奏响广东联通世界“三重奏”",
+      "publicSources": [
+        {
+          "title": "奏响广东联通世界“三重奏”",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202610/29/content_10184696.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
