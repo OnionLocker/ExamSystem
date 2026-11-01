@@ -1,0 +1,441 @@
+{
+  "pack_id": "daily-20261101",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-11-01",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261101:潜绩",
+      "word": "潜绩",
+      "wordType": "word",
+      "explanation": "需长期投入、默默奉献方显成效的政绩；决定显绩的底色与成色，事关根基、全局与长远。",
+      "usage": "正确政绩观／基层治理／乡村振兴论述。",
+      "examples": [
+        "县域产业培育见效慢，更要把潜绩算进干部考核的总账。"
+      ],
+      "rivals": [
+        "不作为",
+        "慢作为",
+        "怠政遮羞布"
+      ],
+      "cloze": [
+        "与即期见效的显绩相比，____需要默默奉献、长期投入方显成效。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:显绩",
+      "word": "显绩",
+      "wordType": "word",
+      "explanation": "即期见效、易于量化的政绩；与潜绩辩证统一，都须心系人民、以实干出实绩。",
+      "usage": "政绩观辩证／反对只对上表现。",
+      "examples": [
+        "修通一条路是显绩，把产业配套和就业跟上去才算完整答卷。"
+      ],
+      "rivals": [
+        "表面文章",
+        "形象工程",
+        "只对上表现"
+      ],
+      "cloze": [
+        "潜绩与____都是政绩，辩证统一于为民造福的实践。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:固本致远",
+      "word": "固本致远",
+      "wordType": "collocation",
+      "explanation": "夯实根基、着眼长远；文题总领深耕潜绩的价值指向。",
+      "usage": "政绩观／基础工作／长远规划开篇或收束。",
+      "examples": [
+        "绿美点一年看不见大变，三年却能固本致远。"
+      ],
+      "rivals": [
+        "急功近利",
+        "只顾眼前指标",
+        "短平快政绩"
+      ],
+      "cloze": [
+        "深耕潜绩，____，把中国式现代化事业推向前进。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:积跬步至千里",
+      "word": "积跬步至千里",
+      "wordType": "idiom",
+      "explanation": "出自《荀子》；以点滴积累成就远大目标，喻潜功渐进成势。",
+      "usage": "潜绩／基础研究／长期主义论证。",
+      "examples": [
+        "镇级科创孵化谈不上爆款，却能积跬步至千里。"
+      ],
+      "rivals": [
+        "一蹴而就",
+        "坐等其成",
+        "毕其功于一役"
+      ],
+      "cloze": [
+        "潜绩通常是____、积小胜为大胜。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:善建者不拔",
+      "word": "善建者不拔",
+      "wordType": "idiom",
+      "explanation": "出自《老子》；善于建立者根基牢固、不可动摇，喻扎根牢固、事业可持久。",
+      "usage": "根基／潜绩典故意象。",
+      "examples": [
+        "社区调解体系建起来就要守住，善建者不拔。"
+      ],
+      "rivals": [
+        "急功近利",
+        "形象工程",
+        "根基不牢"
+      ],
+      "cloze": [
+        "“____，善抱者不脱”。潜绩最能体现党员干部的担当与格局。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:不驰于空想、不骛于虚声",
+      "word": "不驰于空想、不骛于虚声",
+      "wordType": "collocation",
+      "explanation": "不沉溺空想、不追逐虚名；强调脚踏实地、实干成事。",
+      "usage": "实干担当／反对形式主义。",
+      "examples": [
+        "项目推进要不驰于空想、不骛于虚声，一张蓝图干到底。"
+      ],
+      "rivals": [
+        "空谈误事",
+        "追名逐利",
+        "口号空转"
+      ],
+      "cloze": [
+        "党员干部都要____，敢啃硬骨头、敢接烫手山芋。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:数字出官、官出数字",
+      "word": "数字出官、官出数字",
+      "wordType": "collocation",
+      "explanation": "以虚报数据换取升迁、再以权力制造虚假数据的恶性循环；错误政绩观的典型。",
+      "usage": "反面论证／考核改革／政绩观警示。",
+      "examples": [
+        "考核若只认报表，就容易滑向数字出官、官出数字。"
+      ],
+      "rivals": [
+        "群众口碑",
+        "长周期问效",
+        "算大账总账"
+      ],
+      "cloze": [
+        "不简单以经济数据、表面成绩论英雄，避免“____”。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:积土以成崇阿",
+      "word": "积土以成崇阿",
+      "wordType": "idiom",
+      "explanation": "积土成高山；喻潜绩汇聚可成宏伟事业。",
+      "usage": "潜绩收束／累积成势。",
+      "examples": [
+        "一镇一业慢慢铺，终能积土以成崇阿。"
+      ],
+      "rivals": [
+        "单点冒进",
+        "一曝十寒",
+        "好高骛远"
+      ],
+      "cloze": [
+        "定能____、汇流以至河海，把宏伟事业不断推向前进。"
+      ],
+      "source": "每日读报 2026-11-01：深耕潜绩 固本致远",
+      "publicSources": [
+        {
+          "title": "深耕潜绩 固本致远（思想纵横）",
+          "url": "http://opinion.people.com.cn/n1/2026/1028/c461530-40822786.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:根深叶茂",
+      "word": "根深叶茂",
+      "wordType": "idiom",
+      "explanation": "根基深则枝叶茂盛；常与本固枝荣连用，喻基础研究水平决定科学技术与产业高度。",
+      "usage": "基础研究／创新根基／科创强省。",
+      "examples": [
+        "没有高校实验室的冷板凳，难有根深叶茂的创新生态。"
+      ],
+      "rivals": [
+        "只要应用不要基础",
+        "急用现学",
+        "空中楼阁"
+      ],
+      "cloze": [
+        "基础不牢，谈何____；先把实验室冷板凳坐热。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:多点开花",
+      "word": "多点开花",
+      "wordType": "collocation",
+      "explanation": "多个前沿领域同时出成果、形成影响力；文中指广东科技布局的态势。",
+      "usage": "系统布局／前沿科技／产业多元。",
+      "examples": [
+        "生命科学与人工智能多点开花，才撑得起创新集群厚度。"
+      ],
+      "rivals": [
+        "撒胡椒面",
+        "没有重点",
+        "单打一"
+      ],
+      "cloze": [
+        "这些成果呈现出“____、具有国际影响力”的态势。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:科产融合",
+      "word": "科产融合",
+      "wordType": "collocation",
+      "explanation": "科技创新与产业创新深度融合，打通成果转化堵点、把创新优势变为产业优势。",
+      "usage": "新质生产力／制造业当家／成果转化。",
+      "examples": [
+        "没有科产融合，实验室论文很难变成车间订单。"
+      ],
+      "rivals": [
+        "束之高阁",
+        "两张皮",
+        "只研不转"
+      ],
+      "cloze": [
+        "打通成果转化堵点，把创新优势转化为产业优势，关键在推动科技创新与产业创新的____。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:完整创新链条",
+      "word": "完整创新链条",
+      "wordType": "collocation",
+      "explanation": "基础研究→技术攻关→产业化应用贯通的创新路径。",
+      "usage": "成果转化／产学研协同对策。",
+      "examples": [
+        "高校、院所与企业联手，才能拉出完整创新链条。"
+      ],
+      "rivals": [
+        "只攻关不转化",
+        "只转化无原创",
+        "断链空转"
+      ],
+      "cloze": [
+        "形成“基础研究—技术攻关—产业化应用”____。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:科学家精神",
+      "word": "科学家精神",
+      "wordType": "collocation",
+      "explanation": "矢志拼搏、潜心钻研、服务国家战略的品格与作风。",
+      "usage": "人才／科创文化／榜样示范。",
+      "examples": [
+        "评奖不仅看论文，更要看见背后的科学家精神。"
+      ],
+      "rivals": [
+        "只要头衔",
+        "急功近利",
+        "投机取巧"
+      ],
+      "cloze": [
+        "科学技术成就，离不开广大科技工作者矢志拼搏，离不开____的赓续弘扬。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:挑大梁、当主角",
+      "word": "挑大梁、当主角",
+      "wordType": "collocation",
+      "explanation": "让青年科技人才承担关键任务、发挥主体作用，激发积极性与创造力。",
+      "usage": "青年人才／教育科技人才一体化。",
+      "examples": [
+        "给青年课题组长位子，就是让他们挑大梁、当主角。"
+      ],
+      "rivals": [
+        "论资排辈",
+        "只做辅助",
+        "排斥青年"
+      ],
+      "cloze": [
+        "支持青年人才____，才能最大限度激发创造力。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:四个面向",
+      "word": "四个面向",
+      "wordType": "collocation",
+      "explanation": "面向世界科技前沿、经济主战场、国家重大需求、人民生命健康；科技工作根本导向。",
+      "usage": "政理常识／科技政策／申论对策。",
+      "examples": [
+        "选题立项要对准四个面向，不能自说自话。"
+      ],
+      "rivals": [
+        "闭门造车",
+        "脱离需求",
+        "只追热点噱头"
+      ],
+      "cloze": [
+        "广大科技工作者要坚持“____”、继续勇毅前行。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261101:创新集群",
+      "word": "创新集群",
+      "wordType": "collocation",
+      "explanation": "区域协同形成的创新高地；文中如“深圳—香港—广州”创新集群。",
+      "usage": "大湾区／区域创新／开放协同。",
+      "examples": [
+        "湾区城市错位布局，才能把创新集群做厚。"
+      ],
+      "rivals": [
+        "单城单打",
+        "封闭内循环",
+        "同质内卷"
+      ],
+      "cloze": [
+        "“深圳—香港—广州”____蝉联全球第一。"
+      ],
+      "source": "每日读报 2026-11-01：播撒科学种子 激荡创新动能",
+      "publicSources": [
+        {
+          "title": "播撒科学种子 激荡创新动能",
+          "url": "https://news.southcn.com/node_ac2b0b62a4/fbdebe2358.shtml",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
