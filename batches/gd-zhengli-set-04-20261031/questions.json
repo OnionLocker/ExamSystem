@@ -1,0 +1,1568 @@
+[
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_01",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "中国共产党第二十届中央委员会第五次全体会议强调，持之以恒推进全面从严治党遵循的原则是：坚持服务使命任务，坚持以党的政治建设为统领，坚持全面从严，坚持问题导向，坚持守正创新，坚持以上率下，坚持依规治党。（    ）",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据《中国共产党第二十届中央委员会第五次全体会议公报》，全会强调，持之以恒推进全面从严治党遵循的原则是：坚持服务使命任务，坚持以党的政治建设为统领，坚持全面从严，坚持问题导向，坚持守正创新，坚持以上率下，坚持依规治党。题干表述完全符合公报原文。因此，本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "cpc-20th-fifth-plenum-communique-202610",
+          "url": "https://www.news.cn/politics/leaders/20261029/3dc769be3bff40aeafcbf957eb4e47bb/c.html",
+          "title": "中国共产党第二十届中央委员会第五次全体会议公报（2026年10月29日通过，新华社受权发布）",
+          "published_at": "2026-10-29",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "9b8708af333207a8cc04f3ad8d8203a83a0a95b299185a1654608cb3308e5207",
+          "checked_at": "2026-10-30T02:00:24.607184+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "中国共产党第二十届中央委员会第五次全体会议公报明确指出持之以恒推进全面从严治党遵循的原则，题干表述完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干主体为二十届五中全会，与原文一致",
+          "premise_comparison": "全面从严治党遵循的原则，与原文一致",
+          "strength_comparison": "原则内容完全吻合，强度一致",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-16ca014e7b5bda43",
+              "quote": "全会强调，持之以恒推进全面从严治党遵循的原则是：坚持服务使命任务，坚持以党的政治建设为统领，坚持全面从严，坚持问题导向，坚持守正创新，坚持以上率下，坚持依规治党。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "cpc-20th-fifth-plenum-communique-202610:p-16ca014e7b5bda43"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_02",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "习近平总书记在纪念中国工农红军长征胜利90周年大会上指出，弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设，党的领导和党的建设是事业发展的根本保证。（    ）",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据《习近平：在纪念中国工农红军长征胜利90周年大会上的讲话》，习近平总书记指出：“弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。”题干表述与讲话原文完全一致。因此，本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "xi-long-march-90-202610",
+          "url": "https://www.gov.cn/yaowen/liebiao/202610/content_7084006.htm",
+          "title": "习近平：在纪念中国工农红军长征胜利90周年大会上的讲话",
+          "published_at": "2026-10-22",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "68629e0b172164f08f11b55f1b28c9078ca418d837479f686975581b253d02ec",
+          "checked_at": "2026-10-30T02:00:02.282588+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "讲话原文明确指出走好新的长征路必须坚持党的领导、加强党的建设，党的领导和党的建设是事业发展的根本保证。",
+          "source_relation": "entailed",
+          "subject_comparison": "讲话主体与内容与原文一致",
+          "premise_comparison": "弘扬伟大长征精神、走好新的长征路的前提一致",
+          "strength_comparison": "根本保证的定性与原文完全一致",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-3cec410a94258245",
+              "quote": "——弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-long-march-90-202610:p-3cec410a94258245"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_03",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "习近平总书记在《以更高标准、更实举措推进全面从严治党》一文中强调，一个地区、一个部门制度执行得好不好，关键在“一把手”。（    ）",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据习近平总书记《以更高标准、更实举措推进全面从严治党》（发表于《求是》2026年第20期），文中明确指出：“一个地区、一个部门制度执行得好不好，关键在‘一把手’。把权力关进制度笼子，要重点解决好‘一把手’带头执行制度的问题。”题干表述与原文完全一致。因此，本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "qiushi-strict-governance-202610",
+          "url": "https://www.qstheory.cn/20261015/a6ed86729ae947d99a83bb431867b7d3/c.html",
+          "title": "以更高标准、更实举措推进全面从严治党（《求是》2026年第20期，习近平2026年1月12日讲话主要部分）",
+          "published_at": "2026-10-15",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f7413b56274aaf450143a6c03df47ac01423c75be59e07dd2fc8e4fd308957a9",
+          "checked_at": "2026-10-30T02:00:00.410478+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "文章原文明确指出“一个地区、一个部门制度执行得好不好，关键在‘一把手’”。",
+          "source_relation": "entailed",
+          "subject_comparison": "制度执行的好坏与“一把手”的关系与原文一致",
+          "premise_comparison": "地区、部门制度执行范围一致",
+          "strength_comparison": "断言“关键在”完全一致",
+          "citations": [
+            {
+              "source_id": "qiushi-strict-governance-202610",
+              "paragraph_id": "p-e9136be84d037806",
+              "quote": "一个地区、一个部门制度执行得好不好，关键在“一把手”。把权力关进制度笼子，要重点解决好“一把手”带头执行制度的问题。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "qiushi-strict-governance-202610:p-e9136be84d037806"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_04",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "习近平总书记在庆祝中国共产党成立105周年大会上的讲话中强调，坚定信心、接续奋斗，必须持之以恒推进全面从严治党，以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "依据《习近平：在庆祝中国共产党成立105周年大会上的讲话》，总书记指出：“坚定信心、接续奋斗，必须持之以恒推进全面从严治党。全面从严治党永远在路上。新征程上，必须全面贯彻新时代党建思想，落实新时代党的建设总要求，着眼于提高党的长期执政能力、保持党的先进性和纯洁性、保持党同人民群众的血肉联系，健全全面从严治党体系，以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战，不断增强党的政治领导力、思想引领力、群众组织力、社会号召力，确保党在新时代坚持和发展中国特色社会主义的历史进程中始终成为坚强领导核心。”题干表述完全符合讲话原文，故本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "xi-cpc-105-anniversary-202607",
+          "url": "https://www.news.cn/politics/leaders/20260701/08771e47a3874bd5b9f1709d58e45add/c.html",
+          "title": "习近平：在庆祝中国共产党成立105周年大会上的讲话",
+          "published_at": "2026-07-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f64a796236858de0f5452a8411047afa86d26a92205150f79d641b1314b3bb8e",
+          "checked_at": "2026-10-30T02:00:25.739988+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "讲话原文明确指出必须持之以恒推进全面从严治党，以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战，题干陈述完全正确。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干主体为习近平总书记在庆祝中国共产党成立105周年大会上的讲话要求，与原文主体一致。",
+          "premise_comparison": "题干设定前提为坚定信心、接续奋斗，与原文前提一致。",
+          "strength_comparison": "题干各项修饰语和核心动词均与原文一致，无夸大或弱化。",
+          "citations": [
+            {
+              "source_id": "xi-cpc-105-anniversary-202607",
+              "paragraph_id": "p-90df413eaf63b3a3",
+              "quote": "——坚定信心、接续奋斗，必须持之以恒推进全面从严治党。全面从严治党永远在路上。新征程上，必须全面贯彻新时代党建思想，落实新时代党的建设总要求，着眼于提高党的长期执政能力、保持党的先进性和纯洁性、保持党同人民群众的血肉联系，健全全面从严治党体系，以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-cpc-105-anniversary-202607:p-90df413eaf63b3a3"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_05",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "有些资产阶级理论家以马克思主义的人民性和阶级性为借口，否认马克思主义的科学性。根据《马克思主义的本质特性和当代价值》，下列关于社会理论的“阶级性”与“科学性”的理解，符合文意的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "阶级性是指理论的认识价值，科学性是指理论所承担的社会功能",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "处于革命时期的剥削阶级，其理论代表可以在一定范围和程度上进行客观探讨",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "阶级性和科学性必然相互排斥，任何社会理论都无法兼具二者",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "当代资产阶级理论因主张价值中立，有效消除了自身理论的阶级性偏见",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "依据《马克思主义的本质特性和当代价值（求是）》：A项错误，原文明确指出“阶级性是就它的社会功能说的，即代表哪个阶级的利益、为绝大多数人服务还是为少数人服务；而科学性是指它的认识价值，即它对现实反映的正确程度”，该项将二者含义颠倒；B项正确，原文指出“即使是剥削阶级，当它处于革命时期，它的理论代表可以在一定范围和一定程度上进行比较客观的探讨，因为这符合他们的阶级利益”；C项错误，原文指出“如果科学性和阶级性相互排斥，阶级社会中全部关于社会的理论都只能是谬误”，并强调马克思主义的人民性、阶级性与科学性具有内在统一性；D项错误，原文指出“当代资产阶级理论最具阶级性，由于它的阶级性与人民性相违背，因而往往掩饰自己的阶级性，标榜所谓客观、公正、纯学术、价值中立”，并非真正消除了阶级性。故正确答案为B。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-马克思主义-马克思主义哲学"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "marxist-principles-qiushi-2020",
+          "url": "https://www.qstheory.cn/dukan/qs/2020-02/01/c_1125497399.htm",
+          "title": "马克思主义的本质特性和当代价值（求是）",
+          "published_at": "2020-02-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "cf6c4dfd4806adfbdb9add88197c0d48ac54707a4e4eac7ab3f76fe37308b7ab",
+          "checked_at": "2026-10-30T01:59:56.069454+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确指出阶级性是指社会功能，而科学性是指认识价值，选项将二者完全颠倒。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体阶级性与科学性的含义对应关系与原文主体一致。",
+          "premise_comparison": "社会理论分析的前提一致。",
+          "strength_comparison": "选项直接将二者定义颠倒对调，与原文冲突。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-5447e189d882c725",
+              "quote": "阶级性是就它的社会功能说的，即代表哪个阶级的利益、为绝大多数人服务还是为少数人服务；而科学性是指它的认识价值，即它对现实反映的正确程度。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "原文明确指出剥削阶级当它处于革命时期，它的理论代表可以在一定范围和一定程度上进行比较客观的探讨，符合文意。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为处于革命时期的剥削阶级理论代表，与原文一致。",
+          "premise_comparison": "处于革命时期这一历史阶段前提一致。",
+          "strength_comparison": "一定范围和程度上客观探讨与原文“在一定范围和一定程度上进行比较客观的探讨”完全相符。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-5447e189d882c725",
+              "quote": "即使是剥削阶级，当它处于革命时期，它的理论代表可以在一定范围和一定程度上进行比较客观的探讨，因为这符合他们的阶级利益"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文强调如果二者相互排斥阶级社会关于社会理论就只能是谬误，马克思主义人民性、阶级性与科学性具有内在统一性，选项断言必然排斥、无法兼具与文意相悖。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体阶级性与科学性的关系与原文一致。",
+          "premise_comparison": "全称判断“任何社会理论”，与马克思主义理论兼具阶级性与科学性相冲突。",
+          "strength_comparison": "选项断言“必然相互排斥、无法兼具”，原文明确反驳该观点并指出二者内在统一。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-fd3e9e6feaf69dd9",
+              "quote": "马克思主义的阶级性由于它具有极广大的人民性，它和科学性具有内在的统一性，把人民性、阶级性、科学性对立起来是错误的。"
+            },
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-5447e189d882c725",
+              "quote": "如果科学性和阶级性相互排斥，阶级社会中全部关于社会的理论都只能是谬误。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确指出当代资产阶级理论最具阶级性，只是往往掩饰自己的阶级性、标榜价值中立，而非有效消除了阶级性偏见。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为当代资产阶级理论，与原文一致。",
+          "premise_comparison": "当代资本主义条件一致。",
+          "strength_comparison": "选项断言“有效消除了阶级性偏见”，原文指出其“最具阶级性”、“往往掩饰自己的阶级性”，直接冲突。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-5447e189d882c725",
+              "quote": "其实，当代资产阶级理论最具阶级性，由于它的阶级性与人民性相违背，因而往往掩饰自己的阶级性，标榜所谓客观、公正、纯学术、价值中立。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "marxist-principles-qiushi-2020:p-5447e189d882c725",
+        "marxist-principles-qiushi-2020:p-fd3e9e6feaf69dd9"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_06",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "习近平总书记在纪念中国工农红军长征胜利90周年大会上的讲话中指出，红军长征的伟大胜利之路，是依靠党的正确领导走出来的。关于遵义会议的伟大转折意义，下列说法符合讲话内容的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "彻底清除了党内存在的右倾教条主义路线",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "全面完成了党独立自主解决中国革命实际问题的历史任务",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "标志着以毛泽东同志为核心的党的第一代中央领导集体正式成熟",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "事实上确立了毛泽东同志在党中央和红军的领导地位",
+        "images": []
+      }
+    ],
+    "answer": "D",
+    "explanation": "依据《习近平：在纪念中国工农红军长征胜利90周年大会上的讲话》，总书记指出：“长征初期，‘左’倾路线的错误给党和红军造成极大损失。1935年1月，中央政治局举行遵义会议，事实上确立了毛泽东同志在党中央和红军的领导地位，开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位，开始形成以毛泽东同志为核心的党的第一代中央领导集体，开启了党独立自主解决中国革命实际问题新阶段，在最危急关头挽救了党、挽救了红军、挽救了中国革命。”A项错误，长征初期是“左”倾路线错误而非右倾，且遵义会议并未“彻底清除”；B项错误，遵义会议是“开启了党独立自主解决中国革命实际问题新阶段”，而非“全面完成历史任务”；D项正确，遵义会议“事实上确立了毛泽东同志在党中央和红军的领导地位”；C项错误，遵义会议是“开始形成以毛泽东同志为核心的党的第一代中央领导集体”，而非“正式成熟”。故正确答案为D。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "xi-long-march-90-202610",
+          "url": "https://www.gov.cn/yaowen/liebiao/202610/content_7084006.htm",
+          "title": "习近平：在纪念中国工农红军长征胜利90周年大会上的讲话",
+          "published_at": "2026-10-22",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "68629e0b172164f08f11b55f1b28c9078ca418d837479f686975581b253d02ec",
+          "checked_at": "2026-10-30T02:00:02.282588+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文指出长征初期是“‘左’倾路线的错误”，而非右倾；且遵义会议并未“彻底清除”该路线。",
+          "source_relation": "contradicted",
+          "subject_comparison": "错误路线性质与解决程度对应党史表述。",
+          "premise_comparison": "遵义会议背景与成果前提一致。",
+          "strength_comparison": "选项将“左倾”偷换为“右倾”，将“开始确立正确路线”绝对化为“彻底清除”，与原文冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "长征初期，“左”倾路线的错误给党和红军造成极大损失。1935年1月，中央政治局举行遵义会议，事实上确立了毛泽东同志在党中央和红军的领导地位，开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文指出遵义会议是“开启了党独立自主解决中国革命实际问题新阶段”，而非全面完成了历史任务。",
+          "source_relation": "contradicted",
+          "subject_comparison": "遵义会议在独立自主解决中国革命实际问题上的定位。",
+          "premise_comparison": "会议意义前提一致。",
+          "strength_comparison": "选项将“开启了……新阶段”夸大为“全面完成了……历史任务”，程度冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "开启了党独立自主解决中国革命实际问题新阶段，在最危急关头挽救了党、挽救了红军、挽救了中国革命。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文指出遵义会议是“开始形成以毛泽东同志为核心的党的第一代中央领导集体”，而非“正式成熟”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "中央领导集体形成的阶段定位。",
+          "premise_comparison": "遵义会议意义前提一致。",
+          "strength_comparison": "选项将“开始形成”拔高为“正式成熟”，阶段定义冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "开始形成以毛泽东同志为核心的党的第一代中央领导集体，开启了党独立自主解决中国革命实际问题新阶段"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "原文明确表述为“事实上确立了毛泽东同志在党中央和红军的领导地位”，完全符合讲话内容。",
+          "source_relation": "entailed",
+          "subject_comparison": "遵义会议对毛泽东同志领导地位的确立。",
+          "premise_comparison": "1935年1月遵义会议前提一致。",
+          "strength_comparison": "表述与原文完全一致。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "1935年1月，中央政治局举行遵义会议，事实上确立了毛泽东同志在党中央和红军的领导地位，开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-long-march-90-202610:p-bbed617da1236532"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_07",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "《国家信息化“十五五”规划》围绕“十五五”发展目标，提出“建设三个体系、提升五个水平、夯实两个支撑”的总体布局，并部署了10个方面具体任务。根据该规划，下列对应关系正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "“夯实两个支撑”包括夯实数据要素支撑和夯实法规标准支撑",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "“提升五个水平”包括现代治理、信息惠民、产业协同、区域协调、开放发展水平",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "“建设三个体系”包括新型信息基础设施体系、网信科技创新体系、网信产业生态体系",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "《规划》围绕上述部署共设置了5个专栏工程与行动",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "C项正确：根据《国家信息化“十五五”规划》，具体任务中“建设三个体系”明确为“一是建设新型信息基础设施体系，二是建设网信科技创新体系，三是建设网信产业生态体系”。\nB项错误：《规划》提出的“提升五个水平”为“提升现代治理水平、提升信息惠民水平、提升数字化绿色化协同水平、提升区域协调水平、提升开放发展水平”，不包含“产业协同水平”。\nA项错误：《规划》提出的“夯实两个支撑”为“九是夯实安全保障支撑，十是夯实法规标准支撑”，不包含“数据要素支撑”。\nD项错误：《规划》共设置了7个专栏（信息基础设施创新发展工程、网信科技创新突破工程、网信产业生态发展工程、智能社会发展与治理行动、重点区域信息化协同发展行动、网信企业海外发展行动、数据跨境流动便利化提升行动），而非5个。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "national-informatization-15th-plan-202610",
+          "url": "https://www.cac.gov.cn/2026-10/23/c_1794509044378569.htm",
+          "title": "中央网络安全和信息化委员会印发《国家信息化“十五五”规划》",
+          "published_at": "2026-10-23",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "1cdb3e6ac4cf7a4c21f3c463abb792f17fa725a607598ae2b1f428940abe122c",
+          "checked_at": "2026-10-30T02:00:19.936436+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "“夯实两个支撑”是安全保障支撑和法规标准支撑，不包含“数据要素支撑”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "“夯实两个支撑”的内容项。",
+          "premise_comparison": "规划布局中的具体任务。",
+          "strength_comparison": "选项篡改了支撑内容。",
+          "citations": [
+            {
+              "source_id": "national-informatization-15th-plan-202610",
+              "paragraph_id": "p-344da6ebc589cb54",
+              "quote": "九是夯实安全保障支撑，十是夯实法规标准支撑。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "“提升五个水平”是提升现代治理水平、提升信息惠民水平、提升数字化绿色化协同水平、提升区域协调水平、提升开放发展水平，不包含“产业协同水平”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "“提升五个水平”的内容项。",
+          "premise_comparison": "规划布局中的具体任务。",
+          "strength_comparison": "将“数字化绿色化协同”篡改为“产业协同”。",
+          "citations": [
+            {
+              "source_id": "national-informatization-15th-plan-202610",
+              "paragraph_id": "p-344da6ebc589cb54",
+              "quote": "四是提升现代治理水平，五是提升信息惠民水平，六是提升数字化绿色化协同水平，七是提升区域协调水平，八是提升开放发展水平"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "规划明确“建设三个体系”为：建设新型信息基础设施体系、建设网信科技创新体系、建设网信产业生态体系，对应完全正确。",
+          "source_relation": "entailed",
+          "subject_comparison": "“建设三个体系”的内容项。",
+          "premise_comparison": "规划总体布局的具体任务。",
+          "strength_comparison": "三项体系名称与原文逐字对应。",
+          "citations": [
+            {
+              "source_id": "national-informatization-15th-plan-202610",
+              "paragraph_id": "p-344da6ebc589cb54",
+              "quote": "一是建设新型信息基础设施体系，二是建设网信科技创新体系，三是建设网信产业生态体系"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "规划设置了7个专栏，而非5个。",
+          "source_relation": "contradicted",
+          "subject_comparison": "专栏工程与行动的数量。",
+          "premise_comparison": "规划正文具体设置。",
+          "strength_comparison": "数量与原文“7个专栏”矛盾。",
+          "citations": [
+            {
+              "source_id": "national-informatization-15th-plan-202610",
+              "paragraph_id": "p-344da6ebc589cb54",
+              "quote": "设置了7个专栏，分别是信息基础设施创新发展工程、网信科技创新突破工程、网信产业生态发展工程、智能社会发展与治理行动、重点区域信息化协同发展行动、网信企业海外发展行动、数据跨境流动便利化提升行动。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-informatization-15th-plan-202610:p-344da6ebc589cb54"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_08",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "2026年广东省政府工作报告指出要深入实施“双百行动”。根据该报告，下列关于“双百行动”的表述正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "组织化、系统化、项目化推动高校院所开展纵向帮扶",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "旨在充分发挥中等职业教育的基础支撑作用",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "是指百强企业联合百个欠发达村庄助力乡村建设行动",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "主要由珠三角各县（市、区）面向粤东西北开展横向协作",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据2026年广东省政府工作报告，“双百行动”是指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。B项“中等职业教育”表述错误，应为高等教育；A项表述与原文完全一致；C项“百强企业联合百个欠发达村庄”表述错误，应为“百校联百县”；D项“横向协作”表述错误，应为推动高校院所开展“纵向帮扶”。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "gd-work-report-2026",
+          "url": "https://www.gdjr.gov.cn/gdjr/jrzx/gzdt/content/post_40867.html",
+          "title": "2026年广东省政府工作报告（1月26日报告、广东省委金融办2月2日转载）",
+          "published_at": "2026-02-02",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "d708ff955f59769f45a27d698da6945365fc90566429f1f18f6b02480309eb02",
+          "checked_at": "2026-10-30T21:10:09.488216+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确指出“双百行动”旨在“组织化、系统化、项目化推动高校院所开展纵向帮扶”，表述完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体推动高校院所开展纵向帮扶与原文完全一致。",
+          "premise_comparison": "在2026年广东省政府工作报告对“双百行动”的阐述前提下。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文明确指明是“旨在充分发挥高等教育作用”，而非“中等职业教育”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为“中等职业教育”，原文为“高等教育”。",
+          "premise_comparison": "同属“双百行动”宗旨的前提。",
+          "strength_comparison": "教育层级主体冲突，直接反驳。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确指出“双百行动”指“百校联百县助力‘百县千镇万村高质量发展工程’行动”，而非“百强企业联合百个欠发达村庄”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“百强企业联合百个欠发达村庄”与原文“百校联百县”冲突。",
+          "premise_comparison": "同属“双百行动”名称定义前提。",
+          "strength_comparison": "概念内涵直接冲突。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "4.“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确指出是“推动高校院所开展纵向帮扶”，而非“珠三角各县（市、区）面向粤东西北开展横向协作”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体及方式与原文“高校院所开展纵向帮扶”冲突。",
+          "premise_comparison": "同属“双百行动”实施主体与机制前提。",
+          "strength_comparison": "主体与帮扶性质均冲突。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-work-report-2026:p-2af00a83ec454c24"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_09",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "《中华人民共和国国民经济和社会发展第十五个五年规划纲要》提出，鼓励企业面向产业需求与高校、科研院所联合开展科研攻关。下列举措符合该纲要规定的有（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "支持科技型骨干企业牵头组建创新联合体",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "建立职务科技成果资产单列管理制度",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务",
+        "images": []
+      }
+    ],
+    "answer": "ABCD",
+    "explanation": "根据《中华人民共和国国民经济和社会发展第十五个五年规划纲要》第三篇：\nA项正确：纲要明确提出“支持科技型骨干企业牵头组建创新联合体，开展关键共性技术研发及科技成果中试和示范应用”。\nB项正确：纲要明确提出“深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，推进技术转移体系建设”。\nC项正确：纲要明确提出“引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用”。\nD项正确：纲要明确提出“鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务”。\n故四项均符合规定。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "national-15th-plan-2026",
+          "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062633.htm",
+          "title": "中华人民共和国国民经济和社会发展第十五个五年规划纲要",
+          "published_at": "2026-03-13",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "70f32e1d2bd586799773c9df06eeb94e5279af2a376d98a7e6960ba90ffb69e2",
+          "checked_at": "2026-10-30T21:10:09.691159+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确指出“支持科技型骨干企业牵头组建创新联合体，开展关键共性技术研发及科技成果中试和示范应用”。",
+          "source_relation": "entailed",
+          "subject_comparison": "科技型骨干企业组建创新联合体与原文完全对应。",
+          "premise_comparison": "鼓励企业面向产业需求与高校、科研院所联合开展科研攻关的前提下。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "支持科技型骨干企业牵头组建创新联合体，开展关键共性技术研发及科技成果中试和示范应用。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "原文明确提出“深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度”。",
+          "source_relation": "entailed",
+          "subject_comparison": "建立职务科技成果资产单列管理制度与原文完全对应。",
+          "premise_comparison": "同属联合科研攻关及成果转化措施前提。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，推进技术转移体系建设，加快科技成果高效转化应用。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "原文明确指出“引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用”。",
+          "source_relation": "entailed",
+          "subject_comparison": "引导高校、科研院所按先使用后付费许可科技成果与原文完全一致。",
+          "premise_comparison": "同属该段落的具体规定。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "原文明确指出“鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务”。",
+          "source_relation": "entailed",
+          "subject_comparison": "科技领军企业向中小微企业开放科研条件和应用场景等与原文完全一致。",
+          "premise_comparison": "同属该段落的具体规定。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-15th-plan-2026:p-24ee0ebf55e6381a"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-zhengzhi-dcbc55aee7c14522b3a7_10",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "《求是》杂志刊发的《马克思主义的本质特性和当代价值》一文指出：“两个世纪过去了，人类社会发生了巨大而深刻的变化，但马克思的名字依然在世界各地受到人们的尊敬。”结合文中所配纪实图片与文字说明，下列说法正确的有（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "两个世纪以来人类社会发生了巨大而深刻的变化，但马克思的名字依然在世界各地受到人们的尊敬",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "在湖北省武汉市举行的中国2019世界集邮展览上，有集邮爱好者展示了收藏的马克思纪念邮票",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "德国集邮爱好者伯多·冯·库茨莱本40多年来收藏了500多枚马克思纪念邮票",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "历史巨变表明马克思的名字和学说仅仅在社会主义国家受到人们的尊敬",
+        "images": []
+      }
+    ],
+    "answer": "ABC",
+    "explanation": "A项正确：原文明确指出“两个世纪过去了，人类社会发生了巨大而深刻的变化，但马克思的名字依然在世界各地受到人们的尊敬”。\nB项正确：根据配图说明，“2019年6月14日，形象酷似马克思的德国集邮爱好者伯多·冯·库茨莱本，在湖北省武汉市举行的中国2019世界集邮展览上，展示收藏的马克思纪念邮票”。\nC项正确：根据配图说明，德国集邮爱好者伯多·冯·库茨莱本“40多年来，他收藏了500多枚马克思纪念邮票”。\nD项错误：原文明确强调马克思的名字“依然在世界各地受到人们的尊敬”，选项将其限制为“仅仅在社会主义国家”，与文意不符。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-马克思主义-马克思主义哲学"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "marxist-principles-qiushi-2020",
+          "url": "https://www.qstheory.cn/dukan/qs/2020-02/01/c_1125497399.htm",
+          "title": "马克思主义的本质特性和当代价值（求是）",
+          "published_at": "2020-02-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "cf6c4dfd4806adfbdb9add88197c0d48ac54707a4e4eac7ab3f76fe37308b7ab",
+          "checked_at": "2026-10-30T01:59:56.069454+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确指出“两个世纪过去了，人类社会发生了巨大而深刻的变化，但马克思的名字依然在世界各地受到人们的尊敬”。",
+          "source_relation": "entailed",
+          "subject_comparison": "马克思的名字受尊敬的当代现实。",
+          "premise_comparison": "两个世纪以来的社会巨变背景。",
+          "strength_comparison": "与原文完全一致。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-05704290789b672d",
+              "quote": "两个世纪过去了，人类社会发生了巨大而深刻的变化，但马克思的名字依然在世界各地受到人们的尊敬。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "根据配图说明，2019年6月14日，德国集邮爱好者在湖北省武汉市举行的中国2019世界集邮展览上展示了收藏的马克思纪念邮票。",
+          "source_relation": "entailed",
+          "subject_comparison": "集邮展的举行地点和展示行为。",
+          "premise_comparison": "配图纪实说明的活动信息。",
+          "strength_comparison": "与原文完全吻合。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-05704290789b672d",
+              "quote": "图为2019年6月14日，形象酷似马克思的德国集邮爱好者伯多·冯·库茨莱本，在湖北省武汉市举行的中国2019世界集邮展览上，展示收藏的马克思纪念邮票。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "根据配图说明，“40多年来，他收藏了500多枚马克思纪念邮票”。",
+          "source_relation": "entailed",
+          "subject_comparison": "德国集邮爱好者的收藏年限与数量。",
+          "premise_comparison": "配图文字说明。",
+          "strength_comparison": "与原文“40多年来”“500多枚”完全一致。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-05704290789b672d",
+              "quote": "40多年来，他收藏了500多枚马克思纪念邮票。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确强调马克思的名字“依然在世界各地受到人们的尊敬”，包括在西方也广受关注和尊敬，选项称“仅仅在社会主义国家”与原文直接矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "马克思及其学说受尊敬的地域范围。",
+          "premise_comparison": "当代世界的实际反映。",
+          "strength_comparison": "选项用“仅仅”限定，与原文“在世界各地”相悖。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-05704290789b672d",
+              "quote": "但马克思的名字依然在世界各地受到人们的尊敬。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "marxist-principles-qiushi-2020:p-05704290789b672d"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-changshi-afb9aad8f86c4a37a4a5_01",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据2026年9月公布的《中华人民共和国审计法实施条例》（国令第847号），关于审计机关进行审计评价及处理违反国家规定行为的规定，下列说法正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "审计机关依照有关财政收支、财务收支的法律法规及国家政策、标准、项目目标等规定进行审计评价",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "审计机关仅能依据法律、行政法规进行审计评价，不得以国家政策或项目目标作为评价依据",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "对违反国家规定的财政收支行为，审计机关有权在法定职权外直接采取通用司法强制措施",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "对被审计单位违反国家规定的行为，审计机关作出的处理、处罚决定不受法定职权范围限制",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "B项错误、A项正确：根据《中华人民共和国审计法实施条例》（国令第847号）规定，审计机关依照有关财政收支、财务收支的法律、法规，以及国家有关政策、标准、项目目标等方面的规定进行审计评价。因此国家政策、标准、项目目标等均可作为审计评价依据，B项排除，A项符合规定。\nC、D项错误：根据该条例规定，审计机关对被审计单位违反国家规定的财政收支、财务收支行为，“在法定职权范围内”作出处理、处罚的决定，不得超越法定职权范围，更无权直接采取通用司法强制措施。故本题选A。",
+    "difficulty": 2,
+    "tags": [
+      "常识判断-法律常识-其他法律法规"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "audit-law-implementation-202609",
+          "url": "https://www.gov.cn/zhengce/content/202609/content_7081972.htm",
+          "title": "中华人民共和国审计法实施条例（2026年修订，国令第847号）",
+          "published_at": "2026-09-24",
+          "effective_at": "2026-12-01",
+          "scope": "as_published",
+          "sha256": "00641d02727472179e6bc745fd357c2ce24775572b797f7bd6e8c110811e5126",
+          "checked_at": "2026-10-30T01:59:59.296480+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确规定审计机关依照有关财政收支、财务收支的法律、法规，以及国家有关政策、标准、项目目标等方面的规定进行审计评价",
+          "source_relation": "entailed",
+          "subject_comparison": "与原文审计机关主体一致",
+          "premise_comparison": "与原文审计评价的依据一致",
+          "strength_comparison": "与原文充分一致",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1fbd3093210e1843",
+              "quote": "审计机关依照有关财政收支、财务收支的法律、法规，以及国家有关政策、标准、项目目标等方面的规定进行审计评价，对被审计单位违反国家规定的财政收支、财务收支行为，在法定职权范围内作出处理、处罚的决定。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文包含国家有关政策、标准、项目目标，选项称仅能依据法律、行政法规且不得以国家政策或项目目标为评价依据，与原文直接冲突",
+          "source_relation": "contradicted",
+          "subject_comparison": "与原文审计机关主体一致",
+          "premise_comparison": "与原文审计评价依据的范围不一致",
+          "strength_comparison": "选项排他性限定与原文并列列举冲突",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1fbd3093210e1843",
+              "quote": "审计机关依照有关财政收支、财务收支的法律、法规，以及国家有关政策、标准、项目目标等方面的规定进行审计评价"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确要求在法定职权范围内作出处理处罚，选项称有权在法定职权外直接采取通用司法强制措施，与原文冲突",
+          "source_relation": "contradicted",
+          "subject_comparison": "与原文审计机关主体一致",
+          "premise_comparison": "与原文在法定职权范围内履职的前提冲突",
+          "strength_comparison": "选项直接颠覆法定职权限制",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1fbd3093210e1843",
+              "quote": "对被审计单位违反国家规定的财政收支、财务收支行为，在法定职权范围内作出处理、处罚的决定。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确限定在法定职权范围内作出决定，选项称不受法定职权范围限制，与原文直接矛盾",
+          "source_relation": "contradicted",
+          "subject_comparison": "与原文审计机关处理处罚决定主体一致",
+          "premise_comparison": "与原文职权范围要求相反",
+          "strength_comparison": "选项直接否定法定职权限定",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1fbd3093210e1843",
+              "quote": "对被审计单位违反国家规定的财政收支、财务收支行为，在法定职权范围内作出处理、处罚的决定。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "audit-law-implementation-202609:p-1fbd3093210e1843"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-changshi-afb9aad8f86c4a37a4a5_02",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "《中共中央 国务院关于锚定农业农村现代化 扎实推进乡村全面振兴的意见》（2026年中央一号文件）指出，要提升农业科技创新效能。下列有关表述不符合该文件要求的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "深入实施种业振兴行动，加快选育和推广突破性品种",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "加快高端智能、丘陵山区适用农机装备研发应用",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "限制无人机、物联网在农业领域的使用以保障传统耕作稳定",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "因地制宜发展农业新质生产力，加快农业生物制造关键技术创新",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "2026年中央一号文件在“（四）提升农业科技创新效能”中明确提出：深入实施种业振兴行动，加快选育和推广突破性品种，推进生物育种产业化；加快高端智能、丘陵山区适用农机装备研发应用，加强林草机械装备研发推广；因地制宜发展农业新质生产力，促进人工智能与农业发展相结合，拓展无人机、物联网、机器人等应用场景，加快农业生物制造关键技术创新。A、B、D三项均符合文件表述。C项表述“限制无人机、物联网在农业领域的使用”与文件中“拓展无人机、物联网、机器人等应用场景”的要求背道而驰。本题为选非题，故本题选C。",
+    "difficulty": 2,
+    "tags": [
+      "常识判断-经济常识-宏观经济与调控政策"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "central-no1-rural-revitalization-202602",
+          "url": "https://www.news.cn/politics/zywj/20260203/724188820db8404ebc739feacc64a2d3/c.html",
+          "title": "中共中央 国务院关于锚定农业农村现代化 扎实推进乡村全面振兴的意见（2026年中央一号文件）",
+          "published_at": "2026-02-03",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "52741ca3fa583cb37b9b3809e2dda38e117d55dd8ba9e1838757c9c35c3d08db",
+          "checked_at": "2026-10-30T02:00:26.881937+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "符合中央一号文件原话，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与文件要求一致。",
+          "premise_comparison": "选项属于提升农业科技创新效能的部署。",
+          "strength_comparison": "表述强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-47a3cc3f264eaa85",
+              "quote": "深入实施种业振兴行动，加快选育和推广突破性品种，推进生物育种产业化。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "符合中央一号文件原话，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与文件部署一致。",
+          "premise_comparison": "前提与原文一致。",
+          "strength_comparison": "表述强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-47a3cc3f264eaa85",
+              "quote": "加快高端智能、丘陵山区适用农机装备研发应用，加强林草机械装备研发推广。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "原文明确要求“拓展无人机、物联网、机器人等应用场景”，选项表述为“限制使用以保障传统耕作稳定”，与文件要求直接冲突，属于不符合文件要求的选项。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项对象为无人机、物联网应用。",
+          "premise_comparison": "选项提出的前提与原文积极推进新质生产力的政策方向相反。",
+          "strength_comparison": "选项“限制”与原文“拓展”方向截然相反。",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-47a3cc3f264eaa85",
+              "quote": "因地制宜发展农业新质生产力，促进人工智能与农业发展相结合，拓展无人机、物联网、机器人等应用场景，加快农业生物制造关键技术创新。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "符合中央一号文件原话，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与原文一致。",
+          "premise_comparison": "前提与原文一致。",
+          "strength_comparison": "表述强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-47a3cc3f264eaa85",
+              "quote": "因地制宜发展农业新质生产力，促进人工智能与农业发展相结合，拓展无人机、物联网、机器人等应用场景，加快农业生物制造关键技术创新。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "central-no1-rural-revitalization-202602:p-47a3cc3f264eaa85"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-changshi-afb9aad8f86c4a37a4a5_03",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "《求是》2026年第20期刊发文章《深刻把握中华文明突出的包容性》指出，近年来，世界进入新的动荡变革期，人类社会面临着思想割裂、文化纷争的共同威胁。面对文明发展的时代抉择，中国郑重提出全球文明倡议，其倡导的核心原则不包括（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "以文明交流超越文明隔阂",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "以文明互鉴超越文明冲突",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "以文明包容超越文明优越",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "以文明同化消解文明差异",
+        "images": []
+      }
+    ],
+    "answer": "D",
+    "explanation": "《求是》2026年第20期刊发文章《深刻把握中华文明突出的包容性》指出：“近年来，世界进入新的动荡变革期，保护主义、孤立主义、民粹主义等思潮不断抬头，文明冲突、文明优越等论调不时沉渣泛起，人类社会面临着思想割裂、文化纷争的共同威胁，人类文明站在何去何从的十字路口……中国郑重提出全球文明倡议，倡导以文明交流超越文明隔阂、文明互鉴超越文明冲突、文明包容超越文明优越，展现了中国作为文明大国的气度和风范”。A、B、C三项均属于全球文明倡议倡导的内容；D项“以文明同化消解文明差异”属于典型的错误偏见，不属于该倡议内容。本题为选非题，故本题选D。",
+    "difficulty": 2,
+    "tags": [
+      "常识判断-人文常识-文化常识"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "chinese-civilization-inclusiveness-202610",
+          "url": "https://www.qstheory.cn/20261015/4b748f3558ef4173b69c8db9efe2f910/c.html",
+          "title": "《求是》2026/20：深刻把握中华文明突出的包容性（和实生物、兼收并蓄、多元一体）",
+          "published_at": "2026-10-16",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f36f4a5c2e32eb324718ec28cd1def8d9135386c907e63caa3fa62918a16b285",
+          "checked_at": "2026-10-30T02:00:23.371236+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "属于全球文明倡议倡导的核心内容，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "与原文倡议内容一致。",
+          "premise_comparison": "属于倡导原则之一。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "chinese-civilization-inclusiveness-202610",
+              "paragraph_id": "p-1a614c729b66a18f",
+              "quote": "中国郑重提出全球文明倡议，倡导以文明交流超越文明隔阂、文明互鉴超越文明冲突、文明包容超越文明优越"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "属于全球文明倡议倡导的核心内容，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "与原文倡议内容一致。",
+          "premise_comparison": "属于倡导原则之一。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "chinese-civilization-inclusiveness-202610",
+              "paragraph_id": "p-1a614c729b66a18f",
+              "quote": "中国郑重提出全球文明倡议，倡导以文明交流超越文明隔阂、文明互鉴超越文明冲突、文明包容超越文明优越"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "属于全球文明倡议倡导的核心内容，设问为选非题，故不入选。",
+          "source_relation": "entailed",
+          "subject_comparison": "与原文倡议内容一致。",
+          "premise_comparison": "属于倡导原则之一。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "chinese-civilization-inclusiveness-202610",
+              "paragraph_id": "p-1a614c729b66a18f",
+              "quote": "中国郑重提出全球文明倡议，倡导以文明交流超越文明隔阂、文明互鉴超越文明冲突、文明包容超越文明优越"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "全球文明倡议倡导交流、互鉴与包容，且原文批判了“同化论”偏见，选项“以文明同化消解文明差异”不属于倡议的核心原则，符合选非题设问。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项提出的“文明同化”与中国倡导的多元一体、包容互鉴相背离。",
+          "premise_comparison": "选项内容并非全球文明倡议所倡导的原则。",
+          "strength_comparison": "选项与倡议的三个“超越”实质冲突。",
+          "citations": [
+            {
+              "source_id": "chinese-civilization-inclusiveness-202610",
+              "paragraph_id": "p-1a614c729b66a18f",
+              "quote": "中国郑重提出全球文明倡议，倡导以文明交流超越文明隔阂、文明互鉴超越文明冲突、文明包容超越文明优越，展现了中国作为文明大国的气度和风范"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "chinese-civilization-inclusiveness-202610:p-1a614c729b66a18f"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-changshi-afb9aad8f86c4a37a4a5_04",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "依据2026年10月中国科学院高能物理研究所关于中国散裂中子源（CSNS）的报道，下列关于中国散裂中子源二期工程（CSNS-II）设备安装与调试进展的说法，正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "为尽量减少对用户运行的影响，CSNS-II利用每年暑期停机窗口开展二期设备安装",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "2026年暑期停机期间，CSNS-II加速器除超导加速器外的设备仅完成了部分前端安装",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "2026年10月20日装置束流功率突破200 kW，达到一期设计束流功率的5倍",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "装置束流功率突破200 kW并正式投入运行，标志着CSNS-II已全面实现500 kW目标",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "A项正确，依据中国科学院高能物理研究所2026年10月报道，为尽量减少对用户运行的影响，中国散裂中子源二期工程（CSNS-II）利用每年暑期停机窗口开展二期设备安装。B项错误，原文明确指出“至此，CSNS-II加速器除超导加速器外的全部设备均已完成安装”，并非仅完成部分前端安装。C项错误，2026年10月20日装置束流功率突破200 kW并正式投入用户运行，达到的是“一期设计束流功率的2倍”，而非5倍。D项错误，束流功率突破200 kW是CSNS-II建设的重要里程碑，“为实现二期500 kW目标提供了关键验证”，而非二期500 kW目标已全面实现。故本题选A。",
+    "difficulty": 2,
+    "tags": [
+      "常识判断-科技常识-科技理论与成就"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "csns-beam-power-200kw-202610",
+          "url": "https://www.ihep.cas.cn/xwdt2022/rd/202610/t20261024_8297248.html",
+          "title": "中国散裂中子源完成重要阶段性设备安装任务，束流功率突破200 kW",
+          "published_at": "2026-10-24",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "3a9dc2ceb8666df05e2b6ca2c0e5edc89bea0d63d65bbe111a5cfd0352893d9e",
+          "checked_at": "2026-10-30T21:13:42.914054+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "与原文表述‘为尽量减少对用户运行的影响，中国散裂中子源二期工程（CSNS-II）利用每年暑期停机窗口开展二期设备安装’完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "主体一致，均为CSNS-II设备安装安排。",
+          "premise_comparison": "前提与原因完全对应（减少对用户运行的影响、利用每年暑期停机窗口）。",
+          "strength_comparison": "一致。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "为尽量减少对用户运行的影响，中国散裂中子源二期工程（CSNS-II）利用每年暑期停机窗口开展二期设备安装。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文指出‘至此，CSNS-II加速器除超导加速器外的全部设备均已完成安装’，选项称‘仅完成了部分前端安装’与原文矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体均为CSNS-II加速器除超导加速器外的设备安装情况。",
+          "premise_comparison": "时间均为2026年暑期停机期间。",
+          "strength_comparison": "原文是‘全部设备均已完成安装’，选项弱化为‘仅完成了部分前端安装’，与原文矛盾。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "今年暑期停机期间，项目团队完成直线加速器前端设备、全部固态调制器，以及快循环同步加速器第三台磁合金腔的安装与调试。至此，CSNS-II加速器除超导加速器外的全部设备均已完成安装。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确是‘达到一期设计束流功率的2倍’，选项改为‘5倍’，数字及倍数关系错误。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体为200 kW束流功率与一期设计束流功率的倍数关系。",
+          "premise_comparison": "时间均为2026年10月20日。",
+          "strength_comparison": "原文明确为2倍，选项为5倍，两者矛盾。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "2026年10月20日，装置束流功率突破200 kW并正式投入用户运行，达到一期设计束流功率的2倍。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确指出突破200 kW是‘为实现二期500 kW目标提供了关键验证’，而非‘标志着CSNS-II已全面实现500 kW目标’，混淆了阶段性验证与全面实现目标。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体为突破200 kW的里程碑意义。",
+          "premise_comparison": "前提均为装置束流功率突破200 kW投入运行。",
+          "strength_comparison": "原文是‘为实现……提供关键验证’，选项改写为已‘全面实现’，把预期目标混淆为已实现事实。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "这是CSNS-II建设的重要里程碑，为实现二期500 kW目标提供了关键验证。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "csns-beam-power-200kw-202610:p-5de40d0a40eca35a"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-04-20261031::daily-20261031-changshi-afb9aad8f86c4a37a4a5_05",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据《广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）》（粤办函〔2026〕297号），关于全面推进紧密型县域医共体医保支付改革，下列说法正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "医保结余留用资金由地级市医保部门统一制定分配方案，不得由医共体自主分配",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "已实施医保支付改革的县域医共体，结余留用的医保资金纳入医疗服务性收入",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "医保结余资金分配方案要体现做强龙头原则，重点向医共体牵头医院倾斜",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "全省将在2026年推动所有县域医共体直接全面推行医保基金总额付费改革",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "B项正确，根据粤办函〔2026〕297号方案，已实施医保支付改革的县域医共体，结余留用的医保资金纳入医疗服务性收入，主要用于提升各级医务人员绩效收入和促进机构发展。A项错误，原文明确指出“结余资金由医共体制定分配方案，自主分配”，并非由地市医保部门统一制定且不得自主分配。C项错误，原文规定结余资金分配“要体现强基层原则，向基层分院（包含镇村一体化管理的村卫生站）及健康管理服务工作倾斜”，而非向牵头医院倾斜。D项错误，原文明确提出的目标是“2026年推动90%以上的县域医共体达到医保支付改革申请条件。到2028年，支持符合条件并申请的医共体开展总额付费改革”，并非2026年所有医共体直接全面推行。故本题选B。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-地理国情-其他"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-31",
+      "sources": [
+        {
+          "id": "gd-county-medical-consortium-202610",
+          "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/ybh/content/post_4971251.html",
+          "title": "广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）（粤办函〔2026〕297号）",
+          "published_at": "2026-10-27",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "fff2c54a2a124a6c58f6bcf4076240b9a2169cfd241d7be00291ab6ef6f9cb8c",
+          "checked_at": "2026-10-30T02:00:22.250079+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确规定‘结余资金由医共体制定分配方案，自主分配’，选项称‘统一制定’且‘不得自主分配’，与原文直接矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体均为医保结余留用资金的分配方案制定与执行主体。",
+          "premise_comparison": "前提一致，均为结余留用资金分配。",
+          "strength_comparison": "原文赋予医共体自主权，选项予以否定，构成矛盾。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-3027f4461209ceea",
+              "quote": "结余资金由医共体制定分配方案，自主分配，要体现强基层原则，向基层分院（包含镇村一体化管理的村卫生站）及健康管理服务工作倾斜"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "符合原文‘已实施医保支付改革的县域医共体，结余留用的医保资金纳入医疗服务性收入’的规定。",
+          "source_relation": "entailed",
+          "subject_comparison": "主体一致，均为结余留用的医保资金性质归属。",
+          "premise_comparison": "前提一致，均为已实施医保支付改革的县域医共体。",
+          "strength_comparison": "完全一致。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-3027f4461209ceea",
+              "quote": "已实施医保支付改革的县域医共体，结余留用的医保资金纳入医疗服务性收入，主要用于提升各级医务人员绩效收入和促进机构发展"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确规定‘要体现强基层原则，向基层分院（包含镇村一体化管理的村卫生站）及健康管理服务工作倾斜’，选项篡改为‘体现做强龙头原则，重点向医共体牵头医院倾斜’，与原文矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体均为医保结余资金分配方案的倾斜原则与对象。",
+          "premise_comparison": "前提一致。",
+          "strength_comparison": "强基层 vs 做强龙头，基层分院 vs 牵头医院，构成直接冲突。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-3027f4461209ceea",
+              "quote": "结余资金由医共体制定分配方案，自主分配，要体现强基层原则，向基层分院（包含镇村一体化管理的村卫生站）及健康管理服务工作倾斜"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文规定‘2026年推动90%以上的县域医共体达到医保支付改革申请条件。到2028年，支持符合条件并申请的医共体开展总额付费改革’，并非2026年所有医共体直接全面推行总额付费改革。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体为全省医保支付改革的推行进度和范围。",
+          "premise_comparison": "时间节点与阶段目标混淆。",
+          "strength_comparison": "选项将‘90%以上达到申请条件’夸大为‘所有……直接全面推行’，与原文阶段性安排冲突。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-3027f4461209ceea",
+              "quote": "要加快补齐县域医共体内涵建设短板，2026年推动90%以上的县域医共体达到医保支付改革申请条件。到2028年，支持符合条件并申请的医共体开展总额付费改革。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-county-medical-consortium-202610:p-3027f4461209ceea"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第4套（10月31日日练·政治10+常识5）"
+  }
+]

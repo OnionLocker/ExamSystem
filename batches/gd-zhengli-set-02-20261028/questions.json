@@ -1,0 +1,1615 @@
+[
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_01",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据《中华人民共和国国民经济和社会发展第十五个五年规划纲要》，为加快科技成果高效转化应用，我国将深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据《中华人民共和国国民经济和社会发展第十五个五年规划纲要》，在促进科技创新和产业创新深度融合方面，明确提出“深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，推进技术转移体系建设，加快科技成果高效转化应用。引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用”。题干表述完全符合文件规定，故本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "national-15th-plan-2026",
+          "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062633.htm",
+          "title": "中华人民共和国国民经济和社会发展第十五个五年规划纲要",
+          "published_at": "2026-03-13",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "70f32e1d2bd586799773c9df06eeb94e5279af2a376d98a7e6960ba90ffb69e2",
+          "checked_at": "2026-10-28T07:33:40.545737+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "题干表述完全符合《十五五规划纲要》关于科技成果转化的规定，原文明确提出深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体（我国、高校、科研院所）与原文主体完全一致。",
+          "premise_comparison": "选项前提（加快科技成果高效转化应用、十五五规划纲要）与原文前提一致。",
+          "strength_comparison": "选项条件和动作强度与原文完全吻合。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，推进技术转移体系建设，加快科技成果高效转化应用。引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-15th-plan-2026:p-24ee0ebf55e6381a"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_02",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据《求是》刊发文章《马克思主义的本质特性和当代价值》，马克思主义的阶级性是指其认识价值，即对客观现实反映的正确程度；而科学性则是就其社会功能而言，即代表哪个阶级的利益。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "B",
+    "explanation": "根据《马克思主义的本质特性和当代价值（求是）》，阶级性和科学性是不同的范畴。阶级性是就其社会功能而言的，即代表哪个阶级的利益、为绝大多数人服务还是为少数人服务；而科学性是指其认识价值，即它对现实反映的正确程度。题干将“阶级性”与“科学性”两者的内涵张冠李戴，故本题判断错误。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-马克思主义-马克思主义哲学"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "marxist-principles-qiushi-2020",
+          "url": "https://www.qstheory.cn/dukan/qs/2020-02/01/c_1125497399.htm",
+          "title": "马克思主义的本质特性和当代价值（求是）",
+          "published_at": "2020-02-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "cf6c4dfd4806adfbdb9add88197c0d48ac54707a4e4eac7ab3f76fe37308b7ab",
+          "checked_at": "2026-10-23T03:09:53.090467+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": false,
+          "reason": "原文明确指出“阶级性是就它的社会功能说的，即代表哪个阶级的利益、为绝大多数人服务还是为少数人服务；而科学性是指它的认识价值，即它对现实反映的正确程度”。题干将两者的内涵张冠李戴，故题干陈述错误，判断题选B。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项中的阶级性与科学性概念与原文对立置换。",
+          "premise_comparison": "讨论语境均为马克思主义的本质特性范畴，前提一致。",
+          "strength_comparison": "选项断言与原文概念定义直接冲突。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-5447e189d882c725",
+              "quote": "其实阶级性和科学性是不同的。阶级性是就它的社会功能说的，即代表哪个阶级的利益、为绝大多数人服务还是为少数人服务；而科学性是指它的认识价值，即它对现实反映的正确程度。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "marxist-principles-qiushi-2020:p-5447e189d882c725"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_03",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据2026年广东省政府工作报告，深入实施“百县千镇万村高质量发展工程”中开展的“双百行动”，是指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据2026年广东省政府工作报告注释，“双百行动”指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。题干表述符合报告内容，故本题判断正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "gd-work-report-2026",
+          "url": "https://www.gdjr.gov.cn/gdjr/jrzx/gzdt/content/post_40867.html",
+          "title": "2026年广东省政府工作报告（1月26日报告、广东省委金融办2月2日转载）",
+          "published_at": "2026-02-02",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "d708ff955f59769f45a27d698da6945365fc90566429f1f18f6b02480309eb02",
+          "checked_at": "2026-10-28T07:33:41.204015+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "广东省政府工作报告注释中明确将“双百行动”定义为“百校联百县助力‘百县千镇万村高质量发展工程’行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶”，题干完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体（双百行动、高校院所）与原文完全一致。",
+          "premise_comparison": "选项背景（2026年广东省政府工作报告、百千万工程）与原文一致。",
+          "strength_comparison": "选项陈述与原文定义完全吻合。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-work-report-2026:p-2af00a83ec454c24"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_04",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据《习近平：在纪念中国工农红军长征胜利90周年大会上的讲话》，走好新的长征路，必须坚持党的领导、加强党的建设，党的领导和党的建设是事业发展的根本保证。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据《习近平：在纪念中国工农红军长征胜利90周年大会上的讲话》，讲话明确提出“弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证”。故题干表述正确。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "xi-long-march-90-202610",
+          "url": "https://www.gov.cn/yaowen/liebiao/202610/content_7084006.htm",
+          "title": "习近平：在纪念中国工农红军长征胜利90周年大会上的讲话",
+          "published_at": "2026-10-22",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "68629e0b172164f08f11b55f1b28c9078ca418d837479f686975581b253d02ec",
+          "checked_at": "2026-10-27T21:10:08.960288+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "讲话明确提出走好新的长征路必须坚持党的领导、加强党的建设，且党的领导和党的建设是事业发展的根本保证，题干与原文完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干主体为走好新的长征路的要求及党的领导和党的建设，与原文完全一致。",
+          "premise_comparison": "题干引用讲话语境，与原文前提一致。",
+          "strength_comparison": "题干中的‘必须’和‘根本保证’与原文完全一致。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-3cec410a94258245",
+              "quote": "弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-long-march-90-202610:p-3cec410a94258245"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_05",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "根据《广东省国民经济和社会发展第十五个五年规划纲要》，下列关于科技自立自强和人工智能发展的表述，正确的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "以智能制造领域创新中心、工业互联网领域创新中心为双极，支撑打造广东省人工智能创新中心",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "在健全一体推进机制中，发挥科技的先导性、人才的战略性、教育的根本性作用",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "推行“有组织科研+有组织成果转化”模式，形成“技术突破—场景验证—商业应用—生态集聚”的创新迭代机制",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "“十五五”时期全省全社会研发经费投入年均增长目标为7%以上",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "A项错误，规划纲要第五章明确指出“以智能体领域创新中心、智能终端领域创新中心为双极，支撑打造广东省人工智能创新中心”，而非“智能制造”与“工业互联网”。B项错误，规划纲要第四章明确指出“发挥教育的先导性、科技的战略性、人才的根本性作用”，选项将三者定位混淆。C项正确，规划纲要第四章明确要求“健全科技成果转化服务体系。推行‘有组织科研+有组织成果转化’的实施模式，建立健全以企业为主体、市场为导向、产学研用深度融合的技术创新体系，形成‘技术突破—场景验证—商业应用—生态集聚’的创新迭代机制”。D项错误，规划纲要第二篇明确提出“十五五”时期广东“全社会研发经费投入年均增长5%”，年均增长7%以上为全国纲要目标。故正确答案为C。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "gd-15th-plan-2026",
+          "url": "https://www.gdlgb.gov.cn/xwdt/gdxw5/content/post_107439.html",
+          "title": "广东省国民经济和社会发展第十五个五年规划纲要（粤府〔2026〕24号，官方转载）",
+          "published_at": "2026-04-29",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "789b6c1be1aa8955b6b989edff0ca77b0009fce3f123df878721998c91289b45",
+          "checked_at": "2026-10-28T07:33:43.258810+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "规划纲要指出是以‘智能体领域创新中心、智能终端领域创新中心’为双极，而非‘智能制造’与‘工业互联网’。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项双极主体与原文中的智能体领域和智能终端领域创新中心冲突。",
+          "premise_comparison": "均处于打造广东省人工智能创新中心的相同规划语境下。",
+          "strength_comparison": "选项主体概念偷换，与原文不符。",
+          "citations": [
+            {
+              "source_id": "gd-15th-plan-2026",
+              "paragraph_id": "p-521f0c3243484b5f",
+              "quote": "以智能体领域创新中心、智能终端领域创新中心为双极，支撑打造广东省人工智能创新中心。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "规划纲要明确指出发挥‘教育的先导性、科技的战略性、人才的根本性作用’，选项将三者定位完全倒置混淆。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将教育、科技、人才三者的属性作用张冠李戴。",
+          "premise_comparison": "均处于健全一体推进机制的前提下。",
+          "strength_comparison": "选项表述与原文对三者定位的定性相反相悖。",
+          "citations": [
+            {
+              "source_id": "gd-15th-plan-2026",
+              "paragraph_id": "p-85a984739dd768ee",
+              "quote": "发挥教育的先导性、科技的战略性、人才的根本性作用，建立健全一体推进的协调机制"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "规划纲要第四章明确要求健全科技成果转化服务体系，推行‘有组织科研+有组织成果转化’模式，形成‘技术突破—场景验证—商业应用—生态集聚’的创新迭代机制，符合原文。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项模式与机制名称与原文完全对应。",
+          "premise_comparison": "均针对科技成果转化服务体系的建设路径。",
+          "strength_comparison": "条件关系与阶段推进链条与原文一致。",
+          "citations": [
+            {
+              "source_id": "gd-15th-plan-2026",
+              "paragraph_id": "p-e16a9f20bec29895",
+              "quote": "推行“有组织科研+有组织成果转化”的实施模式，建立健全以企业为主体、市场为导向、产学研用深度融合的技术创新体系，形成“技术突破—场景验证—商业应用—生态集聚”的创新迭代机制。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "规划纲要主要目标中明确‘十五五’时期广东全社会研发经费投入年均增长为5%，而非7%以上（7%以上为全国纲要目标）。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项全省研发经费投入年均增长目标与原文数据直接冲突。",
+          "premise_comparison": "处于广东省‘十五五’时期科技自立自强目标语境下。",
+          "strength_comparison": "选项将5%提高至7%以上，与省规划目标矛盾。",
+          "citations": [
+            {
+              "source_id": "gd-15th-plan-2026",
+              "paragraph_id": "p-e6eaa27ba5c7035c",
+              "quote": "全社会研发经费投入年均增长5%，重点领域关键核心技术加速突破"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-15th-plan-2026:p-521f0c3243484b5f",
+        "gd-15th-plan-2026:p-85a984739dd768ee",
+        "gd-15th-plan-2026:p-e16a9f20bec29895",
+        "gd-15th-plan-2026:p-e6eaa27ba5c7035c"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_06",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "《中共中央 国务院关于发展新质生产力的意见》对发展新质生产力作出了系统部署。下列有关表述符合该意见的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "以劳动参与率大幅提升为发展新质生产力的核心标志",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "坚持目标导向和自由探索并重，通过有组织的基础研究、应用基础研究解决技术科学和工程科学薄弱问题",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "坚持把颠覆性技术创新作为检验科技成果转化成效的主体标准，建立由科研机构单独考核评价成果的机制",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "推动战略性新兴产业发展，鼓励在所有新兴行业全面取消准入门槛以加速技术迭代",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "A项错误，意见明确提出“以科技创新为引领，以全要素生产率大幅提升为核心标志”，而非“劳动参与率”。B项正确，意见在“（一）加强原创性颠覆性科技创新”中明确提出“坚持目标导向和自由探索并重，通过有组织的基础研究、应用基础研究解决技术科学和工程科学薄弱问题，支持自由探索类基础研究开拓创新”。C项错误，意见在“（四）强化企业科技创新主体地位”中指出“建立用户考核评价成果的机制，强化企业成果转化主体地位”，并非由科研机构单独考核。D项错误，意见要求“在确保安全前提下，推动低空经济、商业航天健康有序发展”，并强调“深化产业内、产品内专业分工，促进跨行业跨区域融合，避免‘内卷式’竞争”，并未提出在所有新兴行业全面取消准入门槛。故正确答案为B。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "new-quality-productive-forces-202610",
+          "url": "https://www.gov.cn/zhengce/202610/content_7082821.htm",
+          "title": "中共中央 国务院关于发展新质生产力的意见",
+          "published_at": "2026-10-09",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f42a7bc086fae8952b4bb913c1d96c9c0a766c3fc53ef1464e384b2683e875a7",
+          "checked_at": "2026-10-28T07:33:43.568911+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "意见明确提出发展新质生产力以‘全要素生产率大幅提升为核心标志’，而非‘劳动参与率’。",
+          "source_relation": "contradicted",
+          "subject_comparison": "核心标志概念被替换为劳动参与率，与原文直接冲突。",
+          "premise_comparison": "处于发展新质生产力的总体要求语境下。",
+          "strength_comparison": "选项核心属性断言与原文不符。",
+          "citations": [
+            {
+              "source_id": "new-quality-productive-forces-202610",
+              "paragraph_id": "p-e3626c6d8726e626",
+              "quote": "以科技创新为引领，以全要素生产率大幅提升为核心标志"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "意见在加强原创性颠覆性科技创新中明确提出‘坚持目标导向和自由探索并重，通过有组织的基础研究、应用基础研究解决技术科学和工程科学薄弱问题’，表述完全符合文件。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体、方式与解决的问题与原文完全一致。",
+          "premise_comparison": "均处于加强原创性颠覆性科技创新的部署中。",
+          "strength_comparison": "逻辑与条件强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "new-quality-productive-forces-202610",
+              "paragraph_id": "p-913ad10e303aed6f",
+              "quote": "坚持目标导向和自由探索并重，通过有组织的基础研究、应用基础研究解决技术科学和工程科学薄弱问题，支持自由探索类基础研究开拓创新。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "意见要求‘建立用户考核评价成果的机制，强化企业成果转化主体地位’，并非由科研机构单独考核评价。",
+          "source_relation": "contradicted",
+          "subject_comparison": "评价机制的主体与导向与原文‘用户考核评价’及‘企业成果转化主体地位’直接相悖。",
+          "premise_comparison": "均处于强化企业科技创新主体地位的语境下。",
+          "strength_comparison": "选项‘单独考核’与原文协同及用户考核机制相冲突。",
+          "citations": [
+            {
+              "source_id": "new-quality-productive-forces-202610",
+              "paragraph_id": "p-dbfb4e053a967586",
+              "quote": "建立用户考核评价成果的机制，强化企业成果转化主体地位。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "意见强调在确保安全前提下推动新兴产业发展，避免‘内卷式’竞争，并未要求在所有新兴行业全面取消准入门槛。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项关于准入门槛的主张与原文要求统筹发展与安全、深化专业分工避免无序竞争的原则相背离。",
+          "premise_comparison": "处于培育壮大新兴产业的语境下。",
+          "strength_comparison": "选项使用了‘所有新兴行业全面取消准入门槛’的全称绝对表述，违反原文审慎统筹原则。",
+          "citations": [
+            {
+              "source_id": "new-quality-productive-forces-202610",
+              "paragraph_id": "p-79436b3d7200bf19",
+              "quote": "深化产业内、产品内专业分工，促进跨行业跨区域融合，避免“内卷式”竞争。以产业链为主导、以企业为主体建立跨区域产业协作机制，支持东部地区带动中西部和东北地区因地制宜发展新兴产业。在确保安全前提下，推动低空经济、商业航天健康有序发展。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "new-quality-productive-forces-202610:p-79436b3d7200bf19",
+        "new-quality-productive-forces-202610:p-913ad10e303aed6f",
+        "new-quality-productive-forces-202610:p-dbfb4e053a967586",
+        "new-quality-productive-forces-202610:p-e3626c6d8726e626"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_07",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "根据《2026年政府工作报告（3月5日报告、中国政府网3月13日发布）》，关于加紧培育壮大新动能、推进科技创新和人工智能发展，下列说法正确的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "坚持把发展经济的着力点放在现代服务业上，以全面数字化转型替代传统产业升级",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "打造智能经济新形态，实施超大规模智算集群、算电协同等新基建工程，支持公共云发展",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "推动科技创新和产业创新深度融合，对关键核心技术领域的科技型企业实行阶段性限制上市融资措施",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "强化科研院所创新主导地位，严格控制科技领军企业承担国家重大科技项目的比例",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "A项错误：《2026年政府工作报告》明确指出，“坚持把发展经济的着力点放在实体经济上，因地制宜发展新质生产力，建设现代化产业体系”，且强调“传统产业转型升级不断深入”，并非把着力点放在现代服务业上，也不是替代传统产业。\nB项正确：报告在“打造智能经济新形态”中明确部署，“实施超大规模智算集群、算电协同等新基建工程，加强全国一体化算力监测调度，支持公共云发展”。\nC项错误：报告明确指出，“加强科技创新全链条全生命周期金融服务，对关键核心技术领域的科技型企业，常态化实施上市融资、并购重组‘绿色通道’机制，以科技金融支持创新创造”，而非实行阶段性限制上市融资措施。\nD项错误：报告明确提出，“强化企业创新主体地位，支持科技领军企业牵头组建创新联合体，提高承担国家重大科技项目比例”，而非强化科研院所主导地位或严控企业承担比例。\n故本题选B。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "national-work-report-2026",
+          "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062625.htm",
+          "title": "2026年政府工作报告（3月5日报告、中国政府网3月13日发布）",
+          "published_at": "2026-03-13",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f971ad846944d8657baa2933816f35e68f7b1dc397a3feeb9ef6a9af15eab05e",
+          "checked_at": "2026-10-28T07:33:43.850405+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "选项称“把发展经济的着力点放在现代服务业上，以全面数字化转型替代传统产业升级”，与原文“坚持把发展经济的着力点放在实体经济上”以及推动“传统产业转型升级”不符，构成概念替换与错误归纳。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将发展经济的着力点定为“现代服务业”，原文为“实体经济”。",
+          "premise_comparison": "选项前提为经济发展着力点和产业升级路径，原文明确坚持实体经济为本，传统产业转型升级不断深入，而非替代。",
+          "strength_comparison": "选项使用“替代传统产业升级”的全盘否定式表述，原文为“转型升级不断深入”，强度明显冲突。",
+          "citations": [
+            {
+              "source_id": "national-work-report-2026",
+              "paragraph_id": "p-d7548ba7c0c3996b",
+              "quote": "坚持把发展经济的着力点放在实体经济上，因地制宜发展新质生产力，建设现代化产业体系。"
+            },
+            {
+              "source_id": "national-work-report-2026",
+              "paragraph_id": "p-e8894af0a9db714d",
+              "quote": "传统产业转型升级不断深入，新兴产业、未来产业蓬勃发展，现代服务业保持快速发展势头。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "选项陈述与原文在“打造智能经济新形态”中的部署完全一致，属于准确复述。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为“打造智能经济新形态”的各项新基建工程及政策举措，与原文完全一致。",
+          "premise_comparison": "选项语境为推进人工智能和培育壮大新动能，与原文所属段落一致。",
+          "strength_comparison": "选项各项动宾搭配及范围与原文完全对应，强度一致。",
+          "citations": [
+            {
+              "source_id": "national-work-report-2026",
+              "paragraph_id": "p-55d2815f53b175e0",
+              "quote": "实施超大规模智算集群、算电协同等新基建工程，加强全国一体化算力监测调度，支持公共云发展。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "选项称“对关键核心技术领域的科技型企业实行阶段性限制上市融资措施”，与原文“常态化实施上市融资、并购重组‘绿色通道’机制”恰好相反。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为对“关键核心技术领域的科技型企业”的金融支持政策，与原文对应主体一致。",
+          "premise_comparison": "选项对应推动科技创新和产业创新深度融合的金融支持措施，原文明确支持其融资。",
+          "strength_comparison": "选项的“限制上市融资”与原文“常态化实施上市融资、并购重组‘绿色通道’机制”方向相反。",
+          "citations": [
+            {
+              "source_id": "national-work-report-2026",
+              "paragraph_id": "p-ccfdd384afb40fde",
+              "quote": "加强科技创新全链条全生命周期金融服务，对关键核心技术领域的科技型企业，常态化实施上市融资、并购重组“绿色通道”机制，以科技金融支持创新创造。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "选项称“强化科研院所创新主导地位，严格控制科技领军企业承担国家重大科技项目的比例”，与原文“强化企业创新主体地位”以及“提高承担国家重大科技项目比例”相冲突。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体将“企业创新主体地位”篡改为“科研院所创新主导地位”，并将科技领军企业承担比例反向篡改。",
+          "premise_comparison": "选项与原文同在科技创新和产业创新融合的举措语境下。",
+          "strength_comparison": "选项将“提高承担……比例”改为“严格控制……比例”，方向彻底颠倒。",
+          "citations": [
+            {
+              "source_id": "national-work-report-2026",
+              "paragraph_id": "p-ccfdd384afb40fde",
+              "quote": "强化企业创新主体地位，支持科技领军企业牵头组建创新联合体，提高承担国家重大科技项目比例。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-work-report-2026:p-55d2815f53b175e0",
+        "national-work-report-2026:p-ccfdd384afb40fde",
+        "national-work-report-2026:p-d7548ba7c0c3996b",
+        "national-work-report-2026:p-e8894af0a9db714d"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_08",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "根据《中共中央办公厅 国务院办公厅关于推动科技创新和产业创新深度融合的意见》，下列关于健全创新统筹和科技成果转化机制的说法，符合该意见规定的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "产业应用目标明确的国家科技计划项目，原则上由企业牵头实施并主导成果转化",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "在国家科技计划项目指南编制与立项评审中，应当一律取消投资机构专家参与",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "禁止高校和科研院所以“先使用后付费”方式向中小微企业许可科技成果",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "政府出资的创业投资基金和国有资本创业投资基金应当坚决退出早期和硬科技项目",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "A项正确，意见指出“健全研用一体的成果转化应用机制，产业应用目标明确的国家科技计划项目，原则上由企业牵头实施并主导成果转化”。B项错误，意见要求“在指南编制、立项评审、项目验收中，合理增加来自企业和创业投资机构的专家数量”。C项错误，意见明确提出“引导高校、科研院所按照先使用后付费方式把科技成果许可给中小微企业使用”。D项错误，意见要求“政府出资的创业投资基金和国有资本创业投资基金强化投早、投小、投长期、投硬科技，健全长周期考核、差异化监管和退出机制”。",
+    "difficulty": 2,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "sci-tech-industry-fusion-202610",
+          "url": "https://www.gov.cn/zhengce/202610/content_7083930.htm",
+          "title": "中共中央办公厅 国务院办公厅关于推动科技创新和产业创新深度融合的意见",
+          "published_at": "2026-10-21",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "6f909cc46bab6fc60bb4cc4c0df482746c37d213f502f78ff81bbdd2954cb88c",
+          "checked_at": "2026-10-28T07:33:44.145296+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "符合意见原文，意见明确规定产业应用目标明确的国家科技计划项目，原则上由企业牵头实施并主导成果转化。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与原文一致，均为产业应用目标明确的国家科技计划项目及企业。",
+          "premise_comparison": "选项前提与原文完全一致。",
+          "strength_comparison": "选项“原则上由企业牵头实施并主导”与原文强度完全一致。",
+          "citations": [
+            {
+              "source_id": "sci-tech-industry-fusion-202610",
+              "paragraph_id": "p-1e7d4dce30f1927a",
+              "quote": "健全研用一体的成果转化应用机制，产业应用目标明确的国家科技计划项目，原则上由企业牵头实施并主导成果转化。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "意见明确规定在指南编制、立项评审、项目验收中，合理增加来自企业和创业投资机构的专家数量，而非一律取消。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与原文一致，均为项目指南编制与评审中的投资机构专家。",
+          "premise_comparison": "选项环节与原文一致，均为指南编制与立项评审。",
+          "strength_comparison": "选项“一律取消”与原文“合理增加”直接矛盾。",
+          "citations": [
+            {
+              "source_id": "sci-tech-industry-fusion-202610",
+              "paragraph_id": "p-ad69d759f984b84d",
+              "quote": "常态化征集企业需求，在指南编制、立项评审、项目验收中，合理增加来自企业和创业投资机构的专家数量，推动科技界、产业界、用户等多方参与。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "意见规定引导高校、科研院所按照先使用后付费方式把科技成果许可给中小微企业使用，而非禁止。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与原文一致，均为高校、科研院所及中小微企业。",
+          "premise_comparison": "选项成果许可模式与原文先使用后付费模式一致。",
+          "strength_comparison": "选项“禁止”与原文“引导”完全相悖。",
+          "citations": [
+            {
+              "source_id": "sci-tech-industry-fusion-202610",
+              "paragraph_id": "p-1e7d4dce30f1927a",
+              "quote": "引导高校、科研院所按照先使用后付费方式把科技成果许可给中小微企业使用。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "意见要求政府出资的创投基金和国有资本创投基金强化投早、投小、投长期、投硬科技，而非坚决退出。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与原文一致，均为政府出资及国有资本创业投资基金。",
+          "premise_comparison": "选项投资方向与原文针对的早期和硬科技一致。",
+          "strength_comparison": "选项“坚决退出”与原文“强化投早、投小、投长期、投硬科技”截然相反。",
+          "citations": [
+            {
+              "source_id": "sci-tech-industry-fusion-202610",
+              "paragraph_id": "p-3f8cdb8960655498",
+              "quote": "政府出资的创业投资基金和国有资本创业投资基金强化投早、投小、投长期、投硬科技，健全长周期考核、差异化监管和退出机制。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "sci-tech-industry-fusion-202610:p-1e7d4dce30f1927a",
+        "sci-tech-industry-fusion-202610:p-3f8cdb8960655498",
+        "sci-tech-industry-fusion-202610:p-ad69d759f984b84d"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_09",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "根据《中华人民共和国国民经济和社会发展第十五个五年规划纲要》，关于“十五五”时期加快高水平科技自立自强、引领发展新质生产力的战略部署，下列说法正确的有：",
+    "options": [
+      {
+        "key": "A",
+        "text": "实施人工智能、量子科技、生物科技、新能源等科技战略部署，加快突破基础理论和底层技术",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "扩大财政科研项目经费“包干制”范围，赋予科学家更大技术路线决定权、更大经费支配权、更大资源调度权",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "深化拓展“人工智能+”，构建国家数据资源体系，健全数据资源统计调查制度，建立全国数据资源“一本账”",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "健全算法备案、透明度管理、安全评估等制度，推动建立人工智能全生命周期风险管理制度",
+        "images": []
+      }
+    ],
+    "answer": "ABCD",
+    "explanation": "A项正确，纲要明确指出“瞄准世界科技前沿强化系统布局，实施人工智能、量子科技、生物科技、新能源等科技战略部署，加快突破基础理论和底层技术，促进转化应用”。B项正确，纲要提出“扩大财政科研项目经费‘包干制’范围，赋予科学家更大技术路线决定权、更大经费支配权、更大资源调度权”。C项正确，纲要提出“构建国家数据资源体系，健全数据资源统计调查制度，建立全国数据资源‘一本账’”，并要求深化拓展“人工智能+”。D项正确，纲要提出“健全算法备案、透明度管理、安全评估等制度，探索建立人工智能生成物权利归属和开发者经营者使用者权责认定规则。推动建立人工智能全生命周期风险管理制度，健全覆盖安全监测、风险预警、应急响应的风险防控体系”。四项均符合纲要内容。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "national-15th-plan-2026",
+          "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062633.htm",
+          "title": "中华人民共和国国民经济和社会发展第十五个五年规划纲要",
+          "published_at": "2026-03-13",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "70f32e1d2bd586799773c9df06eeb94e5279af2a376d98a7e6960ba90ffb69e2",
+          "checked_at": "2026-10-28T07:33:40.545737+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "符合纲要原文，纲要明确指出实施人工智能、量子科技、生物科技、新能源等科技战略部署，加快突破基础理论和底层技术。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项科技战略部署领域与原文完全一致。",
+          "premise_comparison": "选项前提为世界科技前沿布局，与原文一致。",
+          "strength_comparison": "选项表述与原文一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-7d1866567272e0f6",
+              "quote": "瞄准世界科技前沿强化系统布局，实施人工智能、量子科技、生物科技、新能源等科技战略部署，加快突破基础理论和底层技术，促进转化应用。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "符合纲要原文，纲要提出扩大财政科研项目经费“包干制”范围，赋予科学家更大技术路线决定权、更大经费支配权、更大资源调度权。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体及权利范畴与原文一致。",
+          "premise_comparison": "选项机制为财政科研项目经费包干制，与原文一致。",
+          "strength_comparison": "选项权限范围与原文完全对应。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-b6aa4166e36253de",
+              "quote": "扩大财政科研项目经费“包干制”范围，赋予科学家更大技术路线决定权、更大经费支配权、更大资源调度权。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "符合纲要原文，纲要要求深化拓展“人工智能+”，构建国家数据资源体系，健全数据资源统计调查制度，建立全国数据资源“一本账”。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与原文数据资源体系与一本账建设一致。",
+          "premise_comparison": "选项背景为深化拓展“人工智能+”，与原文一致。",
+          "strength_comparison": "选项表述与原文完全吻合。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-01fabbbb30f1ca14",
+              "quote": "把握数字化、网络化、智能化发展大势，充分发挥我国数据资源丰富、产业体系完备、应用场景广阔优势，激活数据要素潜能，加快数智技术创新，深化拓展“人工智能+”"
+            },
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-33a7b25a1e37c2f0",
+              "quote": "构建国家数据资源体系，健全数据资源统计调查制度，建立全国数据资源“一本账”。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "符合纲要原文，纲要明确指出健全算法备案、透明度管理、安全评估等制度，推动建立人工智能全生命周期风险管理制度。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项制度主体与原文人工智能安全监管与风险管理体系一致。",
+          "premise_comparison": "选项前提与原文新技术新业态安全监管一致。",
+          "strength_comparison": "选项制度要求与原文完全一致。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-ef88724b29c7ed25",
+              "quote": "完善人工智能领域法律法规、政策制度、应用规范、伦理准则，健全算法备案、透明度管理、安全评估等制度，探索建立人工智能生成物权利归属和开发者经营者使用者权责认定规则。推动建立人工智能全生命周期风险管理制度，健全覆盖安全监测、风险预警、应急响应的风险防控体系。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-15th-plan-2026:p-01fabbbb30f1ca14",
+        "national-15th-plan-2026:p-33a7b25a1e37c2f0",
+        "national-15th-plan-2026:p-7d1866567272e0f6",
+        "national-15th-plan-2026:p-b6aa4166e36253de",
+        "national-15th-plan-2026:p-ef88724b29c7ed25"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-zhengzhi-8b3036f7043345e8856f_10",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "《求是》杂志刊发的《马克思主义的本质特性和当代价值》一文指出，马克思主义是科学的、人民的、实践的、不断发展的开放的理论。关于马克思主义的本质特性和哲学原理，下列认识正确的有（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "马克思主义第一次创立了人民实现自身解放的思想体系，其阶级性与人民性是内在统一的",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "对实践的唯物主义者即共产主义者来说，全部问题都在于使现存世界革命化，实际地反对并改变现存的事物",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "历史唯物主义关于人民群众是历史创造者的原理，是支撑马克思主义科学体系的基本原理之一",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "无产阶级上升为社会的领导阶级后，马克思主义必然转变为单纯论证自身阶级利益合理性的辩护理论",
+        "images": []
+      }
+    ],
+    "answer": "ABC",
+    "explanation": "A项正确，文章引述习近平总书记指出：“马克思主义是人民的理论，第一次创立了人民实现自身解放的思想体系。”同时明确强调“马克思主义的人民性和阶级性是统一的，因为人民中的最大多数就是普通的工人、农民和知识分子”，符合原文。\nB项正确，文章在阐释马克思主义最具实践性时指出，马克思在《德意志意识形态》中明确阐述：“对实践的唯物主义者即共产主义者来说，全部问题都在于使现存世界革命化，实际地反对并改变现存的事物”，符合原文。\nC项正确，文章指出马克思主义包含一系列作为“四梁八柱”的基本原理，明确列举了“历史唯物主义关于人类社会发展规律的原理、关于生产力和生产关系、经济基础和上层建筑矛盾运动规律的原理、关于社会形态更替规律和世界历史理论的原理、关于人民群众是历史创造者以及关于正确处理人与自然关系的原理、关于人的全面发展的原理等”，符合原文。\nD项错误，文章明确指出，“即使无产阶级上升为社会的领导阶级，马克思主义也不会丧失它的人民性，转变为所谓的‘官方意识形态’。因为中国共产党并不谋求也没有自己的特殊利益……因而马克思主义能永远保持它的人民性，而不会像掌握政权以后的资产阶级的社会理论那样，由反对封建主义逐步变为单纯的为自己阶级利益的合理性作论证的‘辩护理论’”，该项表述与原文观点完全相悖。\n故正确答案为ABC。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-马克思主义-马克思主义哲学"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "marxist-principles-qiushi-2020",
+          "url": "https://www.qstheory.cn/dukan/qs/2020-02/01/c_1125497399.htm",
+          "title": "马克思主义的本质特性和当代价值（求是）",
+          "published_at": "2020-02-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "cf6c4dfd4806adfbdb9add88197c0d48ac54707a4e4eac7ab3f76fe37308b7ab",
+          "checked_at": "2026-10-23T03:09:53.090467+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "选项准确概括了原文中关于马克思主义是人民的理论，第一次创立人民实现自身解放的思想体系，且人民性与阶级性内在统一的观点，符合设问要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为马克思主义的人民性与阶级性，与原文主体一致。",
+          "premise_comparison": "选项关于马克思主义本质特性的阐释前提与原文语境一致。",
+          "strength_comparison": "选项肯定陈述‘第一次创立’与‘内在统一’，与原文‘第一次创立’和‘人民性和阶级性是统一的’完全一致。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-4817714f248d2fdb",
+              "quote": "习近平总书记指出：“马克思主义是人民的理论，第一次创立了人民实现自身解放的思想体系。马克思主义博大精深，归根到底就是一句话，为人类求解放。”"
+            },
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-fd3e9e6feaf69dd9",
+              "quote": "马克思主义的人民性和阶级性是统一的，因为人民中的最大多数就是普通的工人、农民和知识分子。马克思主义的阶级性由于它具有极广大的人民性，它和科学性具有内在的统一性"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "选项准确引述了马克思在《德意志意识形态》中关于实践的唯物主义者核心任务的论述，符合设问要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为对实践的唯物主义者即共产主义者来说的任务，与原文主体一致。",
+          "premise_comparison": "选项前提为马克思主义实践性的哲学阐释，与原文一致。",
+          "strength_comparison": "选项直接引用原文经典断言，强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-7b19ca2d280336a1",
+              "quote": "在《德意志意识形态》中对何谓改变世界作了明确的阐述：“对实践的唯物主义者即共产主义者来说，全部问题都在于使现存世界革命化，实际地反对并改变现存的事物”。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "原文明确指出历史唯物主义关于人民群众是历史创造者的原理是构成马克思主义科学体系‘四梁八柱’的基本原理之一，选项表述完全成立。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为历史唯物主义关于人民群众是历史创造者的原理，与原文一致。",
+          "premise_comparison": "选项将其作为马克思主义科学体系的基本原理，与原文‘四梁八柱’的基本原理语境一致。",
+          "strength_comparison": "选项表述为‘基本原理之一’，与原文列举的基本原理对应恰当。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-eac8169739e3e649",
+              "quote": "马克思主义包含一系列基本原理，这些基本原理是客观规律的反映，是经过实践检验的具有真理性的理论，是支撑马克思主义作为科学体系的“四梁八柱”。"
+            },
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-3c4f94cda5640b26",
+              "quote": "例如辩证唯物主义和历史唯物主义关于唯物主义和辩证法、关于实践的基本原理，历史唯物主义关于人类社会发展规律的原理、关于生产力和生产关系、经济基础和上层建筑矛盾运动规律的原理、关于社会形态更替规律和世界历史理论的原理、关于人民群众是历史创造者以及关于正确处理人与自然关系的原理、关于人的全面发展的原理等"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确反驳了这一观点，指出即使无产阶级上升为领导阶级，马克思主义也不会丧失人民性，而不会像资产阶级理论那样沦为单纯论证阶级利益合理性的辩护理论。选项断言其‘必然转变为……辩护理论’与原文直接冲突。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为无产阶级上升为领导阶级后的马克思主义，与原文对应段落的主体一致。",
+          "premise_comparison": "选项前提为无产阶级上升为领导阶级，与原文前提一致。",
+          "strength_comparison": "选项断言‘必然转变为’，原文明确否定‘不会丧失……而不会像……变为……辩护理论’，属于直接反证矛盾。",
+          "citations": [
+            {
+              "source_id": "marxist-principles-qiushi-2020",
+              "paragraph_id": "p-fd3e9e6feaf69dd9",
+              "quote": "即使无产阶级上升为社会的领导阶级，马克思主义也不会丧失它的人民性，转变为所谓的“官方意识形态”。因为中国共产党并不谋求也没有自己的特殊利益，而是将自己的执政作为向无阶级社会、向共产主义社会迈进的方式，因而马克思主义能永远保持它的人民性，而不会像掌握政权以后的资产阶级的社会理论那样，由反对封建主义逐步变为单纯的为自己阶级利益的合理性作论证的“辩护理论”。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "marxist-principles-qiushi-2020:p-3c4f94cda5640b26",
+        "marxist-principles-qiushi-2020:p-4817714f248d2fdb",
+        "marxist-principles-qiushi-2020:p-7b19ca2d280336a1",
+        "marxist-principles-qiushi-2020:p-eac8169739e3e649",
+        "marxist-principles-qiushi-2020:p-fd3e9e6feaf69dd9"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-changshi-032a1a3bb7064dfeaf23_01",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "据2026年10月中国科学院高能物理研究所通报，中国散裂中子源二期工程（CSNS-II）取得重要阶段性进展。关于该装置及其工程建设，下列说法正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "装置束流功率突破200 kW，达到一期设计束流功率的2倍",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "装置二期工程规划建成的束流功率目标为1000 kW",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "后续直线加速器调束工作的目标是将束流能量提升至3000 MeV",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "该装置目前面向用户正式开放的中子谱仪共有50台",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "A项正确：根据2026年10月中国散裂中子源二期工程进展通报，2026年10月20日，装置束流功率突破200 kW并正式投入用户运行，达到一期设计束流功率（100 kW）的2倍。\nB项错误：通报明确指出，束流功率突破200 kW是CSNS-II建设的重要里程碑，为实现二期500 kW目标提供了关键验证，而非1000 kW。\nC项错误：根据通报，此次调束验证为后续直线加速器束流能量提升至300 MeV（而非3000 MeV）的调束工作积累了宝贵经验。\nD项错误：根据通报，CSNS面向用户正式开放的是11台中子谱仪，而非50台。故正确答案为A。",
+    "difficulty": 2,
+    "tags": [
+      "常识判断-科技常识-科技理论与成就"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "csns-beam-power-200kw-202610",
+          "url": "https://www.ihep.cas.cn/xwdt2022/rd/202610/t20261024_8297248.html",
+          "title": "中国散裂中子源完成重要阶段性设备安装任务，束流功率突破200 kW",
+          "published_at": "2026-10-24",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "64c9bd597010bf829c711eb75f7a285aef916a6ca6b5e459af16d626f4c85fb6",
+          "checked_at": "2026-10-27T06:50:43.349223+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确写明2026年10月20日装置束流功率突破200 kW并正式投入用户运行，达到一期设计束流功率的2倍，符合题意。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体“装置束流功率”与原文“装置束流功率”完全一致。",
+          "premise_comparison": "选项时间为2026年10月，与通报时间一致。",
+          "strength_comparison": "数值与倍数与原文完全一致。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "2026年10月20日，装置束流功率突破200 kW并正式投入用户运行，达到一期设计束流功率的2倍。这是CSNS-II建设的重要里程碑，为实现二期500 kW目标提供了关键验证。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文明确指出CSNS-II的目标为500 kW，而非1000 kW。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“二期工程规划建成的束流功率目标”与原文一致。",
+          "premise_comparison": "前提为二期工程建设目标，一致。",
+          "strength_comparison": "选项称1000 kW，原文为500 kW，存在直接数值冲突。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-5de40d0a40eca35a",
+              "quote": "这是CSNS-II建设的重要里程碑，为实现二期500 kW目标提供了关键验证。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确指出为后续直线加速器束流能量提升至300 MeV（而非3000 MeV）积累经验。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“直线加速器调束工作的目标”与原文一致。",
+          "premise_comparison": "前提为后续直线加速器调束目标，一致。",
+          "strength_comparison": "选项写3000 MeV，原文为300 MeV，存在直接数值冲突。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-f95d25c4073f4673",
+              "quote": "此次200 kW调束验证了相关技术方案，检验了CSNS-II功率提升技术路线，也为后续直线加速器束流能量提升至300 MeV的调束工作积累了宝贵经验。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确指出CSNS面向用户正式开放的是11台中子谱仪，而非50台。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“正式开放的中子谱仪”与原文一致。",
+          "premise_comparison": "前提与当前运行状态一致。",
+          "strength_comparison": "选项称50台，原文为11台，存在直接数值冲突。",
+          "citations": [
+            {
+              "source_id": "csns-beam-power-200kw-202610",
+              "paragraph_id": "p-f9b68d8715bad25c",
+              "quote": "CSNS面向用户正式开放的11台中子谱仪，已于暑期检修期间完成散射室、斩波器、探测器、样品环境等关键部件的维护。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "csns-beam-power-200kw-202610:p-5de40d0a40eca35a",
+        "csns-beam-power-200kw-202610:p-f95d25c4073f4673",
+        "csns-beam-power-200kw-202610:p-f9b68d8715bad25c"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-changshi-032a1a3bb7064dfeaf23_02",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据2026年10月公布的《事业单位登记管理条例》（国令第849号），下列关于事业单位登记与监管的说法符合规定的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "事业单位年度报告由其直接于每年12月31日前提交登记管理机关",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "事业单位是国家为了营利和公益双重目的举办的混合所有制组织",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "国家对事业单位开展活动实行鼓励清单管理，不设业务范围限制",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "电子法人证书与纸质法人证书具有同等法律效力",
+        "images": []
+      }
+    ],
+    "answer": "D",
+    "explanation": "D项正确：根据《事业单位登记管理条例》第十条第二款规定，电子法人证书与纸质法人证书具有同等法律效力。\nB项错误：根据该条例第三条规定，事业单位是指国家为了社会公益目的，由各类机关举办或者其他组织利用国有资产举办，从事宣传文化、教育、科技、卫生等活动的非营利性组织，并非营利与公益双重目的或混合所有制组织。\nC项错误：根据该条例第二十一条规定，国家对事业单位开展活动实行负面清单管理，事业单位不得偏离公益服务主责主业，不得超出规定的职责范围开展业务活动，不得违规举办企业，不得违反非营利法人规定，不得开展虚假宣传。\nA项错误：根据该条例第二十五条规定，事业单位应当将上一年度执行本条例情况的年度报告报送举办单位、主管部门审查，由主管部门于每年3月31日前提交登记管理机关，并非由事业单位在12月31日前直接提交。故正确答案为D。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-法律常识-其他法律法规"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "shiye-danwei-dengji-tiaoli-202610",
+          "url": "https://www.gov.cn/zhengce/content/202610/content_7084279.htm",
+          "title": "事业单位登记管理条例（国令第849号）",
+          "published_at": "2026-10-26",
+          "effective_at": "2026-12-01",
+          "scope": "as_published",
+          "sha256": "23e2bf888cbbd6731eaad0278543400ddf3523f25f4f038af06199e25ea58f3b",
+          "checked_at": "2026-10-27T00:13:21.423314+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "条例第十条第二款明确规定：电子法人证书与纸质法人证书具有同等法律效力。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体“电子法人证书与纸质法人证书”与原文第十条第二款一致。",
+          "premise_comparison": "前提符合条例法人证书规定。",
+          "strength_comparison": "法律效力等同，与原文表述完全一致。",
+          "citations": [
+            {
+              "source_id": "shiye-danwei-dengji-tiaoli-202610",
+              "paragraph_id": "p-a4df8a141e913c67",
+              "quote": "电子法人证书与纸质法人证书具有同等法律效力。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "第三条明确规定事业单位是国家为了“社会公益目的”举办的“非营利性组织”，而非营利和公益双重目的或混合所有制组织。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“事业单位”与第三条一致。",
+          "premise_comparison": "前提为事业单位的法律定义，一致。",
+          "strength_comparison": "选项篡改为“营利和公益双重目的”、“混合所有制组织”，与原文“社会公益目的”、“非营利性组织”直接冲突。",
+          "citations": [
+            {
+              "source_id": "shiye-danwei-dengji-tiaoli-202610",
+              "paragraph_id": "p-8f38d6eb0b5fe6d1",
+              "quote": "第三条 本条例所称事业单位，是指国家为了社会公益目的，由各类机关举办或者其他组织利用国有资产举办，从事宣传文化、教育、科技、卫生等活动的非营利性组织。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "第二十一条明确规定国家对事业单位开展活动实行“负面清单管理”，并明确规定“不得超出规定的职责范围开展业务活动”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与第二十一条一致。",
+          "premise_comparison": "前提为开展活动的监管模式，一致。",
+          "strength_comparison": "选项“实行鼓励清单管理，不设业务范围限制”与原文“实行负面清单管理”、“不得超出规定的职责范围开展业务活动”直接冲突。",
+          "citations": [
+            {
+              "source_id": "shiye-danwei-dengji-tiaoli-202610",
+              "paragraph_id": "p-77c754b7e75ec8f0",
+              "quote": "第二十一条 国家对事业单位开展活动实行负面清单管理。事业单位不得偏离公益服务主责主业，不得超出规定的职责范围开展业务活动，不得违规举办企业，不得违反非营利法人规定，不得开展虚假宣传。"
+            }
+          ]
+        },
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "第二十五条明确规定事业单位应当将年度报告报送举办单位、主管部门审查，由主管部门于每年3月31日前提交登记管理机关，并非由事业单位于12月31日前直接提交。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与第二十五条一致。",
+          "premise_comparison": "前提为年度报告提交程序与截止时限，一致。",
+          "strength_comparison": "选项“由其直接于每年12月31日前提交”与原文“由主管部门于每年3月31日前提交”在主体与时间上均直接冲突。",
+          "citations": [
+            {
+              "source_id": "shiye-danwei-dengji-tiaoli-202610",
+              "paragraph_id": "p-3152cf4a57e39549",
+              "quote": "第二十五条 事业单位应当将上一年度执行本条例情况的年度报告报送举办单位、主管部门审查，由主管部门于每年3月31日前提交登记管理机关。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "shiye-danwei-dengji-tiaoli-202610:p-3152cf4a57e39549",
+        "shiye-danwei-dengji-tiaoli-202610:p-77c754b7e75ec8f0",
+        "shiye-danwei-dengji-tiaoli-202610:p-8f38d6eb0b5fe6d1",
+        "shiye-danwei-dengji-tiaoli-202610:p-a4df8a141e913c67"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-changshi-032a1a3bb7064dfeaf23_03",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "2026年是中国工农红军长征胜利90周年。下列关于红军长征及党史常识的表述，正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "遵义会议标志着毛泽东思想完全成熟并被正式确立为党的指导思想",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "红军长征的直接起因是中央革命根据地第一次反“围剿”失利",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "遵义会议事实上确立了毛泽东同志在党中央和红军的领导地位",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "遵义会议是在共产国际直接派员指导并指定领导集体的背景下召开的",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "C项正确：1935年1月，中央政治局举行遵义会议，事实上确立了毛泽东同志在党中央和红军的领导地位，开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位，开始形成以毛泽东同志为核心的党的第一代中央领导集体，在最危急关头挽救了党、挽救了红军、挽救了中国革命。\nB项错误：红军长征的直接起因是由于“左”倾教条主义在党内的错误领导，导致中央革命根据地第五次反“围剿”失败，党和红军被迫进行战略转移，而非第一次反“围剿”失利。\nA项错误：遵义会议是“开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位，开始形成以毛泽东同志为核心的党的第一代中央领导集体”；毛泽东思想被正式确立为党的指导思想是在1945年党的七大，而非遵义会议。\nD项错误：遵义会议开启了党独立自主解决中国革命实际问题的新阶段，是在同共产国际中断联系的情况下独立自主召开的，并非由共产国际直接派员指导并指定领导集体。故正确答案为C。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-人文常识-文化常识"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "xi-long-march-90-202610",
+          "url": "https://www.gov.cn/yaowen/liebiao/202610/content_7084006.htm",
+          "title": "习近平：在纪念中国工农红军长征胜利90周年大会上的讲话",
+          "published_at": "2026-10-22",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "68629e0b172164f08f11b55f1b28c9078ca418d837479f686975581b253d02ec",
+          "checked_at": "2026-10-27T21:10:08.960288+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "讲话明确指出遵义会议“事实上确立了毛泽东同志在党中央和红军的领导地位”，表述完全吻合。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体“遵义会议”与原文一致。",
+          "premise_comparison": "前提为红军长征及遵义会议党史，一致。",
+          "strength_comparison": "选项表述与讲话原文一字不差，完全吻合。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "1935年1月，中央政治局举行遵义会议，事实上确立了毛泽东同志在党中央和红军的领导地位，开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位，开始形成以毛泽东同志为核心的党的第一代中央领导集体"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "讲话明确指出红军长征是因为中央革命根据地第五次反“围剿”失败，而非第一次反“围剿”失利。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“红军长征的直接起因”与原文一致。",
+          "premise_comparison": "前提为长征历史背景，一致。",
+          "strength_comparison": "选项“第一次”与原文“第五次”反围剿失败直接冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-6c9634a05cbaa4a4",
+              "quote": "由于“左”倾教条主义在党内的错误领导，中央革命根据地第五次反“围剿”失败，其他革命根据地也遭受挫折，党和红军到了生死存亡的危急关头。"
+            }
+          ]
+        },
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "讲话原文指出遵义会议是“开始确立……在党中央的领导地位，开始形成……第一代中央领导集体”，且党史常识中毛泽东思想确立为指导思想是在七大，而非遵义会议。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体“遵义会议”与原文一致。",
+          "premise_comparison": "前提为思想确立历史阶段，一致。",
+          "strength_comparison": "原文为“开始确立”、“开始形成”，选项“完全成熟并被正式确立为党的指导思想”与原文及党史史实冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "开始确立以毛泽东同志为主要代表的马克思主义正确路线在党中央的领导地位，开始形成以毛泽东同志为核心的党的第一代中央领导集体"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "讲话明确指出遵义会议“开启了党独立自主解决中国革命实际问题新阶段”，是在同共产国际中断联系情况下独立自主召开，并非共产国际派员指导指定。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体与原文一致。",
+          "premise_comparison": "前提为遵义会议召开背景，一致。",
+          "strength_comparison": "选项“共产国际直接派员指导并指定领导集体”与原文“独立自主解决中国革命实际问题”直接冲突。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-bbed617da1236532",
+              "quote": "开启了党独立自主解决中国革命实际问题新阶段，在最危急关头挽救了党、挽救了红军、挽救了中国革命。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-long-march-90-202610:p-6c9634a05cbaa4a4",
+        "xi-long-march-90-202610:p-bbed617da1236532"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-changshi-032a1a3bb7064dfeaf23_04",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "2026年10月，交通运输部等部门印发《综合交通枢纽发展“十五五”规划》。在优化枢纽集群布局方面，该规划对粤港澳大湾区枢纽集群建设作出了明确部署。下列相关表述符合该规划的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "巩固深圳国际航运中心地位，增强广州国际枢纽海港航运服务功能",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "建设广州、深圳、香港全球性国际邮政快递枢纽集群",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "推进“经珠港飞”、陆空联运、跨境邮快件业务发展",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "优先在粤港澳大湾区探索开行中欧（亚）班列接续班列",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "C项正确：根据《综合交通枢纽发展“十五五”规划》“粤港澳大湾区枢纽集群”部分，规划明确提出“推进广州、深圳以及香港国际航空枢纽建设，推动粤港澳在航空领域协同发展，推进‘经珠港飞’、陆空联运、跨境邮快件业务发展”。B项错误：规划明确提出“建设广州深圳海口全球性国际邮政快递枢纽集群，引导跨境设施有序布局”，并非广州、深圳、香港。A项错误：规划明确指出“巩固香港国际航运中心地位，增强广州、深圳国际枢纽海港航运服务功能，促进港口间协同发展”，选项表述颠倒混淆。D项错误：“探索中欧（亚）班列接续班列合作共建”属于长三角枢纽集群的建设任务，对粤港澳大湾区枢纽集群的要求是“加密中欧（亚）班列的班次”。故正确答案为C。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-地理国情-其他"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "transport-hub-15th-plan-202610",
+          "url": "https://www.gov.cn/zhengce/zhengceku/202610/content_7084174.htm",
+          "title": "综合交通枢纽发展“十五五”规划（交规划发〔2026〕118号）",
+          "published_at": "2026-10-23",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "30d0872a70b1277c7122576c8d941d6098ca79a840085b8ff82350f5ca3917b0",
+          "checked_at": "2026-10-27T21:17:59.334513+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "符合规划原文关于推进广州、深圳以及香港国际航空枢纽建设和大湾区航空协同发展的明确部署",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与原文大湾区枢纽集群航空领域协同发展任务一致",
+          "premise_comparison": "选项规划背景与原文粤港澳大湾区枢纽集群部署完全契合",
+          "strength_comparison": "选项动词与规划原文完全吻合",
+          "citations": [
+            {
+              "source_id": "transport-hub-15th-plan-202610",
+              "paragraph_id": "p-f1dc9ef84817f842",
+              "quote": "推进广州、深圳以及香港国际航空枢纽建设，推动粤港澳在航空领域协同发展，推进“经珠港飞”、陆空联运、跨境邮快件业务发展。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "规划原文部署的是建设“广州深圳海口全球性国际邮政快递枢纽集群”，并非广州、深圳、香港",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将海口替换为香港，与原文集群构成主体冲突",
+          "premise_comparison": "同在优化枢纽集群布局前提下，城市范围与原文不符",
+          "strength_comparison": "选项范围与原文确定的三地枢纽集群相冲突",
+          "citations": [
+            {
+              "source_id": "transport-hub-15th-plan-202610",
+              "paragraph_id": "p-f1dc9ef84817f842",
+              "quote": "建设广州深圳海口全球性国际邮政快递枢纽集群，引导跨境设施有序布局。"
+            }
+          ]
+        },
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "规划原文明确为“巩固香港国际航运中心地位，增强广州、深圳国际枢纽海港航运服务功能”，选项将深圳与香港定位混淆倒置",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将香港的航运中心地位错置给深圳，与原文明确分工冲突",
+          "premise_comparison": "同一大湾区海港协同发展语境下功能定位颠倒",
+          "strength_comparison": "选项主体对应与原文表述直接冲突",
+          "citations": [
+            {
+              "source_id": "transport-hub-15th-plan-202610",
+              "paragraph_id": "p-f1dc9ef84817f842",
+              "quote": "巩固香港国际航运中心地位，增强广州、深圳国际枢纽海港航运服务功能，促进港口间协同发展。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "探索中欧（亚）班列接续班列属于长三角枢纽集群的任务，对粤港澳大湾区枢纽集群的要求是加密班次",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将长三角任务错套至大湾区枢纽集群",
+          "premise_comparison": "大湾区规划对应的是加密班次，而非探索共建接续班列",
+          "strength_comparison": "选项的优先探索要求与原文任务分工不符",
+          "citations": [
+            {
+              "source_id": "transport-hub-15th-plan-202610",
+              "paragraph_id": "p-f1dc9ef84817f842",
+              "quote": "加密中欧（亚）班列的班次。"
+            },
+            {
+              "source_id": "transport-hub-15th-plan-202610",
+              "paragraph_id": "p-b8a9f36d02a09c05",
+              "quote": "探索中欧（亚）班列接续班列合作共建。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "transport-hub-15th-plan-202610:p-b8a9f36d02a09c05",
+        "transport-hub-15th-plan-202610:p-f1dc9ef84817f842"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-02-20261028::daily-20261028-changshi-032a1a3bb7064dfeaf23_05",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "2026年10月，国务院办公厅印发《关于适应人工智能技术发展助力构建就业友好型发展方式的意见》（国办发〔2026〕29号）。根据该意见，下列关于促进高质量充分就业政策举措的表述正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "人工智能技术优先在资本密集、管理密集等岗位推广应用",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "鼓励企业探索建立失业缓冲期制度，为受影响劳动者提供转型转岗支持",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "要求对所有行业领域的人工智能应用项目在立项时均一律同步开展就业风险评估",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "引导灵活就业和新就业形态人员主要参加城乡居民养老保险并暂停伤害保障试点",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "A项错误：根据《关于适应人工智能技术发展助力构建就业友好型发展方式的意见》第（六）项，“发挥人工智能在改善就业环境、提升职业安全水平、提高工作质效等方面的作用，优先在劳动力紧缺、环境高危等岗位推广应用”，并非资本密集、管理密集岗位。B项正确：根据《意见》第（六）项，减缓人工智能应用就业替代影响，“鼓励企业探索建立失业缓冲期制度，在大规模推广应用人工智能过程中提前告知受影响劳动者、提供转型转岗就业支持”。C项错误：根据《意见》第（七）项，“对市场准入领域可能造成较大就业冲击的人工智能应用场景项目，在评审时同步开展就业风险评估，有关部门要统筹做好转型转岗就业支持工作。对其他领域的人工智能应用场景项目，结合实际开展就业风险评估”，并非对所有行业领域一律在立项时同步开展。D项错误：根据《意见》第（十四）项，“鼓励支持灵活就业人员、新就业形态人员等参加城镇职工基本养老保险，扩大新就业形态人员职业伤害保障试点”，选项表述与政策导向相反。故正确答案为B。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-经济常识-宏观经济与调控政策"
+    ],
+    "source_evidence": {
+      "as_of": "2026-10-28",
+      "sources": [
+        {
+          "id": "guoban-ai-employment-202610",
+          "url": "https://www.gov.cn/zhengce/content/202610/content_7084107.htm",
+          "title": "国务院办公厅关于适应人工智能技术发展助力构建就业友好型发展方式的意见（国办发〔2026〕29号）",
+          "published_at": "2026-10-23",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "d5026fde10a0befa0b6dab1ce8f55e44bc890a23eca27d3aa8d0a49b2d47d083",
+          "checked_at": "2026-10-27T00:13:21.465046+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "意见明确提出人工智能技术优先在劳动力紧缺、环境高危等岗位推广应用，而非资本密集、管理密集岗位",
+          "source_relation": "contradicted",
+          "subject_comparison": "优先推广岗位类型与原文严重不符",
+          "premise_comparison": "在减缓就业替代影响的前提下，政策导向与原文冲突",
+          "strength_comparison": "选项将紧缺高危岗位置换为资本/管理密集岗位，与原文冲突",
+          "citations": [
+            {
+              "source_id": "guoban-ai-employment-202610",
+              "paragraph_id": "p-b96032cedc7254d6",
+              "quote": "发挥人工智能在改善就业环境、提升职业安全水平、提高工作质效等方面的作用，优先在劳动力紧缺、环境高危等岗位推广应用。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "符合意见关于减缓人工智能就业替代影响、探索建立失业缓冲期制度和提供转岗支持的规定",
+          "source_relation": "entailed",
+          "subject_comparison": "主体与措施与意见第（六）项完全一致",
+          "premise_comparison": "就业替代防范前提与政策支持措施完全吻合",
+          "strength_comparison": "选项鼓励探索的表述与原文一致",
+          "citations": [
+            {
+              "source_id": "guoban-ai-employment-202610",
+              "paragraph_id": "p-b96032cedc7254d6",
+              "quote": "鼓励企业探索建立失业缓冲期制度，在大规模推广应用人工智能过程中提前告知受影响劳动者、提供转型转岗就业支持。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "意见仅对市场准入领域可能造成较大就业冲击的项目在评审时同步开展评估，其他领域结合实际开展，并非所有领域一律在立项时同步开展",
+          "source_relation": "contradicted",
+          "subject_comparison": "评估对象范围与评估环节被不当绝对化扩大",
+          "premise_comparison": "原文区分市场准入领域较大冲击项目（评审时同步）与其他领域（结合实际）",
+          "strength_comparison": "选项使用一律、所有，与原文分类施策要求直接冲突",
+          "citations": [
+            {
+              "source_id": "guoban-ai-employment-202610",
+              "paragraph_id": "p-1e6f9fe990c544d2",
+              "quote": "对市场准入领域可能造成较大就业冲击的人工智能应用场景项目，在评审时同步开展就业风险评估，有关部门要统筹做好转型转岗就业支持工作。对其他领域的人工智能应用场景项目，结合实际开展就业风险评估。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "意见明确鼓励支持参加城镇职工基本养老保险，扩大新就业形态人员职业伤害保障试点，选项表述完全背离政策导向",
+          "source_relation": "contradicted",
+          "subject_comparison": "参保类型和试点措施与原文相反",
+          "premise_comparison": "社保制度完善要求被曲解",
+          "strength_comparison": "扩大试点被改写为暂停试点，与原文相悖",
+          "citations": [
+            {
+              "source_id": "guoban-ai-employment-202610",
+              "paragraph_id": "p-6e789bc912f31310",
+              "quote": "鼓励支持灵活就业人员、新就业形态人员等参加城镇职工基本养老保险，扩大新就业形态人员职业伤害保障试点。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "guoban-ai-employment-202610:p-1e6f9fe990c544d2",
+        "guoban-ai-employment-202610:p-6e789bc912f31310",
+        "guoban-ai-employment-202610:p-b96032cedc7254d6"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第2套（10月28日日练·政治10+常识5）"
+  }
+]

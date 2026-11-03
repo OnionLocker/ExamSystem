@@ -1,0 +1,1575 @@
+[
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_01",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据《中共中央关于持之以恒推进全面从严治党若干重大问题的决定》，提高培养选拔优秀年轻干部质量，必须健全培养选拔优秀年轻干部常态化工作机制，坚持培养和管理并重，把基层一线作为培养年轻干部的基础阵地。（    ）",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "本题考查重要文件常识。《中共中央关于持之以恒推进全面从严治党若干重大问题的决定》在“（五）提高培养选拔优秀年轻干部质量”中明确提出：“健全培养选拔优秀年轻干部常态化工作机制……把基层一线作为培养年轻干部的基础阵地，推动年轻干部到艰苦地区、复杂环境、吃劲岗位墩苗锻炼……坚持培养和管理并重，引导年轻干部走健康成长之路”。题干表述与决定原文完全相符。故本题判断正确。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "cpc-strict-governance-decision-202611",
+          "url": "https://www.gov.cn/yaowen/liebiao/202611/content_7084688.htm",
+          "title": "中共中央关于持之以恒推进全面从严治党若干重大问题的决定（2026年10月29日二十届五中全会通过，新华社11月1日受权发布）",
+          "published_at": "2026-11-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "8524fc71def05cb6622bb670adbfdb31423de4bf988a2d9521e40efb4c2851a9",
+          "checked_at": "2026-11-02T00:12:46.095396+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "决定原文明确提出健全常态化工作机制、把基层一线作为培养年轻干部的基础阵地，并坚持培养和管理并重，题干陈述完全符合原文。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干培养年轻干部的主体与原则对应决定关于年轻干部培养选拔的论述",
+          "premise_comparison": "题干提高培养选拔优秀年轻干部质量的前提与决定一致",
+          "strength_comparison": "题干条件要求与原文完全吻合",
+          "citations": [
+            {
+              "source_id": "cpc-strict-governance-decision-202611",
+              "paragraph_id": "p-002e56a6e32bc40f",
+              "quote": "健全培养选拔优秀年轻干部常态化工作机制。加强政治培养和政治历练，引导年轻干部筑牢信仰之基、补足精神之钙、把稳思想之舵。把基层一线作为培养年轻干部的基础阵地，推动年轻干部到艰苦地区、复杂环境、吃劲岗位墩苗锻炼，砥砺品质、改进作风、增长才干。坚持培养和管理并重"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "cpc-strict-governance-decision-202611:p-002e56a6e32bc40f"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_02",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "根据习近平总书记关于《中共中央关于持之以恒推进全面从严治党若干重大问题的决定》的说明，持之以恒推进全面从严治党坚持严的基调，必须坚持严管厚爱结合、激励约束并重，做到既严格到位、约束到位，又激发全党积极性主动性创造性。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "本题考查时事政治。根据习近平总书记《关于〈中共中央关于持之以恒推进全面从严治党若干重大问题的决定〉的说明》，在阐述起草把握的原则“第三，坚持严的基调”时明确指出：“全面从严治党关键在严，持之以恒推进全面从严治党必须一以贯之、一严到底……同时，坚持严管厚爱结合、激励约束并重，做到既严格到位、约束到位，又激发全党积极性主动性创造性。”因此，题干表述正确。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "xi-strict-governance-decision-explainer-202611",
+          "url": "https://www.gov.cn/yaowen/liebiao/202611/content_7084692.htm",
+          "title": "习近平：关于《中共中央关于持之以恒推进全面从严治党若干重大问题的决定》的说明",
+          "published_at": "2026-11-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "781b4cc03d8af0b55b5f9d4ba8d4962ba5b3c2b5c85d475906a908163bdf79dc",
+          "checked_at": "2026-11-02T00:12:46.223746+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "原文在阐释“第三，坚持严的基调”时明确表述“坚持严管厚爱结合、激励约束并重，做到既严格到位、约束到位，又激发全党积极性主动性创造性”，题干陈述与原文完全一致，判断为正确（A项）符合设问要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干主体与原文主体完全对应，均为全面从严治党坚持严的基调中的严管厚爱与激励约束机制。",
+          "premise_comparison": "题干前提为习近平总书记关于《决定》的说明，与原文出处及语境完全一致。",
+          "strength_comparison": "题干所述原则要求与原文表述在条件方向与论断强度上保持严格一致。",
+          "citations": [
+            {
+              "source_id": "xi-strict-governance-decision-explainer-202611",
+              "paragraph_id": "p-0bed75280c32a8a7",
+              "quote": "同时，坚持严管厚爱结合、激励约束并重，做到既严格到位、约束到位，又激发全党积极性主动性创造性。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-strict-governance-decision-explainer-202611:p-0bed75280c32a8a7"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_03",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "《中国共产党第二十届中央委员会第五次全体会议公报》强调，做好岁末年初各项工作，要巩固拓展树立和践行正确政绩观学习教育成果，结合换届抓好新任职领导班子成员特别是“一把手”的政绩观培训。",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "本题考查时事政治。根据《中国共产党第二十届中央委员会第五次全体会议公报》，全会强调，要做好岁末年初各项工作。其中明确指出，要“巩固拓展树立和践行正确政绩观学习教育成果，结合换届抓好新任职领导班子成员特别是‘一把手’的政绩观培训，教育引导他们自觉坚持立党为公、为民造福、科学决策、真抓实干，努力为人民出政绩、以实干出政绩”。因此，题干表述正确。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "cpc-20th-fifth-plenum-communique-202610",
+          "url": "https://www.news.cn/politics/leaders/20261029/3dc769be3bff40aeafcbf957eb4e47bb/c.html",
+          "title": "中国共产党第二十届中央委员会第五次全体会议公报（2026年10月29日通过，新华社受权发布）",
+          "published_at": "2026-10-29",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "9b8708af333207a8cc04f3ad8d8203a83a0a95b299185a1654608cb3308e5207",
+          "checked_at": "2026-11-01T21:10:25.153440+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "公报原文明确强调“巩固拓展树立和践行正确政绩观学习教育成果，结合换届抓好新任职领导班子成员特别是‘一把手’的政绩观培训”，题干陈述与原文完全契合，判断为正确（A项）符合设问要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干中的培训对象“新任职领导班子成员特别是‘一把手’”与培训内容“政绩观培训”与原文完全对应。",
+          "premise_comparison": "题干与原文前提一致，均限定为《公报》中部署“做好岁末年初各项工作”的特定语境。",
+          "strength_comparison": "题干所表述的工作要求与原文完全吻合，未出现范围扩大或条件偏离。",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-25d33d89cb18f597",
+              "quote": "巩固拓展树立和践行正确政绩观学习教育成果，结合换届抓好新任职领导班子成员特别是“一把手”的政绩观培训，教育引导他们自觉坚持立党为公、为民造福、科学决策、真抓实干，努力为人民出政绩、以实干出政绩。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "cpc-20th-fifth-plenum-communique-202610:p-25d33d89cb18f597"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_04",
+    "category": "政治理论",
+    "question_type": "judge",
+    "stem": "习近平在纪念中国工农红军长征胜利90周年大会上指出，弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。（    ）",
+    "options": [
+      {
+        "key": "A",
+        "text": "正确"
+      },
+      {
+        "key": "B",
+        "text": "错误"
+      }
+    ],
+    "answer": "A",
+    "explanation": "根据《习近平：在纪念中国工农红军长征胜利90周年大会上的讲话》，讲话明确指出：“弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。”故题干表述正确。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "xi-long-march-90-202610",
+          "url": "https://www.gov.cn/yaowen/liebiao/202610/content_7084006.htm",
+          "title": "习近平：在纪念中国工农红军长征胜利90周年大会上的讲话",
+          "published_at": "2026-10-22",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "68629e0b172164f08f11b55f1b28c9078ca418d837479f686975581b253d02ec",
+          "checked_at": "2026-11-01T21:10:25.282180+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "statement",
+          "valid": true,
+          "reason": "原文明确指出‘弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证’，题干表述与原文完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "题干主体与原文主体一致，均为‘党的领导和党的建设’。",
+          "premise_comparison": "题干前提为弘扬伟大长征精神、走好新的长征路，与原文前提完全一致。",
+          "strength_comparison": "题干使用‘必须坚持’‘根本保证’，与原文论述强度完全一致。",
+          "citations": [
+            {
+              "source_id": "xi-long-march-90-202610",
+              "paragraph_id": "p-3cec410a94258245",
+              "quote": "——弘扬伟大长征精神、走好新的长征路，必须坚持党的领导、加强党的建设。党的领导和党的建设是事业发展的根本保证。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-long-march-90-202610:p-3cec410a94258245"
+      ],
+      "question_type": "judge"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_05",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "习近平在《以更高标准、更实举措推进全面从严治党》一文中指出，把权力关进制度笼子，既要完善制度规定，又要提高制度执行力。一个地区、一个部门制度执行得好不好，关键在（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "纪检监察机关",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "“一把手”",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "法规制度供给",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "巡视巡察力度",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "根据《以更高标准、更实举措推进全面从严治党》（《求是》2026年第20期），文中明确指出：“一个地区、一个部门制度执行得好不好，关键在‘一把手’。把权力关进制度笼子，要重点解决好‘一把手’带头执行制度的问题。”因此，正确答案为B。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "qiushi-strict-governance-202610",
+          "url": "https://www.qstheory.cn/20261015/a6ed86729ae947d99a83bb431867b7d3/c.html",
+          "title": "以更高标准、更实举措推进全面从严治党（《求是》2026年第20期，习近平2026年1月12日讲话主要部分）",
+          "published_at": "2026-10-15",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f7413b56274aaf450143a6c03df47ac01423c75be59e07dd2fc8e4fd308957a9",
+          "checked_at": "2026-11-01T21:10:25.524297+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确强调制度执行得好不好关键在‘一把手’，而非纪检监察机关。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为纪检监察机关，与原文明确指向的‘一把手’主体不符。",
+          "premise_comparison": "前提均为一个地区、一个部门制度执行得好不好。",
+          "strength_comparison": "选项将关键主体偷换为纪检监察机关，与原文论断冲突。",
+          "citations": [
+            {
+              "source_id": "qiushi-strict-governance-202610",
+              "paragraph_id": "p-e9136be84d037806",
+              "quote": "一个地区、一个部门制度执行得好不好，关键在“一把手”。把权力关进制度笼子，要重点解决好“一把手”带头执行制度的问题。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "原文明确指出‘一个地区、一个部门制度执行得好不好，关键在“一把手”’，选项符合文意。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体‘一把手’与原文完全一致。",
+          "premise_comparison": "前提与设问限定完全一致。",
+          "strength_comparison": "选项表述强度与原文一致。",
+          "citations": [
+            {
+              "source_id": "qiushi-strict-governance-202610",
+              "paragraph_id": "p-e9136be84d037806",
+              "quote": "一个地区、一个部门制度执行得好不好，关键在“一把手”。把权力关进制度笼子，要重点解决好“一把手”带头执行制度的问题。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "法规制度供给属于完善制度规定的举措，并非原文所界定的制度执行好不好的‘关键’所在。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为法规制度供给，与原文指向的责任主体‘一把手’不符。",
+          "premise_comparison": "前提与原文相同，但概念层次混淆。",
+          "strength_comparison": "选项偷换了核心关键要素，与原文论述冲突。",
+          "citations": [
+            {
+              "source_id": "qiushi-strict-governance-202610",
+              "paragraph_id": "p-e9136be84d037806",
+              "quote": "一个地区、一个部门制度执行得好不好，关键在“一把手”。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "巡视巡察力度属于监督手段，原文明确指出制度执行好不好的关键在于‘一把手’的带头执行。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为巡视巡察力度，与原文指向的‘一把手’不一致。",
+          "premise_comparison": "前提一致，但选项替换了关键主体。",
+          "strength_comparison": "选项将制度执行的关键要素偷换为外部监督手段，与原文冲突。",
+          "citations": [
+            {
+              "source_id": "qiushi-strict-governance-202610",
+              "paragraph_id": "p-e9136be84d037806",
+              "quote": "一个地区、一个部门制度执行得好不好，关键在“一把手”。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "qiushi-strict-governance-202610:p-e9136be84d037806"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_06",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "习近平在庆祝中国共产党成立105周年大会上的讲话指出，坚定信心、接续奋斗，必须持之以恒推进全面从严治党。新征程上，推进全面从严治党的统领是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "党的思想建设",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "健全全面从严治党体系",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "党的政治建设",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "打好反腐败斗争攻坚战持久战总体战",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "根据《习近平：在庆祝中国共产党成立105周年大会上的讲话》，讲话明确提出：“——坚定信心、接续奋斗，必须持之以恒推进全面从严治党。全面从严治党永远在路上。新征程上，必须全面贯彻新时代党建思想，落实新时代党的建设总要求，着眼于提高党的长期执政能力、保持党的先进性和纯洁性、保持党同人民群众的血肉联系，健全全面从严治党体系，以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战……”。因此，统领是“党的政治建设”，正确答案为C。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要会议讲话"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "xi-cpc-105-anniversary-202607",
+          "url": "https://www.news.cn/politics/leaders/20260701/08771e47a3874bd5b9f1709d58e45add/c.html",
+          "title": "习近平：在庆祝中国共产党成立105周年大会上的讲话",
+          "published_at": "2026-07-01",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "f64a796236858de0f5452a8411047afa86d26a92205150f79d641b1314b3bb8e",
+          "checked_at": "2026-11-01T21:10:25.634268+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确指出‘以党的政治建设为统领加强党的各方面建设’，而非党的思想建设。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将统领定位赋予思想建设，与原文关于政治建设统领地位的界定不符。",
+          "premise_comparison": "前提为新征程上推进全面从严治党，与原文一致。",
+          "strength_comparison": "选项改变了‘统领’对应的建设维度，与原文相悖。",
+          "citations": [
+            {
+              "source_id": "xi-cpc-105-anniversary-202607",
+              "paragraph_id": "p-90df413eaf63b3a3",
+              "quote": "以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "健全全面从严治党体系是重要举措与布局，并非统领各方面建设的核心内容。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为健全全面从严治党体系，原文将其表述为体系化建设举措，非‘统领’定位。",
+          "premise_comparison": "同在全面从严治党部署语境下，但层次不同。",
+          "strength_comparison": "选项混淆了举措与统领，与原文论述冲突。",
+          "citations": [
+            {
+              "source_id": "xi-cpc-105-anniversary-202607",
+              "paragraph_id": "p-90df413eaf63b3a3",
+              "quote": "健全全面从严治党体系，以党的政治建设为统领加强党的各方面建设"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "原文明确要求‘以党的政治建设为统领加强党的各方面建设’，选项表述准确对应原文。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体‘党的政治建设’与原文的统领主体完全吻合。",
+          "premise_comparison": "前提与设问要求一致。",
+          "strength_comparison": "符合原文‘以……为统领’的确定性判断。",
+          "citations": [
+            {
+              "source_id": "xi-cpc-105-anniversary-202607",
+              "paragraph_id": "p-90df413eaf63b3a3",
+              "quote": "以党的政治建设为统领加强党的各方面建设"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "打好反腐败斗争攻坚战持久战总体战属于全面从严治党具体领域的斗争任务，不是统领全党的建设内容。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为主攻任务而非统领性建设方向。",
+          "premise_comparison": "处于同一段落部署，但概念职责与地位不符。",
+          "strength_comparison": "选项将具体任务提升为全局统领，与原文相悖。",
+          "citations": [
+            {
+              "source_id": "xi-cpc-105-anniversary-202607",
+              "paragraph_id": "p-90df413eaf63b3a3",
+              "quote": "以党的政治建设为统领加强党的各方面建设，坚决打好反腐败斗争攻坚战持久战总体战"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "xi-cpc-105-anniversary-202607:p-90df413eaf63b3a3"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_07",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "根据《2026年广东省政府工作报告》，关于“双百行动”的理解，下列说法正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "旨在发挥基础教育示范作用，行政化、指令化推动中小学校开展定点帮扶",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "旨在发挥职业教育技能实训优势，市场化推动职业院校开展横向结对协作",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "是指百家大型骨干企业联百县，旨在通过资本注入主导县域产业规划布局",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶",
+        "images": []
+      }
+    ],
+    "answer": "D",
+    "explanation": "D项正确，B、C、A项错误。根据《2026年广东省政府工作报告》附件名词解释第4条，“双百行动”指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。B项将“高等教育”混淆为“职业教育”、“纵向帮扶”混淆为“横向结对协作”；C项将主体“百校”偷换为“百家大型骨干企业”；A项将主体与机制混淆为“基础教育”、“中小学校”及“行政化、指令化推动”。故正确答案为D。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "gd-work-report-2026",
+          "url": "https://www.gdjr.gov.cn/gdjr/jrzx/gzdt/content/post_40867.html",
+          "title": "2026年广东省政府工作报告（1月26日报告、广东省委金融办2月2日转载）",
+          "published_at": "2026-02-02",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "d708ff955f59769f45a27d698da6945365fc90566429f1f18f6b02480309eb02",
+          "checked_at": "2026-11-01T21:10:26.487071+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "主体与机制混淆，原文明确是充分发挥高等教育作用，推动高校院所开展纵向帮扶，而非基础教育或中小学校的行政化定点帮扶。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为主体“基础教育、中小学校”，原文为主体“高等教育、高校院所”。",
+          "premise_comparison": "选项为“行政化、指令化推动开展定点帮扶”，原文为“组织化、系统化、项目化推动高校院所开展纵向帮扶”。",
+          "strength_comparison": "与原文明确的帮扶范围和推进机制直接冲突。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "4.“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "概念混淆，原文是发挥高等教育作用推动开展纵向帮扶，而非职业教育技能实训与横向结对协作。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为“职业教育技能实训优势、职业院校”，原文为“高等教育作用、高校院所”。",
+          "premise_comparison": "选项为“市场化推动职业院校开展横向结对协作”，原文为“组织化、系统化、项目化推动高校院所开展纵向帮扶”。",
+          "strength_comparison": "与原文表述的方向机制不一致。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "4.“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "主体与目的混淆，“双百行动”是指百校联百县，而非百家骨干企业，也不是为了资本注入主导县域产业布局。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为“百家大型骨干企业”，原文为“百校联百县助力‘百县千镇万村高质量发展工程’行动”。",
+          "premise_comparison": "选项为“通过资本注入主导县域产业规划布局”，原文为“在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建”。",
+          "strength_comparison": "主体与功能完全脱离原文定义。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "4.“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "符合原文对“双百行动”的准确界定。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项与原文主体一致，均为“高等教育、高校院所”。",
+          "premise_comparison": "选项与原文一致，均为“组织化、系统化、项目化推动高校院所开展纵向帮扶”。",
+          "strength_comparison": "表述强度与原文完全吻合。",
+          "citations": [
+            {
+              "source_id": "gd-work-report-2026",
+              "paragraph_id": "p-2af00a83ec454c24",
+              "quote": "4.“双百行动”：指百校联百县助力“百县千镇万村高质量发展工程”行动，旨在充分发挥高等教育作用，组织化、系统化、项目化推动高校院所开展纵向帮扶，在县域产业发展、城乡建设规划、集体经济发展、基本公共服务、人才培养和改革创新等领域加强共建。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-work-report-2026:p-2af00a83ec454c24"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_08",
+    "category": "政治理论",
+    "question_type": "single",
+    "stem": "根据《中华人民共和国国民经济和社会发展第十五个五年规划纲要》，关于企业联合高校、科研院所开展科研攻关及科技成果转化，下列说法正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "建立职务科技成果资产统筹归并管理制度，取消职务科技成果赋权改革试点",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "支持中小微企业牵头组建创新联合体，主导行业重大科技攻关",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "限制科技领军企业向中小微企业开放科研条件和应用场景，防范关键技术外溢",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "C项错误，规划纲要明确指出“支持科技型骨干企业牵头组建创新联合体，开展关键共性技术研发及科技成果中试和示范应用”，牵头主体是“科技型骨干企业”，而非“中小微企业”。\nB项错误，规划纲要指出“深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度”，而非“统筹归并管理制度”或“取消改革”。\nA项正确，规划纲要明确提出“引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用”。\nD项错误，规划纲要指出“鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务”，并非“限制开放”。\n故正确答案为A。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "national-15th-plan-2026",
+          "url": "https://www.gov.cn/yaowen/liebiao/202603/content_7062633.htm",
+          "title": "中华人民共和国国民经济和社会发展第十五个五年规划纲要",
+          "published_at": "2026-03-13",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "70f32e1d2bd586799773c9df06eeb94e5279af2a376d98a7e6960ba90ffb69e2",
+          "checked_at": "2026-11-01T21:10:27.015403+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "完全符合规划纲要原文表述。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项与原文主体一致，均为高校、科研院所和中小微企业。",
+          "premise_comparison": "选项方式为“按照先使用后付费方式把科技创新成果许可给中小微企业使用”，与原文一致。",
+          "strength_comparison": "表述强度完全对应。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "引导高校、科研院所按照先使用后付费方式把科技创新成果许可给中小微企业使用。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "规划纲要明确指出“深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度”，而非“统筹归并管理制度”，更非“取消职务科技成果赋权改革试点”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项涉及的制度主体与原文一致，但机制方向相反。",
+          "premise_comparison": "选项将“单列管理”改为“统筹归并”，“深化改革”改为“取消改革”，与原文相悖。",
+          "strength_comparison": "完全相反。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "深化职务科技成果赋权改革，建立职务科技成果资产单列管理制度，推进技术转移体系建设，加快科技成果高效转化应用。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确是“支持科技型骨干企业牵头组建创新联合体”，选项混淆牵头主体为“中小微企业”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将牵头主体混淆为“中小微企业”，原文为“科技型骨干企业”。",
+          "premise_comparison": "任务均为牵头组建创新联合体，但主体不符。",
+          "strength_comparison": "主体定位冲突。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "支持科技型骨干企业牵头组建创新联合体，开展关键共性技术研发及科技成果中试和示范应用。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确要求“鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务”，选项“限制开放”与原文直接矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "主体对应科技领军企业与中小微企业。",
+          "premise_comparison": "选项“限制开放科研条件和应用场景”，原文为“鼓励……开放科研条件和应用场景”。",
+          "strength_comparison": "方向完全颠倒。",
+          "citations": [
+            {
+              "source_id": "national-15th-plan-2026",
+              "paragraph_id": "p-24ee0ebf55e6381a",
+              "quote": "鼓励科技领军企业向中小微企业开放科研条件和应用场景、提供技术开发服务。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "national-15th-plan-2026:p-24ee0ebf55e6381a"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_09",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "《中国共产党第二十届中央委员会第五次全体会议公报》提出，持之以恒推进全面从严治党，必须进一步完善党和国家监督体系。对此，全会提出的工作要求包括（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "做实党委（党组）全面监督",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "完善纪检监察工作双重领导体制",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "推动党内监督同各方面监督深度融合、高效联动",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "发挥巡视综合监督利剑作用",
+        "images": []
+      }
+    ],
+    "answer": "ABCD",
+    "explanation": "A、B、C、D四项均正确。《中国共产党第二十届中央委员会第五次全体会议公报》明确指出：“持之以恒推进全面从严治党，必须进一步完善党和国家监督体系。要做实党委（党组）全面监督，完善纪检监察工作双重领导体制，推动党内监督同各方面监督深度融合、高效联动，发挥巡视综合监督利剑作用。”四个选项均符合公报原文表述。故正确答案为ABCD。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "cpc-20th-fifth-plenum-communique-202610",
+          "url": "https://www.news.cn/politics/leaders/20261029/3dc769be3bff40aeafcbf957eb4e47bb/c.html",
+          "title": "中国共产党第二十届中央委员会第五次全体会议公报（2026年10月29日通过，新华社受权发布）",
+          "published_at": "2026-10-29",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "9b8708af333207a8cc04f3ad8d8203a83a0a95b299185a1654608cb3308e5207",
+          "checked_at": "2026-11-01T21:10:25.153440+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "符合公报中关于做实党委（党组）全面监督的要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为党委（党组）全面监督，与原文一致。",
+          "premise_comparison": "属于完善党和国家监督体系的工作要求，与原文前提一致。",
+          "strength_comparison": "表述完全一致。",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-225048e5fc1c4176",
+              "quote": "全会提出，持之以恒推进全面从严治党，必须进一步完善党和国家监督体系。要做实党委（党组）全面监督，完善纪检监察工作双重领导体制，推动党内监督同各方面监督深度融合、高效联动，发挥巡视综合监督利剑作用。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "符合公报中关于完善纪检监察工作双重领导体制的要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项体制主体为纪检监察工作双重领导体制，与原文一致。",
+          "premise_comparison": "属于完善党和国家监督体系的工作要求，与原文前提一致。",
+          "strength_comparison": "表述完全一致。",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-225048e5fc1c4176",
+              "quote": "要做实党委（党组）全面监督，完善纪检监察工作双重领导体制，推动党内监督同各方面监督深度融合、高效联动，发挥巡视综合监督利剑作用。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "符合公报中关于推动党内监督同各方面监督深度融合、高效联动的要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与客体为党内监督同各方面监督，与原文一致。",
+          "premise_comparison": "属于完善党和国家监督体系的工作要求，与原文前提一致。",
+          "strength_comparison": "表述完全一致。",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-225048e5fc1c4176",
+              "quote": "要做实党委（党组）全面监督，完善纪检监察工作双重领导体制，推动党内监督同各方面监督深度融合、高效联动，发挥巡视综合监督利剑作用。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "符合公报中关于发挥巡视综合监督利剑作用的要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项作用主体为巡视综合监督利剑作用，与原文一致。",
+          "premise_comparison": "属于完善党和国家监督体系的工作要求，与原文前提一致。",
+          "strength_comparison": "表述完全一致。",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-225048e5fc1c4176",
+              "quote": "要做实党委（党组）全面监督，完善纪检监察工作双重领导体制，推动党内监督同各方面监督深度融合、高效联动，发挥巡视综合监督利剑作用。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "cpc-20th-fifth-plenum-communique-202610:p-225048e5fc1c4176"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-zhengzhi-9286adc16ef84e74b436_10",
+    "category": "政治理论",
+    "question_type": "multi",
+    "stem": "中国共产党第二十届中央委员会第五次全体会议审议通过了《中共中央关于持之以恒推进全面从严治党若干重大问题的决定》。根据该全会公报，关于加强党内法规制度建设，下列说法正确的有（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "全会提出，加强党内法规制度建设是全面从严治党的根本性任务",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "必须坚持把党章作为全党的根本行为规范，深化党的建设制度改革",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "推动依法治国和依规治党有机统一，为持之以恒推进全面从严治党提供有力制度保障",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "要完善党内法规制度体系，增强制度执行力，大力破除潜规则",
+        "images": []
+      }
+    ],
+    "answer": "BCD",
+    "explanation": "依据《中国共产党第二十届中央委员会第五次全体会议公报》，全会提出，加强党内法规制度建设是全面从严治党的长远之策、根本之策。必须坚持把党章作为全党的根本行为规范，深化党的建设制度改革，推动依法治国和依规治党有机统一，为持之以恒推进全面从严治党提供有力制度保障。要完善党内法规制度体系，增强制度执行力，大力破除潜规则。\nA项错误：公报明确指出，加强党内法规制度建设是全面从严治党的“长远之策、根本之策”；而全面从严治党的“根本性任务”是增强党性，A项偷换了重要论断定位。\nB、C、D项正确：均与公报关于加强党内法规制度建设的根本遵循、保障机制与具体任务要求完全一致。\n故正确答案为BCD。",
+    "difficulty": 3,
+    "tags": [
+      "政治理论-时事政治-重要文件"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "cpc-20th-fifth-plenum-communique-202610",
+          "url": "https://www.news.cn/politics/leaders/20261029/3dc769be3bff40aeafcbf957eb4e47bb/c.html",
+          "title": "中国共产党第二十届中央委员会第五次全体会议公报（2026年10月29日通过，新华社受权发布）",
+          "published_at": "2026-10-29",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "9b8708af333207a8cc04f3ad8d8203a83a0a95b299185a1654608cb3308e5207",
+          "checked_at": "2026-11-01T21:10:25.153440+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确指出加强党内法规制度建设是全面从严治党的长远之策、根本之策，而根本性任务是增强党性，选项偷换了论断定位，与原文直接冲突",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为“加强党内法规制度建设”，原文在该定位下对应的是“长远之策、根本之策”，而“根本性任务”对应的主体是“增强党性”",
+          "premise_comparison": "选项前提“全会提出/全面从严治党”与原文一致",
+          "strength_comparison": "选项断言“是……根本性任务”，原文明确否定此对应关系，直接冲突",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-073e1cc2c8d06a8b",
+              "quote": "全会提出，加强党内法规制度建设是全面从严治党的长远之策、根本之策。"
+            },
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-d51bd634f7e0821f",
+              "quote": "全会提出，增强党性是全面从严治党的根本性任务。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "选项陈述与公报关于加强党内法规制度建设的要求完全一致，为原文直接支持",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体、遵循规范（党章）与原文完全一致",
+          "premise_comparison": "选项前提与原文关于制度建设的要求一致",
+          "strength_comparison": "动词与情态要求“必须坚持把党章作为全党的根本行为规范，深化党的建设制度改革”与原文一致",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-073e1cc2c8d06a8b",
+              "quote": "必须坚持把党章作为全党的根本行为规范，深化党的建设制度改革，推动依法治国和依规治党有机统一，为持之以恒推进全面从严治党提供有力制度保障。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "选项陈述与公报关于依规治党与有力制度保障的论述完全一致，为原文直接支持",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与逻辑关系（依法治国和依规治党有机统一）与原文一致",
+          "premise_comparison": "选项前提与原文一致",
+          "strength_comparison": "表述强度与原文完全吻合",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-073e1cc2c8d06a8b",
+              "quote": "推动依法治国和依规治党有机统一，为持之以恒推进全面从严治党提供有力制度保障。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "选项陈述与公报关于完善制度体系、增强执行力、破除潜规则的具体任务完全一致，为原文直接支持",
+          "source_relation": "entailed",
+          "subject_comparison": "选项工作任务三项（完善体系、增强执行力、破除潜规则）与原文一致",
+          "premise_comparison": "选项前提与原文一致",
+          "strength_comparison": "要求程度与原文完全一致",
+          "citations": [
+            {
+              "source_id": "cpc-20th-fifth-plenum-communique-202610",
+              "paragraph_id": "p-073e1cc2c8d06a8b",
+              "quote": "要完善党内法规制度体系，增强制度执行力，大力破除潜规则。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "cpc-20th-fifth-plenum-communique-202610:p-073e1cc2c8d06a8b",
+        "cpc-20th-fifth-plenum-communique-202610:p-d51bd634f7e0821f"
+      ],
+      "question_type": "multi"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-changshi-2319bacaec264675bd75_01",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据《广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）》，关于统筹基本公共卫生服务资金管理及慢性病防治，下列说法正确的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "基本公共卫生服务补助资金按服务人口和年度补助标准整体拨付给紧密型县域医共体总院",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "基本公共卫生服务补助资金由财政部门直接逐级细分拨付至各基层分院自主使用",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "慢性病管理模式实行以乡镇卫生院为主体、省市两级兜底支撑的扁平化管护机制",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "行动方案要求到2028年县域内高血压、糖尿病健康管理人群住院率累计下降10%以上",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "B项错误，A项正确：根据方案第（六）项规定，各地卫生健康部门要会同财政部门将基本公共卫生服务补助资金按服务人口和年度补助标准整体拨付给紧密型县域医共体总院，赋予县域医共体拥有统筹基本公共卫生服务资金的自主权，合理安排各基层分院预算，并非直接细分拨付至基层分院自主使用。C项错误：方案明确落实慢病红黄绿三色分类、县镇村三级分级协同的慢病管理模式，而非“省市两级兜底支撑”。D项错误：方案要求县（市、区）内高血压、糖尿病健康管理人群住院率每年下降接近2个百分点，到2028年累计下降5－6个百分点，而非“累计下降10%以上”。故本题选A。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-地理国情-其他"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "gd-county-medical-consortium-202610",
+          "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/ybh/content/post_4971251.html",
+          "title": "广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）（粤办函〔2026〕297号）",
+          "published_at": "2026-10-27",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "ce373d4ffb14c2b8e55dbc79112377b2acacd18960b1cb2c3279df2945367421",
+          "checked_at": "2026-11-02T21:13:25.941474+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "符合原文表述，基本公共卫生服务补助资金按服务人口和年度补助标准整体拨付给总院。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体与原文一致，均为基本公共卫生服务补助资金的拨付流向。",
+          "premise_comparison": "选项前提与原文一致，均为行动方案关于资金统筹管理的规定。",
+          "strength_comparison": "强度一致，准确复现整体拨付给县域医共体总院的制度安排。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-4f3863a2f18a3265",
+              "quote": "各地卫生健康部门要会同财政部门将基本公共卫生服务补助资金按服务人口和年度补助标准整体拨付给紧密型县域医共体总院"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "与原文矛盾，资金由卫生健康部门会同财政部门整体拨付给总院，再由总院合理安排各基层分院预算，并非直接细分拨付至基层分院自主使用。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项将总院统筹安排曲解为财政部门直接细分拨付至基层分院。",
+          "premise_comparison": "同属基本公共卫生服务资金管理范畴，但拨付路径与自主权归属与原文冲突。",
+          "strength_comparison": "选项将统筹拨付偷换为直接细分拨付，被原文直接反驳。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-4f3863a2f18a3265",
+              "quote": "各地卫生健康部门要会同财政部门将基本公共卫生服务补助资金按服务人口和年度补助标准整体拨付给紧密型县域医共体总院，赋予县域医共体拥有统筹基本公共卫生服务资金的自主权，合理安排各基层分院预算"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "与原文矛盾，慢病管理模式为“县镇村三级分级协同”，而非“省市两级兜底支撑的扁平化管护机制”。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项的主体协同层级（省市两级兜底）与原文的“县镇村三级”不符。",
+          "premise_comparison": "同在慢性病管理模式语境下，协同机制与主体架构被篡改。",
+          "strength_comparison": "选项的扁平化管护与原文分级协同机制直接相左。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-4f3863a2f18a3265",
+              "quote": "落实慢病红黄绿三色分类、县镇村三级分级协同的慢病管理模式，构建县—镇—村协同服务链"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "与原文数值目标冲突，原文要求到2028年累计下降5－6个百分点，而非累计下降10%以上。",
+          "source_relation": "contradicted",
+          "subject_comparison": "两者的评价对象均为县域内两病管理人群住院率降幅。",
+          "premise_comparison": "时间节点同为到2028年，但量化目标被夸大。",
+          "strength_comparison": "选项的“累计下降10%以上”超出原文“累计下降5－6个百分点”的目标要求。",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-4f3863a2f18a3265",
+              "quote": "县（市、区）内高血压、糖尿病健康管理人群住院率每年下降接近2个百分点，到2028年累计下降5－6个百分点"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-county-medical-consortium-202610:p-4f3863a2f18a3265"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-changshi-2319bacaec264675bd75_02",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "2026年8月26日，中国核学会在广东东莞组织召开了中国散裂中子源科技成果鉴定会。下列各项中，不属于本次通过鉴定的四项科技成果的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "能量分辨中子成像谱仪",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "高分辨率冷中子三轴谱仪",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "大面积闪烁体中子探测器",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "工程材料中子衍射谱仪",
+        "images": []
+      }
+    ],
+    "answer": "B",
+    "explanation": "根据2026年9月《中国散裂中子源四项科技成果通过鉴定》报道，2026年8月26日鉴定的四项科技成果包括：工程材料中子衍射谱仪、能量分辨中子成像谱仪、小角中子散射仪、以及大面积闪烁体中子探测器四个项目。B项“高分辨率冷中子三轴谱仪”不在本次鉴定的四项科技成果之列。本题为选非题，故本题选B。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-科技常识-科技理论与成就"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "csns-achievements-202609",
+          "url": "https://www.ihep.cas.cn/xwdt2022/gnxw/hotnews/2026/202609/t20260907_8278902.html",
+          "title": "中国散裂中子源四项科技成果通过鉴定",
+          "published_at": "2026-09-07",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "73184c1b9e0f4d9cd7e0a698a7ed5539570f28bbc496eb7ceb29c82e0cc9e8e7",
+          "checked_at": "2026-11-02T21:13:26.340112+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "能量分辨中子成像谱仪属于通过鉴定的四项成果之一，不符合选非要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项成果名称与原文四项之一完全一致。",
+          "premise_comparison": "同属2026年8月26日鉴定会成果范围。",
+          "strength_comparison": "原文肯定其属于四项成果之一。",
+          "citations": [
+            {
+              "source_id": "csns-achievements-202609",
+              "paragraph_id": "p-7c78c8530710e0e9",
+              "quote": "本次鉴定的四项科技成果包括工程材料中子衍射谱仪、能量分辨中子成像谱仪、小角中子散射仪、以及大面积闪烁体中子探测器四个项目"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": true,
+          "reason": "原文明确列出的四项成果中不包含“高分辨率冷中子三轴谱仪”，符合选非要求。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项为虚构/非本次鉴定的谱仪，与原文封闭列举的四项成果冲突。",
+          "premise_comparison": "同在本次成果鉴定的范围限定内。",
+          "strength_comparison": "原文以全称列举鉴定的四项成果，选项不在其中，被直接排除。",
+          "citations": [
+            {
+              "source_id": "csns-achievements-202609",
+              "paragraph_id": "p-7c78c8530710e0e9",
+              "quote": "本次鉴定的四项科技成果包括工程材料中子衍射谱仪、能量分辨中子成像谱仪、小角中子散射仪、以及大面积闪烁体中子探测器四个项目"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "大面积闪烁体中子探测器属于四项成果之一，不符合选非要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项成果名称与原文完全相符。",
+          "premise_comparison": "同属本次成果鉴定会范围。",
+          "strength_comparison": "原文明确确认为四项成果之一。",
+          "citations": [
+            {
+              "source_id": "csns-achievements-202609",
+              "paragraph_id": "p-7c78c8530710e0e9",
+              "quote": "本次鉴定的四项科技成果包括工程材料中子衍射谱仪、能量分辨中子成像谱仪、小角中子散射仪、以及大面积闪烁体中子探测器四个项目"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "工程材料中子衍射谱仪属于四项成果之一，不符合选非要求。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项成果名称与原文完全相符。",
+          "premise_comparison": "同属本次成果鉴定会范围。",
+          "strength_comparison": "原文明确确认为四项成果之一。",
+          "citations": [
+            {
+              "source_id": "csns-achievements-202609",
+              "paragraph_id": "p-7c78c8530710e0e9",
+              "quote": "本次鉴定的四项科技成果包括工程材料中子衍射谱仪、能量分辨中子成像谱仪、小角中子散射仪、以及大面积闪烁体中子探测器四个项目"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "csns-achievements-202609:p-7c78c8530710e0e9"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-changshi-2319bacaec264675bd75_03",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据2026年公布的《中华人民共和国审计法实施条例》（国令第847号），下列说法正确的是：",
+    "options": [
+      {
+        "key": "A",
+        "text": "该条例经国务院常务会议修订通过，自公布之日起即行生效施行",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "该条例规定审计监督仅依托审计机关内部网络，不纳入大数据等技术手段",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "该条例经全国人民代表大会常务委员会审议通过并予以公布",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "该条例明确规定自2026年12月1日起施行",
+        "images": []
+      }
+    ],
+    "answer": "D",
+    "explanation": "A、D项：根据国令第847号公布的《中华人民共和国审计法实施条例》第六十四条及发布令规定，该条例已经2026年8月31日国务院第95次常务会议修订通过，现予公布，自2026年12月1日起施行，而非公布之日起即行施行，故A项错误，D项正确。C项：该条例属于行政法规，由国务院常务会议修订通过并以国务院令形式公布，而非由全国人大常委会审议通过，故C项错误。B项：条例第八条规定国家加强审计信息化建设，鼓励运用大数据等现代信息技术手段，提升审计监督质量和效率，故B项错误。故本题选D。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-法律常识-其他法律法规"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "audit-law-implementation-202609",
+          "url": "https://www.gov.cn/zhengce/content/202609/content_7081972.htm",
+          "title": "中华人民共和国审计法实施条例（2026年修订，国令第847号）",
+          "published_at": "2026-09-24",
+          "effective_at": "2026-12-01",
+          "scope": "as_published",
+          "sha256": "26d2f012374ed61a7b532b7f619f0430dcf26f122f09dc5ce09a64319540f5c7",
+          "checked_at": "2026-11-02T02:43:56.888497+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "与原文矛盾，条例明确规定自2026年12月1日起施行，并非公布之日起即行施行。",
+          "source_relation": "contradicted",
+          "subject_comparison": "两者主体一致，均为《审计法实施条例》生效时间点。",
+          "premise_comparison": "在条例生效施行的前提对照下，生效时间被篡改。",
+          "strength_comparison": "“公布之日起即行施行”与原文“自2026年12月1日起施行”互斥。",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1c25bbb93e8562a7",
+              "quote": "《中华人民共和国审计法实施条例》已经2026年8月31日国务院第95次常务会议修订通过，现予公布，自2026年12月1日起施行"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "与原文矛盾，条例第八条明确鼓励运用大数据等现代信息技术手段。",
+          "source_relation": "contradicted",
+          "subject_comparison": "两者的信息化手段主体一致。",
+          "premise_comparison": "在审计信息化技术手段应用的规定上，选项设定了消极排他限制。",
+          "strength_comparison": "选项“仅依托……不纳入”与原文“鼓励运用大数据等现代信息技术手段”直接相悖。",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-370587dd77018fa4",
+              "quote": "第八条 国家加强审计信息化建设，鼓励运用大数据等现代信息技术手段，提升审计监督质量和效率"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "与原文矛盾，实施条例为国务院常务会议修订通过的行政法规，并非全国人大常委会审议通过。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项审议通过主体为“全国人民代表大会常务委员会”，原文为主体为“国务院常务会议”。",
+          "premise_comparison": "审议程序的前提一致，但立法机关主体被混淆。",
+          "strength_comparison": "权力机关与行政机关的制定权属冲突，被原文直接反驳。",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1c25bbb93e8562a7",
+              "quote": "《中华人民共和国审计法实施条例》已经2026年8月31日国务院第95次常务会议修订通过，现予公布"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": true,
+          "reason": "符合原文明确规定，该条例自2026年12月1日起施行。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项施行时间与原文完全一致。",
+          "premise_comparison": "条例正式施行的法定时间节点一致。",
+          "strength_comparison": "强度一致，完全符合原文断言。",
+          "citations": [
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-1c25bbb93e8562a7",
+              "quote": "现予公布，自2026年12月1日起施行"
+            },
+            {
+              "source_id": "audit-law-implementation-202609",
+              "paragraph_id": "p-7dab0064df550f3e",
+              "quote": "第六十四条 本条例自2026年12月1日起施行。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "audit-law-implementation-202609:p-1c25bbb93e8562a7",
+        "audit-law-implementation-202609:p-370587dd77018fa4",
+        "audit-law-implementation-202609:p-7dab0064df550f3e"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-changshi-2319bacaec264675bd75_04",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "《中共中央 国务院关于锚定农业农村现代化 扎实推进乡村全面振兴的意见（2026年中央一号文件）》提出，加快健全现代农业经营体系。下列关于该体系建设举措的表述，符合文件要求的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "全面开展第二轮土地承包到期后再延长三十年整省试点",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "放开土地经营权流转限制，免除长时间大面积流转风险预警",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "鼓励通过大幅拓宽举债融资渠道发展新型农村集体经济",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "逐步取消小农户分散经营，全面推行超大规模集中经营",
+        "images": []
+      }
+    ],
+    "answer": "A",
+    "explanation": "A项正确：根据《意见》（二十一）加快健全现代农业经营体系，文件明确要求“全面开展第二轮土地承包到期后再延长三十年整省试点，妥善解决延包中的矛盾纠纷，确保绝大多数农户原有承包地保持稳定、顺利延包”。B项错误：文件明确要求“规范承包地经营权流转，加强长时间大面积流转土地风险监测预警”，并非放开流转限制或免除风险预警。C项错误：文件明确要求“深化农村集体产权制度改革，支持发展新型农村集体经济，严控新增村级债务”，不能大幅举债。D项错误：文件明确要求“发展农业适度规模经营，促进小农户和现代农业发展有机衔接”，并非取消小农户经营或全面推行超大规模集中经营。因此，正确答案为A。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-经济常识-宏观经济与调控政策"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "central-no1-rural-revitalization-202602",
+          "url": "https://www.news.cn/politics/zywj/20260203/724188820db8404ebc739feacc64a2d3/c.html",
+          "title": "中共中央 国务院关于锚定农业农村现代化 扎实推进乡村全面振兴的意见（2026年中央一号文件）",
+          "published_at": "2026-02-03",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "52741ca3fa583cb37b9b3809e2dda38e117d55dd8ba9e1838757c9c35c3d08db",
+          "checked_at": "2026-11-02T21:13:26.514389+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": true,
+          "reason": "原文明确要求“全面开展第二轮土地承包到期后再延长三十年整省试点”，选项表述与原文完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为第二轮土地承包到期后再延长三十年整省试点，与原文一致",
+          "premise_comparison": "选项前提为健全现代农业经营体系，与原文语境一致",
+          "strength_comparison": "选项用词“全面开展”与原文“全面开展”完全一致",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-1c7bb50cddb7f590",
+              "quote": "全面开展第二轮土地承包到期后再延长三十年整省试点，妥善解决延包中的矛盾纠纷，确保绝大多数农户原有承包地保持稳定、顺利延包。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文要求“规范承包地经营权流转，加强长时间大面积流转土地风险监测预警”，选项表述为“放开限制、免除预警”，与原文直接冲突。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为土地经营权流转与风险预警，与原文一致",
+          "premise_comparison": "选项前提与原文一致",
+          "strength_comparison": "原文为“规范”“加强监测预警”，选项反向篡改为“放开限制”“免除预警”",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-1c7bb50cddb7f590",
+              "quote": "规范承包地经营权流转，加强长时间大面积流转土地风险监测预警。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": false,
+          "reason": "原文明确要求“严控新增村级债务”，选项表述为“鼓励通过大幅拓宽举债融资渠道”，与原文要求背道而驰。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为发展新型农村集体经济的债务举措，与原文一致",
+          "premise_comparison": "选项前提与原文一致",
+          "strength_comparison": "原文为“严控新增村级债务”，选项反向篡改为“大幅拓宽举债融资渠道”",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-1c7bb50cddb7f590",
+              "quote": "深化农村集体产权制度改革，支持发展新型农村集体经济，严控新增村级债务。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确要求“发展农业适度规模经营，促进小农户和现代农业发展有机衔接”，选项表述为“取消小农户分散经营，全面推行超大规模集中经营”，与原文适度规模经营和扶持小农户的政策方向相抵触。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为农业规模经营及小农户发展定位，与原文一致",
+          "premise_comparison": "选项前提与原文一致",
+          "strength_comparison": "原文为“适度规模经营”“促进小农户……有机衔接”，选项篡改为极端的“取消小农户”“全面推行超大规模”",
+          "citations": [
+            {
+              "source_id": "central-no1-rural-revitalization-202602",
+              "paragraph_id": "p-1c7bb50cddb7f590",
+              "quote": "发展农业适度规模经营，促进小农户和现代农业发展有机衔接。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "central-no1-rural-revitalization-202602:p-1c7bb50cddb7f590"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  },
+  {
+    "external_id": "gd-zhengli-set-07-20261103::daily-20261103-changshi-2319bacaec264675bd75_05",
+    "category": "常识判断",
+    "question_type": "single",
+    "stem": "根据《广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）》（粤办函〔2026〕297号），下列关于“加强信息化支撑”的表述，正确的是（    ）。",
+    "options": [
+      {
+        "key": "A",
+        "text": "县域医共体信息平台建设由各县级政府自行推进，省层面不做统筹",
+        "images": []
+      },
+      {
+        "key": "B",
+        "text": "慢病智慧管理场景重点为患者提供诊后阶段的单一健康管理服务",
+        "images": []
+      },
+      {
+        "key": "C",
+        "text": "到2028年，60%县域医共体建成信息平台",
+        "images": []
+      },
+      {
+        "key": "D",
+        "text": "对基层人工智能辅助诊断技术应用予以审慎限制",
+        "images": []
+      }
+    ],
+    "answer": "C",
+    "explanation": "C项正确：根据《行动方案》（十一）加强信息化支撑，文件明确提出“到2028年，60%县域医共体建成信息平台”。B项错误：文件明确要求“推广慢病智慧管理场景建设，为患者提供诊前、诊中、诊后全流程一体化健康管理服务”，而非诊后阶段的单一服务。A项错误：文件明确提出“省层面统筹推动县域医共体信息平台建设”，而非县级自行推进且省层面不做统筹。D项错误：文件明确要求“大力推广基层人工智能辅助诊断技术应用”，而非审慎限制。因此，正确答案为C。",
+    "difficulty": 3,
+    "tags": [
+      "常识判断-地理国情-其他"
+    ],
+    "source_evidence": {
+      "as_of": "2026-11-03",
+      "sources": [
+        {
+          "id": "gd-county-medical-consortium-202610",
+          "url": "https://www.gd.gov.cn/zwgk/wjk/qbwj/ybh/content/post_4971251.html",
+          "title": "广东省紧密型县域医疗卫生共同体高质量发展行动方案（2026—2028年）（粤办函〔2026〕297号）",
+          "published_at": "2026-10-27",
+          "effective_at": null,
+          "scope": "as_published",
+          "sha256": "ce373d4ffb14c2b8e55dbc79112377b2acacd18960b1cb2c3279df2945367421",
+          "checked_at": "2026-11-02T21:13:25.941474+00:00"
+        }
+      ],
+      "checks": [
+        {
+          "key": "A",
+          "valid": false,
+          "reason": "原文明确指出“省层面统筹推动县域医共体信息平台建设”，选项说“由各县级政府自行推进，省层面不做统筹”，主体层级与统筹权与原文相悖。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为县域医共体信息平台建设统筹推进主体，与原文一致",
+          "premise_comparison": "选项对应信息化支撑部署，与原文一致",
+          "strength_comparison": "原文为“省层面统筹推动”，选项反向篡改为“各县级政府自行推进，省层面不做统筹”",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-24096ee3dba86a82",
+              "quote": "省层面统筹推动县域医共体信息平台建设。"
+            }
+          ]
+        },
+        {
+          "key": "B",
+          "valid": false,
+          "reason": "原文明确要求“推广慢病智慧管理场景建设，为患者提供诊前、诊中、诊后全流程一体化健康管理服务”，选项将其限缩为“诊后阶段的单一健康管理服务”，与原文矛盾。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为慢病智慧管理场景服务内容，与原文一致",
+          "premise_comparison": "选项对应慢病管理场景，与原文一致",
+          "strength_comparison": "原文为“诊前、诊中、诊后全流程一体化”，选项片面缩小为“诊后阶段的单一健康管理服务”",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-24096ee3dba86a82",
+              "quote": "推广慢病智慧管理场景建设，为患者提供诊前、诊中、诊后全流程一体化健康管理服务。"
+            }
+          ]
+        },
+        {
+          "key": "C",
+          "valid": true,
+          "reason": "原文明确规定“到2028年，60%县域医共体建成信息平台”，选项表述完全一致。",
+          "source_relation": "entailed",
+          "subject_comparison": "选项主体为县域医共体建成信息平台的目标比例，与原文一致",
+          "premise_comparison": "选项时间口径为到2028年，与原文完全对应",
+          "strength_comparison": "选项数值与原文60%完全一致",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-24096ee3dba86a82",
+              "quote": "到2028年，60%县域医共体建成信息平台。"
+            }
+          ]
+        },
+        {
+          "key": "D",
+          "valid": false,
+          "reason": "原文明确要求“大力推广基层人工智能辅助诊断技术应用”，选项表述为“予以审慎限制”，政策导向相反。",
+          "source_relation": "contradicted",
+          "subject_comparison": "选项主体为基层人工智能辅助诊断技术应用，与原文一致",
+          "premise_comparison": "选项对应基层医疗AI应用，与原文一致",
+          "strength_comparison": "原文为“大力推广”，选项反向篡改为“予以审慎限制”",
+          "citations": [
+            {
+              "source_id": "gd-county-medical-consortium-202610",
+              "paragraph_id": "p-24096ee3dba86a82",
+              "quote": "大力推广基层人工智能辅助诊断技术应用。"
+            }
+          ]
+        }
+      ],
+      "claim_ids": [
+        "gd-county-medical-consortium-202610:p-24096ee3dba86a82"
+      ],
+      "question_type": "single"
+    },
+    "source": "粤考政理常识套卷 第7套（11月03日日练·政治10+常识5）"
+  }
+]
