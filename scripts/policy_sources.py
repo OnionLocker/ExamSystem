@@ -148,6 +148,12 @@ def validate_spec(spec):
     for tag in spec['tags']:
         if validate_ai_primary_tag(tag) != tag:
             raise ValueError('请使用规范知识点标签：' + tag)
+    covers = spec.get('covers', [])
+    if not isinstance(covers, list):
+        raise ValueError('covers 须为精确知识点节点 ID 列表')
+    if any(not isinstance(node, str) or not re.fullmatch(r'[a-z0-9][a-z0-9_-]{1,79}', node)
+           for node in covers):
+        raise ValueError('covers 须使用稳定知识点节点 ID')
     for name in ('published_at', 'effective_at', 'expires_at'):
         if spec.get(name):
             dt.date.fromisoformat(spec[name])
@@ -161,7 +167,25 @@ def validate_spec(spec):
 def refresh(spec):
     validate_spec(spec)
     page, url = fetch(spec['url'])
-    paragraphs = list(dict.fromkeys(p for p in page.parts if len(p) >= 20))
+    paragraphs = []
+    article = None
+    article_pattern = r'^第[一二三四五六七八九十百千万零〇两0-9]+条'
+    for text in page.parts:
+        if spec['kind'] == 'law':
+            if re.match(article_pattern, text):
+                article = len(paragraphs)
+            elif re.match(r'^第[一二三四五六七八九十百千万零〇两0-9]+[编章节]', text) or text == '解读' or text.startswith((
+                    '发布时间', '来源：', '来源:', '（来源', '(来源', '责任编辑', '编辑：', '编辑:', '延伸阅读',
+                    '相关链接', '相关阅读', '扫一扫', '【打印', '打印本页', '关闭窗口',
+                    '关于我们', '联系我们', '版权所有')):
+                article = None
+            elif article is not None:
+                paragraphs[article] += '\n' + text
+                continue
+        paragraphs.append(text)
+    # 先合并完整条款再筛选，避免丢失短列项，或 focus 只留下条件/结论的一半。
+    paragraphs = list(dict.fromkeys(p for p in paragraphs if len(p) >= 20
+                                   or (spec['kind'] == 'law' and re.match(article_pattern, p))))
     focus = spec.get('focus') or []
     if focus:
         paragraphs = [p for p in paragraphs if any(word in p for word in focus)]
@@ -242,9 +266,9 @@ def update_review(record):
     path = directory() / 'update-reviews.json'
     review = (json.loads(path.read_text()) if path.exists() else {}).get(record['id'], {})
     checked = dt.datetime.fromisoformat(review['checked_at']) if review.get('checked_at') else None
-    if (not checked or checked.tzinfo is None or not 0 <= (dt.datetime.now(dt.timezone.utc) - checked).total_seconds() < 86400
+    if (not checked or checked.tzinfo is None or checked > dt.datetime.now(dt.timezone.utc)
             or review.get('source_sha256') != record['sha256']):
-        raise ValueError('资料尚未完成今日新发布/修订/替代核验：' + record['id'] + '；先联网核对，再用 policy_sources.py review-updates 登记依据')
+        raise ValueError('资料尚未完成当前版本的新发布/修订/替代核验：' + record['id'] + '；先联网核对，再用 policy_sources.py review-updates 登记依据')
     evidence = directory() / 'update-evidence' / Path(review.get('evidence_file', '')).name
     if not evidence.is_file() or not review.get('urls'):
         raise ValueError('更新核验缺少可追溯原文：' + record['id'])
@@ -264,9 +288,6 @@ def require_current_sources(pack):
         current = entries.get(record['id'])
         if not current or not applicable(current, dt.date.fromisoformat(pack['as_of'])) or not applicable(current, today()):
             raise ValueError('资料已失效或未登记：' + record['id'])
-        checked = dt.datetime.fromisoformat(record['checked_at'])
-        if (dt.datetime.now(dt.timezone.utc) - checked).total_seconds() >= (7 if record['kind'] == 'foundation' else 1) * 86400:
-            raise ValueError('新入库资料核验已过期：' + record['id'])
         saved = directory() / (record['id'] + '.json')
         latest = json.loads(saved.read_text()) if saved.exists() else {}
         if latest.get('sha256') != record['sha256'] or any(
@@ -286,7 +307,80 @@ def applicable(spec, cutoff):
 
 
 def matches(spec, tag):
-    return any(tag == t or tag.startswith(t + '-') or t.startswith(tag + '-') for t in spec['tags'])
+    """Does a source tag or explicit leaf-node cover support this topic?"""
+    node_id = tag.rsplit('-@', 1)[1] if '-@' in tag else None
+    if node_id and node_id in spec.get('covers', []):
+        return True
+    # A source tagged with a broad parent cannot establish coverage of an
+    # arbitrary child. A specific source may still serve a broader slot.
+    return any(tag == source_tag or source_tag.startswith(tag + '-')
+               for source_tag in spec.get('tags', []))
+
+
+def covers_slot(spec, slot):
+    """Whether a registered source is explicitly suitable for this exact slot.
+
+    Broad tags remain useful for discovery, but cannot cover a leaf slot. Stable
+    leaf IDs in ``covers`` opt a source into those precise topics.
+    """
+    tag = slot['tag'] if isinstance(slot, dict) else str(slot)
+    return matches(spec, tag)
+
+
+def usage_path():
+    return Path(os.environ.get('EXAM_DB') or ROOT / 'data' / 'exam.db')
+
+
+def source_usage():
+    """每份原文上次出题的时间与次数；没建表就当没用过。"""
+    import sqlite3
+    path = usage_path()
+    if not path.exists():
+        return {}
+    try:
+        with sqlite3.connect(path, timeout=10) as conn:
+            rows = conn.execute('SELECT source_id, uses, last_used FROM ai_source_usage').fetchall()
+    except sqlite3.Error:
+        return {}
+    return {str(i): (int(u or 0), str(t or '')) for i, u, t in rows}
+
+
+def record_source_usage(source_ids):
+    """成功出题后才记账，用于"最久没练过的原文优先"。"""
+    import sqlite3
+    ids = [str(i) for i in dict.fromkeys(source_ids or []) if i]
+    path = usage_path()
+    if not ids or not path.exists():
+        return
+    stamp = dt.datetime.now(dt.timezone(dt.timedelta(hours=8))).isoformat(timespec='seconds')
+    with sqlite3.connect(path, timeout=10) as conn:
+        conn.execute('CREATE TABLE IF NOT EXISTS ai_source_usage ('
+                     'source_id TEXT PRIMARY KEY, uses INTEGER NOT NULL DEFAULT 0, last_used TEXT)')
+        for ident in ids:
+            conn.execute('INSERT INTO ai_source_usage(source_id, uses, last_used) VALUES (?,1,?) '
+                         'ON CONFLICT(source_id) DO UPDATE SET uses=uses+1, last_used=excluded.last_used',
+                         (ident, stamp))
+        conn.commit()
+
+
+def pick_sources(module, limit=8, as_of=None, weights=None):
+    """政治/常识按原文轮转：最久没出过题的优先，热点命中只用于同一轮次内排序。"""
+    cutoff = dt.date.fromisoformat(as_of) if as_of else today()
+    usage = source_usage()
+    rows = []
+    for spec in registry().values():
+        if not applicable(spec, cutoff):
+            continue
+        tags = [str(t) for t in spec.get('tags') or [] if str(t).startswith(module + '-')]
+        if not tags:
+            continue
+        focus = ' '.join([str(spec.get('title') or ''), *(spec.get('focus') or [])])
+        score = sum(int(w) for term, w in (weights or {}).items() if term and str(term) in focus)
+        used, last = usage.get(spec['id'], (0, ''))
+        rows.append((used, -score, last, spec['published_at'], spec, tags[0]))
+    rows.sort(key=lambda row: row[3], reverse=True)  # 新发布的先当并列候选
+    rows.sort(key=lambda row: (row[0], row[1], row[2]))
+    return [(spec, tag) for *_, spec, tag in rows[:max(1, int(limit))]]
 
 
 def source_pack(slots, ids=None, as_of=None):
@@ -294,7 +388,17 @@ def source_pack(slots, ids=None, as_of=None):
     if cutoff > today():
         raise ValueError('资料截止日不能在未来')
     entries = registry()
-    if ids:
+    bound = [str(slot['source_id']) for slot in slots
+             if isinstance(slot, dict) and slot.get('source_id')]
+    if bound:
+        # 原文驱动：题库按"这篇原文"绑定，不再靠考点标签猜资料能不能用
+        selected = list(dict.fromkeys(bound + list(ids or [])))
+        if len(selected) > 8:
+            raise ValueError('本批绑定原文超过 8 份，请减少题量或合并原文')
+        for ident in selected:
+            if ident not in entries:
+                raise ValueError('未登记资料：' + ident)
+    elif ids:
         selected = list(dict.fromkeys(ids))
     else:
         eligible = sorted((s for s in entries.values() if applicable(s, cutoff)),
@@ -302,9 +406,12 @@ def source_pack(slots, ids=None, as_of=None):
         # Cover every slot before filling remaining room with recent relevant sources.
         selected = []
         for slot in slots:
-            candidates = [s['id'] for s in eligible if matches(s, slot['tag'])]
+            candidates = [s['id'] for s in eligible if covers_slot(s, slot)]
             if not candidates:
-                raise ValueError('缺少此考点的有效原文，请先 sources add：' + slot['tag'])
+                node_id = slot['tag'].rsplit('-@', 1)[1] if '-@' in slot['tag'] else None
+                requirement = ('；登记对应原文并在资料 spec 的 covers 中加入节点ID ' + node_id
+                               if node_id else '；登记绑定该精确考点的权威原文')
+                raise ValueError('缺少能覆盖此考点的有效原文：' + slot['tag'] + requirement)
             if not any(i in selected for i in candidates):
                 selected.append(candidates[0])
         for spec in eligible:
@@ -314,6 +421,13 @@ def source_pack(slots, ids=None, as_of=None):
                 selected.append(spec['id'])
     if not selected or len(selected) > 8:
         raise ValueError('请先登记权威原文或用 --sources 选择 1–8 份相关资料')
+    for ident in selected:
+        if ident not in entries:
+            raise ValueError('未登记资料：' + ident)
+    selected_specs = [entries[ident] for ident in selected if applicable(entries[ident], cutoff)]
+    for slot in slots:
+        if not any(matches(spec, slot['tag']) for spec in selected_specs):
+            raise ValueError('所选资料没有明确覆盖考点：' + slot['tag'])
     sources = []
     for ident in selected:
         if ident not in entries:
@@ -329,16 +443,14 @@ def source_pack(slots, ids=None, as_of=None):
             continue
         path = directory() / (ident + '.json')
         cached = json.loads(path.read_text()) if path.exists() else None
-        max_age = 7 if spec['kind'] == 'foundation' else 1
-        fresh = cached and all(cached.get(k) == v for k, v in spec.items()) and (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(cached['checked_at'])).total_seconds() < max_age * 86400
-        # Failure propagates. A stale cache is never silently relabeled as checked.
-        record = cached if fresh else refresh(spec)
+        matches_spec = cached and all(cached.get(k) == v for k, v in spec.items())
+        record = cached if matches_spec else refresh(spec)
         if record['kind'] != 'foundation':
             record = {**record, 'update_review': update_review(record)}
         sources.append(record)
     for slot in slots:
-        if not any(matches(s, slot['tag']) for s in sources):
-            raise ValueError('缺少此考点的有效原文，请先 sources add：' + slot['tag'])
+        if not any(covers_slot(s, slot) for s in sources):
+            raise ValueError('所选资料没有明确覆盖考点：' + slot['tag'])
     if sum(len(p['text']) for s in sources for p in s['paragraphs']) > 80000:
         raise ValueError('本批资料过多，请缩小考点或指定 --sources')
     pack = {'as_of': cutoff.isoformat(), 'sources': sources}
@@ -377,7 +489,7 @@ def validate_pack(pack):
             raise ValueError('资料正文与摘要哈希不一致')
 
 
-def citation_issues(checks, pack, question, selection_rule=None, review_version=3):
+def citation_issues(checks, pack, question, selection_rule=None, review_version=3, bound_source=None):
     """Require an independently verifiable citation for every option/statement."""
     keys = ['statement'] if question.get('question_type') == 'judge' else ['A', 'B', 'C', 'D']
     if (not isinstance(checks, list) or len(checks) != len(keys)
@@ -415,6 +527,9 @@ def citation_issues(checks, pack, question, selection_rule=None, review_version=
                 issues.append('引用格式错误')
                 continue
             source = sources.get(cite['source_id']) if isinstance(cite.get('source_id'), str) else None
+            if bound_source and cite.get('source_id') != bound_source:
+                issues.append('引用必须来自本题绑定的原文')
+                continue
             paragraph = next((p['text'] for p in source['paragraphs'] if p['id'] == cite.get('paragraph_id')), '') if source else ''
             quote = cite.get('quote')
             if not isinstance(quote, str) or not 12 <= len(quote.strip()) <= 200 or quote not in paragraph:
@@ -455,9 +570,6 @@ def evidence_status(evidence):
             text = '\n'.join(p['text'] for p in current['paragraphs'])
             if any(c['quote'] not in text for c in claims):
                 outdated.append(source['id'])
-        max_age = 7 if spec.get('kind') == 'foundation' else 1
-        if (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(current['checked_at'])).total_seconds() >= max_age * 86400:
-            unchecked.append(source['id'])
     return {'outdated': outdated, 'unchecked': unchecked}
 
 

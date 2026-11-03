@@ -924,8 +924,15 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
             raise SystemExit(f"槽位缺 tag 或 count: {raw!r}")
         parts = [part for part in tag_in.split("-") if part]
         subtype = parts[1] if len(parts) > 1 else ""
-        if tag_in.startswith(("资料分析-", "科学推理-")) or args.module in {"资料分析", "科学推理"}:
-            tag = validate_ai_primary_tag(canonicalize(tag_in, args.module, subtype), args.module)
+        # 政治/常识是原文驱动：标签只是记账用的三级考点，不再沿知识树展开到叶子，
+        # 否则知识库一加子节点，出题就会跑到没有原文覆盖的叶子上（2026-10-28 事故）。
+        from policy_sources import SOURCE_MODULES
+        if (tag_in.startswith(("资料分析-", "科学推理-"))
+                or args.module in {"资料分析", "科学推理"} | SOURCE_MODULES):
+            if args.module in SOURCE_MODULES:
+                tag = validate_ai_primary_tag(tag_in, args.module)
+            else:
+                tag = validate_ai_primary_tag(canonicalize(tag_in, args.module, subtype), args.module)
             expanded = [{"tag": tag, "count": count}]
         else:
             if current_nodes is None:
@@ -943,6 +950,18 @@ def resolve_slots(args: argparse.Namespace) -> tuple[str, list[dict]]:
         head = tag.split("-", 1)[0]
         modules.add(head if head in MODULES else module_of(tag, args.module))
         slot = {"tag": tag, "count": count}
+        if raw.get("source_id"):
+            slot["source_id"] = str(raw["source_id"])
+        if raw.get('policy_point') is not None:
+            point = raw['policy_point']
+            if head not in SOURCE_MODULES or not isinstance(point, dict) or not slot.get('source_id'):
+                raise ValueError('policy_point 仅用于绑定原文的政治/常识题')
+            if not all(isinstance(point.get(k), str) and point[k].strip()
+                       for k in ('id', 'paragraph_id', 'title', 'role', 'reason')):
+                raise ValueError('policy_point 缺少具体原文考点或选题原因')
+            if point['id'] != slot['source_id'] + ':' + point['paragraph_id']:
+                raise ValueError('policy_point 与绑定原文不一致')
+            slot['policy_point'] = dict(point)
         if raw.get("question_type"):
             if raw["question_type"] not in {"single", "multi", "judge"}:
                 raise ValueError("question_type 须为 single/multi/judge")
