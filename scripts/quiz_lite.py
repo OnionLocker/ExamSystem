@@ -480,6 +480,9 @@ def local_issues(question: dict) -> list[str]:
     issues.extend(probability_format_issues(question))
     if str(question.get("category") or "") == "言语理解与表达":
         issues.extend(yanyu_contract_issues(question))
+    if question.get("category") in SOURCE_MODULES:
+        from policy_quiz import analysis_format_issues
+        issues.extend(analysis_format_issues(question))
     return issues
 
 
