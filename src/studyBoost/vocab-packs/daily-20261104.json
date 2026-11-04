@@ -1,0 +1,306 @@
+{
+  "pack_id": "daily-20261104",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-11-04",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261104:堵点卡点",
+      "word": "堵点卡点",
+      "wordType": "collocation",
+      "explanation": "束缚新质生产力发展的体制机制梗阻与关键瓶颈；改革着力打通之处。",
+      "usage": "全面深化改革／新质生产力／营商环境。",
+      "examples": [
+        "算力企业缺抵押物贷不到款，金融产品创新就是在打融资堵点卡点。"
+      ],
+      "rivals": [
+        "一般市场波动",
+        "单纯技术难题",
+        "放任不管"
+      ],
+      "cloze": [
+        "着力打通束缚新质生产力发展的____。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:松土培土",
+      "word": "松土培土",
+      "wordType": "collocation",
+      "explanation": "喻改革为技术创新及时破障、持续涵养适宜制度环境，与内生动力相辅相成。",
+      "usage": "改革与创新关系／制度供给。",
+      "examples": [
+        "低空管理办法先松土培土，空域才能从抬头可见变成发展资源。"
+      ],
+      "rivals": [
+        "只给补贴不改制度",
+        "放任不管",
+        "推倒重来"
+      ],
+      "cloze": [
+        "发展新质生产力需要改革及时____，营造适宜环境。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:畅其流、尽其用",
+      "word": "畅其流、尽其用",
+      "wordType": "collocation",
+      "explanation": "使技术、资金、人才等要素充分流动、潜能充分释放，提高创新整体效能。",
+      "usage": "要素市场化／创新生态。",
+      "examples": [
+        "数据二十条落地后，场景数据才能畅其流、尽其用。"
+      ],
+      "rivals": [
+        "要素淤积",
+        "无序空转",
+        "闲置浪费"
+      ],
+      "cloze": [
+        "改革让各类要素____，提高创新整体效能。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:科技红娘",
+      "word": "科技红娘",
+      "wordType": "collocation",
+      "explanation": "技术经理人等中介力量，撮合实验室成果跨区域转化落地，缩短研发到产业化距离。",
+      "usage": "成果转化／产学研用。",
+      "examples": [
+        "技术经理人当科技红娘，一个月就把实验室粉体材料项目接到天津产线。"
+      ],
+      "rivals": [
+        "行政强配",
+        "只发论文不转化",
+        "口号招商"
+      ],
+      "cloze": [
+        "____促进更多科技成果实现跨区域转化。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:书架与货架",
+      "word": "书架与货架",
+      "wordType": "collocation",
+      "explanation": "喻科技成果停留在论文／实验室（书架）与进入产业化市场（货架）两端，改革旨在架桥铺路。",
+      "usage": "成果转化／科产融合。",
+      "examples": [
+        "中试平台建起来，才能缩短书架与货架之间的距离。"
+      ],
+      "rivals": [
+        "否定基础研究",
+        "只求论文不求产业",
+        "强行摊派转化"
+      ],
+      "cloze": [
+        "改革架桥铺路，推动科技成果完成____的跨越。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:先用后转",
+      "word": "先用后转",
+      "wordType": "collocation",
+      "explanation": "科技成果先免费试用、后付费转化的机制，降低中小微企业试用门槛、加速转化。",
+      "usage": "成果转化机制／中小企业创新。",
+      "examples": [
+        "把专利放进先用后转成果池，小厂先试用再决定是否付费落地。"
+      ],
+      "rivals": [
+        "永久免费",
+        "先收费再试用",
+        "强制转让"
+      ],
+      "cloze": [
+        "浙江探索____机制，中小微企业可先免费试用再付费转化。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:清障赋能",
+      "word": "清障赋能",
+      "wordType": "collocation",
+      "explanation": "破除体制障碍并为创新主体提供制度与要素支持，使改革积极有为又审慎稳妥。",
+      "usage": "改革对策收束／新质生产力。",
+      "examples": [
+        "简化环评与开放中试场地双管齐下，才能真正清障赋能。"
+      ],
+      "rivals": [
+        "只清障不供给",
+        "只补贴不改革",
+        "冒进蛮干"
+      ],
+      "cloze": [
+        "持续为新质生产力发展____。"
+      ],
+      "source": "每日读报 2026-11-04：以改革破堵点、激活力",
+      "publicSources": [
+        {
+          "title": "以改革破堵点、激活力（人民时评）",
+          "url": "https://data.people.com.cn/rmrb/20261104/5/1df5948a16f74703b895765012d7cf9c_print.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:挑大梁",
+      "word": "挑大梁",
+      "wordType": "idiom",
+      "explanation": "在总量与增长上承担主要支撑；文中指万亿级城市与科技硬通货出口。",
+      "usage": "区域经济／主力担当。",
+      "examples": [
+        "万亿级城市挑大梁，县域才能在产业链配套里找准位置。"
+      ],
+      "rivals": [
+        "包办一切",
+        "靠边站",
+        "只装门面"
+      ],
+      "cloze": [
+        "稳在万亿级城市____，进在三条主线同步发力。"
+      ],
+      "source": "每日读报 2026-11-04：万亿级城市挑大梁 三条主线同步发力",
+      "publicSources": [
+        {
+          "title": "万亿级城市挑大梁 三条主线同步发力",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/01/content_10184932.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:科技硬通货",
+      "word": "科技硬通货",
+      "wordType": "collocation",
+      "explanation": "具有强竞争力、可支撑出口韧性的科技产品与零部件，成为外贸增量新主角。",
+      "usage": "外贸提质／制造业升级。",
+      "examples": [
+        "AI零部件出口占比抬升，科技硬通货正在替换传统大路货。"
+      ],
+      "rivals": [
+        "低附加值大路货",
+        "资源粗加工出口",
+        "短期补贴单品"
+      ],
+      "cloze": [
+        "珠三角____成为出口新主角。"
+      ],
+      "source": "每日读报 2026-11-04：万亿级城市挑大梁 三条主线同步发力",
+      "publicSources": [
+        {
+          "title": "万亿级城市挑大梁 三条主线同步发力",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/01/content_10184932.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:点状突破/面上成势",
+      "word": "点状突破/面上成势",
+      "wordType": "collocation",
+      "explanation": "由局部产业亮点扩展为区域整体优势与规模化态势；制造升级的阶段性跃迁。",
+      "usage": "产业成势／区域发展。",
+      "examples": [
+        "九市高技术制造普快于规上，正是点状突破/面上成势的信号。"
+      ],
+      "rivals": [
+        "只有盆景",
+        "全面铺开却无根基",
+        "单点冒进"
+      ],
+      "cloze": [
+        "制造升级要完成____的跃迁。"
+      ],
+      "source": "每日读报 2026-11-04：万亿级城市挑大梁 三条主线同步发力",
+      "publicSources": [
+        {
+          "title": "万亿级城市挑大梁 三条主线同步发力",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/01/content_10184932.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261104:含新量",
+      "word": "含新量",
+      "wordType": "word",
+      "explanation": "产业、投资、外贸中新技术新产品新业态的比重与成色；决定含金量、加速度与韧性。",
+      "usage": "高质量发展评价／产业政策。",
+      "examples": [
+        "考核县域不能只看GDP增速，还要看投资和出口的含新量。"
+      ],
+      "rivals": [
+        "口号式求新",
+        "唯产值论",
+        "含金量（近义但侧重价值）"
+      ],
+      "cloze": [
+        "珠三角的下一程，比的是谁的“____”高。"
+      ],
+      "source": "每日读报 2026-11-04：万亿级城市挑大梁 三条主线同步发力",
+      "publicSources": [
+        {
+          "title": "万亿级城市挑大梁 三条主线同步发力",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/01/content_10184932.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
