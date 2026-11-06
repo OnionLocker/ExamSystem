@@ -1,0 +1,387 @@
+{
+  "pack_id": "daily-20261106",
+  "generator": "add_vocab.mjs",
+  "created_at": "2026-11-06",
+  "mode": "append",
+  "notes": "由 scripts/add_vocab.mjs 按日追加。同名词名跳过，不覆盖已有字段。",
+  "entries": [
+    {
+      "id": "daily-20261106:影视+",
+      "word": "影视+",
+      "wordType": "collocation",
+      "explanation": "影视与餐饮、文旅、研学等跨界融合，拓展多元消费场景的业态模式；以文化为主轴、创新为引擎。",
+      "usage": "文旅消费／文化产业／业态创新。",
+      "examples": [
+        "横店把短剧体验做成沉浸进组，正是影视+把内容变成可运营场景的活例子。"
+      ],
+      "rivals": [
+        "丢掉内容只搞噱头",
+        "单一放映模式",
+        "虚假跨界炒作"
+      ],
+      "cloze": [
+        "跨界融合让通往多元消费场景的大门因“____”而打开。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:票根经济",
+      "word": "票根经济",
+      "wordType": "collocation",
+      "explanation": "以观影票根等凭证联动商圈餐饮购物优惠，把观影延伸为关联消费的运营模式。",
+      "usage": "场景消费／文旅联动／商圈引流。",
+      "examples": [
+        "百花奖期间持票根吃喝满减，票根经济把一部电影做成一片消费。"
+      ],
+      "rivals": [
+        "单纯降价倾销",
+        "补贴堆量",
+        "与内容脱节的空转优惠"
+      ],
+      "cloze": [
+        "北京升级“____”，观众持票根即可在多商圈享受联动优惠。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:一次性体验/持续性运营",
+      "word": "一次性体验/持续性运营",
+      "wordType": "collocation",
+      "explanation": "消费场景从单次观影、打卡，转向可反复转化、可长期运营的业态状态。",
+      "usage": "消费提振／文旅融合对策。",
+      "examples": [
+        "取景地不能停在打卡拍照，要完成一次性体验/持续性运营的场景跃迁。"
+      ],
+      "rivals": [
+        "只热一次就撤场",
+        "强制复购",
+        "无限免费体验"
+      ],
+      "cloze": [
+        "跨界融合带动消费场景从“____”转变。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:文化内核",
+      "word": "文化内核",
+      "wordType": "collocation",
+      "explanation": "“影视+”必须守住的内容质量与文化价值主轴；离开它再热闹也只是短暂热度。",
+      "usage": "文旅融合原则／内容为王。",
+      "examples": [
+        "没有文化内核，沉浸式项目再花哨也留不住回头客。"
+      ],
+      "rivals": [
+        "拒绝一切业态创新",
+        "只要打卡热闹",
+        "空心跨界"
+      ],
+      "cloze": [
+        "离开____，再热闹的打卡项目都可能是短暂热度。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:老买卖/新吆喝",
+      "word": "老买卖/新吆喝",
+      "wordType": "collocation",
+      "explanation": "传统业态用新场景、新服务焕发消费活力的形象说法；与“旧玩意／新花样”对举。",
+      "usage": "传统业态焕新／消费潜力收束。",
+      "examples": [
+        "老影院学会承接团建派对，就是老买卖/新吆喝的生动写照。"
+      ],
+      "rivals": [
+        "换皮炒作",
+        "虚假宣传",
+        "固守不动"
+      ],
+      "cloze": [
+        "当越来越多的“____”学会“____”，超大规模市场动能更足。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:供需适配",
+      "word": "供需适配",
+      "wordType": "collocation",
+      "explanation": "供给创新与需求升级相互契合、互促共进，从而激荡市场动能。",
+      "usage": "高质量发展／消费与供给。",
+      "examples": [
+        "影院综合体验空间对上年轻人社交需求，才叫真正的供需适配。"
+      ],
+      "rivals": [
+        "低端过剩",
+        "强制创造伪需求",
+        "供需错配"
+      ],
+      "cloze": [
+        "中国超大规模市场必将在____中激荡澎湃动能。"
+      ],
+      "source": "每日读报 2026-11-06：消费潜力，常在触手可及的身边",
+      "publicSources": [
+        {
+          "title": "消费潜力，常在触手可及的身边（人民时评）",
+          "url": "http://opinion.people.com.cn/n1/2026/1106/c461529-40828576.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:特效药",
+      "word": "特效药",
+      "wordType": "collocation",
+      "explanation": "喻指望靠网红名头一剂见效拉动增长的不切实际幻想；不符合经济运行规律。",
+      "usage": "纠偏流量崇拜／网红经济。",
+      "examples": [
+        "把出圈当作拉动增长的特效药，最终只会在热度退潮后手足无措。"
+      ],
+      "rivals": [
+        "合理品牌营销",
+        "长期产业培育",
+        "压舱石作用"
+      ],
+      "cloze": [
+        "寄望网红名头充当拉动增长的“____”，既不现实也不符合规律。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:民生账",
+      "word": "民生账",
+      "wordType": "collocation",
+      "explanation": "不止算GDP总量，还要算就业、增收、烟火气等民生红利；文旅是民生产业、幸福产业。",
+      "usage": "发展观／民生导向／文旅定性。",
+      "examples": [
+        "一条爆款视频稳住一家小店，这笔民生账比增速排名更有温度。"
+      ],
+      "rivals": [
+        "不要增长只谈情怀",
+        "只盯冰冷数字",
+        "面子工程"
+      ],
+      "cloze": [
+        "算GDP总账，更要算____。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:旺丁不旺财",
+      "word": "旺丁不旺财",
+      "wordType": "idiom",
+      "explanation": "人流热闹但消费转化不足、增收不明显；多因光热闹没消费、流量转化链条太短。",
+      "usage": "文旅转化短板／网红城市纠偏。",
+      "examples": [
+        "游客拍完麻辣烫就走，县里最怕的就是旺丁不旺财。"
+      ],
+      "rivals": [
+        "人流本身无价值",
+        "深度体验游",
+        "拉长产业链"
+      ],
+      "cloze": [
+        "网友说的“____”，很多时候是因为光热闹没消费。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:打卡游",
+      "word": "打卡游",
+      "wordType": "collocation",
+      "explanation": "停留时间短、衍生消费少的浅层次观光；需升级为深度体验游并拉长产业链。",
+      "usage": "文旅升级／流量转化。",
+      "examples": [
+        "把单次打卡游做成研学过夜游，衍生消费才会跟着上来。"
+      ],
+      "rivals": [
+        "深度体验游",
+        "否定一切短途游",
+        "只拍照不消费"
+      ],
+      "cloze": [
+        "部分“____”属于浅层次消费：来一趟、拍几张就离开。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:泼天流量",
+      "word": "泼天流量",
+      "wordType": "collocation",
+      "explanation": "短期内涌入的巨大关注与客流；是机遇也是考题，不能躺平吃短期红利。",
+      "usage": "网红出圈／机遇与转化。",
+      "examples": [
+        "面对泼天流量，县域要把游客留下来创业，而不是只卖一张门票。"
+      ],
+      "rivals": [
+        "躺平吃红利",
+        "拒绝一切热度",
+        "流量无边界论"
+      ],
+      "cloze": [
+        "面对____，不能躺在热度里吃短期红利。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:吃短期红利",
+      "word": "吃短期红利",
+      "wordType": "collocation",
+      "explanation": "躺在热度上赚快钱、不补短板不拉长链条的短视做法。",
+      "usage": "纠偏短视／流量运营。",
+      "examples": [
+        "只靠涨价宰客吃短期红利，热搜一过店铺就冷清。"
+      ],
+      "rivals": [
+        "借热度补短板",
+        "拉长产业链",
+        "必要即时转化"
+      ],
+      "cloze": [
+        "不能躺在热度里“____”，而要借热度补短板。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:强磁场",
+      "word": "强磁场",
+      "wordType": "collocation",
+      "explanation": "有味道、有活力、有温度的城市对青年人才与市场主体的吸引力；属软实力。",
+      "usage": "城市形象／人才集聚。",
+      "examples": [
+        "房价友好加综艺气质，让长沙对年轻人形成强磁场。"
+      ],
+      "rivals": [
+        "仅靠口号吸引",
+        "硬核科技与烟火对立",
+        "排斥文旅标签"
+      ],
+      "cloze": [
+        "有味道、有活力、有温度的城市，本身就是集聚人才的____。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    },
+    {
+      "id": "daily-20261106:善用热度/夯实根基",
+      "word": "善用热度/夯实根基",
+      "wordType": "collocation",
+      "explanation": "借流量补短板、拉产业链，同时把发展根扎在实体经济上；网红城市答卷的核心对策。",
+      "usage": "网红城市治理／收束对策。",
+      "examples": [
+        "麻辣烫出圈后还要上标准厂房，才算善用热度/夯实根基。"
+      ],
+      "rivals": [
+        "只要流量",
+        "只要厂房不要烟火",
+        "一劳永逸靠IP"
+      ],
+      "cloze": [
+        "____、____，让一时出圈的烟火沉淀为持久竞争力。"
+      ],
+      "source": "每日读报 2026-11-06：看待网红城市，别只盯着GDP",
+      "publicSources": [
+        {
+          "title": "看待网红城市，别只盯着GDP",
+          "url": "https://epaper.nfnews.com/nfdaily/html/202611/05/content_10185308.html",
+          "kind": "出处原文"
+        }
+      ],
+      "exampleSource": "原创例句"
+    }
+  ]
+}
